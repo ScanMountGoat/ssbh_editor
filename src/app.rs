@@ -132,6 +132,8 @@ impl epi::App for SsbhApp {
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu_button(ui, "File", |ui| {
                     if ui.button("Open Folder...").clicked() {
+                        ui.close_menu();
+
                         if let Some(folder) = FileDialog::new().pick_folder() {
                             // TODO: How to let the model update itself?
                             // TODO: We want to sort alphabetically?
@@ -141,6 +143,8 @@ impl epi::App for SsbhApp {
                     }
 
                     if ui.button("Add Folder to Workspace...").clicked() {
+                        ui.close_menu();
+
                         if let Some(folder) = FileDialog::new().pick_folder() {
                             // Load the folder manually since the recursive function checks for numshb.
                             // TODO: Is there an easier way to allow loading animation folders?
@@ -152,12 +156,16 @@ impl epi::App for SsbhApp {
                     }
 
                     if ui.button("Clear Workspace").clicked() {
+                        ui.close_menu();
+
                         self.clear_workspace();
                     }
                 });
 
                 egui::menu::menu_button(ui, "Menu", |ui| {
                     if ui.button("Render Settings").clicked() {
+                        ui.close_menu();
+
                         self.ui_state.render_settings_open = true;
                     }
                 });
@@ -337,6 +345,7 @@ impl epi::App for SsbhApp {
                     .show(ui, |ui| {
                         for (folder_index, model) in self.models.iter_mut().enumerate() {
                             // TODO: Will these IDs be unique?
+                            // TODO: Create unique IDs without displaying indices on folder names.
                             CollapsingHeader::new(format!(
                                 "{}.{}",
                                 Path::new(&model.folder_name)
@@ -495,41 +504,44 @@ impl epi::App for SsbhApp {
 
 impl SsbhApp {
     fn animation_bar(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            let mut final_frame_index = 0.0;
-            for (_, a) in &self.animation_state.animations {
-                if a.final_frame_index > final_frame_index {
-                    final_frame_index = a.final_frame_index;
+        ui.with_layout(
+            egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
+            |ui| {
+                let mut final_frame_index = 0.0;
+                for (_, a) in &self.animation_state.animations {
+                    if a.final_frame_index > final_frame_index {
+                        final_frame_index = a.final_frame_index;
+                    }
                 }
-            }
-            // TODO: Allow in between frames like 14.5?
-            // TODO: Add a text edit?
-            ui.spacing_mut().slider_width = ui.available_size().x - 100.0;
-            // TODO: negatives?
-            if ui
-                .add(
-                    egui::Slider::new(
-                        &mut self.animation_state.current_frame,
-                        0.0..=final_frame_index,
+
+                // TODO: How to fill available space?
+                ui.spacing_mut().slider_width = (ui.available_size().x - 120.0).max(0.0);
+                if ui
+                    .add(
+                        egui::Slider::new(
+                            &mut self.animation_state.current_frame,
+                            0.0..=final_frame_index,
+                        )
+                        .step_by(1.0),
                     )
-                    .step_by(1.0),
-                )
-                .changed()
-            {
-                // Manually trigger an update in case the playback is paused.
-                self.animation_state.animation_frame_was_changed = true;
-            }
-            // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
-            if self.animation_state.is_playing {
-                if ui.button("Pause").clicked() {
-                    self.animation_state.is_playing = false;
+                    .changed()
+                {
+                    // Manually trigger an update in case the playback is paused.
+                    self.animation_state.animation_frame_was_changed = true;
                 }
-            } else {
-                if ui.button("Play").clicked() {
-                    self.animation_state.is_playing = true;
+                // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
+                let size = [60.0, 30.0];
+                if self.animation_state.is_playing {
+                    if ui.add_sized(size, egui::Button::new("Pause")).clicked() {
+                        self.animation_state.is_playing = false;
+                    }
+                } else {
+                    if ui.add_sized(size, egui::Button::new("Play")).clicked() {
+                        self.animation_state.is_playing = true;
+                    }
                 }
-            }
-        });
+            },
+        );
     }
 }
 
@@ -705,6 +717,8 @@ fn hlpb_editor(
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu_button(ui, "File", |ui| {
                     if ui.button("Save").clicked() {
+                        ui.close_menu();
+
                         if let Some(file) = FileDialog::new()
                             .add_filter("Hlpb", &["nuhlpb"])
                             .save_file()
@@ -860,6 +874,8 @@ fn modl_editor(
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu_button(ui, "File", |ui| {
                     if ui.button("Save").clicked() {
+                        ui.close_menu();
+
                         if let Some(file) = FileDialog::new()
                             .add_filter("Modl", &["numdlb"])
                             .save_file()
@@ -1097,6 +1113,8 @@ fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> bool {
                     egui::menu::bar(ui, |ui| {
                         egui::menu::menu_button(ui, "File", |ui| {
                             if ui.button("Save").clicked() {
+                                ui.close_menu();
+
                                 if let Some(file) = FileDialog::new()
                                     .add_filter("Skel", &["nusktb"])
                                     .save_file()
@@ -1211,6 +1229,8 @@ fn matl_editor(
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu_button(ui, "File", |ui| {
                     if ui.button("Save").clicked() {
+                        ui.close_menu();
+
                         if let Some(file) = FileDialog::new()
                             .add_filter("Matl", &["numatb"])
                             .save_file()
@@ -1224,6 +1244,8 @@ fn matl_editor(
 
                 egui::menu::menu_button(ui, "Material", |ui| {
                     if ui.button("Add New Material").clicked() {
+                        ui.close_menu();
+
                         // TODO: Select options from presets?
                         let new_entry = default_material();
                         matl.entries.push(new_entry);
