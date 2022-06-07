@@ -9,9 +9,8 @@ use epi::*;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt;
-use ssbh_data::prelude::*;
+use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
-use ssbh_editor::{app::SsbhApp, load_models_recursive};
 use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails};
 
 use ssbh_wgpu::{
@@ -361,6 +360,7 @@ fn main() {
                         &app.models,
                         &app.render_state.default_textures,
                         &app.render_state.stage_cube,
+                        &app.render_state.shader_database,
                     );
                     app.thumbnails = generate_model_thumbnails(
                         &texture_renderer,
@@ -412,6 +412,7 @@ fn main() {
                                 &app.render_state.pipeline_data,
                                 &app.render_state.default_textures,
                                 &app.render_state.stage_cube,
+                                &app.render_state.shader_database,
                             );
                         }
                     }

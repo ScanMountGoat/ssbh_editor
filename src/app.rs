@@ -211,6 +211,11 @@ impl epi::App for SsbhApp {
                             &display_name(&model.folder_name, &name),
                             &mut self.ui_state.selected_material_index,
                             matl,
+                            model
+                                .modls
+                                .iter_mut()
+                                .find(|(f, _)| f == "model.numdlb")
+                                .map(|(_, m)| m),
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
                             &mut self.ui_state.matl_editor_advanced_mode,
@@ -225,16 +230,16 @@ impl epi::App for SsbhApp {
                             // TODO: Is it worth optimizing this to only effect certain materials?
                             // Only the model.numatb is rendered in the viewport for now.
                             if name == "model.numatb" {
-                                for entry in &matl.entries {
-                                    render_model.update_material(
-                                        &self.render_state.device,
-                                        &self.render_state.queue,
-                                        entry,
-                                        &self.render_state.pipeline_data,
-                                        &self.render_state.default_textures,
-                                        &self.render_state.stage_cube,
-                                    );
-                                }
+                                // TODO: How to efficiently handle renaming materials in ssbh_wgpu?
+                                render_model.update_materials(
+                                    &self.render_state.device,
+                                    &self.render_state.queue,
+                                    &matl.entries,
+                                    &self.render_state.pipeline_data,
+                                    &self.render_state.default_textures,
+                                    &self.render_state.stage_cube,
+                                    &self.render_state.shader_database,
+                                );
                             }
                         }
                     }
@@ -665,8 +670,6 @@ fn hlpb_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     if !hlpb.aim_constraints.is_empty() {
-                        // ui.heading("Aim Constraints");
-
                         CollapsingHeader::new("Aim Constraints")
                             .default_open(true)
                             .show(ui, |ui| {
@@ -1135,6 +1138,7 @@ fn matl_editor(
     title: &str,
     selected_material_index: &mut usize,
     matl: &mut MatlData,
+    modl: Option<&mut ModlData>,
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: &mut bool,
@@ -1219,14 +1223,25 @@ fn matl_editor(
                                     .unwrap_or_default()
                             });
                     });
-
                     // Advanced mode has more detailed information that most users won't want to edit.
                     ui.checkbox(advanced_mode, "Advanced Settings");
 
                     if let Some(entry) = matl.entries.get_mut(*selected_material_index) {
+                        // TODO: Avoid collect here?
+                        // Keep track of modl entries since materials may be renamed.
+                        let mut modl_entries: Vec<_> = modl
+                            .map(|m| {
+                                m.entries
+                                    .iter_mut()
+                                    .filter(|e| e.material_label == entry.material_label)
+                                    .collect()
+                            })
+                            .unwrap_or(Vec::new());
+
                         matl_entry_editor(
                             ui,
                             entry,
+                            &mut modl_entries,
                             folder_thumbnails,
                             default_thumbnails,
                             *advanced_mode,
@@ -1256,6 +1271,7 @@ fn shader_label(ui: &mut egui::Ui, shader_label: &str, is_valid: bool) {
 fn matl_entry_editor(
     ui: &mut egui::Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
+    modl_entries: &mut [&mut ModlEntryData],
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
@@ -1308,6 +1324,17 @@ fn matl_entry_editor(
             shader_label(ui, &entry.shader_label, program.is_some());
         });
     }
+
+    ui.horizontal(|ui| {
+        ui.label("Material Label");
+        // TODO: Get this to work with lost_focus for efficiency.
+        if ui.text_edit_singleline(&mut entry.material_label).changed() {
+            // Rename any effected modl entries if the material label changes.
+            for modl_entry in modl_entries {
+                modl_entry.material_label = entry.material_label.clone();
+            }
+        }
+    });
 
     // TODO: Option to delete unneeded parameters.
     if let Some(program) = program {
