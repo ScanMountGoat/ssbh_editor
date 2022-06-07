@@ -1,6 +1,3 @@
-use std::iter;
-use std::time::Instant;
-
 use chrono::{DateTime, Utc};
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
@@ -8,14 +5,15 @@ use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
-use pollster::FutureExt;
+use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
 use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails};
-
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
 };
+use std::iter;
+use std::time::Instant;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::*,
@@ -139,7 +137,10 @@ fn main() {
         .with_resizable(true)
         .with_transparent(false)
         .with_title(concat!("SSBH Editor ", env!("CARGO_PKG_VERSION")))
-        .with_maximized(true)
+        .with_inner_size(winit::dpi::Size::Logical(winit::dpi::LogicalSize::new(
+            // Set a small initial size so the window doesn't overflow the screen.
+            1280.0, 720.0,
+        )))
         .build(&event_loop)
         .unwrap();
 
@@ -273,7 +274,6 @@ fn main() {
         should_show_update,
         new_release_tag,
         should_refresh_render_settings: false,
-        message: String::new(),
         ui_state: UiState {
             material_editor_open: false,
             render_settings_open: false,
@@ -307,6 +307,11 @@ fn main() {
             selected_slot: 0,
         },
     };
+
+    // Initialize logging.
+    log::set_logger(&*ssbh_editor::app::LOGGER)
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .unwrap();
 
     let start_time = Instant::now();
     let mut previous_frame_time = None;

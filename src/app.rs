@@ -6,17 +6,45 @@ use crate::{
     widgets::*,
 };
 use egui::{CollapsingHeader, ScrollArea};
+use lazy_static::lazy_static;
+use log::{error, info, trace, warn, Log};
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
-use std::path::Path;
+use std::{path::Path, sync::Mutex};
+
+lazy_static! {
+    pub static ref LOGGER: AppLogger = AppLogger {
+        messages: Mutex::new(Vec::new())
+    };
+}
+
+pub struct AppLogger {
+    messages: Mutex<Vec<(log::Level, String)>>,
+}
+
+impl Log for AppLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        // Only show logs from the application for now.
+        // TODO: Log ssbh_wgpu and wgpu info?
+        metadata.level() <= log::Level::Warn && metadata.target() == "ssbh_editor"
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            self.messages
+                .lock()
+                .unwrap()
+                .push((record.level(), format!("{}", record.args())));
+        }
+    }
+
+    fn flush(&self) {}
+}
 
 pub struct SsbhApp {
     pub should_refresh_meshes: bool,
     pub should_refresh_render_settings: bool,
-
-    // TODO: Add proper logging.
-    pub message: String,
 
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
@@ -189,12 +217,7 @@ impl epi::App for SsbhApp {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, skel)) = model.skels.get_mut(skel_index) {
-                        if !skel_editor(
-                            ctx,
-                            &display_name(&model.folder_name, &name),
-                            skel,
-                            &mut self.message,
-                        ) {
+                        if !skel_editor(ctx, &display_name(&model.folder_name, &name), skel) {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
                         }
@@ -230,7 +253,6 @@ impl epi::App for SsbhApp {
                             &mut self.ui_state.matl_editor_advanced_mode,
                             &self.render_state.shader_database,
                             &mut self.ui_state.preset_window_open,
-                            &mut self.message,
                         ) {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
@@ -273,7 +295,6 @@ impl epi::App for SsbhApp {
                                 .map(|(_, m)| m),
                             matl,
                             &mut self.ui_state.modl_editor_advanced_mode,
-                            &mut self.message,
                         ) {
                             // Close the window.
                             self.ui_state.selected_modl_index = None;
@@ -297,7 +318,6 @@ impl epi::App for SsbhApp {
                                 .iter()
                                 .find(|(f, _)| f == "model.nusktb")
                                 .map(|(_, s)| s),
-                            &mut self.message,
                         ) {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
@@ -454,11 +474,21 @@ impl epi::App for SsbhApp {
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui| {
             self.animation_bar(ui);
             // TODO: Add a proper log window similar to Blender's info log.
-            // TODO: Use the log crate.
-            // Show the most recently logged item + log level icon.
             // Each entry should contain details on where the error occurred.
             // Clicking should expand to show the full log.
-            ui.label(&self.message);
+            // Show the most recently logged item + log level icon.
+            if let Some((level, message)) = LOGGER.messages.lock().unwrap().first() {
+                ui.horizontal(|ui| {
+                    match level {
+                        log::Level::Error => error_icon(ui),
+                        log::Level::Warn => warning_icon(ui),
+                        log::Level::Info => (),
+                        log::Level::Debug => (),
+                        log::Level::Trace => (),
+                    }
+                    ui.label(message);
+                });
+            }
         });
     }
 }
@@ -665,7 +695,6 @@ fn hlpb_editor(
     title: &str,
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
-    message: &mut String,
 ) -> bool {
     let mut open = true;
 
@@ -680,9 +709,8 @@ fn hlpb_editor(
                             .add_filter("Hlpb", &["nuhlpb"])
                             .save_file()
                         {
-                            // TODO: Handle errors?
                             if let Err(e) = hlpb.write_to_file(file) {
-                                *message = e.to_string();
+                                error!(target: "ssbh_editor", "Failed to save Hlpb (.nuhlpb): {}", e);
                             }
                         }
                     }
@@ -822,7 +850,6 @@ fn modl_editor(
     mesh: Option<&MeshData>,
     matl: Option<&MatlData>,
     advanced_mode: &mut bool,
-    message: &mut String,
 ) -> bool {
     let mut open = true;
 
@@ -837,9 +864,8 @@ fn modl_editor(
                             .add_filter("Modl", &["numdlb"])
                             .save_file()
                         {
-                            // TODO: Handle errors?
                             if let Err(e) = modl.write_to_file(file) {
-                                *message = e.to_string();
+                                error!(target: "ssbh_editor", "Failed to save Modl (.numdlb): {}", e);
                             }
                         }
                     }
@@ -1058,12 +1084,7 @@ fn mesh_editor(ctx: &egui::Context, title: &str, mesh: &mut MeshData) -> bool {
     open
 }
 
-fn skel_editor(
-    ctx: &egui::Context,
-    title: &str,
-    skel: &mut SkelData,
-    message: &mut String,
-) -> bool {
+fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> bool {
     let mut open = true;
 
     egui::Window::new(format!("Skel Editor ({title})"))
@@ -1080,9 +1101,8 @@ fn skel_editor(
                                     .add_filter("Skel", &["nusktb"])
                                     .save_file()
                                 {
-                                    // TODO: Add a log for errors?
                                     if let Err(e) = skel.write_to_file(file) {
-                                        *message = e.to_string();
+                                        error!(target: "ssbh_editor", "Failed to save Skel (.nusktb): {}", e);
                                     }
                                 }
                             }
@@ -1180,7 +1200,6 @@ fn matl_editor(
     advanced_mode: &mut bool,
     shader_database: &ShaderDatabase,
     preset_window_open: &mut bool,
-    message: &mut String,
 ) -> bool {
     let mut open = true;
 
@@ -1196,9 +1215,8 @@ fn matl_editor(
                             .add_filter("Matl", &["numatb"])
                             .save_file()
                         {
-                            // TODO: Handle errors?
                             if let Err(e) = matl.write_to_file(file) {
-                                *message = e.to_string();
+                                error!(target: "ssbh_editor", "Failed to save Matl (.numatb): {}", e);
                             }
                         }
                     }

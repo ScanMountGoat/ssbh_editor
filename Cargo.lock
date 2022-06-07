@@ -2691,6 +2691,8 @@ dependencies = [
  "egui_winit_platform",
  "epi",
  "glam",
+ "lazy_static",
+ "log",
  "nutexb",
  "nutexb_wgpu",
  "octocrab",
