@@ -15,6 +15,9 @@ pub struct SsbhApp {
     pub should_refresh_meshes: bool,
     pub should_refresh_render_settings: bool,
 
+    // TODO: Add proper logging.
+    pub message: String,
+
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
 
@@ -186,7 +189,12 @@ impl epi::App for SsbhApp {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, skel)) = model.skels.get_mut(skel_index) {
-                        if !skel_editor(ctx, &display_name(&model.folder_name, &name), skel) {
+                        if !skel_editor(
+                            ctx,
+                            &display_name(&model.folder_name, &name),
+                            skel,
+                            &mut self.message,
+                        ) {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
                         }
@@ -206,6 +214,7 @@ impl epi::App for SsbhApp {
                 if let Some(matl_index) = self.ui_state.selected_matl_index {
                     if let Some((name, matl)) = model.matls.get_mut(matl_index) {
                         // TODO: Fix potential crash if thumbnails aren't present.
+                        // TODO: Make this a method to simplify arguments.
                         if !matl_editor(
                             ctx,
                             &display_name(&model.folder_name, &name),
@@ -221,6 +230,7 @@ impl epi::App for SsbhApp {
                             &mut self.ui_state.matl_editor_advanced_mode,
                             &self.render_state.shader_database,
                             &mut self.ui_state.preset_window_open,
+                            &mut self.message,
                         ) {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
@@ -263,6 +273,7 @@ impl epi::App for SsbhApp {
                                 .map(|(_, m)| m),
                             matl,
                             &mut self.ui_state.modl_editor_advanced_mode,
+                            &mut self.message,
                         ) {
                             // Close the window.
                             self.ui_state.selected_modl_index = None;
@@ -286,6 +297,7 @@ impl epi::App for SsbhApp {
                                 .iter()
                                 .find(|(f, _)| f == "model.nusktb")
                                 .map(|(_, s)| s),
+                            &mut self.message,
                         ) {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
@@ -440,42 +452,53 @@ impl epi::App for SsbhApp {
             });
 
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                let mut final_frame_index = 0.0;
-                for (_, a) in &self.animation_state.animations {
-                    if a.final_frame_index > final_frame_index {
-                        final_frame_index = a.final_frame_index;
-                    }
-                }
+            self.animation_bar(ui);
+            // TODO: Add a proper log window similar to Blender's info log.
+            // TODO: Use the log crate.
+            // Show the most recently logged item + log level icon.
+            // Each entry should contain details on where the error occurred.
+            // Clicking should expand to show the full log.
+            ui.label(&self.message);
+        });
+    }
+}
 
-                // TODO: Allow in between frames like 14.5?
-                // TODO: Add a text edit?
-                ui.spacing_mut().slider_width = ui.available_size().x - 100.0; // TODO: negatives?
-                if ui
-                    .add(
-                        egui::Slider::new(
-                            &mut self.animation_state.current_frame,
-                            0.0..=final_frame_index,
-                        )
-                        .step_by(1.0),
+impl SsbhApp {
+    fn animation_bar(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            let mut final_frame_index = 0.0;
+            for (_, a) in &self.animation_state.animations {
+                if a.final_frame_index > final_frame_index {
+                    final_frame_index = a.final_frame_index;
+                }
+            }
+            // TODO: Allow in between frames like 14.5?
+            // TODO: Add a text edit?
+            ui.spacing_mut().slider_width = ui.available_size().x - 100.0;
+            // TODO: negatives?
+            if ui
+                .add(
+                    egui::Slider::new(
+                        &mut self.animation_state.current_frame,
+                        0.0..=final_frame_index,
                     )
-                    .changed()
-                {
-                    // Manually trigger an update in case the playback is paused.
-                    self.animation_state.animation_frame_was_changed = true;
+                    .step_by(1.0),
+                )
+                .changed()
+            {
+                // Manually trigger an update in case the playback is paused.
+                self.animation_state.animation_frame_was_changed = true;
+            }
+            // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
+            if self.animation_state.is_playing {
+                if ui.button("Pause").clicked() {
+                    self.animation_state.is_playing = false;
                 }
-
-                // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
-                if self.animation_state.is_playing {
-                    if ui.button("Pause").clicked() {
-                        self.animation_state.is_playing = false;
-                    }
-                } else {
-                    if ui.button("Play").clicked() {
-                        self.animation_state.is_playing = true;
-                    }
+            } else {
+                if ui.button("Play").clicked() {
+                    self.animation_state.is_playing = true;
                 }
-            });
+            }
         });
     }
 }
@@ -642,6 +665,7 @@ fn hlpb_editor(
     title: &str,
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
+    message: &mut String,
 ) -> bool {
     let mut open = true;
 
@@ -657,7 +681,9 @@ fn hlpb_editor(
                             .save_file()
                         {
                             // TODO: Handle errors?
-                            hlpb.write_to_file(file).unwrap();
+                            if let Err(e) = hlpb.write_to_file(file) {
+                                *message = e.to_string();
+                            }
                         }
                     }
                 });
@@ -796,6 +822,7 @@ fn modl_editor(
     mesh: Option<&MeshData>,
     matl: Option<&MatlData>,
     advanced_mode: &mut bool,
+    message: &mut String,
 ) -> bool {
     let mut open = true;
 
@@ -811,7 +838,9 @@ fn modl_editor(
                             .save_file()
                         {
                             // TODO: Handle errors?
-                            modl.write_to_file(file).unwrap();
+                            if let Err(e) = modl.write_to_file(file) {
+                                *message = e.to_string();
+                            }
                         }
                     }
                 });
@@ -1029,7 +1058,12 @@ fn mesh_editor(ctx: &egui::Context, title: &str, mesh: &mut MeshData) -> bool {
     open
 }
 
-fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> bool {
+fn skel_editor(
+    ctx: &egui::Context,
+    title: &str,
+    skel: &mut SkelData,
+    message: &mut String,
+) -> bool {
     let mut open = true;
 
     egui::Window::new(format!("Skel Editor ({title})"))
@@ -1046,8 +1080,10 @@ fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> bool {
                                     .add_filter("Skel", &["nusktb"])
                                     .save_file()
                                 {
-                                    // TODO: Handle errors?
-                                    skel.write_to_file(file).unwrap();
+                                    // TODO: Add a log for errors?
+                                    if let Err(e) = skel.write_to_file(file) {
+                                        *message = e.to_string();
+                                    }
                                 }
                             }
                         });
@@ -1144,6 +1180,7 @@ fn matl_editor(
     advanced_mode: &mut bool,
     shader_database: &ShaderDatabase,
     preset_window_open: &mut bool,
+    message: &mut String,
 ) -> bool {
     let mut open = true;
 
@@ -1160,7 +1197,9 @@ fn matl_editor(
                             .save_file()
                         {
                             // TODO: Handle errors?
-                            matl.write_to_file(file).unwrap();
+                            if let Err(e) = matl.write_to_file(file) {
+                                *message = e.to_string();
+                            }
                         }
                     }
                 });

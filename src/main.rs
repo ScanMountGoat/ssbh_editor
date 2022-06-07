@@ -273,6 +273,7 @@ fn main() {
         should_show_update,
         new_release_tag,
         should_refresh_render_settings: false,
+        message: String::new(),
         ui_state: UiState {
             material_editor_open: false,
             render_settings_open: false,
