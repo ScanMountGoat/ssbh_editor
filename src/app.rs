@@ -456,7 +456,7 @@ impl epi::App for SsbhApp {
             });
 
         egui::SidePanel::right("right panel")
-            .min_width(300.0)
+            .min_width(350.0)
             .show(ctx, |ui| {
                 // TODO: Is it worth creating a dedicated tab control?
                 ui.horizontal(|ui| {

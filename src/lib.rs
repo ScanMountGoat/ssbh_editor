@@ -1,5 +1,6 @@
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
+use egui::{FontFamily, FontId, TextStyle};
 use egui_wgpu_backend::RenderPass;
 use epi::*;
 use nutexb_wgpu::TextureRenderer;
@@ -7,8 +8,8 @@ use ssbh_data::matl_data::ParamId;
 use ssbh_wgpu::ModelFolder;
 
 pub mod app;
-pub mod widgets;
 mod material;
+pub mod widgets;
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
     let mut models = ssbh_wgpu::load_model_folders(root);
@@ -91,4 +92,28 @@ pub fn generate_default_thumbnails(
             (name.clone(), egui_texture)
         })
         .collect()
+}
+
+pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
+    // Modified from the default theme to be slightly larger.
+    // Size 16.0 is common on the web and more legible than 14.0.
+    let mut text_styles = BTreeMap::new();
+    text_styles.insert(
+        TextStyle::Small,
+        FontId::new(12.0, FontFamily::Proportional),
+    );
+    text_styles.insert(TextStyle::Body, FontId::new(16.0, FontFamily::Proportional));
+    text_styles.insert(
+        TextStyle::Button,
+        FontId::new(16.0, FontFamily::Proportional),
+    );
+    text_styles.insert(
+        TextStyle::Heading,
+        FontId::new(20.0, FontFamily::Proportional),
+    );
+    text_styles.insert(
+        TextStyle::Monospace,
+        FontId::new(16.0, FontFamily::Monospace),
+    );
+    text_styles
 }

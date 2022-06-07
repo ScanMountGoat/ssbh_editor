@@ -8,7 +8,7 @@ use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
-use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails};
+use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails, default_text_styles};
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
 };
@@ -197,7 +197,7 @@ fn main() {
         format: surface_format,
         width: size.width as u32,
         height: size.height as u32,
-        present_mode: wgpu::PresentMode::Mailbox,
+        present_mode: wgpu::PresentMode::Mailbox, // TODO: FIFO?
     };
     surface.configure(&device, &surface_config);
 
@@ -211,7 +211,10 @@ fn main() {
         physical_height: size.height as u32,
         scale_factor: window.scale_factor(),
         font_definitions: FontDefinitions::default(),
-        style: Default::default(),
+        style: egui::style::Style {
+            text_styles: default_text_styles(),
+            ..Default::default()
+        },
     });
 
     let mut renderer = SsbhRenderer::new(
