@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::Path};
 
-use egui::{FontFamily, FontId, TextStyle};
+use egui::{FontFamily, FontId, TextStyle, style::{Widgets, WidgetVisuals}, Color32, Stroke, Rounding};
 use egui_wgpu_backend::RenderPass;
 use epi::*;
 use nutexb_wgpu::TextureRenderer;
@@ -95,17 +95,16 @@ pub fn generate_default_thumbnails(
 }
 
 pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
-    // Modified from the default theme to be slightly larger.
-    // Size 16.0 is common on the web and more legible than 14.0.
+    // Modified from the default theme.
     let mut text_styles = BTreeMap::new();
     text_styles.insert(
         TextStyle::Small,
         FontId::new(12.0, FontFamily::Proportional),
     );
-    text_styles.insert(TextStyle::Body, FontId::new(16.0, FontFamily::Proportional));
+    text_styles.insert(TextStyle::Body, FontId::new(14.0, FontFamily::Proportional));
     text_styles.insert(
         TextStyle::Button,
-        FontId::new(16.0, FontFamily::Proportional),
+        FontId::new(14.0, FontFamily::Proportional),
     );
     text_styles.insert(
         TextStyle::Heading,
@@ -113,7 +112,48 @@ pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
     );
     text_styles.insert(
         TextStyle::Monospace,
-        FontId::new(16.0, FontFamily::Monospace),
+        FontId::new(14.0, FontFamily::Monospace),
     );
     text_styles
+}
+
+pub fn widgets_dark() -> Widgets {
+    // Modified from the default theme to have higher text contrast.
+    Widgets {
+        noninteractive: WidgetVisuals {
+            bg_fill: Color32::from_gray(27), // window background
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(60)), // separators, indentation lines, windows outlines
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(180)), // normal text color
+            rounding: Rounding::same(2.0),
+            expansion: 0.0,
+        },
+        inactive: WidgetVisuals {
+            bg_fill: Color32::from_gray(60), // button background
+            bg_stroke: Default::default(),
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(204)), // button text
+            rounding: Rounding::same(2.0),
+            expansion: 0.0,
+        },
+        hovered: WidgetVisuals {
+            bg_fill: Color32::from_gray(70),
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(150)), // e.g. hover over window edge or button
+            fg_stroke: Stroke::new(1.5, Color32::from_gray(255)),
+            rounding: Rounding::same(3.0),
+            expansion: 1.0,
+        },
+        active: WidgetVisuals {
+            bg_fill: Color32::from_gray(55),
+            bg_stroke: Stroke::new(1.0, Color32::WHITE),
+            fg_stroke: Stroke::new(2.0, Color32::WHITE),
+            rounding: Rounding::same(2.0),
+            expansion: 1.0,
+        },
+        open: WidgetVisuals {
+            bg_fill: Color32::from_gray(27),
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(60)),
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(204)),
+            rounding: Rounding::same(2.0),
+            expansion: 0.0,
+        },
+    }
 }

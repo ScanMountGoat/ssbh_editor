@@ -8,7 +8,7 @@ use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
-use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails, default_text_styles};
+use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails, default_text_styles, widgets_dark};
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
 };
@@ -213,6 +213,10 @@ fn main() {
         font_definitions: FontDefinitions::default(),
         style: egui::style::Style {
             text_styles: default_text_styles(),
+            visuals: egui::style::Visuals {
+                widgets: widgets_dark(),
+                ..Default::default()
+            },
             ..Default::default()
         },
     });
@@ -360,7 +364,7 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                // TODO: Should updates happen on a separate thread?
+                // TODO: Load models on a separate thread to avoid freezing the UI.
                 if app.should_refresh_meshes {
                     app.render_models = ssbh_wgpu::load_render_models(
                         &app.render_state.device,

@@ -135,8 +135,8 @@ impl epi::App for SsbhApp {
                         ui.close_menu();
 
                         if let Some(folder) = FileDialog::new().pick_folder() {
-                            // TODO: How to let the model update itself?
-                            // TODO: We want to sort alphabetically?
+                            // TODO: Sort alphabetically?
+                            // TODO: Allow for opening folders with no mesh/modl?
                             self.models = load_models_recursive(folder);
                             self.should_refresh_meshes = true;
                         }
@@ -146,12 +146,11 @@ impl epi::App for SsbhApp {
                         ui.close_menu();
 
                         if let Some(folder) = FileDialog::new().pick_folder() {
-                            // Load the folder manually since the recursive function checks for numshb.
+                            // Load the folder manually to avoid skipping folders with just animations.
                             // TODO: Is there an easier way to allow loading animation folders?
                             let new_model = load_model(&folder);
                             self.models.push(new_model);
-                            // TODO: Why does this cause crashes?
-                            // self.should_refresh_meshes = true;
+                            self.should_refresh_meshes = true;
                         }
                     }
 
