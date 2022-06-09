@@ -8,7 +8,10 @@ use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
-use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails, default_text_styles, widgets_dark};
+use ssbh_editor::material::load_material_presets;
+use ssbh_editor::{
+    default_text_styles, generate_default_thumbnails, generate_model_thumbnails, widgets_dark,
+};
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
 };
@@ -175,6 +178,7 @@ fn main() {
             .ok();
     let update_check_time = Utc::now();
 
+    // TODO: Add logging for update check?
     let start = std::time::Instant::now();
     let should_show_update =
         should_check_for_release(previous_update_check_time, update_check_time);
@@ -226,6 +230,7 @@ fn main() {
         &queue,
         size.width,
         size.height,
+        window.scale_factor(),
         wgpu::Color {
             // TODO: This doesn't match exactly due to gamma correction.
             r: (27.0f64 / 255.0f64).powf(2.2f64),
@@ -272,6 +277,8 @@ fn main() {
 
     let shader_database = ssbh_wgpu::create_database();
 
+    let material_presets = load_material_presets("presets.json");
+
     let mut app = SsbhApp {
         models: Vec::new(),
         render_models: Vec::new(),
@@ -281,11 +288,13 @@ fn main() {
         should_show_update,
         new_release_tag,
         should_refresh_render_settings: false,
+        material_presets,
         ui_state: UiState {
             material_editor_open: false,
             render_settings_open: false,
             modl_editor_advanced_mode: false,
             preset_window_open: false,
+            selected_material_preset_index: 0,
             selected_folder_index: None,
             selected_skel_index: None,
             selected_matl_index: None,
@@ -482,6 +491,7 @@ fn main() {
                             &app.render_state.queue,
                             size.width,
                             size.height,
+                            window.scale_factor(),
                         );
                         update_camera(&mut renderer, &app.render_state.queue, size, &camera_state);
                     }

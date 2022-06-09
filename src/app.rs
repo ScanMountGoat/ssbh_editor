@@ -1,7 +1,8 @@
 use crate::{
     load_model, load_models_recursive,
     material::{
-        add_parameters, default_material, missing_parameters, remove_parameters, unused_parameters,
+        add_parameters, apply_preset, default_material, missing_parameters, remove_parameters,
+        unused_parameters,
     },
     widgets::*,
 };
@@ -9,7 +10,7 @@ use egui::{CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
 use log::{error, info, trace, warn, Log};
 use rfd::FileDialog;
-use ssbh_data::{modl_data::ModlEntryData, prelude::*};
+use ssbh_data::{matl_data::MatlEntryData, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
 use std::{path::Path, sync::Mutex};
 
@@ -49,6 +50,8 @@ pub struct SsbhApp {
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
 
+    pub material_presets: Vec<MatlEntryData>,
+
     pub ui_state: UiState,
     // TODO: How to manage the thumbnail cache?
     // TODO: Is parallel list with models the best choice here?
@@ -68,6 +71,7 @@ pub struct UiState {
     pub matl_editor_advanced_mode: bool,
     pub modl_editor_advanced_mode: bool,
     pub preset_window_open: bool,
+    pub selected_material_preset_index: usize,
 
     // TODO: Is there a better way to track this?
     // Clicking an item in the file list sets the selected index.
@@ -260,6 +264,8 @@ impl epi::App for SsbhApp {
                             &mut self.ui_state.matl_editor_advanced_mode,
                             &self.render_state.shader_database,
                             &mut self.ui_state.preset_window_open,
+                            &self.material_presets,
+                            &mut self.ui_state.selected_material_preset_index,
                         ) {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
@@ -1217,6 +1223,8 @@ fn matl_editor(
     advanced_mode: &mut bool,
     shader_database: &ShaderDatabase,
     preset_window_open: &mut bool,
+    material_presets: &[MatlEntryData],
+    selected_preset_index: &mut usize,
 ) -> bool {
     let mut open = true;
 
@@ -1252,10 +1260,9 @@ fn matl_editor(
                         *selected_material_index = matl.entries.len() - 1;
                     }
 
-                    // TODO: Material presets.
-                    // if ui.button("Apply Preset").clicked() {
-                    //     *preset_window_open = true;
-                    // }
+                    if ui.button("Apply Preset").clicked() {
+                        *preset_window_open = true;
+                    }
                 });
             });
 
@@ -1264,19 +1271,17 @@ fn matl_editor(
             egui::Window::new("Select Material Preset")
                 .open(preset_window_open)
                 .show(ctx, |ui| {
-                    // TODO: Create a list of presets.
-                    ui.selectable_value(&mut 0, 0, "PRM Standard (Mario)");
-                    ui.selectable_value(&mut 0, 1, "PRM Emi Standard (Samus)");
-                    ui.selectable_value(&mut 0, 2, "Glass (Olimar Helmet)");
-                    ui.selectable_value(&mut 0, 3, "Skin Standard (Mario)");
-                    ui.selectable_value(&mut 0, 4, "Emission Shadeless (Mario Past USA)");
-                    ui.selectable_value(&mut 0, 5, "CustomVector47 No PRM (Dedede)");
-                    ui.selectable_value(&mut 0, 6, "Diffuse Cube Map (Rosalina)");
-                    ui.selectable_value(&mut 0, 7, "Hair Anisotropic (Corrin)");
-                    ui.selectable_value(&mut 0, 8, "Flat Shading (Mr. Game and Watch)");
+                    for (i, preset) in material_presets.iter().enumerate() {
+                        ui.selectable_value(selected_preset_index, i, &preset.material_label);
+                    }
 
                     if ui.button("Apply").clicked() {
-                        // TODO: Apply the preset and close the window.
+                        if let Some(preset) = material_presets.get(*selected_preset_index) {
+                            if let Some(entry) = matl.entries.get_mut(*selected_material_index) {
+                                *entry = apply_preset(entry, preset);
+                            }
+                        }
+
                         open = false;
                     }
                 });

@@ -215,6 +215,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b5e5f48b927f04e952dedc932f31995a65a0bf65ec971c74436e51bf6e970d"
 
 [[package]]
+name = "atty"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
+dependencies = [
+ "hermit-abi",
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -483,6 +494,17 @@ checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
 dependencies = [
  "termcolor",
  "unicode-width",
+]
+
+[[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
 ]
 
 [[package]]
@@ -1888,7 +1910,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#b7012b22819d4dfdf1059f8b8adf12641c43ced8"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#85388c95c333a62559af920827768554ec1bfffe"
 dependencies = [
  "futures",
  "nutexb",
@@ -2493,6 +2515,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "212e73464ebcde48d723aa02eb270ba62eff38a9b732df31f33f1b4e145f3a54"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2571,6 +2602,19 @@ dependencies = [
  "num-traits",
  "thiserror",
  "time 0.3.9",
+]
+
+[[package]]
+name = "simple_logger"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c75a9723083573ace81ad0cdfc50b858aa3c366c48636edb4109d73122a0c0ea"
+dependencies = [
+ "atty",
+ "colored",
+ "log",
+ "time 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -2675,6 +2719,7 @@ dependencies = [
  "half",
  "itertools",
  "modular-bitfield",
+ "serde",
  "ssbh_lib",
  "ssbh_write",
  "strum",
@@ -2699,6 +2744,7 @@ dependencies = [
  "open",
  "pollster",
  "rfd",
+ "serde_json",
  "ssbh_data",
  "ssbh_wgpu",
  "strum",
@@ -2714,6 +2760,8 @@ source = "git+https://github.com/ultimate-research/ssbh_lib#b1cddded3177d23c712e
 dependencies = [
  "binread",
  "modular-bitfield",
+ "serde",
+ "serde_bytes",
  "ssbh_write",
  "strum",
  "thiserror",
@@ -2722,16 +2770,18 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#b7012b22819d4dfdf1059f8b8adf12641c43ced8"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#85388c95c333a62559af920827768554ec1bfffe"
 dependencies = [
  "bytemuck",
  "futures",
  "glam",
  "globwalk",
  "glyph_brush",
+ "log",
  "nutexb_wgpu",
  "rayon",
  "serde_json",
+ "simple_logger",
  "ssbh_data",
  "strum",
  "wgpu",

@@ -8,7 +8,7 @@ use ssbh_data::matl_data::ParamId;
 use ssbh_wgpu::ModelFolder;
 
 pub mod app;
-mod material;
+pub mod material;
 pub mod widgets;
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {

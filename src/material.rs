@@ -2,7 +2,35 @@
 use ssbh_data::{matl_data::*, meshex_data::Vector4};
 use ssbh_wgpu::ShaderProgram;
 
-// TODO: Add presets?
+pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
+    // TODO: Handle errors?
+    let matl: MatlData = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    matl.entries
+}
+
+pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryData {
+    // Textures paths are mesh specific and should be preserved if possible.
+    // Remaining textures should use neutral default textures.
+    // Preserve the material label to avoid messing up anim and modl data.
+    MatlEntryData {
+        material_label: entry.material_label.clone(),
+        textures: preset
+            .textures
+            .iter()
+            .map(|preset_texture| TextureParam {
+                param_id: preset_texture.param_id,
+                data: entry
+                    .textures
+                    .iter()
+                    .find(|t| t.param_id == preset_texture.param_id)
+                    .map(|t| t.data.clone())
+                    .unwrap_or(default_texture(preset_texture.param_id)),
+            })
+            .collect(),
+        ..preset.clone()
+    }
+}
+
 pub fn default_material() -> MatlEntryData {
     // TODO: Make sure the name is unique?
     // TODO: Add defaults for other parameters?
@@ -520,7 +548,7 @@ mod tests {
                 }],
                 textures: vec![TextureParam {
                     param_id: ParamId::Texture0,
-                    data: "/common/shader/sfx_pbs/default_white".to_string(),
+                    data: "/common/shader/sfxpbs/default_white".to_string(),
                 }],
             },
             entry
@@ -579,5 +607,118 @@ mod tests {
         assert!(entry.rasterizer_states.is_empty());
         assert!(entry.samplers.is_empty());
         assert!(entry.textures.is_empty());
+    }
+
+    #[test]
+    fn apply_preset_empty_material() {
+        let mut entry = MatlEntryData {
+            material_label: "material".to_string(),
+            shader_label: "123".to_string(),
+            blend_states: Vec::new(),
+            floats: Vec::new(),
+            booleans: Vec::new(),
+            vectors: Vec::new(),
+            rasterizer_states: Vec::new(),
+            samplers: Vec::new(),
+            textures: vec![TextureParam {
+                param_id: ParamId::Texture0,
+                data: "a".to_string(),
+            }],
+        };
+
+        let preset = MatlEntryData {
+            material_label: "preset".to_string(),
+            shader_label: "456".to_string(),
+            blend_states: vec![BlendStateParam {
+                param_id: ParamId::BlendState0,
+                data: Default::default(),
+            }],
+            floats: vec![FloatParam {
+                param_id: ParamId::CustomFloat0,
+                data: Default::default(),
+            }],
+            booleans: vec![BooleanParam {
+                param_id: ParamId::CustomBoolean0,
+                data: Default::default(),
+            }],
+            vectors: vec![Vector4Param {
+                param_id: ParamId::CustomVector0,
+                data: Default::default(),
+            }],
+            rasterizer_states: vec![RasterizerStateParam {
+                param_id: ParamId::RasterizerState0,
+                data: Default::default(),
+            }],
+            samplers: vec![
+                SamplerParam {
+                    param_id: ParamId::Sampler0,
+                    data: Default::default(),
+                },
+                SamplerParam {
+                    param_id: ParamId::Sampler1,
+                    data: Default::default(),
+                },
+            ],
+            textures: vec![
+                TextureParam {
+                    param_id: ParamId::Texture0,
+                    data: "d".to_string(),
+                },
+                TextureParam {
+                    param_id: ParamId::Texture1,
+                    data: "c".to_string(),
+                },
+            ],
+        };
+
+        entry = apply_preset(&entry, &preset);
+
+        assert_eq!(
+            MatlEntryData {
+                material_label: "material".to_string(),
+                shader_label: "456".to_string(),
+                blend_states: vec![BlendStateParam {
+                    param_id: ParamId::BlendState0,
+                    data: Default::default(),
+                }],
+                floats: vec![FloatParam {
+                    param_id: ParamId::CustomFloat0,
+                    data: Default::default(),
+                }],
+                booleans: vec![BooleanParam {
+                    param_id: ParamId::CustomBoolean0,
+                    data: Default::default(),
+                }],
+                vectors: vec![Vector4Param {
+                    param_id: ParamId::CustomVector0,
+                    data: Default::default(),
+                }],
+                rasterizer_states: vec![RasterizerStateParam {
+                    param_id: ParamId::RasterizerState0,
+                    data: Default::default(),
+                }],
+                samplers: vec![
+                    SamplerParam {
+                        param_id: ParamId::Sampler0,
+                        data: Default::default(),
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler1,
+                        data: Default::default(),
+                    }
+                ],
+                textures: vec![
+                    TextureParam {
+                        param_id: ParamId::Texture0,
+                        data: "a".to_string(),
+                    },
+                    TextureParam {
+                        param_id: ParamId::Texture1,
+                        data: "/common/shader/sfxpbs/default_white".to_string(),
+                    }
+                ],
+            },
+            entry
+        );
     }
 }
