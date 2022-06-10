@@ -12,6 +12,7 @@
 ### Fixed
 * Fixed menus not closing properly when clicking a menu item.
 * Fixed a potential crash if a file has errors on saving.
+* Fixed "Add Folder to Workspace..." not updating the viewport models.
 
 ## 0.1.0
 First public release!
