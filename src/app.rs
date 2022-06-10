@@ -271,7 +271,7 @@ impl epi::App for SsbhApp {
                             self.ui_state.selected_matl_index = None;
                         } else if let Some(render_model) = self.render_models.get_mut(folder_index)
                         {
-                            // TODO: Should this go in the material editor itself?
+                            // TODO: Add change tracking using .changed() to improve performance.
                             // TODO: Is it worth optimizing this to only effect certain materials?
                             // Only the model.numatb is rendered in the viewport for now.
                             if name == "model.numatb" {
@@ -981,6 +981,7 @@ fn modl_editor(
                             }
 
                             // TODO: How to handle sub indices?
+                            // TODO: Show an indication if the matl is missing the current material.
                             material_label_combo_box(
                                 ui,
                                 &mut entry.material_label,
@@ -1305,6 +1306,13 @@ fn matl_editor(
                                     .map(|m| m.material_label.clone())
                                     .unwrap_or_default()
                             });
+
+                        if *advanced_mode {
+                            if ui.button("Delete").clicked() {
+                                // TODO: Potential panic?
+                                matl.entries.remove(*selected_material_index);
+                            }
+                        }
                     });
                     // Advanced mode has more detailed information that most users won't want to edit.
                     ui.checkbox(advanced_mode, "Advanced Settings");
