@@ -440,20 +440,26 @@ impl epi::App for SsbhApp {
 
                                 // TODO: Display larger versions when clicking?
                                 // TODO: How to manage the thumbnails?
-                                if let Some(model_thumbnails) = self.thumbnails.get(folder_index) {
-                                    for ((_, nutexb), (file, thumbnail)) in
-                                        model.nutexbs.iter().zip(model_thumbnails.iter())
-                                    {
-                                        ui.horizontal(|ui| {
-                                            ui.image(
-                                                *thumbnail,
-                                                egui::Vec2::new(ICON_SIZE, ICON_SIZE),
-                                            );
-                                            // TODO: Create a proper nutexb viewer.
-                                            ui.label(file)
-                                                .on_hover_text(format!("{:#?}", nutexb.footer));
-                                        });
-                                    }
+                                // TODO: Cube map thumbnails.
+                                for (file, nutexb) in model.nutexbs.iter() {
+                                    ui.horizontal(|ui| {
+                                        if let Some(model_thumbnails) =
+                                            self.thumbnails.get(folder_index)
+                                        {
+                                            if let Some((_, thumbnail)) = model_thumbnails
+                                                .iter()
+                                                .find(|(name, _)| name == file)
+                                            {
+                                                ui.image(
+                                                    *thumbnail,
+                                                    egui::Vec2::new(ICON_SIZE, ICON_SIZE),
+                                                );
+                                            }
+                                        }
+                                        // TODO: Create a proper nutexb viewer.
+                                        ui.label(file)
+                                            .on_hover_text(format!("{:#?}", nutexb.footer));
+                                    });
                                 }
                             });
                         }

@@ -1,6 +1,9 @@
 use std::{collections::BTreeMap, path::Path};
 
-use egui::{FontFamily, FontId, TextStyle, style::{Widgets, WidgetVisuals}, Color32, Stroke, Rounding};
+use egui::{
+    style::{WidgetVisuals, Widgets},
+    Color32, FontFamily, FontId, Rounding, Stroke, TextStyle,
+};
 use egui_wgpu_backend::RenderPass;
 use epi::*;
 use nutexb_wgpu::TextureRenderer;
@@ -77,7 +80,7 @@ pub fn generate_default_thumbnails(
     queue: &wgpu::Queue,
     egui_rpass: &mut RenderPass,
 ) -> Vec<(String, egui::TextureId)> {
-    default_textures
+    let mut thumbnails: Vec<_> = default_textures
         .iter()
         .map(|(name, texture)| {
             let rgba_texture = renderer.render_to_texture_rgba(device, queue, &texture, 64, 64);
@@ -91,7 +94,17 @@ pub fn generate_default_thumbnails(
 
             (name.clone(), egui_texture)
         })
-        .collect()
+        .collect();
+    // TODO: Add proper cube map thumbnails to nutexb_wgpu.
+    thumbnails.push((
+        "#replace_cubemap".to_string(),
+        thumbnails
+            .iter()
+            .find(|(n, _)| n == "/common/shader/sfxpbs/default_black")
+            .unwrap()
+            .1,
+    ));
+    thumbnails
 }
 
 pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
