@@ -2,10 +2,11 @@
 use ssbh_data::{matl_data::*, meshex_data::Vector4};
 use ssbh_wgpu::ShaderProgram;
 
-pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
-    // TODO: Handle errors?
-    let matl: MatlData = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-    matl.entries
+pub fn load_material_presets<P: AsRef<std::path::Path>>(
+    path: P,
+) -> Result<Vec<MatlEntryData>, Box<dyn std::error::Error>> {
+    let matl: MatlData = serde_json::from_slice(&std::fs::read(path)?)?;
+    Ok(matl.entries)
 }
 
 pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryData {

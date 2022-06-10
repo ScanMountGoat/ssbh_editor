@@ -1292,7 +1292,9 @@ fn matl_editor(
                         open = false;
                     }
                 });
-            *preset_window_open = open;
+            if !open {
+                *preset_window_open = false;
+            }
 
             ui.add(egui::Separator::default().horizontal());
 

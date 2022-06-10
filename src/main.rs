@@ -277,7 +277,8 @@ fn main() {
 
     let shader_database = ssbh_wgpu::create_database();
 
-    let material_presets = load_material_presets("presets.json");
+    // TODO: Log missing presets?
+    let material_presets = load_material_presets("presets.json").unwrap_or(Vec::new());
 
     let mut app = SsbhApp {
         models: Vec::new(),
