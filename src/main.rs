@@ -116,7 +116,7 @@ fn should_check_for_release(
 // TODO: Only check once per day.
 // TODO: Display a changelog from the repository.
 // TODO: Display update information once in the UI.
-fn check_for_newer_release() -> Option<Release> {
+fn get_latest_release() -> Option<Release> {
     // TODO: Compare versions using the current version and tag.
     // TODO: Assume the tags use identical versioning to cargo.
     let octocrab = octocrab::instance();
@@ -180,15 +180,19 @@ fn main() {
 
     // TODO: Add logging for update check?
     let start = std::time::Instant::now();
-    let should_show_update =
+    let should_check_for_update =
         should_check_for_release(previous_update_check_time, update_check_time);
-
-    let new_release_tag = if should_show_update {
-        check_for_newer_release().map(|r| r.tag_name.clone())
+    let new_release_tag = if should_check_for_update {
+        get_latest_release().map(|r| r.tag_name.clone())
     } else {
         None
     };
 
+    let should_show_update = if let Some(new_release_tag) = &new_release_tag {
+        new_release_tag.as_str() > env!("CARGO_PKG_VERSION")
+    } else {
+        false
+    };
     println!("Check for new release: {:?}", start.elapsed());
 
     // TODO: Is there an easier way to track changing window size?
