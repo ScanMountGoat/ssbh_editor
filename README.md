@@ -12,9 +12,14 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 ## Planned Features
 - Skeleton debug display
 - Additional debug shading modes
+- Additional render settings
 - Nutexb viewer
 - View camera animations
 - Improvements to performance and accuracy of ssbh_wgpu
+- Improved validation for errors with models, textures, and animations
+- Preview stage rendering and lighting data
+- Improvements to controlling the viewport camera
+- Settings to adjust UI scaling for better readability
 
 ## System Requirements
 SSBH Editor is lightweight and does not require a powerful system to run. The application runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
