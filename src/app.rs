@@ -206,7 +206,11 @@ impl epi::App for SsbhApp {
                         let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
                         if ui.hyperlink(release_link).clicked() {
                             // TODO: Log errors?
-                            open::that(release_link);
+                            if let Err(open_err) = open::that(release_link) {
+                                log::error!(
+                                    "Failed to open link ({release_link}) to releases {open_err}"
+                                );
+                            }
                         }
                         // TODO: Show latest version and release notes.
                         // TODO: Parse release notes from changelog.
@@ -908,10 +912,10 @@ fn modl_editor(
                 // Pick an arbitrary material to make the mesh visible in the viewport.
                 let default_material = matl
                     .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
-                    .unwrap_or("PLACEHOLDER".to_string());
+                    .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
                 modl.entries.push(ModlEntryData {
-                    mesh_object_name: "PLACEHOLDER".to_string(),
+                    mesh_object_name: String::from("PLACEHOLDER"),
                     mesh_object_sub_index: 0,
                     material_label: default_material,
                 });
@@ -923,20 +927,19 @@ fn modl_editor(
                     .objects
                     .iter()
                     .filter(|mesh| {
-                        modl.entries
+                        !modl.entries
                             .iter()
-                            .find(|e| {
+                            .any(|e| {
                                 e.mesh_object_name == mesh.name
                                     && e.mesh_object_sub_index == mesh.sub_index
                             })
-                            .is_none()
                     })
                     .collect();
 
                 // Pick an arbitrary material to make the mesh visible in the viewport.
                 let default_material = matl
                     .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
-                    .unwrap_or("PLACEHOLDER".to_string());
+                    .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
                 if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
                     for mesh in missing_entries {
@@ -1209,6 +1212,7 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
         });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn matl_editor(
     ctx: &egui::Context,
     title: &str,

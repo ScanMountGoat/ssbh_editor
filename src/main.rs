@@ -556,6 +556,7 @@ fn update_camera(
     renderer.update_camera(queue, transforms);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn egui_render_pass(
     encoder: &mut wgpu::CommandEncoder,
     platform: &mut Platform,
