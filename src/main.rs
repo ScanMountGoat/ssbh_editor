@@ -103,11 +103,7 @@ fn should_check_for_release(
 ) -> bool {
     if let Some(previous_update_check_time) = previous_update_check_time {
         // Check at most once per day.
-        if current_time.date() > previous_update_check_time.date() {
-            return true;
-        } else {
-            false
-        }
+        current_time.date() > previous_update_check_time.date()
     } else {
         true
     }
@@ -173,7 +169,7 @@ fn main() {
 
     let previous_update_check_time: Option<DateTime<Utc>> =
         std::fs::read_to_string("ssbh_editor_config.txt")
-            .unwrap_or(String::new())
+            .unwrap_or_default()
             .parse()
             .ok();
     let update_check_time = Utc::now();
@@ -183,7 +179,7 @@ fn main() {
     let should_check_for_update =
         should_check_for_release(previous_update_check_time, update_check_time);
     let new_release_tag = if should_check_for_update {
-        get_latest_release().map(|r| r.tag_name.clone())
+        get_latest_release().map(|r| r.tag_name)
     } else {
         None
     };
@@ -282,7 +278,7 @@ fn main() {
     let shader_database = ssbh_wgpu::create_database();
 
     // TODO: Log missing presets?
-    let material_presets = load_material_presets("presets.json").unwrap_or(Vec::new());
+    let material_presets = load_material_presets("presets.json").unwrap_or_default();
 
     let mut app = SsbhApp {
         models: Vec::new(),

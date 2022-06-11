@@ -128,7 +128,7 @@ pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec
         .iter()
         .copied()
         .filter(|param| {
-            entry
+            !entry
                 .booleans
                 .iter()
                 .map(|p| p.param_id)
@@ -137,9 +137,7 @@ pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec
                 .chain(entry.textures.iter().map(|p| p.param_id))
                 .chain(entry.samplers.iter().map(|p| p.param_id))
                 .chain(entry.blend_states.iter().map(|p| p.param_id))
-                .chain(entry.rasterizer_states.iter().map(|p| p.param_id))
-                .find(|p| p == param)
-                .is_none()
+                .chain(entry.rasterizer_states.iter().map(|p| p.param_id)).any(|p| &p == param)
         })
         .collect()
 }
