@@ -1,4 +1,8 @@
 # ssbh_editor changelog
+## 0.2.1
+### Fixed
+- Fixed check for new updates.
+
 ## 0.2.0
 ### Added
 * Material presets can be applied from the matl editor. Add and edit presets in the `presets.json` file.
