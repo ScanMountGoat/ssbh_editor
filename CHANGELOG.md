@@ -1,7 +1,7 @@
 # ssbh_editor changelog
 ## 0.2.1
 ### Fixed
-- Fixed check for new updates.
+* Fixed check for new updates.
 
 ## 0.2.0
 ### Added
