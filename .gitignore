@@ -12,3 +12,6 @@
 # Don't include game files by mistake
 *.nuanmb
 *.nutexb
+
+# Application configuration files
+ssbh_editor_config.txt
