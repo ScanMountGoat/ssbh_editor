@@ -25,7 +25,7 @@ pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryD
                     .iter()
                     .find(|t| t.param_id == preset_texture.param_id)
                     .map(|t| t.data.clone())
-                    .unwrap_or(default_texture(preset_texture.param_id)),
+                    .unwrap_or_else(|| default_texture(preset_texture.param_id).to_string()),
             })
             .collect(),
         ..preset.clone()
@@ -104,19 +104,19 @@ pub fn default_material() -> MatlEntryData {
         textures: vec![
             TextureParam {
                 param_id: ParamId::Texture0,
-                data: default_texture(ParamId::Texture0),
+                data: default_texture(ParamId::Texture0).to_string(),
             },
             TextureParam {
                 param_id: ParamId::Texture4,
-                data: default_texture(ParamId::Texture4),
+                data: default_texture(ParamId::Texture4).to_string(),
             },
             TextureParam {
                 param_id: ParamId::Texture6,
-                data: default_texture(ParamId::Texture6),
+                data: default_texture(ParamId::Texture6).to_string(),
             },
             TextureParam {
                 param_id: ParamId::Texture7,
-                data: default_texture(ParamId::Texture7),
+                data: default_texture(ParamId::Texture7).to_string(),
             },
         ],
     }
@@ -128,7 +128,7 @@ pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec
         .iter()
         .copied()
         .filter(|param| {
-            entry
+            !entry
                 .booleans
                 .iter()
                 .map(|p| p.param_id)
@@ -138,8 +138,7 @@ pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec
                 .chain(entry.samplers.iter().map(|p| p.param_id))
                 .chain(entry.blend_states.iter().map(|p| p.param_id))
                 .chain(entry.rasterizer_states.iter().map(|p| p.param_id))
-                .find(|p| p == param)
-                .is_none()
+                .any(|p| &p == param)
         })
         .collect()
 }
@@ -195,7 +194,7 @@ pub fn add_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
         } else if is_texture(param_id) {
             entry.textures.push(TextureParam {
                 param_id,
-                data: default_texture(param_id),
+                data: default_texture(param_id).to_string(),
             });
         }
     }
@@ -246,239 +245,238 @@ pub fn remove_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
 
 // TODO: Move this to ssbh_wgpu?
 fn is_vector(p: ParamId) -> bool {
-    match p {
-        ParamId::CustomVector0 => true,
-        ParamId::CustomVector1 => true,
-        ParamId::CustomVector2 => true,
-        ParamId::CustomVector3 => true,
-        ParamId::CustomVector4 => true,
-        ParamId::CustomVector5 => true,
-        ParamId::CustomVector6 => true,
-        ParamId::CustomVector7 => true,
-        ParamId::CustomVector8 => true,
-        ParamId::CustomVector9 => true,
-        ParamId::CustomVector10 => true,
-        ParamId::CustomVector11 => true,
-        ParamId::CustomVector12 => true,
-        ParamId::CustomVector13 => true,
-        ParamId::CustomVector14 => true,
-        ParamId::CustomVector15 => true,
-        ParamId::CustomVector16 => true,
-        ParamId::CustomVector17 => true,
-        ParamId::CustomVector18 => true,
-        ParamId::CustomVector19 => true,
-        ParamId::CustomVector20 => true,
-        ParamId::CustomVector21 => true,
-        ParamId::CustomVector22 => true,
-        ParamId::CustomVector23 => true,
-        ParamId::CustomVector24 => true,
-        ParamId::CustomVector25 => true,
-        ParamId::CustomVector26 => true,
-        ParamId::CustomVector27 => true,
-        ParamId::CustomVector28 => true,
-        ParamId::CustomVector29 => true,
-        ParamId::CustomVector30 => true,
-        ParamId::CustomVector31 => true,
-        ParamId::CustomVector32 => true,
-        ParamId::CustomVector33 => true,
-        ParamId::CustomVector34 => true,
-        ParamId::CustomVector35 => true,
-        ParamId::CustomVector36 => true,
-        ParamId::CustomVector37 => true,
-        ParamId::CustomVector38 => true,
-        ParamId::CustomVector39 => true,
-        ParamId::CustomVector40 => true,
-        ParamId::CustomVector41 => true,
-        ParamId::CustomVector42 => true,
-        ParamId::CustomVector43 => true,
-        ParamId::CustomVector44 => true,
-        ParamId::CustomVector45 => true,
-        ParamId::CustomVector46 => true,
-        ParamId::CustomVector47 => true,
-        ParamId::CustomVector48 => true,
-        ParamId::CustomVector49 => true,
-        ParamId::CustomVector50 => true,
-        ParamId::CustomVector51 => true,
-        ParamId::CustomVector52 => true,
-        ParamId::CustomVector53 => true,
-        ParamId::CustomVector54 => true,
-        ParamId::CustomVector55 => true,
-        ParamId::CustomVector56 => true,
-        ParamId::CustomVector57 => true,
-        ParamId::CustomVector58 => true,
-        ParamId::CustomVector59 => true,
-        ParamId::CustomVector60 => true,
-        ParamId::CustomVector61 => true,
-        ParamId::CustomVector62 => true,
-        ParamId::CustomVector63 => true,
-
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::CustomVector0
+            | ParamId::CustomVector1
+            | ParamId::CustomVector2
+            | ParamId::CustomVector3
+            | ParamId::CustomVector4
+            | ParamId::CustomVector5
+            | ParamId::CustomVector6
+            | ParamId::CustomVector7
+            | ParamId::CustomVector8
+            | ParamId::CustomVector9
+            | ParamId::CustomVector10
+            | ParamId::CustomVector11
+            | ParamId::CustomVector12
+            | ParamId::CustomVector13
+            | ParamId::CustomVector14
+            | ParamId::CustomVector15
+            | ParamId::CustomVector16
+            | ParamId::CustomVector17
+            | ParamId::CustomVector18
+            | ParamId::CustomVector19
+            | ParamId::CustomVector20
+            | ParamId::CustomVector21
+            | ParamId::CustomVector22
+            | ParamId::CustomVector23
+            | ParamId::CustomVector24
+            | ParamId::CustomVector25
+            | ParamId::CustomVector26
+            | ParamId::CustomVector27
+            | ParamId::CustomVector28
+            | ParamId::CustomVector29
+            | ParamId::CustomVector30
+            | ParamId::CustomVector31
+            | ParamId::CustomVector32
+            | ParamId::CustomVector33
+            | ParamId::CustomVector34
+            | ParamId::CustomVector35
+            | ParamId::CustomVector36
+            | ParamId::CustomVector37
+            | ParamId::CustomVector38
+            | ParamId::CustomVector39
+            | ParamId::CustomVector40
+            | ParamId::CustomVector41
+            | ParamId::CustomVector42
+            | ParamId::CustomVector43
+            | ParamId::CustomVector44
+            | ParamId::CustomVector45
+            | ParamId::CustomVector46
+            | ParamId::CustomVector47
+            | ParamId::CustomVector48
+            | ParamId::CustomVector49
+            | ParamId::CustomVector50
+            | ParamId::CustomVector51
+            | ParamId::CustomVector52
+            | ParamId::CustomVector53
+            | ParamId::CustomVector54
+            | ParamId::CustomVector55
+            | ParamId::CustomVector56
+            | ParamId::CustomVector57
+            | ParamId::CustomVector58
+            | ParamId::CustomVector59
+            | ParamId::CustomVector60
+            | ParamId::CustomVector61
+            | ParamId::CustomVector62
+            | ParamId::CustomVector63
+    )
 }
 
 fn is_rasterizer(p: ParamId) -> bool {
-    match p {
-        ParamId::RasterizerState0 => true,
-        ParamId::RasterizerState1 => true,
-        ParamId::RasterizerState2 => true,
-        ParamId::RasterizerState3 => true,
-        ParamId::RasterizerState4 => true,
-        ParamId::RasterizerState5 => true,
-        ParamId::RasterizerState6 => true,
-        ParamId::RasterizerState7 => true,
-        ParamId::RasterizerState8 => true,
-        ParamId::RasterizerState9 => true,
-        ParamId::RasterizerState10 => true,
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::RasterizerState0
+            | ParamId::RasterizerState1
+            | ParamId::RasterizerState2
+            | ParamId::RasterizerState3
+            | ParamId::RasterizerState4
+            | ParamId::RasterizerState5
+            | ParamId::RasterizerState6
+            | ParamId::RasterizerState7
+            | ParamId::RasterizerState8
+            | ParamId::RasterizerState9
+            | ParamId::RasterizerState10
+    )
 }
 
 fn is_blend(p: ParamId) -> bool {
-    match p {
-        ParamId::BlendState0 => true,
-        ParamId::BlendState1 => true,
-        ParamId::BlendState2 => true,
-        ParamId::BlendState3 => true,
-        ParamId::BlendState4 => true,
-        ParamId::BlendState5 => true,
-        ParamId::BlendState6 => true,
-        ParamId::BlendState7 => true,
-        ParamId::BlendState8 => true,
-        ParamId::BlendState9 => true,
-        ParamId::BlendState10 => true,
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::BlendState0
+            | ParamId::BlendState1
+            | ParamId::BlendState2
+            | ParamId::BlendState3
+            | ParamId::BlendState4
+            | ParamId::BlendState5
+            | ParamId::BlendState6
+            | ParamId::BlendState7
+            | ParamId::BlendState8
+            | ParamId::BlendState9
+            | ParamId::BlendState10
+    )
 }
 
 fn is_float(p: ParamId) -> bool {
-    match p {
-        ParamId::CustomFloat0 => true,
-        ParamId::CustomFloat1 => true,
-        ParamId::CustomFloat2 => true,
-        ParamId::CustomFloat3 => true,
-        ParamId::CustomFloat4 => true,
-        ParamId::CustomFloat5 => true,
-        ParamId::CustomFloat6 => true,
-        ParamId::CustomFloat7 => true,
-        ParamId::CustomFloat8 => true,
-        ParamId::CustomFloat9 => true,
-        ParamId::CustomFloat10 => true,
-        ParamId::CustomFloat11 => true,
-        ParamId::CustomFloat12 => true,
-        ParamId::CustomFloat13 => true,
-        ParamId::CustomFloat14 => true,
-        ParamId::CustomFloat15 => true,
-        ParamId::CustomFloat16 => true,
-        ParamId::CustomFloat17 => true,
-        ParamId::CustomFloat18 => true,
-        ParamId::CustomFloat19 => true,
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::CustomFloat0
+            | ParamId::CustomFloat1
+            | ParamId::CustomFloat2
+            | ParamId::CustomFloat3
+            | ParamId::CustomFloat4
+            | ParamId::CustomFloat5
+            | ParamId::CustomFloat6
+            | ParamId::CustomFloat7
+            | ParamId::CustomFloat8
+            | ParamId::CustomFloat9
+            | ParamId::CustomFloat10
+            | ParamId::CustomFloat11
+            | ParamId::CustomFloat12
+            | ParamId::CustomFloat13
+            | ParamId::CustomFloat14
+            | ParamId::CustomFloat15
+            | ParamId::CustomFloat16
+            | ParamId::CustomFloat17
+            | ParamId::CustomFloat18
+            | ParamId::CustomFloat19
+    )
 }
 
 fn is_texture(p: ParamId) -> bool {
-    match p {
-        ParamId::Texture0 => true,
-        ParamId::Texture1 => true,
-        ParamId::Texture2 => true,
-        ParamId::Texture3 => true,
-        ParamId::Texture4 => true,
-        ParamId::Texture5 => true,
-        ParamId::Texture6 => true,
-        ParamId::Texture7 => true,
-        ParamId::Texture8 => true,
-        ParamId::Texture9 => true,
-        ParamId::Texture10 => true,
-        ParamId::Texture11 => true,
-        ParamId::Texture12 => true,
-        ParamId::Texture13 => true,
-        ParamId::Texture14 => true,
-        ParamId::Texture15 => true,
-        ParamId::Texture16 => true,
-        ParamId::Texture17 => true,
-        ParamId::Texture18 => true,
-        ParamId::Texture19 => true,
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::Texture0
+            | ParamId::Texture1
+            | ParamId::Texture2
+            | ParamId::Texture3
+            | ParamId::Texture4
+            | ParamId::Texture5
+            | ParamId::Texture6
+            | ParamId::Texture7
+            | ParamId::Texture8
+            | ParamId::Texture9
+            | ParamId::Texture10
+            | ParamId::Texture11
+            | ParamId::Texture12
+            | ParamId::Texture13
+            | ParamId::Texture14
+            | ParamId::Texture15
+            | ParamId::Texture16
+            | ParamId::Texture17
+            | ParamId::Texture18
+            | ParamId::Texture19
+    )
 }
 
 fn is_sampler(p: ParamId) -> bool {
-    match p {
-        ParamId::Sampler0 => true,
-        ParamId::Sampler1 => true,
-        ParamId::Sampler2 => true,
-        ParamId::Sampler3 => true,
-        ParamId::Sampler4 => true,
-        ParamId::Sampler5 => true,
-        ParamId::Sampler6 => true,
-        ParamId::Sampler7 => true,
-        ParamId::Sampler8 => true,
-        ParamId::Sampler9 => true,
-        ParamId::Sampler10 => true,
-        ParamId::Sampler11 => true,
-        ParamId::Sampler12 => true,
-        ParamId::Sampler13 => true,
-        ParamId::Sampler14 => true,
-        ParamId::Sampler15 => true,
-        ParamId::Sampler16 => true,
-        ParamId::Sampler17 => true,
-        ParamId::Sampler18 => true,
-        ParamId::Sampler19 => true,
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::Sampler0
+            | ParamId::Sampler1
+            | ParamId::Sampler2
+            | ParamId::Sampler3
+            | ParamId::Sampler4
+            | ParamId::Sampler5
+            | ParamId::Sampler6
+            | ParamId::Sampler7
+            | ParamId::Sampler8
+            | ParamId::Sampler9
+            | ParamId::Sampler10
+            | ParamId::Sampler11
+            | ParamId::Sampler12
+            | ParamId::Sampler13
+            | ParamId::Sampler14
+            | ParamId::Sampler15
+            | ParamId::Sampler16
+            | ParamId::Sampler17
+            | ParamId::Sampler18
+            | ParamId::Sampler19
+    )
 }
 
 fn is_bool(p: ParamId) -> bool {
-    match p {
-        ParamId::CustomBoolean0 => true,
-        ParamId::CustomBoolean1 => true,
-        ParamId::CustomBoolean2 => true,
-        ParamId::CustomBoolean3 => true,
-        ParamId::CustomBoolean4 => true,
-        ParamId::CustomBoolean5 => true,
-        ParamId::CustomBoolean6 => true,
-        ParamId::CustomBoolean7 => true,
-        ParamId::CustomBoolean8 => true,
-        ParamId::CustomBoolean9 => true,
-        ParamId::CustomBoolean10 => true,
-        ParamId::CustomBoolean11 => true,
-        ParamId::CustomBoolean12 => true,
-        ParamId::CustomBoolean13 => true,
-        ParamId::CustomBoolean14 => true,
-        ParamId::CustomBoolean15 => true,
-        ParamId::CustomBoolean16 => true,
-        ParamId::CustomBoolean17 => true,
-        ParamId::CustomBoolean18 => true,
-        ParamId::CustomBoolean19 => true,
-        _ => false,
-    }
+    matches!(
+        p,
+        ParamId::CustomBoolean0
+            | ParamId::CustomBoolean1
+            | ParamId::CustomBoolean2
+            | ParamId::CustomBoolean3
+            | ParamId::CustomBoolean4
+            | ParamId::CustomBoolean5
+            | ParamId::CustomBoolean6
+            | ParamId::CustomBoolean7
+            | ParamId::CustomBoolean8
+            | ParamId::CustomBoolean9
+            | ParamId::CustomBoolean10
+            | ParamId::CustomBoolean11
+            | ParamId::CustomBoolean12
+            | ParamId::CustomBoolean13
+            | ParamId::CustomBoolean14
+            | ParamId::CustomBoolean15
+            | ParamId::CustomBoolean16
+            | ParamId::CustomBoolean17
+            | ParamId::CustomBoolean18
+            | ParamId::CustomBoolean19
+    )
 }
 
-fn default_texture(p: ParamId) -> String {
+fn default_texture(p: ParamId) -> &'static str {
     // The default texture should have as close as possible to no effect.
     // This reduces the number of textures that need to be manually assigned.
     match p {
-        ParamId::Texture0 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture1 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture2 => "#replace_cubemap".to_string(),
-        ParamId::Texture3 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture4 => "/common/shader/sfxpbs/fighter/default_normal".to_string(),
-        ParamId::Texture5 => "/common/shader/sfxpbs/default_black".to_string(),
-        ParamId::Texture6 => "/common/shader/sfxpbs/fighter/default_params".to_string(),
-        ParamId::Texture7 => "#replace_cubemap".to_string(),
-        ParamId::Texture8 => "#replace_cubemap".to_string(), // TODO: Better default cube map?
-        ParamId::Texture9 => "/common/shader/sfxpbs/default_black".to_string(),
-        ParamId::Texture10 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture11 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture12 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture13 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture14 => "/common/shader/sfxpbs/default_black".to_string(),
-        ParamId::Texture15 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture16 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture17 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture18 => "/common/shader/sfxpbs/default_white".to_string(),
-        ParamId::Texture19 => "/common/shader/sfxpbs/default_white".to_string(),
-        _ => "/common/shader/sfxpbs/default_white".to_string(),
+        ParamId::Texture0 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture1 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture2 => "#replace_cubemap",
+        ParamId::Texture3 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture4 => "/common/shader/sfxpbs/fighter/default_normal",
+        ParamId::Texture5 => "/common/shader/sfxpbs/default_black",
+        ParamId::Texture6 => "/common/shader/sfxpbs/fighter/default_params",
+        ParamId::Texture7 => "#replace_cubemap",
+        ParamId::Texture8 => "#replace_cubemap", // TODO: Better default cube map?
+        ParamId::Texture9 => "/common/shader/sfxpbs/default_black",
+        ParamId::Texture10 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture11 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture12 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture13 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture14 => "/common/shader/sfxpbs/default_black",
+        ParamId::Texture15 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture16 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture17 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture18 => "/common/shader/sfxpbs/default_white",
+        ParamId::Texture19 => "/common/shader/sfxpbs/default_white",
+        _ => "/common/shader/sfxpbs/default_white",
     }
 }
 

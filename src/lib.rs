@@ -7,7 +7,7 @@ use egui::{
 use egui_wgpu_backend::RenderPass;
 use epi::*;
 use nutexb_wgpu::TextureRenderer;
-use ssbh_data::matl_data::ParamId;
+
 use ssbh_wgpu::ModelFolder;
 
 pub mod app;
@@ -83,7 +83,7 @@ pub fn generate_default_thumbnails(
     let mut thumbnails: Vec<_> = default_textures
         .iter()
         .map(|(name, texture)| {
-            let rgba_texture = renderer.render_to_texture_rgba(device, queue, &texture, 64, 64);
+            let rgba_texture = renderer.render_to_texture_rgba(device, queue, texture, 64, 64);
             let rgba_view = rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
             // TODO: Does the filter mode here matter?
             let egui_texture = egui_rpass.egui_texture_from_wgpu_texture(

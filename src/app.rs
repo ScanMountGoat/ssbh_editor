@@ -8,7 +8,7 @@ use crate::{
 };
 use egui::{CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
-use log::{error, info, trace, warn, Log};
+use log::{error, Log};
 use rfd::FileDialog;
 use ssbh_data::{matl_data::MatlEntryData, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
@@ -206,7 +206,11 @@ impl epi::App for SsbhApp {
                         let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
                         if ui.hyperlink(release_link).clicked() {
                             // TODO: Log errors?
-                            open::that(release_link);
+                            if let Err(open_err) = open::that(release_link) {
+                                log::error!(
+                                    "Failed to open link ({release_link}) to releases {open_err}"
+                                );
+                            }
                         }
                         // TODO: Show latest version and release notes.
                         // TODO: Parse release notes from changelog.
@@ -228,7 +232,7 @@ impl epi::App for SsbhApp {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, skel)) = model.skels.get_mut(skel_index) {
-                        if !skel_editor(ctx, &display_name(&model.folder_name, &name), skel) {
+                        if !skel_editor(ctx, &display_name(&model.folder_name, name), skel) {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
                         }
@@ -237,7 +241,7 @@ impl epi::App for SsbhApp {
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
                     if let Some((name, mesh)) = model.meshes.get_mut(mesh_index) {
-                        if !mesh_editor(ctx, &display_name(&model.folder_name, &name), mesh) {
+                        if !mesh_editor(ctx, &display_name(&model.folder_name, name), mesh) {
                             // Close the window.
                             self.ui_state.selected_mesh_index = None;
                         }
@@ -251,7 +255,7 @@ impl epi::App for SsbhApp {
                         // TODO: Make this a method to simplify arguments.
                         if !matl_editor(
                             ctx,
-                            &display_name(&model.folder_name, &name),
+                            &display_name(&model.folder_name, name),
                             &mut self.ui_state.selected_material_index,
                             matl,
                             model
@@ -299,7 +303,7 @@ impl epi::App for SsbhApp {
                             .map(|(_, m)| m);
                         if !modl_editor(
                             ctx,
-                            &display_name(&model.folder_name, &name),
+                            &display_name(&model.folder_name, name),
                             modl,
                             model
                                 .meshes
@@ -324,7 +328,7 @@ impl epi::App for SsbhApp {
                     if let Some((name, hlpb)) = model.hlpbs.get_mut(hlpb_index) {
                         if !hlpb_editor(
                             ctx,
-                            &display_name(&model.folder_name, &name),
+                            &display_name(&model.folder_name, name),
                             hlpb,
                             model
                                 .skels
@@ -414,7 +418,7 @@ impl epi::App for SsbhApp {
                                     Some("model.numdlb"),
                                 );
 
-                                for (i, (name, anim)) in model.anims.iter().enumerate() {
+                                for (_i, (name, anim)) in model.anims.iter().enumerate() {
                                     ui.horizontal(|ui| {
                                         empty_icon(ui);
                                         if ui.button(name).clicked() {
@@ -546,10 +550,8 @@ impl SsbhApp {
                     if ui.add_sized(size, egui::Button::new("Pause")).clicked() {
                         self.animation_state.is_playing = false;
                     }
-                } else {
-                    if ui.add_sized(size, egui::Button::new("Play")).clicked() {
-                        self.animation_state.is_playing = true;
-                    }
+                } else if ui.add_sized(size, egui::Button::new("Play")).clicked() {
+                    self.animation_state.is_playing = true;
                 }
             },
         );
@@ -575,7 +577,7 @@ fn list_files<T>(
         });
     }
     if let Some(required_file) = required_file {
-        if files.iter().find(|(f, _)| f == required_file).is_none() {
+        if !files.iter().any(|(f, _)| f == required_file) {
             missing_file(ui, required_file);
         }
     }
@@ -658,7 +660,7 @@ fn anim_list(app: &mut SsbhApp, ui: &mut egui::Ui) {
     }
 
     let mut slots_to_remove = Vec::new();
-    for (i, (name, anim)) in app.animation_state.animations.iter().enumerate().rev() {
+    for (i, (name, _anim)) in app.animation_state.animations.iter().enumerate().rev() {
         ui.horizontal(|ui| {
             ui.selectable_value(
                 &mut app.animation_state.selected_slot,
@@ -906,20 +908,17 @@ fn modl_editor(
             ui.checkbox(advanced_mode, "Advanced Settings");
 
             // Manually adding entries is error prone, so check for advanced mode.
-            if *advanced_mode {
-                if ui.button("Add Entry").clicked() {
-                    // Pick an arbitrary material to make the mesh visible in the viewport.
-                    let default_material = matl
-                        .map(|m| m.entries.get(0).map(|e| e.material_label.clone()))
-                        .flatten()
-                        .unwrap_or("PLACEHOLDER".to_string());
+            if *advanced_mode && ui.button("Add Entry").clicked() {
+                // Pick an arbitrary material to make the mesh visible in the viewport.
+                let default_material = matl
+                    .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
+                    .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
-                    modl.entries.push(ModlEntryData {
-                        mesh_object_name: "PLACEHOLDER".to_string(),
-                        mesh_object_sub_index: 0,
-                        material_label: default_material.clone(),
-                    });
-                }
+                modl.entries.push(ModlEntryData {
+                    mesh_object_name: String::from("PLACEHOLDER"),
+                    mesh_object_sub_index: 0,
+                    material_label: default_material,
+                });
             }
 
             if let Some(mesh) = mesh {
@@ -928,31 +927,27 @@ fn modl_editor(
                     .objects
                     .iter()
                     .filter(|mesh| {
-                        modl.entries
+                        !modl.entries
                             .iter()
-                            .find(|e| {
+                            .any(|e| {
                                 e.mesh_object_name == mesh.name
                                     && e.mesh_object_sub_index == mesh.sub_index
                             })
-                            .is_none()
                     })
                     .collect();
 
                 // Pick an arbitrary material to make the mesh visible in the viewport.
                 let default_material = matl
-                    .map(|m| m.entries.get(0).map(|e| e.material_label.clone()))
-                    .flatten()
-                    .unwrap_or("PLACEHOLDER".to_string());
+                    .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
+                    .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
-                if !missing_entries.is_empty() {
-                    if ui.button("Add Missing Entries").clicked() {
-                        for mesh in missing_entries {
-                            modl.entries.push(ModlEntryData {
-                                mesh_object_name: mesh.name.clone(),
-                                mesh_object_sub_index: mesh.sub_index,
-                                material_label: default_material.clone(),
-                            });
-                        }
+                if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
+                    for mesh in missing_entries {
+                        modl.entries.push(ModlEntryData {
+                            mesh_object_name: mesh.name.clone(),
+                            mesh_object_sub_index: mesh.sub_index,
+                            material_label: default_material.clone(),
+                        });
                     }
                 }
             }
@@ -995,10 +990,8 @@ fn modl_editor(
                                 matl,
                             );
 
-                            if *advanced_mode {
-                                if ui.button("Delete").clicked() {
-                                    entries_to_remove.push(i);
-                                }
+                            if *advanced_mode && ui.button("Delete").clicked() {
+                                entries_to_remove.push(i);
                             }
                             ui.end_row();
                         }
@@ -1219,6 +1212,7 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
         });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn matl_editor(
     ctx: &egui::Context,
     title: &str,
@@ -1315,11 +1309,9 @@ fn matl_editor(
                                     .unwrap_or_default()
                             });
 
-                        if *advanced_mode {
-                            if ui.button("Delete").clicked() {
-                                // TODO: Potential panic?
-                                matl.entries.remove(*selected_material_index);
-                            }
+                        if *advanced_mode && ui.button("Delete").clicked() {
+                            // TODO: Potential panic?
+                            matl.entries.remove(*selected_material_index);
                         }
                     });
                     // Advanced mode has more detailed information that most users won't want to edit.
@@ -1335,7 +1327,7 @@ fn matl_editor(
                                     .filter(|e| e.material_label == entry.material_label)
                                     .collect()
                             })
-                            .unwrap_or(Vec::new());
+                            .unwrap_or_default();
 
                         matl_entry_editor(
                             ui,
@@ -1438,17 +1430,13 @@ fn matl_entry_editor(
     // TODO: Option to delete unneeded parameters.
     if let Some(program) = program {
         let missing_parameters = missing_parameters(entry, program);
-        if !missing_parameters.is_empty() {
-            if ui.button("Add Missing Parameters").clicked() {
-                add_parameters(entry, &missing_parameters);
-            }
+        if !missing_parameters.is_empty() && ui.button("Add Missing Parameters").clicked() {
+            add_parameters(entry, &missing_parameters);
         }
 
         let unused_parameters = unused_parameters(entry, program);
-        if !unused_parameters.is_empty() {
-            if ui.button("Remove Unused Parameters").clicked() {
-                remove_parameters(entry, &unused_parameters);
-            }
+        if !unused_parameters.is_empty() && ui.button("Remove Unused Parameters").clicked() {
+            remove_parameters(entry, &unused_parameters);
         }
     }
 
