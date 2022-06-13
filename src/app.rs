@@ -256,7 +256,7 @@ impl epi::App for SsbhApp {
                         if !matl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
-                            &mut self.ui_state.selected_material_index,
+                            &mut self.ui_state,
                             matl,
                             model
                                 .modls
@@ -265,11 +265,8 @@ impl epi::App for SsbhApp {
                                 .map(|(_, m)| m),
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
-                            &mut self.ui_state.matl_editor_advanced_mode,
                             &self.render_state.shader_database,
-                            &mut self.ui_state.preset_window_open,
                             &self.material_presets,
-                            &mut self.ui_state.selected_material_preset_index,
                         ) {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
@@ -1216,16 +1213,13 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
 fn matl_editor(
     ctx: &egui::Context,
     title: &str,
-    selected_material_index: &mut usize,
+    ui_state: &mut UiState,
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
-    advanced_mode: &mut bool,
     shader_database: &ShaderDatabase,
-    preset_window_open: &mut bool,
     material_presets: &[MatlEntryData],
-    selected_preset_index: &mut usize,
 ) -> bool {
     let mut open = true;
 
@@ -1258,27 +1252,27 @@ fn matl_editor(
                         let new_entry = default_material();
                         matl.entries.push(new_entry);
 
-                        *selected_material_index = matl.entries.len() - 1;
+                        ui_state.selected_material_index = matl.entries.len() - 1;
                     }
 
                     if ui.button("Apply Preset").clicked() {
-                        *preset_window_open = true;
+                        ui_state.preset_window_open = true;
                     }
                 });
             });
 
             // TODO: Simplify logic for closing window.
-            let mut open = *preset_window_open;
+            let mut open = ui_state.preset_window_open;
             egui::Window::new("Select Material Preset")
-                .open(preset_window_open)
+                .open(&mut ui_state.preset_window_open)
                 .show(ctx, |ui| {
                     for (i, preset) in material_presets.iter().enumerate() {
-                        ui.selectable_value(selected_preset_index, i, &preset.material_label);
+                        ui.selectable_value(&mut ui_state.selected_material_preset_index, i, &preset.material_label);
                     }
 
                     if ui.button("Apply").clicked() {
-                        if let Some(preset) = material_presets.get(*selected_preset_index) {
-                            if let Some(entry) = matl.entries.get_mut(*selected_material_index) {
+                        if let Some(preset) = material_presets.get(ui_state.selected_material_preset_index) {
+                            if let Some(entry) = matl.entries.get_mut(ui_state.selected_material_index) {
                                 *entry = apply_preset(entry, preset);
                             }
                         }
@@ -1287,7 +1281,7 @@ fn matl_editor(
                     }
                 });
             if !open {
-                *preset_window_open = false;
+                ui_state.preset_window_open = false;
             }
 
             ui.add(egui::Separator::default().horizontal());
@@ -1302,22 +1296,22 @@ fn matl_editor(
                         ui.label("Material");
                         egui::ComboBox::from_id_source("MatlEditorMaterialLabel")
                             .width(400.0)
-                            .show_index(ui, selected_material_index, matl.entries.len(), |i| {
+                            .show_index(ui, &mut ui_state.selected_material_index, matl.entries.len(), |i| {
                                 matl.entries
                                     .get(i)
                                     .map(|m| m.material_label.clone())
                                     .unwrap_or_default()
                             });
 
-                        if *advanced_mode && ui.button("Delete").clicked() {
+                        if ui_state.matl_editor_advanced_mode && ui.button("Delete").clicked() {
                             // TODO: Potential panic?
-                            matl.entries.remove(*selected_material_index);
+                            matl.entries.remove(ui_state.selected_material_index);
                         }
                     });
                     // Advanced mode has more detailed information that most users won't want to edit.
-                    ui.checkbox(advanced_mode, "Advanced Settings");
+                    ui.checkbox(&mut ui_state.matl_editor_advanced_mode, "Advanced Settings");
 
-                    if let Some(entry) = matl.entries.get_mut(*selected_material_index) {
+                    if let Some(entry) = matl.entries.get_mut(ui_state.selected_material_index) {
                         // TODO: Avoid collect here?
                         // Keep track of modl entries since materials may be renamed.
                         let mut modl_entries: Vec<_> = modl
@@ -1335,7 +1329,7 @@ fn matl_editor(
                             &mut modl_entries,
                             folder_thumbnails,
                             default_thumbnails,
-                            *advanced_mode,
+                            ui_state.matl_editor_advanced_mode,
                             shader_database,
                         );
                     }
