@@ -10,7 +10,9 @@ use egui::{CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
 use log::{error, Log};
 use rfd::FileDialog;
-use ssbh_data::{matl_data::MatlEntryData, modl_data::ModlEntryData, prelude::*};
+use ssbh_data::{
+    matl_data::MatlEntryData, mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*,
+};
 use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
 use std::{path::Path, sync::Mutex};
 
@@ -70,6 +72,7 @@ pub struct UiState {
     pub right_panel_tab: PanelTab,
     pub matl_editor_advanced_mode: bool,
     pub modl_editor_advanced_mode: bool,
+    pub mesh_editor_advanced_mode: bool,
     pub preset_window_open: bool,
     pub selected_material_preset_index: usize,
 
@@ -241,7 +244,12 @@ impl epi::App for SsbhApp {
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
                     if let Some((name, mesh)) = model.meshes.get_mut(mesh_index) {
-                        if !mesh_editor(ctx, &display_name(&model.folder_name, name), mesh) {
+                        if !mesh_editor(
+                            ctx,
+                            &display_name(&model.folder_name, name),
+                            mesh,
+                            &mut self.ui_state.mesh_editor_advanced_mode,
+                        ) {
                             // Close the window.
                             self.ui_state.selected_mesh_index = None;
                         }
@@ -262,6 +270,11 @@ impl epi::App for SsbhApp {
                                 .modls
                                 .iter_mut()
                                 .find(|(f, _)| f == "model.numdlb")
+                                .map(|(_, m)| m),
+                            model
+                                .meshes
+                                .iter()
+                                .find(|(f, _)| f == "model.numshb")
                                 .map(|(_, m)| m),
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
@@ -1066,7 +1079,12 @@ fn bone_combo_box(
         });
 }
 
-fn mesh_editor(ctx: &egui::Context, title: &str, mesh: &mut MeshData) -> bool {
+fn mesh_editor(
+    ctx: &egui::Context,
+    title: &str,
+    mesh: &mut MeshData,
+    advanced_mode: &mut bool,
+) -> bool {
     let mut open = true;
 
     egui::Window::new(format!("Mesh Editor ({title})"))
@@ -1076,26 +1094,85 @@ fn mesh_editor(ctx: &egui::Context, title: &str, mesh: &mut MeshData) -> bool {
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    // TODO: Add options to show a grid or tree based layout?
-                    // TODO: Add a toggle for basic or advanced options.
-                    ui.heading("Mesh Objects");
+                    egui::menu::bar(ui, |ui| {
+                        egui::menu::menu_button(ui, "File", |ui| {
+                            if ui.button("Save").clicked() {
+                                ui.close_menu();
 
+                                if let Some(file) = FileDialog::new()
+                                    .add_filter("Mesh", &["numshb"])
+                                    .save_file()
+                                {
+                                    if let Err(e) = mesh.write_to_file(file) {
+                                        error!(target: "ssbh_editor", "Failed to save Mesh (.numshb): {}", e);
+                                    }
+                                }
+                            }
+                        });
+                    });
+
+                    ui.add(egui::Separator::default().horizontal());
+
+                    ui.checkbox(advanced_mode, "Advanced Settings");
+
+                    let mut meshes_to_remove = Vec::new();
                     egui::Grid::new("some_unique_id").show(ui, |ui| {
-                        for (_i, mesh_object) in mesh.objects.iter_mut().enumerate() {
+                        for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
                             // TODO: Link name edits with the numdlb and numshexb.
                             // This will need to check for duplicate names.
                             // TODO: Reorder mesh objects?
-                            ui.label(&mesh_object.name);
-                            ui.label(mesh_object.sort_bias.to_string());
-                            ui.checkbox(
-                                &mut mesh_object.disable_depth_write,
-                                "Disable Depth Write",
-                            );
-                            ui.checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test");
+                            // TODO: Unique names?
+                            egui::CollapsingHeader::new(format!(
+                                "{} {}",
+                                mesh_object.name, mesh_object.sub_index
+                            ))
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label("Sort Bias");
+                                    ui.label(mesh_object.sort_bias.to_string());
+                                });
+
+                                ui.checkbox(
+                                    &mut mesh_object.disable_depth_write,
+                                    "Disable Depth Write",
+                                );
+                                ui.checkbox(
+                                    &mut mesh_object.disable_depth_test,
+                                    "Disable Depth Test",
+                                );
+
+                                egui::CollapsingHeader::new("Bone Influences")
+                                    .id_source(format!(
+                                        "{} {}",
+                                        mesh_object.name, mesh_object.sub_index
+                                    ))
+                                    .show(ui, |ui| {
+                                        for influence in &mesh_object.bone_influences {
+                                            ui.horizontal(|ui| {
+                                                ui.label(&influence.bone_name);
+                                                ui.label(format!(
+                                                    "{} vertices",
+                                                    influence.vertex_weights.len()
+                                                ));
+                                            });
+                                        }
+                                    });
+                            });
+
+                            if *advanced_mode {
+                                if ui.button("Delete").clicked() {
+                                    meshes_to_remove.push(i);
+                                }
+                            }
 
                             ui.end_row();
                         }
                     });
+
+                    // TODO: Only allow deleting one object at a time?
+                    for i in meshes_to_remove {
+                        mesh.objects.remove(i);
+                    }
                 });
         });
 
@@ -1216,6 +1293,7 @@ fn matl_editor(
     ui_state: &mut UiState,
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
+    mesh: Option<&MeshData>,
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     shader_database: &ShaderDatabase,
@@ -1323,10 +1401,19 @@ fn matl_editor(
                             })
                             .unwrap_or_default();
 
+                        let mesh_objects: Vec<_> = mesh
+                            .map(|mesh| {
+                                mesh.objects
+                                    .iter()
+                                    .filter(|o| modl_entries.iter().any(|e| e.mesh_object_name == o.name && e.mesh_object_sub_index == o.sub_index)).collect()
+                            })
+                            .unwrap_or_default();
+
                         matl_entry_editor(
                             ui,
                             entry,
                             &mut modl_entries,
+                            &mesh_objects,
                             folder_thumbnails,
                             default_thumbnails,
                             ui_state.matl_editor_advanced_mode,
@@ -1357,6 +1444,7 @@ fn matl_entry_editor(
     ui: &mut egui::Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
     modl_entries: &mut [&mut ModlEntryData],
+    mesh_objects: &[&MeshObjectData],
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
@@ -1408,6 +1496,14 @@ fn matl_entry_editor(
             ui.label("Shader Label");
             shader_label(ui, &entry.shader_label, program.is_some());
         });
+    }
+
+    // TODO: Show meshes with missing attributes.
+    // TODO: Add a button to open the mesh editor.
+    if let Some(program) = program {
+        for mesh in mesh_objects {
+            ui.label(&mesh.name);
+        }
     }
 
     ui.horizontal(|ui| {

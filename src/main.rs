@@ -294,6 +294,7 @@ fn main() {
             material_editor_open: false,
             render_settings_open: false,
             modl_editor_advanced_mode: false,
+            mesh_editor_advanced_mode: false,
             preset_window_open: false,
             selected_material_preset_index: 0,
             selected_folder_index: None,
