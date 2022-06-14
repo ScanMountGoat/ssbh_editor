@@ -11,6 +11,7 @@ use nutexb_wgpu::TextureRenderer;
 use ssbh_wgpu::ModelFolder;
 
 pub mod app;
+mod editors;
 pub mod material;
 pub mod widgets;
 
