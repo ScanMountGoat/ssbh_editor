@@ -540,20 +540,35 @@ impl SsbhApp {
                 }
 
                 // TODO: How to fill available space?
-                ui.spacing_mut().slider_width = (ui.available_size().x - 120.0).max(0.0);
+                ui.spacing_mut().slider_width = (ui.available_size().x - 140.0).max(0.0);
                 if ui
                     .add(
                         egui::Slider::new(
                             &mut self.animation_state.current_frame,
                             0.0..=final_frame_index,
                         )
-                        .step_by(1.0),
+                        .step_by(1.0)
+                        .show_value(false),
                     )
                     .changed()
                 {
                     // Manually trigger an update in case the playback is paused.
                     self.animation_state.animation_frame_was_changed = true;
                 }
+
+                // Use a separate widget from the slider value to force the size.
+                // This reduces the chances of the widget resizing during animations.
+                if ui
+                    .add_sized(
+                        [60.0, 20.0],
+                        egui::DragValue::new(&mut self.animation_state.current_frame),
+                    )
+                    .changed()
+                {
+                    // Manually trigger an update in case the playback is paused.
+                    self.animation_state.animation_frame_was_changed = true;
+                }
+
                 // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
                 let size = [60.0, 30.0];
                 if self.animation_state.is_playing {
