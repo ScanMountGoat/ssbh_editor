@@ -227,11 +227,29 @@ fn matl_entry_editor(
         });
     }
 
+    // TODO: Show a black/yellow checkerboard for clarity.
+    // TODO: Show errors in the material selector.
     // TODO: Show meshes with missing attributes.
     // TODO: Add a button to open the mesh editor.
     if let Some(program) = program {
+        // TODO: Only show this if there are meshes with missing attributes.
+        ui.label("Missing required attributes");
         for mesh in mesh_objects {
-            ui.label(&mesh.name);
+            // TODO: Avoid allocating here.
+            let attribute_names: Vec<_> = mesh
+                .texture_coordinates
+                .iter()
+                .map(|a| a.name.to_string())
+                .chain(mesh.color_sets.iter().map(|a| a.name.to_string()))
+                .collect();
+
+            let missing_attributes = program.missing_required_attributes(&attribute_names);
+            if !missing_attributes.is_empty() {
+                ui.horizontal(|ui| {
+                    ui.label(&mesh.name);
+                    ui.label(missing_attributes.join(","));
+                });
+            }
         }
     }
 
