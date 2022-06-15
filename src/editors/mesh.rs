@@ -83,10 +83,8 @@ pub fn mesh_editor(
                                     });
                             });
 
-                            if *advanced_mode {
-                                if ui.button("Delete").clicked() {
-                                    meshes_to_remove.push(i);
-                                }
+                            if *advanced_mode && ui.button("Delete").clicked() {
+                                meshes_to_remove.push(i);
                             }
 
                             ui.end_row();

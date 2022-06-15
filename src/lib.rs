@@ -72,6 +72,54 @@ pub fn generate_model_thumbnails(
         .collect()
 }
 
+pub fn checkerboard_texture(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    color: [u8; 4],
+) -> egui::TextureId {
+    let texture_size = wgpu::Extent3d {
+        width: 2,
+        height: 2,
+        depth_or_array_layers: 1,
+    };
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size: texture_size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::COPY_DST
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+    });
+    queue.write_texture(
+        wgpu::ImageCopyTexture {
+            texture: &texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        &[
+            0, 0, 0, 255, color[0], color[1], color[2], color[3], color[0], color[1], color[2],
+            color[3], 0, 0, 0, 255,
+        ],
+        wgpu::ImageDataLayout {
+            offset: 0,
+            bytes_per_row: std::num::NonZeroU32::new(8),
+            rows_per_image: None,
+        },
+        texture_size,
+    );
+
+    egui_rpass.register_native_texture(
+        device,
+        &texture.create_view(&wgpu::TextureViewDescriptor::default()),
+        wgpu::FilterMode::Nearest,
+    )
+}
+
 pub fn generate_default_thumbnails(
     renderer: &TextureRenderer,
     default_textures: &[(String, wgpu::Texture)],

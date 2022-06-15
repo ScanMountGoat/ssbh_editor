@@ -5,7 +5,10 @@ use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
 use ssbh_editor::material::load_material_presets;
-use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails};
+use ssbh_editor::{
+    checkerboard_texture, default_text_styles, generate_default_thumbnails,
+    generate_model_thumbnails, widgets_dark,
+};
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
 };
@@ -190,6 +193,15 @@ fn main() {
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
     winit_state.set_pixels_per_point(window.scale_factor() as f32);
 
+    ctx.set_style(egui::style::Style {
+        text_styles: default_text_styles(),
+        visuals: egui::style::Visuals {
+            widgets: widgets_dark(),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+
     let mut renderer = SsbhRenderer::new(
         &device,
         &queue,
@@ -242,6 +254,10 @@ fn main() {
     // TODO: Log missing presets?
     let material_presets = load_material_presets("presets.json").unwrap_or_default();
 
+    let red_checkerboard = checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 0, 0, 255]);
+    let yellow_checkerboard =
+        checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
+
     let mut app = SsbhApp {
         models: Vec::new(),
         render_models: Vec::new(),
@@ -252,6 +268,8 @@ fn main() {
         new_release_tag,
         should_refresh_render_settings: false,
         material_presets,
+        red_checkerboard,
+        yellow_checkerboard,
         ui_state: UiState {
             material_editor_open: false,
             render_settings_open: false,

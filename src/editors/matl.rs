@@ -1,5 +1,5 @@
 use crate::{
-    app::{error_icon, UiState},
+    app::UiState,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, remove_parameters,
         unused_parameters,
@@ -27,6 +27,8 @@ pub fn matl_editor(
     default_thumbnails: &[(String, egui::TextureId)],
     shader_database: &ShaderDatabase,
     material_presets: &[MatlEntryData],
+    red_checkerboard: egui::TextureId,
+    yellow_checkerboard: egui::TextureId,
 ) -> bool {
     let mut open = true;
 
@@ -115,6 +117,9 @@ pub fn matl_editor(
                             matl.entries.remove(ui_state.selected_material_index);
                         }
                     });
+
+                    ui.add(egui::Separator::default().horizontal());
+
                     // Advanced mode has more detailed information that most users won't want to edit.
                     ui.checkbox(&mut ui_state.matl_editor_advanced_mode, "Advanced Settings");
 
@@ -147,6 +152,8 @@ pub fn matl_editor(
                             default_thumbnails,
                             ui_state.matl_editor_advanced_mode,
                             shader_database,
+                            red_checkerboard,
+                            yellow_checkerboard
                         );
                     }
                 });
@@ -155,13 +162,17 @@ pub fn matl_editor(
     open
 }
 
-fn shader_label(ui: &mut egui::Ui, shader_label: &str, is_valid: bool) {
+fn shader_label(
+    ui: &mut egui::Ui,
+    shader_label: &str,
+    is_valid: bool,
+    red_checkerboard: egui::TextureId,
+) {
     if is_valid {
         ui.label(shader_label);
     } else {
         ui.horizontal(|ui| {
-            // TODO: Add a black/red checkerboard for clarity.
-            error_icon(ui);
+            ui.image(red_checkerboard, egui::Vec2::new(16.0, 16.0));
             ui.label(egui::RichText::new(shader_label).color(egui::Color32::RED));
         })
         .response
@@ -178,13 +189,18 @@ fn matl_entry_editor(
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
     shader_database: &ShaderDatabase,
+    red_checkerboard: egui::TextureId,
+    yellow_checkerboard: egui::TextureId,
 ) {
     let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
 
+    ui.heading("Shader");
     if advanced_mode {
-        ui.label("Shader Label");
         ui.indent("shader indent", |ui| {
-            shader_label(ui, &entry.shader_label, program.is_some());
+            ui.horizontal(|ui| {
+                ui.label("Shader Label");
+                shader_label(ui, &entry.shader_label, program.is_some(), red_checkerboard);
+            });
             egui::Grid::new("shader_grid").show(ui, |ui| {
                 // TODO: Should this be part of the basic mode.
                 // TODO: Should advanced mode just be a textbox?
@@ -208,7 +224,6 @@ fn matl_entry_editor(
                     });
                 ui.end_row();
 
-                // TODO: Get info from shader database.
                 if let Some(program) = program {
                     ui.label("Alpha Testing");
                     ui.label(program.discard.to_string());
@@ -223,7 +238,7 @@ fn matl_entry_editor(
     } else {
         ui.horizontal(|ui| {
             ui.label("Shader Label");
-            shader_label(ui, &entry.shader_label, program.is_some());
+            shader_label(ui, &entry.shader_label, program.is_some(), red_checkerboard);
         });
     }
 
@@ -231,8 +246,10 @@ fn matl_entry_editor(
     // TODO: Show errors in the material selector.
     // TODO: Show meshes with missing attributes.
     // TODO: Add a button to open the mesh editor.
+    ui.heading("Shader Errors");
     if let Some(program) = program {
         // TODO: Only show this if there are meshes with missing attributes.
+        // TODO: Make a constant for this size.
         ui.label("Missing required attributes");
         for mesh in mesh_objects {
             // TODO: Avoid allocating here.
@@ -246,6 +263,7 @@ fn matl_entry_editor(
             let missing_attributes = program.missing_required_attributes(&attribute_names);
             if !missing_attributes.is_empty() {
                 ui.horizontal(|ui| {
+                    ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
                     ui.label(&mesh.name);
                     ui.label(missing_attributes.join(","));
                 });
@@ -253,6 +271,7 @@ fn matl_entry_editor(
         }
     }
 
+    ui.heading("Material");
     ui.horizontal(|ui| {
         ui.label("Material Label");
         // TODO: Get this to work with lost_focus for efficiency.
@@ -264,7 +283,7 @@ fn matl_entry_editor(
         }
     });
 
-    // TODO: Option to delete unneeded parameters.
+    ui.heading("Parameters");
     if let Some(program) = program {
         let missing_parameters = missing_parameters(entry, program);
         if !missing_parameters.is_empty() && ui.button("Add Missing Parameters").clicked() {

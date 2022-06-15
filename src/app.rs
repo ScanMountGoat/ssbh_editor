@@ -6,7 +6,7 @@ use crate::{
     load_model, load_models_recursive,
     widgets::*,
 };
-use egui::{CollapsingHeader, ScrollArea};
+use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
 use log::Log;
 use rfd::FileDialog;
@@ -51,6 +51,9 @@ pub struct SsbhApp {
     pub new_release_tag: Option<String>,
 
     pub material_presets: Vec<MatlEntryData>,
+
+    pub red_checkerboard: egui::TextureId,
+    pub yellow_checkerboard: egui::TextureId,
 
     pub ui_state: UiState,
     // TODO: How to manage the thumbnail cache?
@@ -274,6 +277,8 @@ impl SsbhApp {
                             &self.default_thumbnails,
                             &self.render_state.shader_database,
                             &self.material_presets,
+                            self.red_checkerboard,
+                            self.yellow_checkerboard,
                         ) {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
@@ -449,6 +454,7 @@ impl SsbhApp {
                                 // TODO: Display larger versions when clicking?
                                 // TODO: How to manage the thumbnails?
                                 // TODO: Cube map thumbnails.
+                                // TODO: Register wgpu textures as is without converting to RGBA?
                                 for (file, nutexb) in model.nutexbs.iter() {
                                     ui.horizontal(|ui| {
                                         if let Some(model_thumbnails) =
@@ -494,7 +500,7 @@ impl SsbhApp {
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| match self.ui_state.right_panel_tab {
-                        PanelTab::MeshList => mesh_list(self, ui),
+                        PanelTab::MeshList => mesh_list(ctx, self, ui),
                         PanelTab::AnimList => anim_list(self, ui),
                     });
             });
@@ -626,26 +632,33 @@ pub fn error_icon(ui: &mut egui::Ui) {
     );
 }
 
-fn mesh_list(app: &mut SsbhApp, ui: &mut egui::Ui) {
+fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     for (i, folder) in app.models.iter().enumerate() {
         // TODO: Will these IDs be unique?
-        CollapsingHeader::new(format!(
+        // TODO: Avoid displaying numbers with folder names.
+        let name = format!(
             "{}.{}",
             std::path::Path::new(&folder.folder_name)
                 .file_name()
                 .unwrap()
                 .to_string_lossy(),
             i
-        ))
-        .default_open(true)
-        .show(ui, |ui| {
-            // TODO: How to ensure the render models stay in sync with the model folder?
-            if let Some(render_model) = app.render_models.get_mut(i) {
-                for mesh in &mut render_model.meshes {
-                    ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
+        );
+        let id = ui.make_persistent_id(&name);
+        CollapsingState::load_with_default_open(ctx, id, true)
+            .show_header(ui, |ui| {
+                if let Some(render_model) = app.render_models.get_mut(i) {
+                    ui.add(EyeCheckBox::new(&mut render_model.is_visible, &name));
                 }
-            }
-        });
+            })
+            .body(|ui| {
+                // TODO: How to ensure the render models stay in sync with the model folder?
+                if let Some(render_model) = app.render_models.get_mut(i) {
+                    for mesh in &mut render_model.meshes {
+                        ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
+                    }
+                }
+            });
     }
 }
 
