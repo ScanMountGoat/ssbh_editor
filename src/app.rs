@@ -8,7 +8,7 @@ use crate::{
 };
 use egui::{CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
-use log::{error, Log};
+use log::Log;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::MatlEntryData, prelude::*};
 use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
@@ -125,14 +125,10 @@ impl SsbhApp {
 
 const ICON_SIZE: f32 = 16.0;
 
-impl epi::App for SsbhApp {
-    fn name(&self) -> &str {
-        "SSBH Editor"
-    }
-
+impl SsbhApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, _frame: &epi::Frame) {
+    pub fn update(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu_button(ui, "File", |ui| {

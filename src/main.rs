@@ -1,42 +1,20 @@
 use chrono::{DateTime, Utc};
-use egui::FontDefinitions;
-use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
-use egui_winit_platform::{Platform, PlatformDescriptor};
-use epi::*;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::SsbhApp;
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
 use ssbh_editor::material::load_material_presets;
-use ssbh_editor::{
-    default_text_styles, generate_default_thumbnails, generate_model_thumbnails, widgets_dark,
-};
+use ssbh_editor::{generate_default_thumbnails, generate_model_thumbnails};
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
 };
 use std::iter;
-use std::time::Instant;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::*,
     event_loop::ControlFlow,
 };
-
-/// A custom event type for the winit app.
-enum Event {
-    RequestRedraw,
-}
-
-/// This is the repaint signal type that egui needs for requesting a repaint from another thread.
-/// It sends the custom RequestRedraw event to the winit event loop.
-struct ExampleRepaintSignal(std::sync::Mutex<winit::event_loop::EventLoopProxy<Event>>);
-
-impl epi::backend::RepaintSignal for ExampleRepaintSignal {
-    fn request_repaint(&self) {
-        self.0.lock().unwrap().send_event(Event::RequestRedraw).ok();
-    }
-}
 
 struct CameraInputState {
     previous_cursor_position: PhysicalPosition<f64>,
@@ -205,25 +183,12 @@ fn main() {
     };
     surface.configure(&device, &surface_config);
 
-    let repaint_signal = std::sync::Arc::new(ExampleRepaintSignal(std::sync::Mutex::new(
-        event_loop.create_proxy(),
-    )));
-
-    // We use the egui_winit_platform crate as the platform.
-    let mut platform = Platform::new(PlatformDescriptor {
-        physical_width: size.width as u32,
-        physical_height: size.height as u32,
-        scale_factor: window.scale_factor(),
-        font_definitions: FontDefinitions::default(),
-        style: egui::style::Style {
-            text_styles: default_text_styles(),
-            visuals: egui::style::Visuals {
-                widgets: widgets_dark(),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-    });
+    // Initialize egui and winit state.
+    let ctx = egui::Context::default();
+    let mut egui_rpass = egui_wgpu::renderer::RenderPass::new(&device, surface_format, 1);
+    let mut winit_state = egui_winit::State::new(&event_loop);
+    winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
+    winit_state.set_pixels_per_point(window.scale_factor() as f32);
 
     let mut renderer = SsbhRenderer::new(
         &device,
@@ -260,9 +225,6 @@ fn main() {
     };
 
     update_camera(&mut renderer, &queue, size, &camera_state);
-
-    // We use the egui_wgpu_backend crate as the render backend.
-    let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
 
     // TODO: How to cache/store the thumbnails for nutexb textures?
     // TODO: How to ensure this cache remains up to date?
@@ -331,215 +293,254 @@ fn main() {
         .map(|()| log::set_max_level(log::LevelFilter::Info))
         .unwrap();
 
-    let start_time = Instant::now();
-    let mut previous_frame_time = None;
-    event_loop.run(move |event, _, control_flow| {
-        // Pass the winit events to the platform integration.
-        platform.handle_event(&event);
+    // TODO: Does the T in the the event type matter here?
+    event_loop.run(
+        move |event: winit::event::Event<'_, usize>, _, control_flow| {
+            match event {
+                winit::event::Event::RedrawRequested(..) => {
+                    let raw_input = winit_state.take_egui_input(&window);
 
-        match event {
-            winit::event::Event::RedrawRequested(..) => {
-                // TODO: Does this break if left running for too long?
-                platform.update_time(start_time.elapsed().as_secs_f64());
+                    // Always update the frame times even if no animation is playing.
+                    // This avoids skipping when resuming playback.
+                    let current_frame_start = std::time::Instant::now();
 
-                // Always update the frame times even if no animation is playing.
-                // This avoids skipping when resuming playback.
-                let current_frame_start = std::time::Instant::now();
-
-                // TODO: Move this to the app?
-                let mut final_frame_index = 0.0;
-                for (_, a) in &app.animation_state.animations {
-                    if a.final_frame_index > final_frame_index {
-                        final_frame_index = a.final_frame_index;
-                    }
-                }
-
-                if app.animation_state.is_playing {
-                    app.animation_state.current_frame = next_frame(
-                        app.animation_state.current_frame,
-                        app.animation_state.previous_frame_start,
-                        current_frame_start,
-                        final_frame_index,
-                    );
-                }
-                app.animation_state.previous_frame_start = current_frame_start;
-
-                let output_frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(e) => {
-                        eprintln!("Dropped frame with error: {}", e);
-                        return;
-                    }
-                };
-                let output_view = output_frame
-                    .texture
-                    .create_view(&wgpu::TextureViewDescriptor::default());
-
-                // TODO: Load models on a separate thread to avoid freezing the UI.
-                if app.should_refresh_meshes {
-                    app.render_models = ssbh_wgpu::load_render_models(
-                        &app.render_state.device,
-                        &app.render_state.queue,
-                        &app.render_state.pipeline_data,
-                        &app.models,
-                        &app.render_state.default_textures,
-                        &app.render_state.stage_cube,
-                        &app.render_state.shader_database,
-                    );
-                    app.thumbnails = generate_model_thumbnails(
-                        &texture_renderer,
-                        &app.models,
-                        &app.render_state.device,
-                        &app.render_state.queue,
-                        &mut egui_rpass,
-                    );
-                    app.should_refresh_meshes = false;
-                }
-
-                if app.should_refresh_render_settings {
-                    renderer.update_render_settings(
-                        &app.render_state.queue,
-                        &app.render_state.render_settings,
-                    );
-                    app.should_refresh_render_settings = false;
-                }
-
-                if app.animation_state.is_playing || app.animation_state.animation_frame_was_changed
-                {
-                    for (_, animation) in &app.animation_state.animations {
-                        for (render_model, model) in
-                            app.render_models.iter_mut().zip(app.models.iter())
-                        {
-                            // TODO: Why does this need an option?
-                            // TODO: Make frame timing logic in ssbh_wgpu public?
-                            // TODO: Modify ssbh_wgpu to take multiple anims to avoid clearing.
-                            render_model.apply_anim(
-                                &app.render_state.device,
-                                &app.render_state.queue,
-                                Some(animation),
-                                model
-                                    .skels
-                                    .iter()
-                                    .find(|(f, _)| f == "model.nusktb")
-                                    .map(|h| &h.1),
-                                model
-                                    .matls
-                                    .iter()
-                                    .find(|(f, _)| f == "model.numatb")
-                                    .map(|h| &h.1),
-                                model
-                                    .hlpbs
-                                    .iter()
-                                    .find(|(f, _)| f == "model.nuhlpb")
-                                    .map(|h| &h.1),
-                                app.animation_state.current_frame,
-                                &app.render_state.pipeline_data,
-                                &app.render_state.default_textures,
-                                &app.render_state.stage_cube,
-                                &app.render_state.shader_database,
-                            );
+                    // TODO: Move this to the app?
+                    let mut final_frame_index = 0.0;
+                    for (_, a) in &app.animation_state.animations {
+                        if a.final_frame_index > final_frame_index {
+                            final_frame_index = a.final_frame_index;
                         }
                     }
 
-                    app.animation_state.animation_frame_was_changed = false;
-                }
+                    if app.animation_state.is_playing {
+                        app.animation_state.current_frame = next_frame(
+                            app.animation_state.current_frame,
+                            app.animation_state.previous_frame_start,
+                            current_frame_start,
+                            final_frame_index,
+                        );
+                    }
+                    app.animation_state.previous_frame_start = current_frame_start;
 
-                let mut encoder = app.render_state.device.create_command_encoder(
-                    &wgpu::CommandEncoderDescriptor {
-                        label: Some("Render Encoder"),
-                    },
-                );
+                    let output_frame = match surface.get_current_texture() {
+                        Ok(frame) => frame,
+                        Err(e) => {
+                            eprintln!("Dropped frame with error: {}", e);
+                            return;
+                        }
+                    };
+                    let output_view = output_frame
+                        .texture
+                        .create_view(&wgpu::TextureViewDescriptor::default());
 
-                // First we draw the 3D viewport and main background color.
-                // TODO: Customizeable background color for the renderer?
-                renderer.render_ssbh_passes(
-                    &mut encoder,
-                    &output_view,
-                    &app.render_models,
-                    &app.render_state.shader_database,
-                );
-
-                // The UI is layered on top.
-                egui_render_pass(
-                    &mut encoder,
-                    &mut platform,
-                    &mut previous_frame_time,
-                    &window,
-                    &mut egui_rpass,
-                    &repaint_signal,
-                    &mut app,
-                    &surface_config,
-                    &output_view,
-                );
-
-                // Submit the commands.
-                app.render_state.queue.submit(iter::once(encoder.finish()));
-
-                // Present the final rendered image.
-                output_frame.present();
-            }
-            winit::event::Event::WindowEvent { event, .. } => {
-                match event {
-                    winit::event::WindowEvent::Resized(new_size) => {
-                        // TODO: Is there an easier way to track changing window size?
-                        size = new_size;
-
-                        surface_config.width = size.width;
-                        surface_config.height = size.height;
-                        surface.configure(&app.render_state.device, &surface_config);
-
-                        renderer.resize(
+                    // TODO: Load models on a separate thread to avoid freezing the UI.
+                    if app.should_refresh_meshes {
+                        app.render_models = ssbh_wgpu::load_render_models(
                             &app.render_state.device,
                             &app.render_state.queue,
-                            size.width,
-                            size.height,
-                            window.scale_factor(),
+                            &app.render_state.pipeline_data,
+                            &app.models,
+                            &app.render_state.default_textures,
+                            &app.render_state.stage_cube,
+                            &app.render_state.shader_database,
                         );
-                        update_camera(&mut renderer, &app.render_state.queue, size, &camera_state);
+                        app.thumbnails = generate_model_thumbnails(
+                            &texture_renderer,
+                            &app.models,
+                            &app.render_state.device,
+                            &app.render_state.queue,
+                            &mut egui_rpass,
+                        );
+                        app.should_refresh_meshes = false;
                     }
-                    winit::event::WindowEvent::CloseRequested => {
-                        // TODO: Create an app.exit() method?
-                        // TODO: Use json to support more settings.
-                        // TODO: Where to store this on mac/linux?
-                        std::fs::write("ssbh_editor_config.txt", update_check_time.to_string())
-                            .unwrap();
 
-                        *control_flow = ControlFlow::Exit;
+                    if app.should_refresh_render_settings {
+                        renderer.update_render_settings(
+                            &app.render_state.queue,
+                            &app.render_state.render_settings,
+                        );
+                        app.should_refresh_render_settings = false;
                     }
-                    _ => {
-                        if platform.context().wants_keyboard_input()
-                            || platform.context().wants_pointer_input()
-                        {
-                            // It's possible to interact with the UI with the mouse over the viewport.
-                            // Disable tracking the mouse in this case to prevent unwanted camera rotations.
-                            // This mostly affects resizing the left and right side panels.
-                            camera_state.is_mouse_left_clicked = false;
-                            camera_state.is_mouse_right_clicked = false;
-                        } else {
-                            // Only update the viewport camera if the user isn't interacting with the UI.
-                            if handle_input(&mut camera_state, &event) {
-                                update_camera(
-                                    &mut renderer,
+
+                    if app.animation_state.is_playing
+                        || app.animation_state.animation_frame_was_changed
+                    {
+                        for (_, animation) in &app.animation_state.animations {
+                            for (render_model, model) in
+                                app.render_models.iter_mut().zip(app.models.iter())
+                            {
+                                // TODO: Why does this need an option?
+                                // TODO: Make frame timing logic in ssbh_wgpu public?
+                                // TODO: Modify ssbh_wgpu to take multiple anims to avoid clearing.
+                                render_model.apply_anim(
+                                    &app.render_state.device,
                                     &app.render_state.queue,
-                                    size,
-                                    &camera_state,
+                                    Some(animation),
+                                    model
+                                        .skels
+                                        .iter()
+                                        .find(|(f, _)| f == "model.nusktb")
+                                        .map(|h| &h.1),
+                                    model
+                                        .matls
+                                        .iter()
+                                        .find(|(f, _)| f == "model.numatb")
+                                        .map(|h| &h.1),
+                                    model
+                                        .hlpbs
+                                        .iter()
+                                        .find(|(f, _)| f == "model.nuhlpb")
+                                        .map(|h| &h.1),
+                                    app.animation_state.current_frame,
+                                    &app.render_state.pipeline_data,
+                                    &app.render_state.default_textures,
+                                    &app.render_state.stage_cube,
+                                    &app.render_state.shader_database,
                                 );
-                                // TODO: How to only execute this when settings change?
-                                renderer.update_render_settings(
-                                    &app.render_state.queue,
-                                    &app.render_state.render_settings,
-                                );
+                            }
+                        }
+
+                        app.animation_state.animation_frame_was_changed = false;
+                    }
+
+                    let mut encoder = app.render_state.device.create_command_encoder(
+                        &wgpu::CommandEncoderDescriptor {
+                            label: Some("Render Encoder"),
+                        },
+                    );
+
+                    // First we draw the 3D viewport and main background color.
+                    // TODO: Customizeable background color for the renderer?
+                    renderer.render_ssbh_passes(
+                        &mut encoder,
+                        &output_view,
+                        &app.render_models,
+                        &app.render_state.shader_database,
+                    );
+
+                    // TODO: Make a function for this.
+                    // The UI is layered on top.
+                    // Based on the egui_wgpu source found here:
+                    // https://github.com/emilk/egui/blob/master/egui-wgpu/src/winit.rs
+                    let full_output = ctx.run(raw_input, |ctx| {
+                        app.update(ctx);
+                    });
+
+                    winit_state.handle_platform_output(&window, &ctx, full_output.platform_output);
+
+                    let clipped_primitives = ctx.tessellate(full_output.shapes);
+
+                    let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
+                        size_in_pixels: [surface_config.width, surface_config.height],
+                        pixels_per_point: window.scale_factor() as f32,
+                    };
+
+                    for (id, image_delta) in &full_output.textures_delta.set {
+                        egui_rpass.update_texture(
+                            &app.render_state.device,
+                            &app.render_state.queue,
+                            *id,
+                            image_delta,
+                        );
+                    }
+
+                    egui_rpass.update_buffers(
+                        &app.render_state.device,
+                        &app.render_state.queue,
+                        &clipped_primitives,
+                        &screen_descriptor,
+                    );
+
+                    // Record all render passes.
+                    egui_rpass.execute(
+                        &mut encoder,
+                        &output_view,
+                        &clipped_primitives,
+                        &screen_descriptor,
+                        None,
+                    );
+
+                    for id in &full_output.textures_delta.free {
+                        egui_rpass.free_texture(id);
+                    }
+                    // end egui
+
+                    // Submit the commands.
+                    app.render_state.queue.submit(iter::once(encoder.finish()));
+
+                    // Present the final rendered image.
+                    output_frame.present();
+                }
+                winit::event::Event::WindowEvent { event, .. } => {
+                    winit_state.on_event(&ctx, &event);
+
+                    match event {
+                        winit::event::WindowEvent::Resized(new_size) => {
+                            // TODO: Is there an easier way to track changing window size?
+                            size = new_size;
+
+                            surface_config.width = size.width;
+                            surface_config.height = size.height;
+                            surface.configure(&app.render_state.device, &surface_config);
+
+                            renderer.resize(
+                                &app.render_state.device,
+                                &app.render_state.queue,
+                                size.width,
+                                size.height,
+                                window.scale_factor(),
+                            );
+                            update_camera(
+                                &mut renderer,
+                                &app.render_state.queue,
+                                size,
+                                &camera_state,
+                            );
+                        }
+                        winit::event::WindowEvent::CloseRequested => {
+                            // TODO: Create an app.exit() method?
+                            // TODO: Use json to support more settings.
+                            // TODO: Where to store this on mac/linux?
+                            std::fs::write("ssbh_editor_config.txt", update_check_time.to_string())
+                                .unwrap();
+
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        _ => {
+                            if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
+                                // It's possible to interact with the UI with the mouse over the viewport.
+                                // Disable tracking the mouse in this case to prevent unwanted camera rotations.
+                                // This mostly affects resizing the left and right side panels.
+                                camera_state.is_mouse_left_clicked = false;
+                                camera_state.is_mouse_right_clicked = false;
+                            } else {
+                                // Only update the viewport camera if the user isn't interacting with the UI.
+                                if handle_input(&mut camera_state, &event) {
+                                    update_camera(
+                                        &mut renderer,
+                                        &app.render_state.queue,
+                                        size,
+                                        &camera_state,
+                                    );
+                                    // TODO: How to only execute this when settings change?
+                                    renderer.update_render_settings(
+                                        &app.render_state.queue,
+                                        &app.render_state.render_settings,
+                                    );
+                                }
                             }
                         }
                     }
                 }
+                winit::event::Event::MainEventsCleared => {
+                    window.request_redraw();
+                }
+                // TODO: Why does this need to be here?
+                winit::event::Event::UserEvent(_) => (),
+                _ => (),
             }
-            winit::event::Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            _ => (),
-        }
-    });
+        },
+    );
 }
 
 fn update_camera(
@@ -555,68 +556,6 @@ fn update_camera(
         camera_pos: camera_pos.to_array(),
     };
     renderer.update_camera(queue, transforms);
-}
-
-#[allow(clippy::too_many_arguments)]
-fn egui_render_pass(
-    encoder: &mut wgpu::CommandEncoder,
-    platform: &mut Platform,
-    previous_frame_time: &mut Option<f32>,
-    window: &winit::window::Window,
-    egui_rpass: &mut RenderPass,
-    repaint_signal: &std::sync::Arc<ExampleRepaintSignal>,
-    app: &mut SsbhApp,
-    surface_config: &wgpu::SurfaceConfiguration,
-    output_view: &wgpu::TextureView,
-) {
-    // Begin to draw the UI frame.
-    let egui_start = Instant::now();
-    platform.begin_frame();
-
-    let app_output = epi::backend::AppOutput::default();
-    let frame = epi::Frame::new(epi::backend::FrameData {
-        info: epi::IntegrationInfo {
-            name: "egui_example",
-            web_info: None,
-            cpu_usage: *previous_frame_time,
-            native_pixels_per_point: Some(window.scale_factor() as _),
-            prefer_dark_mode: None,
-        },
-        output: app_output,
-        repaint_signal: repaint_signal.clone(),
-    });
-
-    app.update(&platform.context(), &frame);
-
-    let output = platform.end_frame(Some(window));
-    let paint_jobs = platform.context().tessellate(output.shapes);
-    let frame_time = (Instant::now() - egui_start).as_secs_f64() as f32;
-    *previous_frame_time = Some(frame_time);
-
-    let screen_descriptor = ScreenDescriptor {
-        physical_width: surface_config.width,
-        physical_height: surface_config.height,
-        scale_factor: window.scale_factor() as f32,
-    };
-
-    egui_rpass
-        .add_textures(
-            &app.render_state.device,
-            &app.render_state.queue,
-            &output.textures_delta,
-        )
-        .unwrap();
-    egui_rpass.update_buffers(
-        &app.render_state.device,
-        &app.render_state.queue,
-        &paint_jobs,
-        &screen_descriptor,
-    );
-    egui_rpass
-        .execute(encoder, output_view, &paint_jobs, &screen_descriptor, None)
-        .unwrap();
-
-    egui_rpass.remove_textures(output.textures_delta).unwrap();
 }
 
 // TODO: Create a separate module for input handling?

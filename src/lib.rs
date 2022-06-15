@@ -4,8 +4,6 @@ use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, Rounding, Stroke, TextStyle,
 };
-use egui_wgpu_backend::RenderPass;
-use epi::*;
 use nutexb_wgpu::TextureRenderer;
 
 use ssbh_wgpu::ModelFolder;
@@ -46,7 +44,7 @@ pub fn generate_model_thumbnails(
     models: &[ssbh_wgpu::ModelFolder],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    egui_rpass: &mut RenderPass,
+    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
 ) -> Vec<Vec<(String, egui::TextureId)>> {
     models
         .iter()
@@ -61,7 +59,7 @@ pub fn generate_model_thumbnails(
                     let rgba_view =
                         rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
                     // TODO: Does the filter mode here matter?
-                    let egui_texture = egui_rpass.egui_texture_from_wgpu_texture(
+                    let egui_texture = egui_rpass.register_native_texture(
                         device,
                         &rgba_view,
                         wgpu::FilterMode::Linear,
@@ -79,7 +77,7 @@ pub fn generate_default_thumbnails(
     default_textures: &[(String, wgpu::Texture)],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    egui_rpass: &mut RenderPass,
+    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
 ) -> Vec<(String, egui::TextureId)> {
     let mut thumbnails: Vec<_> = default_textures
         .iter()
@@ -87,11 +85,8 @@ pub fn generate_default_thumbnails(
             let rgba_texture = renderer.render_to_texture_rgba(device, queue, texture, 64, 64);
             let rgba_view = rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
             // TODO: Does the filter mode here matter?
-            let egui_texture = egui_rpass.egui_texture_from_wgpu_texture(
-                device,
-                &rgba_view,
-                wgpu::FilterMode::Linear,
-            );
+            let egui_texture =
+                egui_rpass.register_native_texture(device, &rgba_view, wgpu::FilterMode::Linear);
 
             (name.clone(), egui_texture)
         })
