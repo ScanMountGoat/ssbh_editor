@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
-use ssbh_editor::app::SsbhApp;
+use ssbh_editor::app::{AnimationIndex, SsbhApp};
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::{
@@ -322,13 +322,7 @@ fn main() {
                     // This avoids skipping when resuming playback.
                     let current_frame_start = std::time::Instant::now();
 
-                    // TODO: Move this to the app?
-                    let mut final_frame_index = 0.0;
-                    for (_, a) in &app.animation_state.animations {
-                        if a.final_frame_index > final_frame_index {
-                            final_frame_index = a.final_frame_index;
-                        }
-                    }
+                    let final_frame_index = app.max_final_frame_index();
 
                     if app.animation_state.is_playing {
                         app.animation_state.current_frame = next_frame(
@@ -383,7 +377,11 @@ fn main() {
                     if app.animation_state.is_playing
                         || app.animation_state.animation_frame_was_changed
                     {
-                        for (_, animation) in &app.animation_state.animations {
+                        for anim_index in &app.animation_state.animations {
+                            let animation =
+                                AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
+                                    .map(|(_, a)| a);
+
                             for (render_model, model) in
                                 app.render_models.iter_mut().zip(app.models.iter())
                             {
@@ -393,7 +391,7 @@ fn main() {
                                 render_model.apply_anim(
                                     &app.render_state.device,
                                     &app.render_state.queue,
-                                    Some(animation),
+                                    animation,
                                     model
                                         .skels
                                         .iter()

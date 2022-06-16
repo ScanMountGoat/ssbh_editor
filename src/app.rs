@@ -89,12 +89,30 @@ pub struct UiState {
     pub selected_material_index: usize,
 }
 
+pub struct AnimationIndex {
+    pub folder_index: usize,
+    pub anim_index: usize,
+}
+
+impl AnimationIndex {
+    pub fn get_animation<'a>(
+        index: Option<&AnimationIndex>,
+        models: &'a [ModelFolder],
+    ) -> Option<&'a (String, AnimData)> {
+        index.and_then(|index| {
+            models
+                .get(index.folder_index)
+                .and_then(|m| m.anims.get(index.anim_index))
+        })
+    }
+}
+
 pub struct AnimationState {
     pub current_frame: f32,
     pub is_playing: bool,
     pub animation_frame_was_changed: bool,
     pub selected_slot: usize,
-    pub animations: Vec<(String, AnimData)>,
+    pub animations: Vec<Option<AnimationIndex>>,
     pub previous_frame_start: std::time::Instant,
 }
 
@@ -116,6 +134,14 @@ pub enum PanelTab {
 }
 
 impl SsbhApp {
+    fn reload_workspace(&mut self) {
+        // This also reloads animations since animations are stored as indices.
+        for model in &mut self.models {
+            *model = ModelFolder::load_folder(&model.folder_name);
+        }
+        self.should_refresh_meshes = true;
+    }
+
     fn clear_workspace(&mut self) {
         self.models = Vec::new();
         self.render_models = Vec::new();
@@ -156,6 +182,12 @@ impl SsbhApp {
                             self.models.push(new_model);
                             self.should_refresh_meshes = true;
                         }
+                    }
+
+                    if ui.button("Reload Workspace").clicked() {
+                        ui.close_menu();
+
+                        self.reload_workspace();
                     }
 
                     if ui.button("Clear Workspace").clicked() {
@@ -427,22 +459,26 @@ impl SsbhApp {
                                     Some("model.numdlb"),
                                 );
 
-                                for (_i, (name, anim)) in model.anims.iter().enumerate() {
+                                for (i, (name, _)) in model.anims.iter().enumerate() {
                                     ui.horizontal(|ui| {
                                         empty_icon(ui);
                                         if ui.button(name).clicked() {
-                                            self.ui_state.selected_folder_index =
-                                                Some(folder_index);
-                                            // TODO: Store (folder_index, anim_index) to avoid cloning?
-                                            let new_animation = (name.to_string(), anim.clone());
+                                            let animation = AnimationIndex {
+                                                folder_index,
+                                                anim_index: i,
+                                            };
+
+                                            // Create the first slot if it doesn't exist to save mouse clicks.
                                             if self.animation_state.animations.is_empty() {
-                                                self.animation_state.animations.push(new_animation);
+                                                self.animation_state
+                                                    .animations
+                                                    .push(Some(animation));
                                             } else if let Some(slot) = self
                                                 .animation_state
                                                 .animations
                                                 .get_mut(self.animation_state.selected_slot)
                                             {
-                                                *slot = new_animation;
+                                                *slot = Some(animation);
                                             }
 
                                             // Preview the new animation as soon as it is clicked.
@@ -525,19 +561,12 @@ impl SsbhApp {
             }
         });
     }
-}
 
-impl SsbhApp {
     fn animation_bar(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(
             egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
             |ui| {
-                let mut final_frame_index = 0.0;
-                for (_, a) in &self.animation_state.animations {
-                    if a.final_frame_index > final_frame_index {
-                        final_frame_index = a.final_frame_index;
-                    }
-                }
+                let final_frame_index = self.max_final_frame_index();
 
                 // TODO: How to fill available space?
                 ui.spacing_mut().slider_width = (ui.available_size().x - 140.0).max(0.0);
@@ -580,6 +609,21 @@ impl SsbhApp {
                 }
             },
         );
+    }
+
+    pub fn max_final_frame_index(&mut self) -> f32 {
+        // Find the minimum number of frames to cover all animations.
+        let mut final_frame_index = 0.0;
+        for anim_index in &self.animation_state.animations {
+            if let Some((_, anim)) =
+                AnimationIndex::get_animation(anim_index.as_ref(), &self.models)
+            {
+                if anim.final_frame_index > final_frame_index {
+                    final_frame_index = anim.final_frame_index;
+                }
+            }
+        }
+        final_frame_index
     }
 }
 
@@ -680,19 +724,15 @@ fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
 fn anim_list(app: &mut SsbhApp, ui: &mut egui::Ui) {
     // TODO: Will these IDs be unique?
     if ui.button("Add Slot").clicked() {
-        app.animation_state.animations.push((
-            "EMPTY".to_string(),
-            AnimData {
-                major_version: 2,
-                minor_version: 0,
-                final_frame_index: 0.0,
-                groups: Vec::new(),
-            },
-        ));
+        app.animation_state.animations.push(None);
     }
 
     let mut slots_to_remove = Vec::new();
-    for (i, (name, _anim)) in app.animation_state.animations.iter().enumerate().rev() {
+    for (i, anim_index) in app.animation_state.animations.iter().enumerate().rev() {
+        let name = AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
+            .map(|(n, _)| n.to_string())
+            .unwrap_or_default();
+
         ui.horizontal(|ui| {
             ui.selectable_value(
                 &mut app.animation_state.selected_slot,
