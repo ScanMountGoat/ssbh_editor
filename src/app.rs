@@ -777,6 +777,7 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                     ui.checkbox(&mut settings.render_specular, "Enable Specular");
                     ui.checkbox(&mut settings.render_emission, "Enable Emission");
                     ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting");
+                    ui.checkbox(&mut settings.render_bloom, "Enable Bloom");
 
                     ui.heading("Lighting");
                     ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
