@@ -537,7 +537,7 @@ impl SsbhApp {
                     .auto_shrink([false; 2])
                     .show(ui, |ui| match self.ui_state.right_panel_tab {
                         PanelTab::MeshList => mesh_list(ctx, self, ui),
-                        PanelTab::AnimList => anim_list(self, ui),
+                        PanelTab::AnimList => anim_list(ctx, self, ui),
                     });
             });
 
@@ -692,6 +692,7 @@ pub fn error_icon(ui: &mut egui::Ui) {
 }
 
 fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
+    // TODO: Display folders that only have animations differently?
     for (i, folder) in app.models.iter().enumerate() {
         // TODO: Will these IDs be unique?
         // TODO: Avoid displaying numbers with folder names.
@@ -721,7 +722,7 @@ fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     }
 }
 
-fn anim_list(app: &mut SsbhApp, ui: &mut egui::Ui) {
+fn anim_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     // TODO: Will these IDs be unique?
     if ui.button("Add Slot").clicked() {
         app.animation_state.animations.push(None);
@@ -729,62 +730,63 @@ fn anim_list(app: &mut SsbhApp, ui: &mut egui::Ui) {
 
     let mut slots_to_remove = Vec::new();
     for (i, anim_index) in app.animation_state.animations.iter().enumerate().rev() {
-        let name = AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
-            .map(|(n, _)| n.to_string())
-            .unwrap_or_default();
+        // TODO: Unique IDs?
+        let id = ui.make_persistent_id(i);
+        CollapsingState::load_with_default_open(ctx, id, false)
+            .show_header(ui, |ui| {
+                let name = AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
+                    .map(|(name, _)| name.to_string())
+                    .unwrap_or_default();
 
-        ui.horizontal(|ui| {
-            ui.selectable_value(
-                &mut app.animation_state.selected_slot,
-                i,
-                format!("Slot {i} - {name}"),
-            );
-            if ui.button("Remove").clicked() {
-                slots_to_remove.push(i);
-            }
-        });
+                ui.horizontal(|ui| {
+                    ui.selectable_value(
+                        &mut app.animation_state.selected_slot,
+                        i,
+                        format!("Slot {i} - {name}"),
+                    );
+                    if ui.button("Remove").clicked() {
+                        slots_to_remove.push(i);
+                    }
+                });
+            })
+            .body(|ui| {
+                if let Some((_, anim)) =
+                    AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
+                {
+                    for group in &anim.groups {
+                        CollapsingHeader::new(group.group_type.to_string())
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                for node in &group.nodes {
+                                    match node.tracks.as_slice() {
+                                        [_] => {
+                                            // Don't use a collapsing header if there is only one track.
+                                            // This simplifies the layout for most boolean and transform tracks.
+                                            // TODO: How to toggle visibility for rendering?
+                                            ui.label(&node.name);
+                                        }
+                                        _ => {
+                                            CollapsingHeader::new(&node.name)
+                                                .default_open(true)
+                                                .show(ui, |ui| {
+                                                    for track in &node.tracks {
+                                                        // TODO: How to toggle visibility for rendering?
+                                                        ui.label(&track.name);
+                                                    }
+                                                });
+                                        }
+                                    }
+                                }
+                            });
+                    }
+                }
+            });
     }
 
     // TODO: Force only one slot to be removed?
     for slot in slots_to_remove {
         app.animation_state.animations.remove(slot);
     }
-    // for (i, (name, anim)) in app.animation_state.animations.iter().enumerate() {
-    //     CollapsingHeader::new(format!("Slot {i} - {name}"))
-    //         .default_open(false)
-    //         .show(ui, |ui| {
-    //             for group in &anim.groups {
-    //                 CollapsingHeader::new(group.group_type.to_string())
-    //                     .default_open(true)
-    //                     .show(ui, |ui| {
-    //                         for node in &group.nodes {
-    //                             match node.tracks.as_slice() {
-    //                                 [_] => {
-    //                                     // Don't use a collapsing header if there is only one track.
-    //                                     // This simplifies the layout for most boolean and transform tracks.
-    //                                     // TODO: How to toggle visibility for rendering?
-    //                                     ui.add(EyeCheckBox::new(&mut true, &node.name));
-    //                                 }
-    //                                 _ => {
-    //                                     CollapsingHeader::new(&node.name).default_open(true).show(
-    //                                         ui,
-    //                                         |ui| {
-    //                                             for track in &node.tracks {
-    //                                                 // TODO: How to toggle visibility for rendering?
-    //                                                 ui.add(EyeCheckBox::new(
-    //                                                     &mut true,
-    //                                                     &track.name,
-    //                                                 ));
-    //                                             }
-    //                                         },
-    //                                     );
-    //                                 }
-    //                             }
-    //                         }
-    //                     });
-    //             }
-    //         });
-    // }
 }
 
 fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mut bool) {
