@@ -30,12 +30,13 @@ struct CameraInputState {
 // TODO: Separate project for camera + input handling?
 fn calculate_mvp(
     size: winit::dpi::PhysicalSize<u32>,
-    state: &CameraInputState,
+    translation_xyz: glam::Vec3,
+    rotation_xyz: glam::Vec3,
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
     let aspect = size.width as f32 / size.height as f32;
-    let model_view_matrix = glam::Mat4::from_translation(state.translation_xyz)
-        * glam::Mat4::from_rotation_x(state.rotation_xyz.x)
-        * glam::Mat4::from_rotation_y(state.rotation_xyz.y);
+    let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
+        * glam::Mat4::from_rotation_x(rotation_xyz.x)
+        * glam::Mat4::from_rotation_y(rotation_xyz.y);
     let perspective_matrix = glam::Mat4::perspective_rh_gl(0.5, aspect, 1.0, 400000.0);
 
     // TODO: Is this correct for the camera position?
@@ -531,7 +532,7 @@ fn main() {
                                 camera_state.is_mouse_right_clicked = false;
                             } else {
                                 // Only update the viewport camera if the user isn't interacting with the UI.
-                                if handle_input(&mut camera_state, &event) {
+                                if handle_input(&mut camera_state, &event, size) {
                                     update_camera(
                                         &mut renderer,
                                         &app.render_state.queue,
@@ -565,7 +566,11 @@ fn update_camera(
     size: PhysicalSize<u32>,
     camera_state: &CameraInputState,
 ) {
-    let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(size, camera_state);
+    let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
+        size,
+        camera_state.translation_xyz,
+        camera_state.rotation_xyz,
+    );
     let transforms = CameraTransforms {
         model_view_matrix,
         mvp_matrix,
@@ -575,14 +580,18 @@ fn update_camera(
 }
 
 // TODO: Create a separate module for input handling?
-fn handle_input(input_state: &mut CameraInputState, event: &WindowEvent) -> bool {
+fn handle_input(
+    input_state: &mut CameraInputState,
+    event: &WindowEvent,
+    size: PhysicalSize<u32>,
+) -> bool {
     // Return true if this function handled the event.
     // TODO: Input handling can be it's own module with proper tests.
     // Just test if the WindowEvent object is handled correctly.
     // Test that some_fn(event, state) returns new state?
     match event {
         WindowEvent::MouseInput { button, state, .. } => {
-            // Keep track mouse clicks to only rotate when dragging while clicked.
+            // Track mouse clicks to only rotate when dragging while clicked.
             match (button, state) {
                 (MouseButton::Left, ElementState::Pressed) => {
                     input_state.is_mouse_left_clicked = true
@@ -601,8 +610,6 @@ fn handle_input(input_state: &mut CameraInputState, event: &WindowEvent) -> bool
             true
         }
         WindowEvent::CursorMoved { position, .. } => {
-            // TODO: This isn't recommended for 3d camera control?
-            // TODO: How to only adjust camera if the viewport is focused?
             if input_state.is_mouse_left_clicked {
                 let delta_x = position.x - input_state.previous_cursor_position.x;
                 let delta_y = position.y - input_state.previous_cursor_position.y;
@@ -611,24 +618,37 @@ fn handle_input(input_state: &mut CameraInputState, event: &WindowEvent) -> bool
                 input_state.rotation_xyz.x += (delta_y * 0.01) as f32;
                 input_state.rotation_xyz.y += (delta_x * 0.01) as f32;
             } else if input_state.is_mouse_right_clicked {
-                // TODO: Adjust speed based on camera distance and handle 0 distance.
-                let delta_x = position.x - input_state.previous_cursor_position.x;
-                let delta_y = position.y - input_state.previous_cursor_position.y;
+                let (current_x_world, current_y_world) =
+                    screen_to_world(&input_state, *position, size);
+                let (previous_x_world, previous_y_world) =
+                    screen_to_world(&input_state, input_state.previous_cursor_position, size);
+
+                let delta_x_world = current_x_world - previous_x_world;
+                let delta_y_world = current_y_world - previous_y_world;
 
                 // Negate y so that dragging up "drags" the model up.
-                input_state.translation_xyz.x += (delta_x * 0.1) as f32;
-                input_state.translation_xyz.y -= (delta_y * 0.1) as f32;
+                input_state.translation_xyz.x += delta_x_world;
+                input_state.translation_xyz.y -= delta_y_world;
             }
             // Always update the position to avoid jumps when moving between clicks.
             input_state.previous_cursor_position = *position;
+
             true
         }
         WindowEvent::MouseWheel { delta, .. } => {
             // TODO: Add tests for handling scroll events properly?
-            input_state.translation_xyz.z += match delta {
-                MouseScrollDelta::LineDelta(_x, y) => *y * 5.0,
-                MouseScrollDelta::PixelDelta(p) => p.y as f32,
+            // Scale zoom speed with distance to make it easier to zoom out large scenes.
+            let delta_z = match delta {
+                MouseScrollDelta::LineDelta(_x, y) => {
+                    *y * input_state.translation_xyz.z.abs() * 0.1
+                }
+                MouseScrollDelta::PixelDelta(p) => {
+                    p.y as f32 * input_state.translation_xyz.z.abs() * 0.005
+                }
             };
+
+            // Clamp to prevent the user from zooming through the origin.
+            input_state.translation_xyz.z = (input_state.translation_xyz.z + delta_z).min(-1.0);
             true
         }
         WindowEvent::KeyboardInput { input, .. } => {
@@ -646,4 +666,37 @@ fn handle_input(input_state: &mut CameraInputState, event: &WindowEvent) -> bool
         }
         _ => false,
     }
+}
+
+// TODO: Move this to ssbh_wgpu and make tests.
+fn screen_to_world(
+    input_state: &CameraInputState,
+    position: PhysicalPosition<f64>,
+    size: PhysicalSize<u32>,
+) -> (f32, f32) {
+    // The translation input is in pixels.
+    let x_pixels = position.x;
+    let y_pixels = position.y;
+    // dbg!(x_pixels, y_pixels);
+    // We want a world translation to move the scene origin that many pixels.
+    // Map from screen space to clip space in the range [-1,1].
+    let x_clip = 2.0 * x_pixels / size.width as f64 - 1.0;
+    let y_clip = 2.0 * y_pixels / size.height as f64 - 1.0;
+    // dbg!(x_clip, y_clip);
+    // Map to world space using the model, view, and projection matrix.
+    // TODO: Avoid recalculating the matrix?
+    // Rotation is applied first, so always translate in XY.
+    // TODO: Does ignoring rotation like this work in general?
+    let (_, _, mvp) = calculate_mvp(
+        size,
+        input_state.translation_xyz,
+        input_state.rotation_xyz * 0.0,
+    );
+    // TODO: This doesn't work properly when the camera rotates?
+    let world = mvp.inverse() * glam::Vec4::new(x_clip as f32, y_clip as f32, 0.0, 1.0);
+    // dbg!(world);
+    // TODO: What's the correct scale for this step?
+    let world_x = world.x * world.z;
+    let world_y = world.y * world.z;
+    (world_x, world_y)
 }
