@@ -1849,7 +1849,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#65073e1b589c73be3e2ca0a92053748bf51d9cbc"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#0b61d91740ac6a69c1e052472c2e76dddd03709b"
 dependencies = [
  "futures",
  "log",
@@ -2314,9 +2314,9 @@ dependencies = [
 
 [[package]]
 name = "rfd"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95281ea32d3c1ebdf84027986952e22f2bb89fa1b8b97c012be72bbc3b8e4537"
+checksum = "f121348fd3b9035ed11be1f028e8944263c30641f8c5deacf57a4320782fb402"
 dependencies = [
  "block",
  "dispatch",
@@ -2702,7 +2702,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#65073e1b589c73be3e2ca0a92053748bf51d9cbc"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#0b61d91740ac6a69c1e052472c2e76dddd03709b"
 dependencies = [
  "bytemuck",
  "futures",
@@ -3007,9 +3007,9 @@ checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
 name = "ttf-parser"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42d4b50cba812f0f04f0707bb6a0eaa5fae4ae05d90fc2a377998d2f21e77a1c"
+checksum = "7b3e06c9b9d80ed6b745c7159c40b311ad2916abb34a49e9be2653b90db0d8dd"
 
 [[package]]
 name = "twox-hash"

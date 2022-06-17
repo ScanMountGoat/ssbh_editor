@@ -37,15 +37,12 @@ fn calculate_mvp(
     let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
         * glam::Mat4::from_rotation_x(rotation_xyz.x)
         * glam::Mat4::from_rotation_y(rotation_xyz.y);
-    let perspective_matrix = glam::Mat4::perspective_rh_gl(0.5, aspect, 1.0, 400000.0);
+    let perspective_matrix = glam::Mat4::perspective_rh(0.5, aspect, 1.0, 400000.0);
 
-    // TODO: Is this correct for the camera position?
-    let (_, _, camera_pos) = (model_view_matrix)
-        .inverse()
-        .to_scale_rotation_translation();
+    let camera_pos = model_view_matrix.inverse().col(3);
 
     (
-        glam::Vec4::from((camera_pos, 1.0)),
+        camera_pos,
         model_view_matrix,
         perspective_matrix * model_view_matrix,
     )
@@ -233,7 +230,7 @@ fn main() {
         previous_cursor_position: PhysicalPosition { x: 0.0, y: 0.0 },
         is_mouse_left_clicked: false,
         is_mouse_right_clicked: false,
-        translation_xyz: glam::Vec3::new(0.0, -5.0, -45.0),
+        translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
         rotation_xyz: glam::Vec3::new(0.0, 0.0, 0.0),
     };
 
@@ -620,6 +617,7 @@ fn handle_input(
             } else if input_state.is_mouse_right_clicked {
                 let (current_x_world, current_y_world) =
                     screen_to_world(&input_state, *position, size);
+
                 let (previous_x_world, previous_y_world) =
                     screen_to_world(&input_state, input_state.previous_cursor_position, size);
 
@@ -677,12 +675,12 @@ fn screen_to_world(
     // The translation input is in pixels.
     let x_pixels = position.x;
     let y_pixels = position.y;
-    // dbg!(x_pixels, y_pixels);
+
     // We want a world translation to move the scene origin that many pixels.
     // Map from screen space to clip space in the range [-1,1].
     let x_clip = 2.0 * x_pixels / size.width as f64 - 1.0;
     let y_clip = 2.0 * y_pixels / size.height as f64 - 1.0;
-    // dbg!(x_clip, y_clip);
+
     // Map to world space using the model, view, and projection matrix.
     // TODO: Avoid recalculating the matrix?
     // Rotation is applied first, so always translate in XY.
@@ -694,7 +692,7 @@ fn screen_to_world(
     );
     // TODO: This doesn't work properly when the camera rotates?
     let world = mvp.inverse() * glam::Vec4::new(x_clip as f32, y_clip as f32, 0.0, 1.0);
-    // dbg!(world);
+
     // TODO: What's the correct scale for this step?
     let world_x = world.x * world.z;
     let world_y = world.y * world.z;
