@@ -3,7 +3,7 @@ use crate::{
         hlpb::hlpb_editor, matl::matl_editor, mesh::mesh_editor, modl::modl_editor,
         skel::skel_editor,
     },
-    load_model, load_models_recursive,
+    horizontal_separator_empty, load_model, load_models_recursive,
     widgets::*,
 };
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
@@ -234,10 +234,8 @@ impl SsbhApp {
                             env!("CARGO_PKG_VERSION")
                         ));
                         ui.label("Download the new version from here:");
-                        // TODO: How to open the hyperlink?
                         let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
                         if ui.hyperlink(release_link).clicked() {
-                            // TODO: Log errors?
                             if let Err(open_err) = open::that(release_link) {
                                 log::error!(
                                     "Failed to open link ({release_link}) to releases {open_err}"
@@ -798,21 +796,29 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     ui.heading("Debug Shading");
-                    // TODO: Lay these out horizontally?
-                    enum_combo_box(ui, "Debug Mode", "Debug Mode", &mut settings.debug_mode);
-                    if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
-                        enum_combo_box(
-                            ui,
-                            "Transition Material",
-                            "Transition Material",
-                            &mut settings.transition_material,
-                        );
-                        ui.label("Transition Factor");
-                        ui.add(egui::Slider::new(
-                            &mut settings.transition_factor,
-                            0.0..=1.0,
-                        ));
-                    }
+                    egui::Grid::new("debug_shading_grid").show(ui, |ui| {
+                        // TODO: Add descriptions.
+                        enum_combo_box(ui, "Debug Mode", "Debug Mode", &mut settings.debug_mode);
+                        ui.end_row();
+
+                        if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
+                            enum_combo_box(
+                                ui,
+                                "Transition Material",
+                                "Transition Material",
+                                &mut settings.transition_material,
+                            );
+                            ui.end_row();
+
+                            ui.label("Transition Factor");
+                            ui.add(egui::Slider::new(
+                                &mut settings.transition_factor,
+                                0.0..=1.0,
+                            ));
+                            ui.end_row();
+                        }
+                    });
+                    horizontal_separator_empty(ui);
 
                     ui.heading("Render Passes");
                     ui.checkbox(&mut settings.render_diffuse, "Enable Diffuse");
@@ -820,9 +826,11 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                     ui.checkbox(&mut settings.render_emission, "Enable Emission");
                     ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting");
                     ui.checkbox(&mut settings.render_bloom, "Enable Bloom");
+                    horizontal_separator_empty(ui);
 
                     ui.heading("Lighting");
                     ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
+                    horizontal_separator_empty(ui);
                 });
         });
 }

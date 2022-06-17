@@ -1,5 +1,6 @@
 use crate::{
     app::UiState,
+    horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, remove_parameters,
         unused_parameters,
@@ -100,7 +101,6 @@ pub fn matl_editor(
                 .show(ui, |ui| {
                     // Only display a single material at a time.
                     // This avoids cluttering the UI.
-                    // TODO: Add the ability to rename materials.
                     ui.horizontal(|ui| {
                         ui.label("Material");
                         egui::ComboBox::from_id_source("MatlEditorMaterialLabel")
@@ -117,11 +117,11 @@ pub fn matl_editor(
                             matl.entries.remove(ui_state.selected_material_index);
                         }
                     });
-
-                    ui.add(egui::Separator::default().horizontal());
+                    horizontal_separator_empty(ui);
 
                     // Advanced mode has more detailed information that most users won't want to edit.
                     ui.checkbox(&mut ui_state.matl_editor_advanced_mode, "Advanced Settings");
+                    horizontal_separator_empty(ui);
 
                     if let Some(entry) = matl.entries.get_mut(ui_state.selected_material_index) {
                         // TODO: Avoid collect here?
@@ -142,6 +142,20 @@ pub fn matl_editor(
                                     .filter(|o| modl_entries.iter().any(|e| e.mesh_object_name == o.name && e.mesh_object_sub_index == o.sub_index)).collect()
                             })
                             .unwrap_or_default();
+
+                        // TODO: Merge this with the drop down?
+                        ui.heading("Material");
+                        ui.horizontal(|ui| {
+                            ui.label("Material Label");
+                            // TODO: Get this to work with lost_focus for efficiency.
+                            if ui.text_edit_singleline(&mut entry.material_label).changed() {
+                                // Rename any effected modl entries if the material label changes.
+                                for modl_entry in &mut modl_entries {
+                                    modl_entry.material_label = entry.material_label.clone();
+                                }
+                            }
+                        });
+                        horizontal_separator_empty(ui);
 
                         matl_entry_editor(
                             ui,
@@ -241,6 +255,7 @@ fn matl_entry_editor(
             shader_label(ui, &entry.shader_label, program.is_some(), red_checkerboard);
         });
     }
+    horizontal_separator_empty(ui);
 
     // TODO: Show a black/yellow checkerboard for clarity.
     // TODO: Show errors in the material selector.
@@ -270,18 +285,7 @@ fn matl_entry_editor(
             }
         }
     }
-
-    ui.heading("Material");
-    ui.horizontal(|ui| {
-        ui.label("Material Label");
-        // TODO: Get this to work with lost_focus for efficiency.
-        if ui.text_edit_singleline(&mut entry.material_label).changed() {
-            // Rename any effected modl entries if the material label changes.
-            for modl_entry in modl_entries {
-                modl_entry.material_label = entry.material_label.clone();
-            }
-        }
-    });
+    horizontal_separator_empty(ui);
 
     ui.heading("Parameters");
     if let Some(program) = program {
@@ -293,6 +297,10 @@ fn matl_entry_editor(
         let unused_parameters = unused_parameters(entry, program);
         if !unused_parameters.is_empty() && ui.button("Remove Unused Parameters").clicked() {
             remove_parameters(entry, &unused_parameters);
+        }
+
+        if !missing_parameters.is_empty() || !unused_parameters.is_empty() {
+            horizontal_separator_empty(ui);
         }
     }
 
@@ -313,7 +321,16 @@ fn matl_entry_editor(
             // TODO: Make a custom expander that expands to sliders?
             // TODO: Set custom labels and ranges.
             // TODO: Add parameter descriptions.
-            ui.label(param.param_id.to_string());
+            ui.horizontal(|ui| {
+                ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
+
+                let mut color = [param.data.x, param.data.y, param.data.z];
+                if ui.color_edit_button_rgb(&mut color).changed() {
+                    param.data.x = color[0];
+                    param.data.y = color[1];
+                    param.data.z = color[2];
+                }
+            });
 
             ui.indent("indent", |ui| {
                 egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {

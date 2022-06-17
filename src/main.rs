@@ -170,7 +170,6 @@ fn main() {
     };
     println!("Check for new release: {:?}", start.elapsed());
 
-    // TODO: Is there an easier way to track changing window size?
     let mut size = window.inner_size();
 
     // Use the ssbh_wgpu format to ensure compatibility.
@@ -180,7 +179,7 @@ fn main() {
         format: surface_format,
         width: size.width as u32,
         height: size.height as u32,
-        present_mode: wgpu::PresentMode::Mailbox, // TODO: FIFO?
+        present_mode: wgpu::PresentMode::Fifo,
     };
     surface.configure(&device, &surface_config);
 
@@ -207,7 +206,8 @@ fn main() {
         size.height,
         window.scale_factor(),
         wgpu::Color {
-            // TODO: This doesn't match exactly due to gamma correction.
+            // Assume an sRGB framebuffer, so convert sRGB to linear.
+            // TODO: Why is this color slightly off.
             r: (27.0f64 / 255.0f64).powf(2.2f64),
             g: (27.0f64 / 255.0f64).powf(2.2f64),
             b: (27.0f64 / 255.0f64).powf(2.2f64),
@@ -236,7 +236,6 @@ fn main() {
 
     update_camera(&mut renderer, &queue, size, &camera_state);
 
-    // TODO: How to cache/store the thumbnails for nutexb textures?
     // TODO: How to ensure this cache remains up to date?
     // TODO: Should RenderModel expose its wgpu textures?
     let default_thumbnails = generate_default_thumbnails(
@@ -490,7 +489,6 @@ fn main() {
 
                     match event {
                         winit::event::WindowEvent::Resized(new_size) => {
-                            // TODO: Is there an easier way to track changing window size?
                             size = new_size;
 
                             surface_config.width = size.width;
@@ -690,10 +688,8 @@ fn screen_to_world(
         input_state.translation_xyz,
         input_state.rotation_xyz * 0.0,
     );
-    // TODO: This doesn't work properly when the camera rotates?
     let world = mvp.inverse() * glam::Vec4::new(x_clip as f32, y_clip as f32, 0.0, 1.0);
 
-    // TODO: What's the correct scale for this step?
     let world_x = world.x * world.z;
     let world_y = world.y * world.z;
     (world_x, world_y)

@@ -214,3 +214,8 @@ pub fn widgets_dark() -> Widgets {
         },
     }
 }
+
+fn horizontal_separator_empty(ui: &mut egui::Ui) {
+    let available_space = ui.available_size_before_wrap();
+    ui.allocate_space(egui::vec2(available_space.x, 6.0));
+}
