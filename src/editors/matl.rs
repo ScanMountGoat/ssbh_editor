@@ -366,13 +366,13 @@ fn matl_entry_editor(
                 }
                 ui.horizontal(|ui| {
                     ui.label("X");
-                    ui.add(egui::DragValue::new(&mut param.data.x));
+                    ui.add(egui::DragValue::new(&mut param.data.x).speed(0.01));
                     ui.label("Y");
-                    ui.add(egui::DragValue::new(&mut param.data.y));
+                    ui.add(egui::DragValue::new(&mut param.data.y).speed(0.01));
                     ui.label("Z");
-                    ui.add(egui::DragValue::new(&mut param.data.z));
+                    ui.add(egui::DragValue::new(&mut param.data.z).speed(0.01));
                     ui.label("W");
-                    ui.add(egui::DragValue::new(&mut param.data.w));
+                    ui.add(egui::DragValue::new(&mut param.data.w).speed(0.01));
                 });
 
                 ui.end_row();
