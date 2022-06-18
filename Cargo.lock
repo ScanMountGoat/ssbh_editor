@@ -1423,9 +1423,9 @@ dependencies = [
 
 [[package]]
 name = "jsonwebtoken"
-version = "8.1.0"
+version = "8.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc9051c17f81bae79440afa041b3a278e1de71bfb96d32454b477fd4703ccb6f"
+checksum = "1aa4b4af834c6cfd35d8763d359661b90f2e45d8f750a0849156c7f4671af09c"
 dependencies = [
  "base64",
  "pem",
@@ -1849,7 +1849,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#0b61d91740ac6a69c1e052472c2e76dddd03709b"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#63f64718e18f268be7c689569f705798df43f533"
 dependencies = [
  "futures",
  "log",
@@ -2702,7 +2702,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#0b61d91740ac6a69c1e052472c2e76dddd03709b"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#63f64718e18f268be7c689569f705798df43f533"
 dependencies = [
  "bytemuck",
  "futures",
@@ -2963,9 +2963,9 @@ dependencies = [
 
 [[package]]
 name = "tower-service"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "360dfd1d6d30e05fda32ace2c8c70e9c0a9da713275777f5a4dbb8a1893930c6"
+checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
