@@ -24,6 +24,8 @@ impl<'a> Widget for EyeCheckBox<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
         let EyeCheckBox { checked, text } = self;
 
+        ui.spacing_mut().icon_width = 18.0;
+
         let spacing = &ui.spacing();
         let icon_width = spacing.icon_width;
         let icon_spacing = ui.spacing().icon_spacing;
@@ -32,7 +34,6 @@ impl<'a> Widget for EyeCheckBox<'a> {
 
         let wrap_width = ui.available_width() - total_extra.x;
         let text = text.into_galley(ui, None, wrap_width, TextStyle::Button);
-
         let mut desired_size = total_extra + text.size();
         desired_size = desired_size.at_least(spacing.interact_size);
         desired_size.y = desired_size.y.max(icon_width);
@@ -51,7 +52,7 @@ impl<'a> Widget for EyeCheckBox<'a> {
                 rect.min.x + button_padding.x + icon_width + icon_spacing,
                 rect.center().y - 0.5 * text.size().y,
             );
-            let (small_icon_rect, big_icon_rect) = ui.spacing().icon_rectangles(rect);
+            let (_small_icon_rect, big_icon_rect) = ui.spacing().icon_rectangles(rect);
             ui.painter().add(epaint::RectShape {
                 rect: big_icon_rect.expand(visuals.expansion),
                 rounding: visuals.rounding,
@@ -68,11 +69,8 @@ impl<'a> Widget for EyeCheckBox<'a> {
                     wrap_width,
                     TextStyle::Button,
                 );
-                let eye_text_pos = pos2(
-                    small_icon_rect.min.x - button_padding.x,
-                    small_icon_rect.center().y - 0.5 * eye_text.size().y,
-                );
-
+                // TODO: How to center this?
+                let eye_text_pos = pos2(big_icon_rect.min.x - 1.0, big_icon_rect.min.y + 2.0);
                 eye_text.paint_with_visuals(ui.painter(), eye_text_pos, visuals);
             }
 

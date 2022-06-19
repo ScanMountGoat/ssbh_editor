@@ -6,7 +6,7 @@ use ssbh_editor::app::{AnimationIndex, SsbhApp};
 use ssbh_editor::app::{AnimationState, RenderState, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::{
-    checkerboard_texture, default_text_styles, generate_default_thumbnails,
+    checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
     generate_model_thumbnails, widgets_dark,
 };
 use ssbh_wgpu::{
@@ -198,6 +198,7 @@ fn main() {
         },
         ..Default::default()
     });
+    ctx.set_fonts(default_fonts());
 
     let mut renderer = SsbhRenderer::new(
         &device,
@@ -213,6 +214,7 @@ fn main() {
             b: (27.0f64 / 255.0f64).powf(2.2f64),
             a: 1.0,
         },
+        ssbh_editor::FONT_BYTES,
     );
 
     let texture_renderer = TextureRenderer::new(&device, surface_format);

@@ -136,17 +136,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b5e5f48b927f04e952dedc932f31995a65a0bf65ec971c74436e51bf6e970d"
 
 [[package]]
-name = "atty"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
-dependencies = [
- "hermit-abi",
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -429,17 +418,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colored"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
-dependencies = [
- "atty",
- "lazy_static",
- "winapi",
-]
-
-[[package]]
 name = "combine"
 version = "4.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -664,7 +642,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "egui"
 version = "0.18.1"
-source = "git+https://github.com/emilk/egui#7eeb292adfacd9311a420ac3ea225e2261a8f8d3"
+source = "git+https://github.com/emilk/egui#9c26093fea926ce133fee3f6d3d92e19b37dc4ee"
 dependencies = [
  "ahash",
  "epaint",
@@ -675,7 +653,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.18.0"
-source = "git+https://github.com/emilk/egui#7eeb292adfacd9311a420ac3ea225e2261a8f8d3"
+source = "git+https://github.com/emilk/egui#9c26093fea926ce133fee3f6d3d92e19b37dc4ee"
 dependencies = [
  "bytemuck",
  "egui",
@@ -687,7 +665,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.18.0"
-source = "git+https://github.com/emilk/egui#7eeb292adfacd9311a420ac3ea225e2261a8f8d3"
+source = "git+https://github.com/emilk/egui#9c26093fea926ce133fee3f6d3d92e19b37dc4ee"
 dependencies = [
  "arboard",
  "egui",
@@ -707,7 +685,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "emath"
 version = "0.18.0"
-source = "git+https://github.com/emilk/egui#7eeb292adfacd9311a420ac3ea225e2261a8f8d3"
+source = "git+https://github.com/emilk/egui#9c26093fea926ce133fee3f6d3d92e19b37dc4ee"
 dependencies = [
  "bytemuck",
 ]
@@ -737,7 +715,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.18.1"
-source = "git+https://github.com/emilk/egui#7eeb292adfacd9311a420ac3ea225e2261a8f8d3"
+source = "git+https://github.com/emilk/egui#9c26093fea926ce133fee3f6d3d92e19b37dc4ee"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -805,28 +783,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 
 [[package]]
-name = "futures"
-version = "0.3.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f73fe65f54d1e12b726f517d3e2135ca3125a437b6d998caf1962961f7172d9e"
-dependencies = [
- "futures-channel",
- "futures-core",
- "futures-executor",
- "futures-io",
- "futures-sink",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
 name = "futures-channel"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3083ce4b914124575708913bca19bfe887522d6e2e6d0952943f5eac4a74010"
 dependencies = [
  "futures-core",
- "futures-sink",
 ]
 
 [[package]]
@@ -834,34 +796,6 @@ name = "futures-core"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c09fd04b7e4073ac7156a9539b57a484a8ea920f79c7c675d05d289ab6110d3"
-
-[[package]]
-name = "futures-executor"
-version = "0.3.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9420b90cfa29e327d0429f19be13e7ddb68fa1cccb09d65e5706b8c7a749b8a6"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
-name = "futures-io"
-version = "0.3.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc4045962a5a5e935ee2fdedaa4e08284547402885ab326734432bed5d12966b"
-
-[[package]]
-name = "futures-macro"
-version = "0.3.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33c1e13800337f4d4d7a316bf45a567dbcb6ffe087f16424852d97e97a91f512"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "futures-sink"
@@ -881,16 +815,10 @@ version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b7abd5d659d9b90c8cba917f6ec750a74e2dc23902ef9cd4cc8c8b22e6036a"
 dependencies = [
- "futures-channel",
  "futures-core",
- "futures-io",
- "futures-macro",
- "futures-sink",
  "futures-task",
- "memchr",
  "pin-project-lite",
  "pin-utils",
- "slab",
 ]
 
 [[package]]
@@ -1184,15 +1112,6 @@ name = "hashbrown"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db0d4cf898abf0081f964436dc980e96670a0f36863e4b83aaacdb65c9d7ccc3"
-
-[[package]]
-name = "heck"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
-dependencies = [
- "unicode-segmentation",
-]
 
 [[package]]
 name = "heck"
@@ -1849,13 +1768,11 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#63f64718e18f268be7c689569f705798df43f533"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#580546254234e7a815385aaf9f5cb083ad9b1ce1"
 dependencies = [
- "futures",
  "log",
  "nutexb",
  "wgpu",
- "winit",
 ]
 
 [[package]]
@@ -2528,19 +2445,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple_logger"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c75a9723083573ace81ad0cdfc50b858aa3c366c48636edb4109d73122a0c0ea"
-dependencies = [
- "atty",
- "colored",
- "log",
- "time 0.3.9",
- "winapi",
-]
-
-[[package]]
 name = "slab"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2607,7 +2511,7 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "410b26ed97440d90ced3e2488c868d56a86e2064f5d7d6f417909b286afe25e5"
 dependencies = [
- "heck 0.4.0",
+ "heck",
  "proc-macro2",
  "quote",
  "syn",
@@ -2642,7 +2546,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#b1cddded3177d23c712e5f0b466ba9572a8a768e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6760c8d905f0e22d06dc32824bed2afd6dc3f13a"
 dependencies = [
  "ahash",
  "binread",
@@ -2688,7 +2592,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#b1cddded3177d23c712e5f0b466ba9572a8a768e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6760c8d905f0e22d06dc32824bed2afd6dc3f13a"
 dependencies = [
  "binread",
  "modular-bitfield",
@@ -2702,10 +2606,9 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#63f64718e18f268be7c689569f705798df43f533"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#580546254234e7a815385aaf9f5cb083ad9b1ce1"
 dependencies = [
  "bytemuck",
- "futures",
  "glam",
  "globwalk",
  "glyph_brush",
@@ -2713,19 +2616,17 @@ dependencies = [
  "nutexb_wgpu",
  "rayon",
  "serde_json",
- "simple_logger",
  "ssbh_data",
  "strum",
  "wgpu",
  "wgpu_text",
  "wgsl_to_wgpu",
- "winit",
 ]
 
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#b1cddded3177d23c712e5f0b466ba9572a8a768e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6760c8d905f0e22d06dc32824bed2afd6dc3f13a"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2733,7 +2634,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#b1cddded3177d23c712e5f0b466ba9572a8a768e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6760c8d905f0e22d06dc32824bed2afd6dc3f13a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2760,20 +2661,20 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "strum"
-version = "0.23.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cae14b91c7d11c9a851d3fbc80a963198998c2a64eec840477fa92d8ce9b70bb"
+checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
 dependencies = [
  "strum_macros",
 ]
 
 [[package]]
 name = "strum_macros"
-version = "0.23.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bb0dc7ee9c15cea6199cde9a127fa16a4c5819af85395457ad72d68edc85a38"
+checksum = "6878079b17446e4d3eba6192bb0a2950d5b14f0ed8424b852310e5a94345d0ef"
 dependencies = [
- "heck 0.3.3",
+ "heck",
  "proc-macro2",
  "quote",
  "rustversion",
@@ -2798,7 +2699,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1a45a1c4c9015217e12347f2a411b57ce2c4fc543913b14b6fe40483328e709"
 dependencies = [
  "cfg-expr",
- "heck 0.4.0",
+ "heck",
  "pkg-config",
  "toml",
  "version-compare",
@@ -3060,12 +2961,6 @@ checksum = "d54590932941a9e9266f0832deed84ebe1bf2e4c9e4a3554d393d18f5e854bf9"
 dependencies = [
  "tinyvec",
 ]
-
-[[package]]
-name = "unicode-segmentation"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e8820f5d777f6224dc4be3632222971ac30164d4a258d595640799554ebfd99"
 
 [[package]]
 name = "unicode-width"

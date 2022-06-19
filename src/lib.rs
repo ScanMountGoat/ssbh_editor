@@ -13,6 +13,8 @@ mod editors;
 pub mod material;
 pub mod widgets;
 
+pub static FONT_BYTES: &'static [u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
+
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
     let mut models = ssbh_wgpu::load_model_folders(root);
     models.sort_by_key(|m| m.folder_name.to_string());
@@ -151,6 +153,36 @@ pub fn generate_default_thumbnails(
     thumbnails
 }
 
+pub fn default_fonts() -> egui::FontDefinitions {
+    // The default fonts don't support Japanese or Chinese characters.
+    // These languages are required to display some user mods correctly.
+    let mut fonts = egui::FontDefinitions::empty();
+    fonts
+        .font_data
+        .insert("font".to_owned(), egui::FontData::from_static(FONT_BYTES));
+    fonts.font_data.insert(
+        "emoji".to_owned(),
+        egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")),
+    );
+
+    // Use the same font for all text for a consistent look for numeric digits.
+    let monospace = fonts
+        .families
+        .get_mut(&egui::FontFamily::Monospace)
+        .unwrap();
+    monospace.insert(0, "font".to_owned());
+    monospace.insert(1, "emoji".to_owned());
+
+    let proportional = fonts
+        .families
+        .get_mut(&egui::FontFamily::Proportional)
+        .unwrap();
+    proportional.insert(0, "font".to_owned());
+    proportional.insert(1, "emoji".to_owned());
+
+    fonts
+}
+
 pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
     // Modified from the default theme.
     let mut text_styles = BTreeMap::new();
@@ -158,18 +190,19 @@ pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
         TextStyle::Small,
         FontId::new(12.0, FontFamily::Proportional),
     );
-    text_styles.insert(TextStyle::Body, FontId::new(14.0, FontFamily::Proportional));
+    text_styles.insert(TextStyle::Body, FontId::new(18.0, FontFamily::Proportional));
     text_styles.insert(
         TextStyle::Button,
-        FontId::new(14.0, FontFamily::Proportional),
+        FontId::new(18.0, FontFamily::Proportional),
     );
     text_styles.insert(
         TextStyle::Heading,
-        FontId::new(20.0, FontFamily::Proportional),
+        FontId::new(24.0, FontFamily::Proportional),
     );
+    // Use a consistent font for sliders and drag values.
     text_styles.insert(
         TextStyle::Monospace,
-        FontId::new(14.0, FontFamily::Monospace),
+        FontId::new(18.0, FontFamily::Proportional),
     );
     text_styles
 }
@@ -180,14 +213,14 @@ pub fn widgets_dark() -> Widgets {
         noninteractive: WidgetVisuals {
             bg_fill: Color32::from_gray(27), // window background
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)), // separators, indentation lines, windows outlines
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(180)), // normal text color
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(200)), // normal text color
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
             bg_fill: Color32::from_gray(60), // button background
             bg_stroke: Default::default(),
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(204)), // button text
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(200)), // button text
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
@@ -200,15 +233,15 @@ pub fn widgets_dark() -> Widgets {
         },
         active: WidgetVisuals {
             bg_fill: Color32::from_gray(55),
-            bg_stroke: Stroke::new(1.0, Color32::WHITE),
-            fg_stroke: Stroke::new(2.0, Color32::WHITE),
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(255)),
+            fg_stroke: Stroke::new(2.0, Color32::from_gray(255)),
             rounding: Rounding::same(2.0),
             expansion: 1.0,
         },
         open: WidgetVisuals {
             bg_fill: Color32::from_gray(27),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)),
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(204)),
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(200)),
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },

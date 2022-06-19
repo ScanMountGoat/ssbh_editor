@@ -148,7 +148,7 @@ pub fn matl_editor(
                         ui.horizontal(|ui| {
                             ui.label("Material Label");
                             // TODO: Get this to work with lost_focus for efficiency.
-                            if ui.text_edit_singleline(&mut entry.material_label).changed() {
+                            if ui.add_sized(egui::Vec2::new(400.0, 20.0), egui::TextEdit::singleline(&mut entry.material_label)).changed() {
                                 // Rename any effected modl entries if the material label changes.
                                 for modl_entry in &mut modl_entries {
                                     modl_entry.material_label = entry.material_label.clone();
@@ -307,6 +307,7 @@ fn matl_entry_editor(
     for param in entry.booleans.iter_mut() {
         ui.checkbox(&mut param.data, param.param_id.to_string());
     }
+    horizontal_separator_empty(ui);
 
     for param in entry.floats.iter_mut() {
         ui.horizontal(|ui| {
@@ -315,6 +316,7 @@ fn matl_entry_editor(
             ui.add(egui::Slider::new(&mut param.data, 0.0..=1.0));
         });
     }
+    horizontal_separator_empty(ui);
 
     if advanced_mode {
         for param in entry.vectors.iter_mut() {
@@ -379,6 +381,7 @@ fn matl_entry_editor(
             }
         });
     }
+    horizontal_separator_empty(ui);
 
     // The defaults for samplers are usually fine, so don't show samplers by default.
     if advanced_mode {
@@ -428,6 +431,7 @@ fn matl_entry_editor(
                 });
             });
         }
+        horizontal_separator_empty(ui);
     }
 
     for param in &mut entry.textures {
@@ -475,6 +479,7 @@ fn matl_entry_editor(
             }
         });
     }
+    horizontal_separator_empty(ui);
 
     // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
     // Most users will want to leave the rasterizer state at its default values.
@@ -502,6 +507,7 @@ fn matl_entry_editor(
                 });
             });
         }
+        horizontal_separator_empty(ui);
     }
 
     for param in &mut entry.blend_states {

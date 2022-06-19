@@ -152,7 +152,7 @@ impl SsbhApp {
     }
 }
 
-const ICON_SIZE: f32 = 16.0;
+const ICON_SIZE: f32 = 18.0;
 
 impl SsbhApp {
     /// Called each time the UI needs repainting, which may be many times per second.
