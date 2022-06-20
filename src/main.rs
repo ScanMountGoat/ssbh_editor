@@ -257,6 +257,9 @@ fn main() {
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
 
+    // Track if keys like ctrl or alt are being pressed.
+    let mut modifiers = ModifiersState::default();
+
     let mut app = SsbhApp {
         models: Vec::new(),
         render_models: Vec::new(),
@@ -520,7 +523,13 @@ fn main() {
 
                             *control_flow = ControlFlow::Exit;
                         }
+                        winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
+                            modifiers = new_modifiers;
+                        }
                         _ => {
+                            // TODO: Is this the best place to handle keyboard shortcuts?
+                            hande_keyboard_shortcuts(&event, modifiers, &mut app);
+
                             if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
                                 // It's possible to interact with the UI with the mouse over the viewport.
                                 // Disable tracking the mouse in this case to prevent unwanted camera rotations.
@@ -536,11 +545,6 @@ fn main() {
                                         size,
                                         &camera_state,
                                     );
-                                    // TODO: How to only execute this when settings change?
-                                    renderer.update_render_settings(
-                                        &app.render_state.queue,
-                                        &app.render_state.render_settings,
-                                    );
                                 }
                             }
                         }
@@ -555,6 +559,28 @@ fn main() {
             }
         },
     );
+}
+
+fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app: &mut SsbhApp) {
+    match event {
+        WindowEvent::KeyboardInput {
+            input,
+            is_synthetic,
+            ..
+        } => {
+            // Check for synthetic keys to avoid triggering events twice.
+            if !is_synthetic {
+                if let Some(key) = input.virtual_keycode {
+                    match (modifiers, key) {
+                        (ModifiersState::CTRL, VirtualKeyCode::O) => app.open_folder(),
+                        (ModifiersState::CTRL, VirtualKeyCode::R) => app.reload_workspace(),
+                        _ => (),
+                    }
+                }
+            }
+        }
+        _ => (),
+    }
 }
 
 fn update_camera(

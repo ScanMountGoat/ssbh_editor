@@ -134,7 +134,27 @@ pub enum PanelTab {
 }
 
 impl SsbhApp {
-    fn reload_workspace(&mut self) {
+    pub fn open_folder(&mut self) {
+        if let Some(folder) = FileDialog::new().pick_folder() {
+            // TODO: Sort alphabetically?
+            // TODO: Allow for opening folders with no mesh/modl?
+            self.models = load_models_recursive(folder);
+            self.should_refresh_meshes = true;
+        }
+    }
+
+    pub fn add_folder_to_workspace(&mut self) {
+        if let Some(folder) = FileDialog::new().pick_folder() {
+            // Load the folder manually to avoid skipping folders with just animations.
+            // TODO: Is there an easier way to allow loading animation folders?
+            let new_model = load_model(&folder);
+            self.models.push(new_model);
+            // TODO: Only update the model that was added?
+            self.should_refresh_meshes = true;
+        }
+    }
+
+    pub fn reload_workspace(&mut self) {
         // This also reloads animations since animations are stored as indices.
         for model in &mut self.models {
             *model = ModelFolder::load_folder(&model.folder_name);
@@ -142,7 +162,7 @@ impl SsbhApp {
         self.should_refresh_meshes = true;
     }
 
-    fn clear_workspace(&mut self) {
+    pub fn clear_workspace(&mut self) {
         self.models = Vec::new();
         self.render_models = Vec::new();
         self.thumbnails = Vec::new();
@@ -155,44 +175,30 @@ impl SsbhApp {
 const ICON_SIZE: f32 = 18.0;
 
 impl SsbhApp {
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     pub fn update(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu_button(ui, "File", |ui| {
-                    if ui.button("Open Folder...").clicked() {
-                        ui.close_menu();
+                    let button =
+                        |ui: &mut egui::Ui, text| ui.add(egui::Button::new(text).wrap(false));
 
-                        if let Some(folder) = FileDialog::new().pick_folder() {
-                            // TODO: Sort alphabetically?
-                            // TODO: Allow for opening folders with no mesh/modl?
-                            self.models = load_models_recursive(folder);
-                            self.should_refresh_meshes = true;
-                        }
+                    if button(ui, "Open Folder...    (Ctrl+O)").clicked() {
+                        ui.close_menu();
+                        self.open_folder();
                     }
 
-                    if ui.button("Add Folder to Workspace...").clicked() {
+                    if button(ui, "Add Folder to Workspace...").clicked() {
                         ui.close_menu();
-
-                        if let Some(folder) = FileDialog::new().pick_folder() {
-                            // Load the folder manually to avoid skipping folders with just animations.
-                            // TODO: Is there an easier way to allow loading animation folders?
-                            let new_model = load_model(&folder);
-                            self.models.push(new_model);
-                            self.should_refresh_meshes = true;
-                        }
+                        self.add_folder_to_workspace();
                     }
 
-                    if ui.button("Reload Workspace").clicked() {
+                    if button(ui, "Reload Workspace    (Ctrl+R)").clicked() {
                         ui.close_menu();
-
                         self.reload_workspace();
                     }
 
-                    if ui.button("Clear Workspace").clicked() {
+                    if button(ui, "Clear Workspace").clicked() {
                         ui.close_menu();
-
                         self.clear_workspace();
                     }
                 });
@@ -200,7 +206,6 @@ impl SsbhApp {
                 egui::menu::menu_button(ui, "Menu", |ui| {
                     if ui.button("Render Settings").clicked() {
                         ui.close_menu();
-
                         self.ui_state.render_settings_open = true;
                     }
                 });
@@ -404,14 +409,13 @@ impl SsbhApp {
                             ))
                             .default_open(true)
                             .show(ui, |ui| {
-                                // TODO: Show a visual indication if key files like skel or modl are missing?
                                 // TODO: Show a visual indication if a file has warnings/errors.
                                 // This will encourage users to click and investigate the errors.
 
                                 // Clicking a file opens the corresponding editor.
                                 // Set selected index so the editor remains open for the file.
                                 // TODO: Should the index be cleared when reloading models?
-                                // TODO: How to reuse code?
+                                // TODO: Don't show missing files if the folder has just animations.
                                 list_files(
                                     ui,
                                     &model.meshes,
@@ -489,6 +493,7 @@ impl SsbhApp {
                                 // TODO: How to manage the thumbnails?
                                 // TODO: Cube map thumbnails.
                                 // TODO: Register wgpu textures as is without converting to RGBA?
+                                // TODO: Add a warning for nutexbs with unused padding (requires tegra_swizzle update).
                                 for (file, nutexb) in model.nutexbs.iter() {
                                     ui.horizontal(|ui| {
                                         if let Some(model_thumbnails) =
