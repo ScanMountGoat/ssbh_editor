@@ -2,12 +2,11 @@
 SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download Windows releases in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
 
 ## Features
-- View models from Smash Ultimate
+- View models, textures, and animations from Smash Ultimate
 - View the effects of transition materials like the metal box or ditto materials
-- Bloom, shadows, and post processing
-- View skeletal and material animations
+- View bloom, shadows, and post processing
 - View the effects of helper bone constraints. This is necessary for previewing animations for mods using the [EXO Skel](https://github.com/ssbucarlos/smash-ultimate-blender) method.
-- Edit numdlb, nusktb, numatb, nuhlpb, and numshb files using a graphical interface with most changes updating in real time in the viewport.
+- Edit formats supported by ssbh_data like numdlb, nusktb, numatb, nuhlpb, and numshb files using a more intuitive interface
 
 ## Planned Features
 - Skeleton debug display
@@ -20,6 +19,13 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - Preview stage rendering and lighting data
 - Improvements to controlling the viewport camera
 - Settings to adjust UI scaling for better readability
+
+## Getting Started
+Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor.
+
+For previewing animations, click the animation file in the file list to override the currently selected slot in the animation tab. Animation slots can also be added or removed from the animation tab. Selecting  Animations are rendered sequentially starting from slot 0. This allows for multiple animations to play at once for adding camera animations or fighters that require more than one animation.
+
+For opening animations from another folder, click File > Add Folder to Workspace and select the folder containing the animations. This also works for adding additional models to the scene.
 
 ## System Requirements
 SSBH Editor is lightweight and does not require a powerful system to run. The application runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
