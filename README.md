@@ -23,7 +23,7 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 ## Getting Started
 Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor.
 
-For previewing animations, click the animation file in the file list to override the currently selected slot in the animation tab. Animation slots can also be added or removed from the animation tab. Selecting  Animations are rendered sequentially starting from slot 0. This allows for multiple animations to play at once for adding camera animations or fighters that require more than one animation.
+For previewing animations, click the animation file in the file list to override the currently selected slot in the animation tab. Animation slots can also be added or removed from the animation tab. Animations are rendered sequentially starting from slot 0. This allows for multiple animations to play at once for adding camera animations or fighters that require more than one animation.
 
 For opening animations from another folder, click File > Add Folder to Workspace and select the folder containing the animations. This also works for adding additional models to the scene.
 
