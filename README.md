@@ -7,7 +7,7 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - Bloom, shadows, and post processing
 - View skeletal and material animations
 - View the effects of helper bone constraints. This is necessary for previewing animations for mods using the [EXO Skel](https://github.com/ssbucarlos/smash-ultimate-blender) method.
-- Edit files supported by ssbh_data using a graphical interface with most changes updating in real time in the viewport
+- Edit numdlb, nusktb, numatb, nuhlpb, and numshb files using a graphical interface with most changes updating in real time in the viewport.
 
 ## Planned Features
 - Skeleton debug display
