@@ -412,17 +412,26 @@ impl SsbhApp {
                                 // TODO: Show a visual indication if a file has warnings/errors.
                                 // This will encourage users to click and investigate the errors.
 
+                                // Avoid a confusing missing file error for animation folders.
+                                let just_anim = model.meshes.is_empty()
+                                    && model.modls.is_empty()
+                                    && model.skels.is_empty()
+                                    && model.matls.is_empty()
+                                    && model.anims.len() > 0;
+
+                                let required_file =
+                                    |name| if just_anim { None } else { Some(name) };
+
                                 // Clicking a file opens the corresponding editor.
                                 // Set selected index so the editor remains open for the file.
                                 // TODO: Should the index be cleared when reloading models?
-                                // TODO: Don't show missing files if the folder has just animations.
                                 list_files(
                                     ui,
                                     &model.meshes,
                                     folder_index,
                                     &mut self.ui_state.selected_folder_index,
                                     &mut self.ui_state.selected_mesh_index,
-                                    Some("model.numshb"),
+                                    required_file("model.numshb"),
                                 );
 
                                 list_files(
@@ -431,7 +440,7 @@ impl SsbhApp {
                                     folder_index,
                                     &mut self.ui_state.selected_folder_index,
                                     &mut self.ui_state.selected_skel_index,
-                                    Some("model.nusktb"),
+                                    required_file("model.nusktb"),
                                 );
 
                                 list_files(
@@ -449,7 +458,7 @@ impl SsbhApp {
                                     folder_index,
                                     &mut self.ui_state.selected_folder_index,
                                     &mut self.ui_state.selected_matl_index,
-                                    Some("model.numatb"),
+                                    required_file("model.numatb"),
                                 );
 
                                 list_files(
@@ -458,7 +467,7 @@ impl SsbhApp {
                                     folder_index,
                                     &mut self.ui_state.selected_folder_index,
                                     &mut self.ui_state.selected_modl_index,
-                                    Some("model.numdlb"),
+                                    required_file("model.numdlb"),
                                 );
 
                                 for (i, (name, _)) in model.anims.iter().enumerate() {
