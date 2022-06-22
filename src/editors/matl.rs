@@ -220,6 +220,24 @@ fn shader_label(
     }
 }
 
+fn shader_label_edit(
+    ui: &mut egui::Ui,
+    shader_label: &mut String,
+    is_valid: bool,
+    red_checkerboard: egui::TextureId,
+) {
+    if is_valid {
+        ui.text_edit_singleline(shader_label);
+    } else {
+        ui.horizontal(|ui| {
+            ui.image(red_checkerboard, egui::Vec2::new(16.0, 16.0));
+            ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED));
+        })
+        .response
+        .on_hover_text(format!("{} is not a valid shader label.", shader_label));
+    }
+}
+
 fn matl_entry_editor(
     ui: &mut egui::Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
@@ -238,11 +256,15 @@ fn matl_entry_editor(
         ui.indent("shader indent", |ui| {
             ui.horizontal(|ui| {
                 ui.label("Shader Label");
-                shader_label(ui, &entry.shader_label, program.is_some(), red_checkerboard);
+                shader_label_edit(
+                    ui,
+                    &mut entry.shader_label,
+                    program.is_some(),
+                    red_checkerboard,
+                );
             });
             egui::Grid::new("shader_grid").show(ui, |ui| {
                 // TODO: Should this be part of the basic mode.
-                // TODO: Should advanced mode just be a textbox?
                 ui.label("Render Pass");
                 let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
                 egui::ComboBox::from_id_source("render pass")
@@ -282,15 +304,12 @@ fn matl_entry_editor(
     }
     horizontal_separator_empty(ui);
 
-    // TODO: Show a black/yellow checkerboard for clarity.
     // TODO: Show errors in the material selector.
-    // TODO: Show meshes with missing attributes.
     // TODO: Add a button to open the mesh editor.
     ui.heading("Shader Errors");
     if let Some(program) = program {
         // TODO: Only show this if there are meshes with missing attributes.
         // TODO: Make a constant for this size.
-        ui.label("Missing required attributes");
         for mesh in mesh_objects {
             // TODO: Avoid allocating here.
             let attribute_names: Vec<_> = mesh
@@ -459,11 +478,11 @@ fn matl_entry_editor(
         horizontal_separator_empty(ui);
     }
 
-    for param in &mut entry.textures {
-        // TODO: Should this check be case sensitive?
-        // TODO: Create a texture for an invalid thumbnail or missing texture?
-        // TODO: Should this functionality be part of ssbh_wgpu?
-        ui.horizontal(|ui| {
+    egui::Grid::new("matl textures").show(ui, |ui| {
+        for param in &mut entry.textures {
+            // TODO: Should this check be case sensitive?
+            // TODO: Create a texture for an invalid thumbnail or missing texture?
+            // TODO: Should this functionality be part of ssbh_wgpu?
             ui.label(param_label(param.param_id));
 
             // TODO: How to handle #replace_cubemap?
@@ -484,6 +503,7 @@ fn matl_entry_editor(
                 // Texture files should be present in the folder, which allows for image previews.
                 egui::ComboBox::from_id_source(param.param_id.to_string())
                     .selected_text(&param.data)
+                    .width(300.0)
                     .show_ui(ui, |ui| {
                         // TODO: Is it safe to assume the thumbnails have all the available textures?
                         for (name, thumbnail) in
@@ -502,8 +522,9 @@ fn matl_entry_editor(
                         }
                     });
             }
-        });
-    }
+            ui.end_row();
+        }
+    });
     horizontal_separator_empty(ui);
 
     // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
