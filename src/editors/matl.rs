@@ -2,15 +2,19 @@ use crate::{
     app::UiState,
     horizontal_separator_empty,
     material::{
-        add_parameters, apply_preset, default_material, missing_parameters, remove_parameters,
-        unused_parameters,
+        add_parameters, apply_preset, default_material, missing_parameters, param_description,
+        remove_parameters, unused_parameters,
     },
     widgets::*,
 };
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{matl_data::MatlEntryData, mesh_data::MeshObjectData, prelude::*};
+use ssbh_data::{
+    matl_data::{MatlEntryData, ParamId},
+    mesh_data::MeshObjectData,
+    prelude::*,
+};
 use ssbh_wgpu::ShaderDatabase;
 use std::path::Path;
 
@@ -326,7 +330,7 @@ fn matl_entry_editor(
     }
 
     for param in entry.booleans.iter_mut() {
-        ui.checkbox(&mut param.data, param.param_id.to_string());
+        ui.checkbox(&mut param.data, param_label(param.param_id));
     }
     horizontal_separator_empty(ui);
 
@@ -378,8 +382,7 @@ fn matl_entry_editor(
     } else {
         egui::Grid::new("vectors").show(ui, |ui| {
             for param in entry.vectors.iter_mut() {
-                // TODO: Store this size somewhere to ensure labels align?
-                ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
+                ui.label(param_label(param.param_id));
 
                 let mut color = [param.data.x, param.data.y, param.data.z];
                 if ui.color_edit_button_rgb(&mut color).changed() {
@@ -407,7 +410,8 @@ fn matl_entry_editor(
     // The defaults for samplers are usually fine, so don't show samplers by default.
     if advanced_mode {
         for param in &mut entry.samplers {
-            ui.label(param.param_id.to_string());
+            ui.label(param_label(param.param_id));
+
             ui.indent("indent", |ui| {
                 egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
                     enum_combo_box(
@@ -460,7 +464,7 @@ fn matl_entry_editor(
         // TODO: Create a texture for an invalid thumbnail or missing texture?
         // TODO: Should this functionality be part of ssbh_wgpu?
         ui.horizontal(|ui| {
-            ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
+            ui.label(param_label(param.param_id));
 
             // TODO: How to handle #replace_cubemap?
             // Texture parameters don't include the file extension since it's implied.
@@ -506,10 +510,10 @@ fn matl_entry_editor(
     // Most users will want to leave the rasterizer state at its default values.
     if advanced_mode {
         for param in &mut entry.rasterizer_states {
-            // TODO: These param IDs might not be unique?
-            ui.label(param.param_id.to_string());
+            ui.label(param_label(param.param_id));
 
             ui.indent("todo1", |ui| {
+                // TODO: These param IDs might not be unique?
                 egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
                     enum_combo_box(
                         ui,
@@ -532,7 +536,8 @@ fn matl_entry_editor(
     }
 
     for param in &mut entry.blend_states {
-        ui.label(param.param_id.to_string());
+        ui.label(param_label(param.param_id));
+
         ui.indent("blend state", |ui| {
             egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
                 enum_combo_box(
@@ -560,5 +565,14 @@ fn matl_entry_editor(
                 // TODO: Research in game examples for these presets (premultiplied alpha?)
             });
         });
+    }
+}
+
+fn param_label(p: ParamId) -> String {
+    let description = param_description(p);
+    if !description.is_empty() {
+        format!("{} ({})", p, description)
+    } else {
+        p.to_string()
     }
 }

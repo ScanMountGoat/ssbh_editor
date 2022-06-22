@@ -480,6 +480,45 @@ fn default_texture(p: ParamId) -> &'static str {
     }
 }
 
+pub fn param_description(p: ParamId) -> &'static str {
+    // TODO: Add missing parameters.
+    match p {
+        ParamId::CustomVector0 => "Alpha Params",
+        ParamId::CustomVector3 => "Emission Color Scale",
+        ParamId::CustomVector6 => "UV Transform Layer 1",
+        ParamId::CustomVector8 => "Final Color Scale",
+        ParamId::CustomVector11 => "Subsurface Color",
+        ParamId::CustomVector13 => "Diffuse Color Scale",
+        ParamId::CustomVector14 => "Rim Color",
+        ParamId::CustomVector18 => "Sprite Sheet Params",
+        ParamId::CustomVector30 => "Subsurface Params",
+        ParamId::CustomVector31 => "UV Transform Layer 2",
+        ParamId::CustomVector32 => "UV Transform Layer 3",
+        ParamId::CustomVector47 => "Prm Color",
+        ParamId::Texture0 => "Col Layer 1",
+        ParamId::Texture1 => "Col Layer 2",
+        ParamId::Texture2 => "Irradiance Cube",
+        ParamId::Texture3 => "Ambient Occlusion",
+        ParamId::Texture4 => "Nor",
+        ParamId::Texture5 => "Emissive Layer 1",
+        ParamId::Texture6 => "Prm",
+        ParamId::Texture7 => "Specular Cube",
+        ParamId::Texture8 => "Diffuse Cube",
+        ParamId::Texture9 => "Baked Lighting",
+        ParamId::Texture10 => "Diffuse Layer 1",
+        ParamId::Texture11 => "Diffuse Layer 2",
+        ParamId::Texture12 => "Diffuse Layer 3",
+        ParamId::Texture14 => "Emissive Layer 2",
+        ParamId::CustomFloat1 => "Ambient Occlusion Map Intensity",
+        ParamId::CustomFloat10 => "Anisotropy",
+        ParamId::CustomBoolean1 => "Use PRM Alpha",
+        ParamId::CustomBoolean2 => "Alpha Override",
+        ParamId::CustomBoolean3 => "Direct Specular",
+        ParamId::CustomBoolean4 => "Indirect Specular",
+        _ => "",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
