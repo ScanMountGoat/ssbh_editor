@@ -11,8 +11,11 @@ use lazy_static::lazy_static;
 use log::Log;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::MatlEntryData, prelude::*};
-use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
-use std::{path::Path, sync::Mutex};
+use ssbh_wgpu::{
+    DebugMode, ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase,
+};
+use std::{path::Path, str::FromStr, sync::Mutex};
+use strum::VariantNames;
 
 lazy_static! {
     pub static ref LOGGER: AppLogger = AppLogger {
@@ -841,7 +844,21 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                     ui.heading("Debug Shading");
                     egui::Grid::new("debug_shading_grid").show(ui, |ui| {
                         // TODO: Add descriptions.
-                        enum_combo_box(ui, "Debug Mode", "Debug Mode", &mut settings.debug_mode);
+                        ui.label("Debug Mode");
+                        egui::ComboBox::from_id_source("Debug Mode")
+                            .width(200.0)
+                            .selected_text(debug_mode_label(settings.debug_mode))
+                            .show_ui(ui, |ui| {
+                                for name in DebugMode::VARIANTS {
+                                    let variant = DebugMode::from_str(name).unwrap();
+                                    ui.selectable_value(
+                                        &mut settings.debug_mode,
+                                        variant,
+                                        debug_mode_label(variant),
+                                    );
+                                }
+                            });
+
                         ui.end_row();
 
                         if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
@@ -876,6 +893,36 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                     horizontal_separator_empty(ui);
                 });
         });
+}
+
+fn debug_mode_label(mode: DebugMode) -> String {
+    let description = debug_description(mode);
+    if !description.is_empty() {
+        format!("{} ({})", mode, description)
+    } else {
+        mode.to_string()
+    }
+}
+
+fn debug_description(mode: DebugMode) -> &'static str {
+    // TODO: Should these be identical to the material descriptions?
+    match mode {
+        DebugMode::Texture0 => "Col Layer 1",
+        DebugMode::Texture1 => "Col Layer 2",
+        DebugMode::Texture2 => "Irradiance Cube",
+        DebugMode::Texture3 => "Ambient Occlusion",
+        DebugMode::Texture4 => "Nor",
+        DebugMode::Texture5 => "Emissive Layer 1",
+        DebugMode::Texture6 => "Prm",
+        DebugMode::Texture7 => "Specular Cube",
+        DebugMode::Texture8 => "Diffuse Cube",
+        DebugMode::Texture9 => "Baked Lighting",
+        DebugMode::Texture10 => "Diffuse Layer 1",
+        DebugMode::Texture11 => "Diffuse Layer 2",
+        DebugMode::Texture12 => "Diffuse Layer 3",
+        DebugMode::Texture14 => "Emissive Layer 2",
+        _ => "",
+    }
 }
 
 fn log_window(ctx: &egui::Context, open: &mut bool) {
