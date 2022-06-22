@@ -288,6 +288,7 @@ fn main() {
             selected_material_index: 0,
             right_panel_tab: ssbh_editor::app::PanelTab::MeshList,
             matl_editor_advanced_mode: false,
+            log_window_open: false,
         },
         render_state: RenderState {
             device,
@@ -376,46 +377,51 @@ fn main() {
                         app.should_refresh_render_settings = false;
                     }
 
+                    // TODO: How to handle model.nuanmb?
                     if app.animation_state.is_playing
                         || app.animation_state.animation_frame_was_changed
                     {
-                        for anim_index in &app.animation_state.animations {
-                            let animation =
-                                AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
-                                    .map(|(_, a)| a);
+                        for (render_model, model) in
+                            app.render_models.iter_mut().zip(app.models.iter())
+                        {
+                            let animations =
+                                app.animation_state
+                                    .animations
+                                    .iter()
+                                    .filter_map(|anim_index| {
+                                        AnimationIndex::get_animation(
+                                            anim_index.as_ref(),
+                                            &app.models,
+                                        )
+                                        .map(|(_, a)| a)
+                                    });
 
-                            for (render_model, model) in
-                                app.render_models.iter_mut().zip(app.models.iter())
-                            {
-                                // TODO: Why does this need an option?
-                                // TODO: Make frame timing logic in ssbh_wgpu public?
-                                // TODO: Modify ssbh_wgpu to take multiple anims to avoid clearing.
-                                render_model.apply_anim(
-                                    &app.render_state.device,
-                                    &app.render_state.queue,
-                                    animation,
-                                    model
-                                        .skels
-                                        .iter()
-                                        .find(|(f, _)| f == "model.nusktb")
-                                        .map(|h| &h.1),
-                                    model
-                                        .matls
-                                        .iter()
-                                        .find(|(f, _)| f == "model.numatb")
-                                        .map(|h| &h.1),
-                                    model
-                                        .hlpbs
-                                        .iter()
-                                        .find(|(f, _)| f == "model.nuhlpb")
-                                        .map(|h| &h.1),
-                                    app.animation_state.current_frame,
-                                    &app.render_state.pipeline_data,
-                                    &app.render_state.default_textures,
-                                    &app.render_state.stage_cube,
-                                    &app.render_state.shader_database,
-                                );
-                            }
+                            // TODO: Make frame timing logic in ssbh_wgpu public?
+                            render_model.apply_anim(
+                                &app.render_state.device,
+                                &app.render_state.queue,
+                                animations,
+                                model
+                                    .skels
+                                    .iter()
+                                    .find(|(f, _)| f == "model.nusktb")
+                                    .map(|h| &h.1),
+                                model
+                                    .matls
+                                    .iter()
+                                    .find(|(f, _)| f == "model.numatb")
+                                    .map(|h| &h.1),
+                                model
+                                    .hlpbs
+                                    .iter()
+                                    .find(|(f, _)| f == "model.nuhlpb")
+                                    .map(|h| &h.1),
+                                app.animation_state.current_frame,
+                                &app.render_state.pipeline_data,
+                                &app.render_state.default_textures,
+                                &app.render_state.stage_cube,
+                                &app.render_state.shader_database,
+                            );
                         }
 
                         app.animation_state.animation_frame_was_changed = false;
@@ -493,8 +499,9 @@ fn main() {
                     winit_state.on_event(&ctx, &event);
 
                     match event {
-                        winit::event::WindowEvent::Resized(new_size) => {
-                            size = new_size;
+                        winit::event::WindowEvent::Resized(_) => {
+                            // Use the window size to avoid a potential error from size mismatches.
+                            size = window.inner_size();
 
                             surface_config.width = size.width;
                             surface_config.height = size.height;
@@ -562,24 +569,22 @@ fn main() {
 }
 
 fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app: &mut SsbhApp) {
-    match event {
-        WindowEvent::KeyboardInput {
-            input,
-            is_synthetic,
-            ..
-        } => {
-            // Check for synthetic keys to avoid triggering events twice.
-            if !is_synthetic {
-                if let Some(key) = input.virtual_keycode {
-                    match (modifiers, key) {
-                        (ModifiersState::CTRL, VirtualKeyCode::O) => app.open_folder(),
-                        (ModifiersState::CTRL, VirtualKeyCode::R) => app.reload_workspace(),
-                        _ => (),
-                    }
+    if let WindowEvent::KeyboardInput {
+        input,
+        is_synthetic,
+        ..
+    } = event
+    {
+        // Check for synthetic keys to avoid triggering events twice.
+        if !is_synthetic {
+            if let Some(key) = input.virtual_keycode {
+                match (modifiers, key) {
+                    (ModifiersState::CTRL, VirtualKeyCode::O) => app.open_folder(),
+                    (ModifiersState::CTRL, VirtualKeyCode::R) => app.reload_workspace(),
+                    _ => (),
                 }
             }
         }
-        _ => (),
     }
 }
 
@@ -642,10 +647,10 @@ fn handle_input(
                 input_state.rotation_xyz.y += (delta_x * 0.01) as f32;
             } else if input_state.is_mouse_right_clicked {
                 let (current_x_world, current_y_world) =
-                    screen_to_world(&input_state, *position, size);
+                    screen_to_world(input_state, *position, size);
 
                 let (previous_x_world, previous_y_world) =
-                    screen_to_world(&input_state, input_state.previous_cursor_position, size);
+                    screen_to_world(input_state, input_state.previous_cursor_position, size);
 
                 let delta_x_world = current_x_world - previous_x_world;
                 let delta_y_world = current_y_world - previous_y_world;

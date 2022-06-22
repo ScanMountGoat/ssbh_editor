@@ -27,7 +27,7 @@ pub fn modl_editor(
                             .save_file()
                         {
                             if let Err(e) = modl.write_to_file(file) {
-                                error!(target: "ssbh_editor", "Failed to save Modl (.numdlb): {}", e);
+                                error!("Failed to save Modl (.numdlb): {}", e);
                             }
                         }
                     }
@@ -60,12 +60,10 @@ pub fn modl_editor(
                     .objects
                     .iter()
                     .filter(|mesh| {
-                        !modl.entries
-                            .iter()
-                            .any(|e| {
-                                e.mesh_object_name == mesh.name
-                                    && e.mesh_object_sub_index == mesh.sub_index
-                            })
+                        !modl.entries.iter().any(|e| {
+                            e.mesh_object_name == mesh.name
+                                && e.mesh_object_sub_index == mesh.sub_index
+                        })
                     })
                     .collect();
 

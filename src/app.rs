@@ -26,9 +26,7 @@ pub struct AppLogger {
 
 impl Log for AppLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        // Only show logs from the application for now.
-        // TODO: Log ssbh_wgpu and wgpu info?
-        metadata.level() <= log::Level::Warn && metadata.target() == "ssbh_editor"
+        metadata.level() <= log::Level::Warn
     }
 
     fn log(&self, record: &log::Record) {
@@ -74,9 +72,9 @@ pub struct UiState {
     pub matl_editor_advanced_mode: bool,
     pub modl_editor_advanced_mode: bool,
     pub mesh_editor_advanced_mode: bool,
+    pub log_window_open: bool,
     pub preset_window_open: bool,
     pub selected_material_preset_index: usize,
-
     // TODO: Is there a better way to track this?
     // Clicking an item in the file list sets the selected index.
     // If the index is not None, the corresponding editor stays open.
@@ -222,6 +220,8 @@ impl SsbhApp {
             &mut self.render_state.render_settings,
             &mut self.ui_state.render_settings_open,
         );
+
+        log_window(ctx, &mut self.ui_state.log_window_open);
 
         // Don't reopen the window once closed.
         if self.should_show_update {
@@ -417,7 +417,7 @@ impl SsbhApp {
                                     && model.modls.is_empty()
                                     && model.skels.is_empty()
                                     && model.matls.is_empty()
-                                    && model.anims.len() > 0;
+                                    && !model.anims.is_empty();
 
                                 let required_file =
                                     |name| if just_anim { None } else { Some(name) };
@@ -528,6 +528,56 @@ impl SsbhApp {
                     });
             });
 
+        egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui| {
+            ui.with_layout(
+                egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
+                |ui| {
+                    self.animation_bar(ui);
+
+                    // The next layout needs to be min since it's nested inside a centered layout.
+                    ui.with_layout(
+                        egui::Layout::right_to_left().with_cross_align(egui::Align::Min),
+                        |ui| {
+                            ui.horizontal(|ui| {
+                                if ui
+                                    .add_sized([60.0, 30.0], egui::Button::new("Logs"))
+                                    .clicked()
+                                {
+                                    self.ui_state.log_window_open = true;
+                                }
+
+                                if let Some((level, message)) =
+                                    LOGGER.messages.lock().unwrap().last()
+                                {
+                                    // Clicking the message also opens the log window.
+                                    // TODO: Make more space for the message?
+                                    let abbreviated_message =
+                                        message.get(..40).unwrap_or_default().to_string() + "...";
+                                    if ui
+                                        .add(
+                                            egui::Label::new(abbreviated_message)
+                                                .sense(egui::Sense::click()),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.ui_state.log_window_open = true;
+                                    }
+
+                                    match level {
+                                        log::Level::Error => error_icon(ui),
+                                        log::Level::Warn => warning_icon(ui),
+                                        log::Level::Info => (),
+                                        log::Level::Debug => (),
+                                        log::Level::Trace => (),
+                                    }
+                                }
+                            });
+                        },
+                    );
+                },
+            );
+        });
+
         egui::SidePanel::right("right panel")
             .min_width(350.0)
             .show(ctx, |ui| {
@@ -552,75 +602,54 @@ impl SsbhApp {
                         PanelTab::AnimList => anim_list(ctx, self, ui),
                     });
             });
-
-        egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui| {
-            self.animation_bar(ui);
-            // TODO: Add a proper log window similar to Blender's info log.
-            // Each entry should contain details on where the error occurred.
-            // Clicking should expand to show the full log.
-            // Show the most recently logged item + log level icon.
-            if let Some((level, message)) = LOGGER.messages.lock().unwrap().first() {
-                ui.horizontal(|ui| {
-                    match level {
-                        log::Level::Error => error_icon(ui),
-                        log::Level::Warn => warning_icon(ui),
-                        log::Level::Info => (),
-                        log::Level::Debug => (),
-                        log::Level::Trace => (),
-                    }
-                    ui.label(message);
-                });
-            }
-        });
     }
 
     fn animation_bar(&mut self, ui: &mut egui::Ui) {
-        ui.with_layout(
-            egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
-            |ui| {
-                let final_frame_index = self.max_final_frame_index();
+        let final_frame_index = self.max_final_frame_index();
 
-                // TODO: How to fill available space?
-                ui.spacing_mut().slider_width = (ui.available_size().x - 140.0).max(0.0);
-                if ui
-                    .add(
-                        egui::Slider::new(
-                            &mut self.animation_state.current_frame,
-                            0.0..=final_frame_index,
-                        )
-                        .step_by(1.0)
-                        .show_value(false),
-                    )
-                    .changed()
-                {
-                    // Manually trigger an update in case the playback is paused.
-                    self.animation_state.animation_frame_was_changed = true;
-                }
+        // TODO: How to fill available space?
+        // TODO: Get the space that would normally be taken up by the central panel?
+        ui.spacing_mut().slider_width = (ui.available_width() - 520.0).max(0.0);
+        if ui
+            .add(
+                egui::Slider::new(
+                    &mut self.animation_state.current_frame,
+                    0.0..=final_frame_index,
+                )
+                .step_by(1.0)
+                .show_value(false),
+            )
+            .changed()
+        {
+            // Manually trigger an update in case the playback is paused.
+            self.animation_state.animation_frame_was_changed = true;
+        }
 
-                // Use a separate widget from the slider value to force the size.
-                // This reduces the chances of the widget resizing during animations.
-                if ui
-                    .add_sized(
-                        [60.0, 20.0],
-                        egui::DragValue::new(&mut self.animation_state.current_frame),
-                    )
-                    .changed()
-                {
-                    // Manually trigger an update in case the playback is paused.
-                    self.animation_state.animation_frame_was_changed = true;
-                }
+        // Use a separate widget from the slider value to force the size.
+        // This reduces the chances of the widget resizing during animations.
+        if ui
+            .add_sized(
+                [60.0, 20.0],
+                egui::DragValue::new(&mut self.animation_state.current_frame),
+            )
+            .changed()
+        {
+            // Manually trigger an update in case the playback is paused.
+            self.animation_state.animation_frame_was_changed = true;
+        }
 
-                // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
-                let size = [60.0, 30.0];
-                if self.animation_state.is_playing {
-                    if ui.add_sized(size, egui::Button::new("Pause")).clicked() {
-                        self.animation_state.is_playing = false;
-                    }
-                } else if ui.add_sized(size, egui::Button::new("Play")).clicked() {
-                    self.animation_state.is_playing = true;
-                }
-            },
-        );
+        // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
+        let size = [60.0, 30.0];
+
+        // TODO: Checkbox for looping?
+        // TODO: Playback speed?
+        if self.animation_state.is_playing {
+            if ui.add_sized(size, egui::Button::new("Pause")).clicked() {
+                self.animation_state.is_playing = false;
+            }
+        } else if ui.add_sized(size, egui::Button::new("Play")).clicked() {
+            self.animation_state.is_playing = true;
+        }
     }
 
     pub fn max_final_frame_index(&mut self) -> f32 {
@@ -845,6 +874,30 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                     ui.heading("Lighting");
                     ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
                     horizontal_separator_empty(ui);
+                });
+        });
+}
+
+fn log_window(ctx: &egui::Context, open: &mut bool) {
+    egui::Window::new("Application Log")
+        .open(open)
+        .resizable(true)
+        .show(ctx, |ui| {
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    for (level, message) in LOGGER.messages.lock().unwrap().iter() {
+                        ui.horizontal(|ui| {
+                            match level {
+                                log::Level::Error => error_icon(ui),
+                                log::Level::Warn => warning_icon(ui),
+                                log::Level::Info => (),
+                                log::Level::Debug => (),
+                                log::Level::Trace => (),
+                            }
+                            ui.label(message);
+                        });
+                    }
                 });
         });
 }

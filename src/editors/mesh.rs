@@ -28,7 +28,7 @@ pub fn mesh_editor(
                                     .save_file()
                                 {
                                     if let Err(e) = mesh.write_to_file(file) {
-                                        error!(target: "ssbh_editor", "Failed to save Mesh (.numshb): {}", e);
+                                        error!("Failed to save Mesh (.numshb): {}", e);
                                     }
                                 }
                             }

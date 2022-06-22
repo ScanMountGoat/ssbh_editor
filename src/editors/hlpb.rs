@@ -25,7 +25,7 @@ pub fn hlpb_editor(
                             .save_file()
                         {
                             if let Err(e) = hlpb.write_to_file(file) {
-                                error!(target: "ssbh_editor", "Failed to save Hlpb (.nuhlpb): {}", e);
+                                error!("Failed to save Hlpb (.nuhlpb): {}", e);
                             }
                         }
                     }
@@ -103,7 +103,6 @@ pub fn hlpb_editor(
                     }
 
                     if !hlpb.orient_constraints.is_empty() {
-                        // ui.heading("Orient Constraints");
                         CollapsingHeader::new("Orient Constraints")
                             .default_open(true)
                             .show(ui, |ui| {
@@ -114,6 +113,8 @@ pub fn hlpb_editor(
                                     ui.label(egui::RichText::new("parent").heading());
                                     ui.label(egui::RichText::new("driver").heading());
                                     ui.end_row();
+
+                                    // TODO: Add unk type.
 
                                     for (i, orient) in
                                         hlpb.orient_constraints.iter_mut().enumerate()

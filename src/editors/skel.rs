@@ -23,7 +23,7 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                                     .save_file()
                                 {
                                     if let Err(e) = skel.write_to_file(file) {
-                                        error!(target: "ssbh_editor", "Failed to save Skel (.nusktb): {}", e);
+                                        error!("Failed to save Skel (.nusktb): {}", e);
                                     }
                                 }
                             }

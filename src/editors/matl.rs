@@ -10,9 +10,7 @@ use crate::{
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{
-    matl_data::MatlEntryData, mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*,
-};
+use ssbh_data::{matl_data::MatlEntryData, mesh_data::MeshObjectData, prelude::*};
 use ssbh_wgpu::ShaderDatabase;
 use std::path::Path;
 
@@ -48,7 +46,7 @@ pub fn matl_editor(
                             .save_file()
                         {
                             if let Err(e) = matl.write_to_file(file) {
-                                error!(target: "ssbh_editor", "Failed to save Matl (.numatb): {}", e);
+                                error!("Failed to save Matl (.numatb): {}", e);
                             }
                         }
                     }
@@ -77,12 +75,20 @@ pub fn matl_editor(
                 .open(&mut ui_state.preset_window_open)
                 .show(ctx, |ui| {
                     for (i, preset) in material_presets.iter().enumerate() {
-                        ui.selectable_value(&mut ui_state.selected_material_preset_index, i, &preset.material_label);
+                        ui.selectable_value(
+                            &mut ui_state.selected_material_preset_index,
+                            i,
+                            &preset.material_label,
+                        );
                     }
 
                     if ui.button("Apply").clicked() {
-                        if let Some(preset) = material_presets.get(ui_state.selected_material_preset_index) {
-                            if let Some(entry) = matl.entries.get_mut(ui_state.selected_material_index) {
+                        if let Some(preset) =
+                            material_presets.get(ui_state.selected_material_preset_index)
+                        {
+                            if let Some(entry) =
+                                matl.entries.get_mut(ui_state.selected_material_index)
+                            {
                                 *entry = apply_preset(entry, preset);
                             }
                         }
@@ -105,12 +111,17 @@ pub fn matl_editor(
                         ui.label("Material");
                         egui::ComboBox::from_id_source("MatlEditorMaterialLabel")
                             .width(400.0)
-                            .show_index(ui, &mut ui_state.selected_material_index, matl.entries.len(), |i| {
-                                matl.entries
-                                    .get(i)
-                                    .map(|m| m.material_label.clone())
-                                    .unwrap_or_default()
-                            });
+                            .show_index(
+                                ui,
+                                &mut ui_state.selected_material_index,
+                                matl.entries.len(),
+                                |i| {
+                                    matl.entries
+                                        .get(i)
+                                        .map(|m| m.material_label.clone())
+                                        .unwrap_or_default()
+                                },
+                            );
 
                         if ui_state.matl_editor_advanced_mode && ui.button("Delete").clicked() {
                             // TODO: Potential panic?
@@ -139,7 +150,13 @@ pub fn matl_editor(
                             .map(|mesh| {
                                 mesh.objects
                                     .iter()
-                                    .filter(|o| modl_entries.iter().any(|e| e.mesh_object_name == o.name && e.mesh_object_sub_index == o.sub_index)).collect()
+                                    .filter(|o| {
+                                        modl_entries.iter().any(|e| {
+                                            e.mesh_object_name == o.name
+                                                && e.mesh_object_sub_index == o.sub_index
+                                        })
+                                    })
+                                    .collect()
                             })
                             .unwrap_or_default();
 
@@ -148,7 +165,13 @@ pub fn matl_editor(
                         ui.horizontal(|ui| {
                             ui.label("Material Label");
                             // TODO: Get this to work with lost_focus for efficiency.
-                            if ui.add_sized(egui::Vec2::new(400.0, 20.0), egui::TextEdit::singleline(&mut entry.material_label)).changed() {
+                            if ui
+                                .add_sized(
+                                    egui::Vec2::new(400.0, 20.0),
+                                    egui::TextEdit::singleline(&mut entry.material_label),
+                                )
+                                .changed()
+                            {
                                 // Rename any effected modl entries if the material label changes.
                                 for modl_entry in &mut modl_entries {
                                     modl_entry.material_label = entry.material_label.clone();
@@ -160,14 +183,13 @@ pub fn matl_editor(
                         matl_entry_editor(
                             ui,
                             entry,
-                            &mut modl_entries,
                             &mesh_objects,
                             folder_thumbnails,
                             default_thumbnails,
                             ui_state.matl_editor_advanced_mode,
                             shader_database,
                             red_checkerboard,
-                            yellow_checkerboard
+                            yellow_checkerboard,
                         );
                     }
                 });
@@ -197,7 +219,6 @@ fn shader_label(
 fn matl_entry_editor(
     ui: &mut egui::Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
-    modl_entries: &mut [&mut ModlEntryData],
     mesh_objects: &[&MeshObjectData],
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],

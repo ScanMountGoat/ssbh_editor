@@ -13,7 +13,7 @@ mod editors;
 pub mod material;
 pub mod widgets;
 
-pub static FONT_BYTES: &'static [u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
+pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
     let mut models = ssbh_wgpu::load_model_folders(root);
