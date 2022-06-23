@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use egui::color::{gamma_from_linear, linear_f32_from_gamma_u8};
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
@@ -206,14 +207,8 @@ fn main() {
         size.width,
         size.height,
         window.scale_factor(),
-        wgpu::Color {
-            // Assume an sRGB framebuffer, so convert sRGB to linear.
-            // TODO: Why is this color slightly off.
-            r: (27.0f64 / 255.0f64).powf(2.2f64),
-            g: (27.0f64 / 255.0f64).powf(2.2f64),
-            b: (27.0f64 / 255.0f64).powf(2.2f64),
-            a: 1.0,
-        },
+        // Assume an sRGB framebuffer, so convert sRGB to linear.
+        [linear_f32_from_gamma_u8(27) as f64; 3],
         ssbh_editor::FONT_BYTES,
     );
 
