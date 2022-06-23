@@ -906,6 +906,14 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                             ui.end_row();
                         }
                     });
+                    if settings.debug_mode != DebugMode::Shaded {
+                        ui.horizontal(|ui| {
+                            ui.checkbox(&mut settings.render_rgba[0], "R");
+                            ui.checkbox(&mut settings.render_rgba[1], "G");
+                            ui.checkbox(&mut settings.render_rgba[2], "B");
+                            ui.checkbox(&mut settings.render_rgba[3], "A");
+                        });
+                    }
                     horizontal_separator_empty(ui);
 
                     ui.heading("Render Passes");
