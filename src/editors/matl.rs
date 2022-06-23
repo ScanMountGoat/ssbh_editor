@@ -10,12 +10,8 @@ use crate::{
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{
-    matl_data::{MatlEntryData, ParamId},
-    mesh_data::MeshObjectData,
-    prelude::*,
-};
-use ssbh_wgpu::ShaderDatabase;
+use ssbh_data::{matl_data::*, mesh_data::MeshObjectData, prelude::*};
+use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
 use std::path::Path;
 
 #[allow(clippy::too_many_arguments)]
@@ -164,6 +160,11 @@ pub fn matl_editor(
                             })
                             .unwrap_or_default();
 
+                        // Find meshes with missing required attributes.
+                        let program =
+                            shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
+                        let attribute_errors = mesh_attribute_errors(program, &mesh_objects);
+
                         // TODO: Merge this with the drop down?
                         ui.heading("Material");
                         ui.horizontal(|ui| {
@@ -187,7 +188,7 @@ pub fn matl_editor(
                         matl_entry_editor(
                             ui,
                             entry,
-                            &mesh_objects,
+                            &attribute_errors,
                             folder_thumbnails,
                             default_thumbnails,
                             ui_state.matl_editor_advanced_mode,
@@ -200,6 +201,34 @@ pub fn matl_editor(
         });
 
     open
+}
+
+fn mesh_attribute_errors(
+    program: Option<&ShaderProgram>,
+    mesh_objects: &[&MeshObjectData],
+) -> Vec<(String, Vec<String>)> {
+    program
+        .map(|program| {
+            mesh_objects
+                .iter()
+                .filter_map(|mesh| {
+                    let attribute_names: Vec<_> = mesh
+                        .texture_coordinates
+                        .iter()
+                        .map(|a| a.name.to_string())
+                        .chain(mesh.color_sets.iter().map(|a| a.name.to_string()))
+                        .collect();
+
+                    let missing_attributes = program.missing_required_attributes(&attribute_names);
+                    if !missing_attributes.is_empty() {
+                        Some((mesh.name.to_string(), missing_attributes))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn shader_label(
@@ -216,7 +245,7 @@ fn shader_label(
             ui.label(egui::RichText::new(shader_label).color(egui::Color32::RED));
         })
         .response
-        .on_hover_text(format!("{} is not a valid shader label.", shader_label));
+        .on_hover_text(format!("{} is not a valid shader label. Copy an existing shader label or apply a material preset.", shader_label));
     }
 }
 
@@ -234,14 +263,14 @@ fn shader_label_edit(
             ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED));
         })
         .response
-        .on_hover_text(format!("{} is not a valid shader label.", shader_label));
+        .on_hover_text(format!("{} is not a valid shader label. Copy an existing shader label or apply a material preset.", shader_label));
     }
 }
 
 fn matl_entry_editor(
     ui: &mut egui::Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
-    mesh_objects: &[&MeshObjectData],
+    attribute_errors: &[(String, Vec<String>)],
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
@@ -253,48 +282,46 @@ fn matl_entry_editor(
 
     ui.heading("Shader");
     if advanced_mode {
-        ui.indent("shader indent", |ui| {
-            ui.horizontal(|ui| {
-                ui.label("Shader Label");
-                shader_label_edit(
-                    ui,
-                    &mut entry.shader_label,
-                    program.is_some(),
-                    red_checkerboard,
-                );
-            });
-            egui::Grid::new("shader_grid").show(ui, |ui| {
-                // TODO: Should this be part of the basic mode.
-                ui.label("Render Pass");
-                let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
-                egui::ComboBox::from_id_source("render pass")
-                    .selected_text(entry.shader_label.get(25..).unwrap_or(""))
-                    .show_ui(ui, |ui| {
-                        for pass in [
-                            shader.clone() + "_opaque",
-                            shader.clone() + "_far",
-                            shader.clone() + "_sort",
-                            shader.clone() + "_near",
-                        ] {
-                            ui.selectable_value(
-                                &mut entry.shader_label,
-                                pass.to_string(),
-                                pass.get(25..).unwrap_or(""),
-                            );
-                        }
-                    });
+        ui.horizontal(|ui| {
+            ui.label("Shader Label");
+            shader_label_edit(
+                ui,
+                &mut entry.shader_label,
+                program.is_some(),
+                red_checkerboard,
+            );
+        });
+        egui::Grid::new("shader_grid").show(ui, |ui| {
+            // TODO: Should this be part of the basic mode.
+            ui.label("Render Pass");
+            let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
+            egui::ComboBox::from_id_source("render pass")
+                .selected_text(entry.shader_label.get(25..).unwrap_or(""))
+                .show_ui(ui, |ui| {
+                    for pass in [
+                        shader.clone() + "_opaque",
+                        shader.clone() + "_far",
+                        shader.clone() + "_sort",
+                        shader.clone() + "_near",
+                    ] {
+                        ui.selectable_value(
+                            &mut entry.shader_label,
+                            pass.to_string(),
+                            pass.get(25..).unwrap_or(""),
+                        );
+                    }
+                });
+            ui.end_row();
+
+            if let Some(program) = program {
+                ui.label("Alpha Testing");
+                ui.label(program.discard.to_string());
                 ui.end_row();
 
-                if let Some(program) = program {
-                    ui.label("Alpha Testing");
-                    ui.label(program.discard.to_string());
-                    ui.end_row();
-
-                    ui.label("Vertex Attributes");
-                    ui.add(egui::Label::new(program.vertex_attributes.join(",")).wrap(true));
-                    ui.end_row();
-                }
-            });
+                ui.label("Vertex Attributes");
+                ui.add(egui::Label::new(program.vertex_attributes.join(",")).wrap(true));
+                ui.end_row();
+            }
         });
     } else {
         ui.horizontal(|ui| {
@@ -305,121 +332,92 @@ fn matl_entry_editor(
     horizontal_separator_empty(ui);
 
     // TODO: Show errors in the material selector.
-    // TODO: Add a button to open the mesh editor.
-    ui.heading("Shader Errors");
-    if let Some(program) = program {
-        // TODO: Only show this if there are meshes with missing attributes.
-        // TODO: Make a constant for this size.
-        for mesh in mesh_objects {
-            // TODO: Avoid allocating here.
-            let attribute_names: Vec<_> = mesh
-                .texture_coordinates
-                .iter()
-                .map(|a| a.name.to_string())
-                .chain(mesh.color_sets.iter().map(|a| a.name.to_string()))
-                .collect();
-
-            let missing_attributes = program.missing_required_attributes(&attribute_names);
-            if !missing_attributes.is_empty() {
+    // TODO: Add a button to open the mesh editor?
+    if !attribute_errors.is_empty() {
+        ui.heading("Shader Errors");
+        if !attribute_errors.is_empty() {
+            ui.label(
+                "Meshes with this material are missing these vertex attributes required by the shader.",
+            );
+            for (mesh, missing_attributes) in attribute_errors {
                 ui.horizontal(|ui| {
                     ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
-                    ui.label(&mesh.name);
+                    ui.label(mesh);
                     ui.label(missing_attributes.join(","));
                 });
             }
         }
+
+        horizontal_separator_empty(ui);
     }
-    horizontal_separator_empty(ui);
 
     ui.heading("Parameters");
-    if let Some(program) = program {
-        let missing_parameters = missing_parameters(entry, program);
-        if !missing_parameters.is_empty() && ui.button("Add Missing Parameters").clicked() {
+
+    let missing_parameters = program
+        .map(|program| missing_parameters(entry, program))
+        .unwrap_or_default();
+
+    let unused_parameters = program
+        .map(|program| unused_parameters(entry, program))
+        .unwrap_or_default();
+
+    if !missing_parameters.is_empty() {
+        let text = if missing_parameters.len() == 1 {
+            "Add 1 Missing Parameter".to_string()
+        } else {
+            format!("Add {} Missing Parameters", missing_parameters.len())
+        };
+        if ui.button(text).clicked() {
             add_parameters(entry, &missing_parameters);
         }
+    }
 
-        let unused_parameters = unused_parameters(entry, program);
-        if !unused_parameters.is_empty() && ui.button("Remove Unused Parameters").clicked() {
+    if !unused_parameters.is_empty() {
+        let text = if unused_parameters.len() == 1 {
+            "Remove 1 Unused Parameter".to_string()
+        } else {
+            format!("Remove {} Unused Parameters", unused_parameters.len())
+        };
+        if ui.button(text).clicked() {
             remove_parameters(entry, &unused_parameters);
         }
+    }
 
-        if !missing_parameters.is_empty() || !unused_parameters.is_empty() {
-            horizontal_separator_empty(ui);
-        }
+    if !missing_parameters.is_empty() || !unused_parameters.is_empty() {
+        horizontal_separator_empty(ui);
     }
 
     for param in entry.booleans.iter_mut() {
-        ui.checkbox(&mut param.data, param_label(param.param_id));
+        ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
+            ui.checkbox(&mut param.data, param_label(param.param_id))
+        });
     }
     horizontal_separator_empty(ui);
 
+    // TODO: Find a consistent way to disable ui if unused and show a tooltip.
     for param in entry.floats.iter_mut() {
-        ui.horizontal(|ui| {
-            // TODO: Store this size somewhere to ensure labels align?
-            ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
-            ui.add(egui::Slider::new(&mut param.data, 0.0..=1.0));
+        ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
+            ui.horizontal(|ui| {
+                // TODO: Store this size somewhere to ensure labels align?
+                ui.label(param_label(param.param_id));
+                ui.add(egui::Slider::new(&mut param.data, 0.0..=1.0));
+            })
         });
     }
     horizontal_separator_empty(ui);
 
     if advanced_mode {
         for param in entry.vectors.iter_mut() {
-            // TODO: Make a custom expander that expands to sliders?
-            // TODO: Set custom labels and ranges.
-            // TODO: Add parameter descriptions.
-            ui.horizontal(|ui| {
-                ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
-
-                let mut color = [param.data.x, param.data.y, param.data.z];
-                if ui.color_edit_button_rgb(&mut color).changed() {
-                    param.data.x = color[0];
-                    param.data.y = color[1];
-                    param.data.z = color[2];
-                }
-            });
-
-            ui.indent("indent", |ui| {
-                egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
-                    ui.label("X");
-                    ui.add(egui::Slider::new(&mut param.data.x, 0.0..=1.0).clamp_to_range(false));
-                    ui.end_row();
-
-                    ui.label("Y");
-                    ui.add(egui::Slider::new(&mut param.data.y, 0.0..=1.0).clamp_to_range(false));
-                    ui.end_row();
-
-                    ui.label("Z");
-                    ui.add(egui::Slider::new(&mut param.data.z, 0.0..=1.0).clamp_to_range(false));
-                    ui.end_row();
-
-                    ui.label("W");
-                    ui.add(egui::Slider::new(&mut param.data.w, 0.0..=1.0).clamp_to_range(false));
-                    ui.end_row();
-                });
+            ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
+                edit_vector_advanced(ui, param);
             });
         }
     } else {
         egui::Grid::new("vectors").show(ui, |ui| {
             for param in entry.vectors.iter_mut() {
-                ui.label(param_label(param.param_id));
-
-                let mut color = [param.data.x, param.data.y, param.data.z];
-                if ui.color_edit_button_rgb(&mut color).changed() {
-                    param.data.x = color[0];
-                    param.data.y = color[1];
-                    param.data.z = color[2];
-                }
-                ui.horizontal(|ui| {
-                    ui.label("X");
-                    ui.add(egui::DragValue::new(&mut param.data.x).speed(0.01));
-                    ui.label("Y");
-                    ui.add(egui::DragValue::new(&mut param.data.y).speed(0.01));
-                    ui.label("Z");
-                    ui.add(egui::DragValue::new(&mut param.data.z).speed(0.01));
-                    ui.label("W");
-                    ui.add(egui::DragValue::new(&mut param.data.w).speed(0.01));
+                ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
+                    edit_vector(ui, param);
                 });
-
                 ui.end_row();
             }
         });
@@ -429,50 +427,8 @@ fn matl_entry_editor(
     // The defaults for samplers are usually fine, so don't show samplers by default.
     if advanced_mode {
         for param in &mut entry.samplers {
-            ui.label(param_label(param.param_id));
-
-            ui.indent("indent", |ui| {
-                egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
-                    enum_combo_box(
-                        ui,
-                        "Wrap S",
-                        format!("wraps{:?}", param.param_id),
-                        &mut param.data.wraps,
-                    );
-                    ui.end_row();
-
-                    enum_combo_box(
-                        ui,
-                        "Wrap T",
-                        format!("wrapt{:?}", param.param_id),
-                        &mut param.data.wrapt,
-                    );
-                    ui.end_row();
-
-                    enum_combo_box(
-                        ui,
-                        "Wrap R",
-                        format!("wrapr{:?}", param.param_id),
-                        &mut param.data.wrapr,
-                    );
-                    ui.end_row();
-
-                    enum_combo_box(
-                        ui,
-                        "Min Filter",
-                        format!("minfilter{:?}", param.param_id),
-                        &mut param.data.min_filter,
-                    );
-                    ui.end_row();
-
-                    enum_combo_box(
-                        ui,
-                        "Mag Filter",
-                        format!("magfilter{:?}", param.param_id),
-                        &mut param.data.mag_filter,
-                    );
-                    ui.end_row();
-                });
+            ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
+                edit_sampler(ui, param);
             });
         }
         horizontal_separator_empty(ui);
@@ -480,113 +436,235 @@ fn matl_entry_editor(
 
     egui::Grid::new("matl textures").show(ui, |ui| {
         for param in &mut entry.textures {
-            // TODO: Should this check be case sensitive?
-            // TODO: Create a texture for an invalid thumbnail or missing texture?
-            // TODO: Should this functionality be part of ssbh_wgpu?
-            ui.label(param_label(param.param_id));
-
-            // TODO: How to handle #replace_cubemap?
-            // Texture parameters don't include the file extension since it's implied.
-            if let Some(thumbnail) = texture_thumbnails
-                .iter()
-                .chain(default_thumbnails.iter())
-                .find(|t| Path::new(&t.0).with_extension("") == Path::new(&param.data))
-                .map(|t| t.1)
-            {
-                ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));
-            }
-
-            if advanced_mode {
-                // Let users enter names manually if texture files aren't present.
-                ui.text_edit_singleline(&mut param.data);
-            } else {
-                // Texture files should be present in the folder, which allows for image previews.
-                egui::ComboBox::from_id_source(param.param_id.to_string())
-                    .selected_text(&param.data)
-                    .width(300.0)
-                    .show_ui(ui, |ui| {
-                        // TODO: Is it safe to assume the thumbnails have all the available textures?
-                        for (name, thumbnail) in
-                            texture_thumbnails.iter().chain(default_thumbnails.iter())
-                        {
-                            // Material parameters don't include the .nutexb extension.
-                            let text = Path::new(name)
-                                .with_extension("")
-                                .to_string_lossy()
-                                .to_string();
-
-                            ui.horizontal(|ui| {
-                                ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
-                                ui.selectable_value(&mut param.data, text.to_string(), text);
-                            });
-                        }
-                    });
-            }
+            // TODO: Get disabled UI working with the texture grid.
+            edit_texture(
+                ui,
+                param,
+                texture_thumbnails,
+                default_thumbnails,
+                advanced_mode,
+            );
             ui.end_row();
         }
     });
     horizontal_separator_empty(ui);
 
     // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
-    // Most users will want to leave the rasterizer state at its default values.
     if advanced_mode {
+        // Edits to RasterizerState0 are rare, so restrict it to advanced mode.
         for param in &mut entry.rasterizer_states {
-            ui.label(param_label(param.param_id));
-
-            ui.indent("todo1", |ui| {
-                // TODO: These param IDs might not be unique?
-                egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
-                    enum_combo_box(
-                        ui,
-                        "Polygon Fill",
-                        format!("fill{:?}", param.param_id.to_string()),
-                        &mut param.data.fill_mode,
-                    );
-                    ui.end_row();
-                    enum_combo_box(
-                        ui,
-                        "Cull Mode",
-                        format!("cull{:?}", param.param_id.to_string()),
-                        &mut param.data.cull_mode,
-                    );
-                    ui.end_row();
-                });
-            });
+            edit_rasterizer(ui, param);
         }
         horizontal_separator_empty(ui);
     }
 
     for param in &mut entry.blend_states {
-        ui.label(param_label(param.param_id));
-
-        ui.indent("blend state", |ui| {
-            egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
-                enum_combo_box(
-                    ui,
-                    "Source Color",
-                    format!("srccolor{:?}", param.param_id.to_string()),
-                    &mut param.data.source_color,
-                );
-                ui.end_row();
-
-                enum_combo_box(
-                    ui,
-                    "Destination Color",
-                    format!("dstcolor{:?}", param.param_id.to_string()),
-                    &mut param.data.destination_color,
-                );
-                ui.end_row();
-
-                ui.checkbox(
-                    &mut param.data.alpha_sample_to_coverage,
-                    "Alpha Sample to Coverage",
-                );
-                ui.end_row();
-                // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
-                // TODO: Research in game examples for these presets (premultiplied alpha?)
-            });
-        });
+        edit_blend(ui, param);
     }
+}
+
+fn edit_blend(ui: &mut egui::Ui, param: &mut BlendStateParam) {
+    ui.label(param_label(param.param_id));
+    ui.indent("indent", |ui| {
+        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+            enum_combo_box(
+                ui,
+                "Source Color",
+                format!("srccolor{:?}", param.param_id.to_string()),
+                &mut param.data.source_color,
+            );
+            ui.end_row();
+
+            enum_combo_box(
+                ui,
+                "Destination Color",
+                format!("dstcolor{:?}", param.param_id.to_string()),
+                &mut param.data.destination_color,
+            );
+            ui.end_row();
+
+            ui.checkbox(
+                &mut param.data.alpha_sample_to_coverage,
+                "Alpha Sample to Coverage",
+            );
+            ui.end_row();
+            // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
+            // TODO: Research in game examples for these presets (premultiplied alpha?)
+        });
+    });
+}
+
+fn edit_rasterizer(ui: &mut egui::Ui, param: &mut RasterizerStateParam) {
+    ui.label(param_label(param.param_id));
+    ui.indent("indent", |ui| {
+        // TODO: These param IDs might not be unique?
+        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+            enum_combo_box(
+                ui,
+                "Polygon Fill",
+                format!("fill{:?}", param.param_id.to_string()),
+                &mut param.data.fill_mode,
+            );
+            ui.end_row();
+            enum_combo_box(
+                ui,
+                "Cull Mode",
+                format!("cull{:?}", param.param_id.to_string()),
+                &mut param.data.cull_mode,
+            );
+            ui.end_row();
+        });
+    });
+}
+
+fn edit_texture(
+    ui: &mut egui::Ui,
+    param: &mut TextureParam,
+    texture_thumbnails: &[(String, egui::TextureId)],
+    default_thumbnails: &[(String, egui::TextureId)],
+    advanced_mode: bool,
+) {
+    // TODO: Should this check be case sensitive?
+    // TODO: Create a texture for an invalid thumbnail or missing texture?
+    // TODO: Should this functionality be part of ssbh_wgpu?
+    ui.label(param_label(param.param_id));
+    // TODO: How to handle #replace_cubemap?
+    // Texture parameters don't include the file extension since it's implied.
+    if let Some(thumbnail) = texture_thumbnails
+        .iter()
+        .chain(default_thumbnails.iter())
+        .find(|t| Path::new(&t.0).with_extension("") == Path::new(&param.data))
+        .map(|t| t.1)
+    {
+        ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));
+    }
+    if advanced_mode {
+        // Let users enter names manually if texture files aren't present.
+        ui.text_edit_singleline(&mut param.data);
+    } else {
+        // Texture files should be present in the folder, which allows for image previews.
+        egui::ComboBox::from_id_source(param.param_id.to_string())
+            .selected_text(&param.data)
+            .width(300.0)
+            .show_ui(ui, |ui| {
+                // TODO: Is it safe to assume the thumbnails have all the available textures?
+                for (name, thumbnail) in texture_thumbnails.iter().chain(default_thumbnails.iter())
+                {
+                    // Material parameters don't include the .nutexb extension.
+                    let text = Path::new(name)
+                        .with_extension("")
+                        .to_string_lossy()
+                        .to_string();
+
+                    ui.horizontal(|ui| {
+                        ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
+                        ui.selectable_value(&mut param.data, text.to_string(), text);
+                    });
+                }
+            });
+    }
+}
+
+fn edit_sampler(ui: &mut egui::Ui, param: &mut SamplerParam) {
+    ui.label(param_label(param.param_id));
+    ui.indent("indent", |ui| {
+        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+            enum_combo_box(
+                ui,
+                "Wrap S",
+                format!("wraps{:?}", param.param_id),
+                &mut param.data.wraps,
+            );
+            ui.end_row();
+
+            enum_combo_box(
+                ui,
+                "Wrap T",
+                format!("wrapt{:?}", param.param_id),
+                &mut param.data.wrapt,
+            );
+            ui.end_row();
+
+            enum_combo_box(
+                ui,
+                "Wrap R",
+                format!("wrapr{:?}", param.param_id),
+                &mut param.data.wrapr,
+            );
+            ui.end_row();
+
+            enum_combo_box(
+                ui,
+                "Min Filter",
+                format!("minfilter{:?}", param.param_id),
+                &mut param.data.min_filter,
+            );
+            ui.end_row();
+
+            enum_combo_box(
+                ui,
+                "Mag Filter",
+                format!("magfilter{:?}", param.param_id),
+                &mut param.data.mag_filter,
+            );
+            ui.end_row();
+        });
+    });
+}
+
+fn edit_vector(ui: &mut egui::Ui, param: &mut Vector4Param) {
+    ui.label(param_label(param.param_id));
+    let mut color = [param.data.x, param.data.y, param.data.z];
+    if ui.color_edit_button_rgb(&mut color).changed() {
+        param.data.x = color[0];
+        param.data.y = color[1];
+        param.data.z = color[2];
+    }
+    ui.horizontal(|ui| {
+        ui.label("X");
+        ui.add(egui::DragValue::new(&mut param.data.x).speed(0.01));
+        ui.label("Y");
+        ui.add(egui::DragValue::new(&mut param.data.y).speed(0.01));
+        ui.label("Z");
+        ui.add(egui::DragValue::new(&mut param.data.z).speed(0.01));
+        ui.label("W");
+        ui.add(egui::DragValue::new(&mut param.data.w).speed(0.01));
+    });
+}
+
+fn edit_vector_advanced(ui: &mut egui::Ui, param: &mut Vector4Param) {
+    // TODO: Make a custom expander that expands to sliders?
+    // TODO: Set custom labels and ranges.
+    // TODO: Add parameter descriptions.
+    ui.horizontal(|ui| {
+        ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
+
+        let mut color = [param.data.x, param.data.y, param.data.z];
+        if ui.color_edit_button_rgb(&mut color).changed() {
+            param.data.x = color[0];
+            param.data.y = color[1];
+            param.data.z = color[2];
+        }
+    });
+    ui.indent("indent", |ui| {
+        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+            ui.label("X");
+            ui.add(egui::Slider::new(&mut param.data.x, 0.0..=1.0).clamp_to_range(false));
+            ui.end_row();
+
+            ui.label("Y");
+            ui.add(egui::Slider::new(&mut param.data.y, 0.0..=1.0).clamp_to_range(false));
+            ui.end_row();
+
+            ui.label("Z");
+            ui.add(egui::Slider::new(&mut param.data.z, 0.0..=1.0).clamp_to_range(false));
+            ui.end_row();
+
+            ui.label("W");
+            ui.add(egui::Slider::new(&mut param.data.w, 0.0..=1.0).clamp_to_range(false));
+            ui.end_row();
+        });
+    });
 }
 
 fn param_label(p: ParamId) -> String {

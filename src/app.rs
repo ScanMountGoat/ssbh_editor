@@ -542,18 +542,17 @@ impl SsbhApp {
                         egui::Layout::right_to_left().with_cross_align(egui::Align::Min),
                         |ui| {
                             ui.horizontal(|ui| {
-                                if ui
-                                    .add_sized([60.0, 30.0], egui::Button::new("Logs"))
-                                    .clicked()
-                                {
-                                    self.ui_state.log_window_open = true;
-                                }
-
                                 if let Some((level, message)) =
                                     LOGGER.messages.lock().unwrap().last()
                                 {
+                                    if ui
+                                        .add_sized([60.0, 30.0], egui::Button::new("Logs"))
+                                        .clicked()
+                                    {
+                                        self.ui_state.log_window_open = true;
+                                    }
+
                                     // Clicking the message also opens the log window.
-                                    // TODO: Make more space for the message?
                                     let abbreviated_message =
                                         message.get(..40).unwrap_or_default().to_string() + "...";
                                     if ui
