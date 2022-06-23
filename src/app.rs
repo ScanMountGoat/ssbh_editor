@@ -210,6 +210,33 @@ impl SsbhApp {
                         self.ui_state.render_settings_open = true;
                     }
                 });
+
+                egui::menu::menu_button(ui, "Help", |ui| {
+                    if ui.button("GitHub Repository").clicked() {
+                        ui.close_menu();
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor";
+                        if let Err(open_err) = open::that(link) {
+                            log::error!("Failed to open link ({link}). {open_err}");
+                        }
+                    }
+
+                    if ui.button("Report Issues").clicked() {
+                        ui.close_menu();
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
+                        if let Err(open_err) = open::that(link) {
+                            log::error!("Failed to open link ({link}). {open_err}");
+                        }
+                    }
+
+                    if ui.button("Changelog").clicked() {
+                        ui.close_menu();
+                        let link =
+                            "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
+                        if let Err(open_err) = open::that(link) {
+                            log::error!("Failed to open link ({link}). {open_err}");
+                        }
+                    }
+                });
             });
         });
 
@@ -244,10 +271,12 @@ impl SsbhApp {
                         ui.label("Download the new version from here:");
                         let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
                         if ui.hyperlink(release_link).clicked() {
-                            if let Err(open_err) = open::that(release_link) {
-                                log::error!(
+                            if ui.hyperlink(release_link).clicked() {
+                                if let Err(open_err) = open::that(release_link) {
+                                    log::error!(
                                     "Failed to open link ({release_link}) to releases {open_err}"
                                 );
+                                }
                             }
                         }
                         // TODO: Show latest version and release notes.
