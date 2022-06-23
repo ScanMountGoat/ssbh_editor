@@ -21,6 +21,7 @@
 * Fixed a potential crash when animating models with invalid nuhlpb entries.
 * Fixed an issue where rendering nuhlpb constraints would lead to incorrect bone orientations.
 * Fixed an issue where stage ink meshes would incorrectly show a yellow checkerboard error.
+* Fixed consistency of the viewport background color.
 
 ## 0.2.1
 ### Fixed
