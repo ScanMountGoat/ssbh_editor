@@ -429,133 +429,126 @@ impl SsbhApp {
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
                         for (folder_index, model) in self.models.iter_mut().enumerate() {
-                            // TODO: Will these IDs be unique?
-                            // TODO: Create unique IDs without displaying indices on folder names.
-                            CollapsingHeader::new(format!(
-                                "{}.{}",
-                                Path::new(&model.folder_name)
-                                    .file_name()
-                                    .unwrap()
-                                    .to_string_lossy(),
-                                folder_index
-                            ))
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                // TODO: Show a visual indication if a file has warnings/errors.
-                                // This will encourage users to click and investigate the errors.
+                            CollapsingHeader::new(folder_display_name(model))
+                                .id_source(format!("folder.{}", folder_index))
+                                .default_open(true)
+                                .show(ui, |ui| {
+                                    // TODO: Show a visual indication if a file has warnings/errors.
+                                    // This will encourage users to click and investigate the errors.
 
-                                // Avoid a confusing missing file error for animation folders.
-                                let just_anim = model.meshes.is_empty()
-                                    && model.modls.is_empty()
-                                    && model.skels.is_empty()
-                                    && model.matls.is_empty()
-                                    && !model.anims.is_empty();
+                                    // Avoid a confusing missing file error for animation folders.
+                                    let just_anim = model.meshes.is_empty()
+                                        && model.modls.is_empty()
+                                        && model.skels.is_empty()
+                                        && model.matls.is_empty()
+                                        && !model.anims.is_empty();
 
-                                let required_file =
-                                    |name| if just_anim { None } else { Some(name) };
+                                    let required_file =
+                                        |name| if just_anim { None } else { Some(name) };
 
-                                // Clicking a file opens the corresponding editor.
-                                // Set selected index so the editor remains open for the file.
-                                // TODO: Should the index be cleared when reloading models?
-                                list_files(
-                                    ui,
-                                    &model.meshes,
-                                    folder_index,
-                                    &mut self.ui_state.selected_folder_index,
-                                    &mut self.ui_state.selected_mesh_index,
-                                    required_file("model.numshb"),
-                                );
+                                    // Clicking a file opens the corresponding editor.
+                                    // Set selected index so the editor remains open for the file.
+                                    // TODO: Should the index be cleared when reloading models?
+                                    list_files(
+                                        ui,
+                                        &model.meshes,
+                                        folder_index,
+                                        &mut self.ui_state.selected_folder_index,
+                                        &mut self.ui_state.selected_mesh_index,
+                                        required_file("model.numshb"),
+                                    );
 
-                                list_files(
-                                    ui,
-                                    &model.skels,
-                                    folder_index,
-                                    &mut self.ui_state.selected_folder_index,
-                                    &mut self.ui_state.selected_skel_index,
-                                    required_file("model.nusktb"),
-                                );
+                                    list_files(
+                                        ui,
+                                        &model.skels,
+                                        folder_index,
+                                        &mut self.ui_state.selected_folder_index,
+                                        &mut self.ui_state.selected_skel_index,
+                                        required_file("model.nusktb"),
+                                    );
 
-                                list_files(
-                                    ui,
-                                    &model.hlpbs,
-                                    folder_index,
-                                    &mut self.ui_state.selected_folder_index,
-                                    &mut self.ui_state.selected_hlpb_index,
-                                    None,
-                                );
+                                    list_files(
+                                        ui,
+                                        &model.hlpbs,
+                                        folder_index,
+                                        &mut self.ui_state.selected_folder_index,
+                                        &mut self.ui_state.selected_hlpb_index,
+                                        None,
+                                    );
 
-                                list_files(
-                                    ui,
-                                    &model.matls,
-                                    folder_index,
-                                    &mut self.ui_state.selected_folder_index,
-                                    &mut self.ui_state.selected_matl_index,
-                                    required_file("model.numatb"),
-                                );
+                                    list_files(
+                                        ui,
+                                        &model.matls,
+                                        folder_index,
+                                        &mut self.ui_state.selected_folder_index,
+                                        &mut self.ui_state.selected_matl_index,
+                                        required_file("model.numatb"),
+                                    );
 
-                                list_files(
-                                    ui,
-                                    &model.modls,
-                                    folder_index,
-                                    &mut self.ui_state.selected_folder_index,
-                                    &mut self.ui_state.selected_modl_index,
-                                    required_file("model.numdlb"),
-                                );
+                                    list_files(
+                                        ui,
+                                        &model.modls,
+                                        folder_index,
+                                        &mut self.ui_state.selected_folder_index,
+                                        &mut self.ui_state.selected_modl_index,
+                                        required_file("model.numdlb"),
+                                    );
 
-                                for (i, (name, _)) in model.anims.iter().enumerate() {
-                                    ui.horizontal(|ui| {
-                                        empty_icon(ui);
-                                        if ui.button(name).clicked() {
-                                            let animation = AnimationIndex {
-                                                folder_index,
-                                                anim_index: i,
-                                            };
+                                    for (i, (name, _)) in model.anims.iter().enumerate() {
+                                        ui.horizontal(|ui| {
+                                            empty_icon(ui);
+                                            if ui.button(name).clicked() {
+                                                let animation = AnimationIndex {
+                                                    folder_index,
+                                                    anim_index: i,
+                                                };
 
-                                            // Create the first slot if it doesn't exist to save mouse clicks.
-                                            if self.animation_state.animations.is_empty() {
-                                                self.animation_state
+                                                // Create the first slot if it doesn't exist to save mouse clicks.
+                                                if self.animation_state.animations.is_empty() {
+                                                    self.animation_state
+                                                        .animations
+                                                        .push(Some(animation));
+                                                } else if let Some(slot) = self
+                                                    .animation_state
                                                     .animations
-                                                    .push(Some(animation));
-                                            } else if let Some(slot) = self
-                                                .animation_state
-                                                .animations
-                                                .get_mut(self.animation_state.selected_slot)
-                                            {
-                                                *slot = Some(animation);
-                                            }
+                                                    .get_mut(self.animation_state.selected_slot)
+                                                {
+                                                    *slot = Some(animation);
+                                                }
 
-                                            // Preview the new animation as soon as it is clicked.
-                                            self.animation_state.animation_frame_was_changed = true;
-                                        }
-                                    });
-                                }
-
-                                // TODO: Display larger versions when clicking?
-                                // TODO: How to manage the thumbnails?
-                                // TODO: Cube map thumbnails.
-                                // TODO: Register wgpu textures as is without converting to RGBA?
-                                // TODO: Add a warning for nutexbs with unused padding (requires tegra_swizzle update).
-                                for (file, nutexb) in model.nutexbs.iter() {
-                                    ui.horizontal(|ui| {
-                                        if let Some(model_thumbnails) =
-                                            self.thumbnails.get(folder_index)
-                                        {
-                                            if let Some((_, thumbnail)) = model_thumbnails
-                                                .iter()
-                                                .find(|(name, _)| name == file)
-                                            {
-                                                ui.image(
-                                                    *thumbnail,
-                                                    egui::Vec2::new(ICON_SIZE, ICON_SIZE),
-                                                );
+                                                // Preview the new animation as soon as it is clicked.
+                                                self.animation_state.animation_frame_was_changed =
+                                                    true;
                                             }
-                                        }
-                                        // TODO: Create a proper nutexb viewer.
-                                        ui.label(file)
-                                            .on_hover_text(format!("{:#?}", nutexb.footer));
-                                    });
-                                }
-                            });
+                                        });
+                                    }
+
+                                    // TODO: Display larger versions when clicking?
+                                    // TODO: How to manage the thumbnails?
+                                    // TODO: Cube map thumbnails.
+                                    // TODO: Register wgpu textures as is without converting to RGBA?
+                                    // TODO: Add a warning for nutexbs with unused padding (requires tegra_swizzle update).
+                                    for (file, nutexb) in model.nutexbs.iter() {
+                                        ui.horizontal(|ui| {
+                                            if let Some(model_thumbnails) =
+                                                self.thumbnails.get(folder_index)
+                                            {
+                                                if let Some((_, thumbnail)) = model_thumbnails
+                                                    .iter()
+                                                    .find(|(name, _)| name == file)
+                                                {
+                                                    ui.image(
+                                                        *thumbnail,
+                                                        egui::Vec2::new(ICON_SIZE, ICON_SIZE),
+                                                    );
+                                                }
+                                            }
+                                            // TODO: Create a proper nutexb viewer.
+                                            ui.label(file)
+                                                .on_hover_text(format!("{:#?}", nutexb.footer));
+                                        });
+                                    }
+                                });
                         }
                     });
             });
@@ -699,6 +692,14 @@ impl SsbhApp {
     }
 }
 
+fn folder_display_name(model: &ModelFolder) -> String {
+    Path::new(&model.folder_name)
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string()
+}
+
 fn list_files<T>(
     ui: &mut egui::Ui,
     files: &[(String, T)],
@@ -766,21 +767,16 @@ pub fn error_icon(ui: &mut egui::Ui) {
 fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     // TODO: Display folders that only have animations differently?
     for (i, folder) in app.models.iter().enumerate() {
-        // TODO: Will these IDs be unique?
-        // TODO: Avoid displaying numbers with folder names.
-        let name = format!(
-            "{}.{}",
-            std::path::Path::new(&folder.folder_name)
-                .file_name()
-                .unwrap()
-                .to_string_lossy(),
-            i
-        );
+        let name = format!("meshlist.{}", i);
+
         let id = ui.make_persistent_id(&name);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 if let Some(render_model) = app.render_models.get_mut(i) {
-                    ui.add(EyeCheckBox::new(&mut render_model.is_visible, &name));
+                    ui.add(EyeCheckBox::new(
+                        &mut render_model.is_visible,
+                        &folder_display_name(folder),
+                    ));
                 }
             })
             .body(|ui| {
