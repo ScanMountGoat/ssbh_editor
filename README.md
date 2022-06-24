@@ -17,7 +17,6 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - Improvements to performance and accuracy of ssbh_wgpu
 - Improved validation for errors with models, textures, and animations
 - Preview stage rendering and lighting data
-- Improvements to controlling the viewport camera
 - Settings to adjust UI scaling for better readability
 
 ## Getting Started
