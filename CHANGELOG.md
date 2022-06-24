@@ -13,6 +13,7 @@
 * Adjusted panning and zooming speed to scale correctly with the current zoom level.
 * Modified CustomVector0 in the provided presets to always allow texture alpha.
 * Changed the application font for better readability and language support.
+* Adjusted folder names to no longer show suffixes like "c00.0".
 
 ### Fixed
 * Fixed the current frame text box resizing during animation playback.
@@ -22,6 +23,7 @@
 * Fixed an issue where rendering nuhlpb constraints would lead to incorrect bone orientations.
 * Fixed an issue where stage ink meshes would incorrectly show a yellow checkerboard error.
 * Fixed consistency of the viewport background color.
+* Improved rendering of glass materials for better rendering accuracy.
 
 ## 0.2.1
 ### Fixed
