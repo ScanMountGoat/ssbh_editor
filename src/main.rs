@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use egui::color::{gamma_from_linear, linear_f32_from_gamma_u8};
+use egui::color::linear_f32_from_gamma_u8;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
@@ -123,17 +123,13 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
-    let surface = unsafe { instance.create_surface(&window) };
-
-    let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            compatible_surface: Some(&surface),
-            force_fallback_adapter: false,
-        })
-        .block_on()
-        .unwrap();
+    // Use DX12 as a separate fallback to fix initialization on some Windows systems.
+    let start = std::time::Instant::now();
+    let (surface, adapter) =
+        request_adapter(&window, wgpu::Backends::VULKAN | wgpu::Backends::METAL)
+            .or_else(|| request_adapter(&window, wgpu::Backends::DX12))
+            .unwrap();
+    println!("Request compatible adapter: {:?}", start.elapsed());
 
     let (device, queue) = adapter
         .request_device(
@@ -561,6 +557,22 @@ fn main() {
             }
         },
     );
+}
+
+fn request_adapter(
+    window: &winit::window::Window,
+    backends: wgpu::Backends,
+) -> Option<(wgpu::Surface, wgpu::Adapter)> {
+    let instance = wgpu::Instance::new(backends);
+    let surface = unsafe { instance.create_surface(window) };
+    let adapter = instance
+        .request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        })
+        .block_on()?;
+    Some((surface, adapter))
 }
 
 fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app: &mut SsbhApp) {
