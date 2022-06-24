@@ -7,6 +7,9 @@
 * Added an indication for which values are modified by an animation in the animation panel.
 * Added error descriptions for missing mesh attributes to the material editor.
 * Added support for saving files in the mesh editor.
+* Added color channel toggles to render settings.
+* Added a help menu to link to resources on GitHub.
+* Added an application log menu to show program and file errors.
 
 ### Changed
 * Adjusted UI elements and spacing and improved the editor UI.
