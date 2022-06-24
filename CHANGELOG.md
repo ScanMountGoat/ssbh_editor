@@ -1,5 +1,5 @@
 # ssbh_editor changelog
-## Unreleased
+## 0.3.0
 ### Added
 * Added an option to reload files in the current workspace.
 * Added keyboard shortcuts for open folder and reload workspace.
