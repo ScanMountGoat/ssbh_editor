@@ -29,6 +29,12 @@ For opening animations from another folder, click File > Add Folder to Workspace
 ## System Requirements
 SSBH Editor is lightweight and does not require a powerful system to run. The application runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
 
+## Cross Mod Migration
+Cross Mod has been replaced by SSBH Editor. The material presets from Cross Mod will not work directly with SSBH Editor but can easily be converted to the right format following the steps below.
+1. Drag the `MaterialPresets.xml` onto [MatLab.exe](https://github.com/Ploaj/SSBHLib/releases) to create `MaterialPresets_out.numatb`.
+2. Drag the `MaterialPresets_out.numatb` file onto [ssbh_data_json.exe](https://github.com/ultimate-research/ssbh_lib/releases) to create a JSON file.
+3. Rename the JSON file to `presets.json` and place it in the folder containing SSBH Editor.
+
 ## Building
 Prebuilt binaries are only provided for Windows at this time. Users on Linux or MacOS will need to compile from source. With the Rust toolchain installed, run `cargo build --release`. Include the provided `presets.json` with the compiled executable.
 
