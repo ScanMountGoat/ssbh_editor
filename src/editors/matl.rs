@@ -272,25 +272,7 @@ fn mesh_attribute_errors(
         .unwrap_or_default()
 }
 
-fn shader_label(
-    ui: &mut egui::Ui,
-    shader_label: &str,
-    is_valid: bool,
-    red_checkerboard: egui::TextureId,
-) {
-    if is_valid {
-        ui.label(shader_label);
-    } else {
-        ui.horizontal(|ui| {
-            ui.image(red_checkerboard, egui::Vec2::new(16.0, 16.0));
-            ui.label(egui::RichText::new(shader_label).color(egui::Color32::RED));
-        })
-        .response
-        .on_hover_text(format!("{} is not a valid shader label. Copy an existing shader label or apply a material preset.", shader_label));
-    }
-}
-
-fn shader_label_edit(
+fn edit_shader_label(
     ui: &mut egui::Ui,
     shader_label: &mut String,
     is_valid: bool,
@@ -322,17 +304,17 @@ fn matl_entry_editor(
     let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
 
     ui.heading("Shader");
+    ui.horizontal(|ui| {
+        // TODO: This doesn't update properly in the viewport.
+        ui.label("Shader Label");
+        edit_shader_label(
+            ui,
+            &mut entry.shader_label,
+            program.is_some(),
+            red_checkerboard,
+        );
+    });
     if advanced_mode {
-        ui.horizontal(|ui| {
-            // TODO: This doesn't update properly in the viewport.
-            ui.label("Shader Label");
-            shader_label_edit(
-                ui,
-                &mut entry.shader_label,
-                program.is_some(),
-                red_checkerboard,
-            );
-        });
         egui::Grid::new("shader_grid").show(ui, |ui| {
             // TODO: Should this be part of the basic mode.
             ui.label("Render Pass");
@@ -364,11 +346,6 @@ fn matl_entry_editor(
                 ui.add(egui::Label::new(program.vertex_attributes.join(",")).wrap(true));
                 ui.end_row();
             }
-        });
-    } else {
-        ui.horizontal(|ui| {
-            ui.label("Shader Label");
-            shader_label(ui, &entry.shader_label, program.is_some(), red_checkerboard);
         });
     }
     horizontal_separator_empty(ui);
