@@ -269,6 +269,8 @@ fn main() {
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
+        draw_skeletons: false,
+        draw_bone_names: false,
         ui_state: UiState {
             material_editor_open: false,
             render_settings_open: false,
@@ -439,55 +441,51 @@ fn main() {
                         &app.render_state.shader_database,
                     );
 
-                    // TODO: Make a function for this.
-                    // The UI is layered on top.
-                    // Based on the egui_wgpu source found here:
-                    // https://github.com/emilk/egui/blob/master/egui-wgpu/src/winit.rs
-                    let full_output = ctx.run(raw_input, |ctx| {
-                        app.update(ctx);
-                    });
+                    // TODO: Avoid calculating the MVP matrix every frame.
+                    let (_, _, mvp) = calculate_mvp(
+                        size,
+                        camera_state.translation_xyz,
+                        camera_state.rotation_xyz,
+                    );
 
-                    winit_state.handle_platform_output(&window, &ctx, full_output.platform_output);
-
-                    let clipped_primitives = ctx.tessellate(full_output.shapes);
-
-                    let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
-                        size_in_pixels: [surface_config.width, surface_config.height],
-                        pixels_per_point: window.scale_factor() as f32,
-                    };
-
-                    for (id, image_delta) in &full_output.textures_delta.set {
-                        egui_rpass.update_texture(
+                    // TODO: Make the font size configurable.
+                    let skels: Vec<_> = app.models.iter().map(|m| m.find_skel()).collect();
+                    let bone_text_commands = if app.draw_skeletons {
+                        renderer.render_skeleton(
                             &app.render_state.device,
                             &app.render_state.queue,
-                            *id,
-                            image_delta,
-                        );
-                    }
+                            &mut encoder,
+                            &output_view,
+                            &app.render_models,
+                            &skels,
+                            size.width,
+                            size.height,
+                            mvp,
+                            app.draw_bone_names,
+                        )
+                    } else {
+                        None
+                    };
 
-                    egui_rpass.update_buffers(
-                        &app.render_state.device,
-                        &app.render_state.queue,
-                        &clipped_primitives,
-                        &screen_descriptor,
-                    );
-
-                    // Record all render passes.
-                    egui_rpass.execute(
+                    egui_render_pass(
+                        &ctx,
+                        raw_input,
+                        &mut winit_state,
+                        &window,
+                        &surface_config,
+                        &mut egui_rpass,
+                        &mut app,
                         &mut encoder,
-                        &output_view,
-                        &clipped_primitives,
-                        &screen_descriptor,
-                        None,
+                        output_view,
                     );
-
-                    for id in &full_output.textures_delta.free {
-                        egui_rpass.free_texture(id);
-                    }
-                    // end egui
 
                     // Submit the commands.
                     app.render_state.queue.submit(iter::once(encoder.finish()));
+                    if let Some(bone_text_commands) = bone_text_commands {
+                        app.render_state
+                            .queue
+                            .submit(iter::once(bone_text_commands));
+                    }
 
                     // Present the final rendered image.
                     output_frame.present();
@@ -565,6 +563,57 @@ fn main() {
             }
         },
     );
+}
+
+fn egui_render_pass(
+    ctx: &egui::Context,
+    raw_input: egui::RawInput,
+    winit_state: &mut egui_winit::State,
+    window: &winit::window::Window,
+    surface_config: &wgpu::SurfaceConfiguration,
+    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    app: &mut SsbhApp,
+    encoder: &mut wgpu::CommandEncoder,
+    output_view: wgpu::TextureView,
+) {
+    // The UI is layered on top.
+    // Based on the egui_wgpu source found here:
+    // https://github.com/emilk/egui/blob/master/egui-wgpu/src/winit.rs
+    let full_output = ctx.run(raw_input, |ctx| {
+        app.update(ctx);
+    });
+    winit_state.handle_platform_output(window, ctx, full_output.platform_output);
+    let clipped_primitives = ctx.tessellate(full_output.shapes);
+    let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
+        size_in_pixels: [surface_config.width, surface_config.height],
+        pixels_per_point: window.scale_factor() as f32,
+    };
+    for (id, image_delta) in &full_output.textures_delta.set {
+        egui_rpass.update_texture(
+            &app.render_state.device,
+            &app.render_state.queue,
+            *id,
+            image_delta,
+        );
+    }
+    egui_rpass.update_buffers(
+        &app.render_state.device,
+        &app.render_state.queue,
+        &clipped_primitives,
+        &screen_descriptor,
+    );
+    // Record all render passes.
+    egui_rpass.execute(
+        encoder,
+        &output_view,
+        &clipped_primitives,
+        &screen_descriptor,
+        None,
+    );
+    for id in &full_output.textures_delta.free {
+        egui_rpass.free_texture(id);
+    }
+    // end egui
 }
 
 fn request_adapter(

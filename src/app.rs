@@ -56,6 +56,9 @@ pub struct SsbhApp {
     pub red_checkerboard: egui::TextureId,
     pub yellow_checkerboard: egui::TextureId,
 
+    pub draw_skeletons: bool,
+    pub draw_bone_names: bool,
+
     pub ui_state: UiState,
     // TODO: How to manage the thumbnail cache?
     // TODO: Is parallel list with models the best choice here?
@@ -249,6 +252,8 @@ impl SsbhApp {
             ctx,
             &mut self.render_state.render_settings,
             &mut self.ui_state.render_settings_open,
+            &mut self.draw_skeletons,
+            &mut self.draw_bone_names,
         );
 
         log_window(ctx, &mut self.ui_state.log_window_open);
@@ -857,7 +862,13 @@ fn anim_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     }
 }
 
-fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mut bool) {
+fn render_settings(
+    ctx: &egui::Context,
+    settings: &mut RenderSettings,
+    open: &mut bool,
+    draw_skeletons: &mut bool,
+    draw_bone_names: &mut bool,
+) {
     egui::Window::new("Render Settings")
         .open(open)
         .resizable(true)
@@ -923,6 +934,10 @@ fn render_settings(ctx: &egui::Context, settings: &mut RenderSettings, open: &mu
                     ui.heading("Lighting");
                     ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
                     horizontal_separator_empty(ui);
+
+                    ui.heading("Skeleton");
+                    ui.checkbox(draw_skeletons, "Draw Bones");
+                    ui.checkbox(draw_bone_names, "Draw Bone Names");
                 });
         });
 }
