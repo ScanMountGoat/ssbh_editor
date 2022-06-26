@@ -283,6 +283,7 @@ fn matl_entry_editor(
     ui.heading("Shader");
     if advanced_mode {
         ui.horizontal(|ui| {
+            // TODO: This doesn't update properly in the viewport.
             ui.label("Shader Label");
             shader_label_edit(
                 ui,

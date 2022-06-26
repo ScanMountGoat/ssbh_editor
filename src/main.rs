@@ -227,7 +227,13 @@ fn main() {
         rotation_xyz: glam::Vec3::new(0.0, 0.0, 0.0),
     };
 
-    update_camera(&mut renderer, &queue, size, &camera_state);
+    update_camera(
+        &mut renderer,
+        &queue,
+        size,
+        &camera_state,
+        window.scale_factor(),
+    );
 
     // TODO: How to ensure this cache remains up to date?
     // TODO: Should RenderModel expose its wgpu textures?
@@ -510,6 +516,7 @@ fn main() {
                                 &app.render_state.queue,
                                 size,
                                 &camera_state,
+                                window.scale_factor(),
                             );
                         }
                         winit::event::WindowEvent::CloseRequested => {
@@ -542,6 +549,7 @@ fn main() {
                                         &app.render_state.queue,
                                         size,
                                         &camera_state,
+                                        window.scale_factor(),
                                     );
                                 }
                             }
@@ -600,6 +608,7 @@ fn update_camera(
     queue: &wgpu::Queue,
     size: PhysicalSize<u32>,
     camera_state: &CameraInputState,
+    scale_factor: f64,
 ) {
     let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
         size,
@@ -610,6 +619,12 @@ fn update_camera(
         model_view_matrix,
         mvp_matrix,
         camera_pos: camera_pos.to_array(),
+        screen_dimensions: [
+            size.width as f32,
+            size.height as f32,
+            scale_factor as f32,
+            0.0,
+        ],
     };
     renderer.update_camera(queue, transforms);
 }
