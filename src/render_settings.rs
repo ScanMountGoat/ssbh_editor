@@ -27,6 +27,10 @@ pub fn render_settings(
                                 // Group modes for improved clarity.
                                 ui.heading("Shading");
                                 debug_mode(ui, settings, DebugMode::Shaded);
+                                debug_mode(ui, settings, DebugMode::Basic);
+                                debug_mode(ui, settings, DebugMode::Normals);
+                                debug_mode(ui, settings, DebugMode::Bitangents);
+                                debug_mode(ui, settings, DebugMode::Albedo);
                                 ui.separator();
 
                                 ui.heading("Vertex Attributes");
@@ -38,6 +42,16 @@ pub fn render_settings(
                                 debug_mode(ui, settings, DebugMode::UvSet);
                                 debug_mode(ui, settings, DebugMode::UvSet1);
                                 debug_mode(ui, settings, DebugMode::UvSet2);
+                                ui.separator();
+
+                                ui.heading("Vertex Color");
+                                debug_mode(ui, settings, DebugMode::ColorSet1);
+                                debug_mode(ui, settings, DebugMode::ColorSet2);
+                                debug_mode(ui, settings, DebugMode::ColorSet3);
+                                debug_mode(ui, settings, DebugMode::ColorSet4);
+                                debug_mode(ui, settings, DebugMode::ColorSet5);
+                                debug_mode(ui, settings, DebugMode::ColorSet6);
+                                debug_mode(ui, settings, DebugMode::ColorSet7);
                                 ui.separator();
 
                                 ui.heading("Textures");
