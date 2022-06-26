@@ -11,6 +11,7 @@ use ssbh_wgpu::ModelFolder;
 pub mod app;
 mod editors;
 pub mod material;
+mod render_settings;
 pub mod widgets;
 
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");

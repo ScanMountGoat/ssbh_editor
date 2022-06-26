@@ -54,7 +54,7 @@ pub fn matl_editor(
                     // This avoids cluttering the UI.
                     let entry = matl.entries.get_mut(ui_state.selected_material_index);
                     let mut modl_entries: Vec<_> = entry
-                        .map(|entry| {
+                        .and_then(|entry| {
                             modl.map(|modl| {
                                 modl.entries
                                     .iter_mut()
@@ -62,7 +62,6 @@ pub fn matl_editor(
                                     .collect()
                             })
                         })
-                        .flatten()
                         .unwrap_or_default();
 
                     ui.heading("Material");
