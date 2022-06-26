@@ -10,7 +10,7 @@ use crate::{
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{matl_data::*, mesh_data::MeshObjectData, prelude::*};
+use ssbh_data::{matl_data::*, mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
 use std::path::Path;
 
@@ -36,66 +36,11 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
-                    if ui.button("Save").clicked() {
-                        ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("Matl", &["numatb"])
-                            .save_file()
-                        {
-                            if let Err(e) = matl.write_to_file(file) {
-                                error!("Failed to save Matl (.numatb): {}", e);
-                            }
-                        }
-                    }
-                });
-
-                egui::menu::menu_button(ui, "Material", |ui| {
-                    if ui.button("Add New Material").clicked() {
-                        ui.close_menu();
-
-                        // TODO: Select options from presets?
-                        let new_entry = default_material();
-                        matl.entries.push(new_entry);
-
-                        ui_state.selected_material_index = matl.entries.len() - 1;
-                    }
-
-                    if ui.button("Apply Preset").clicked() {
-                        ui_state.preset_window_open = true;
-                    }
-                });
-            });
+            menu_bar(ui, matl, ui_state);
 
             // TODO: Simplify logic for closing window.
-            let mut open = ui_state.preset_window_open;
-            egui::Window::new("Select Material Preset")
-                .open(&mut ui_state.preset_window_open)
-                .show(ctx, |ui| {
-                    for (i, preset) in material_presets.iter().enumerate() {
-                        ui.selectable_value(
-                            &mut ui_state.selected_material_preset_index,
-                            i,
-                            &preset.material_label,
-                        );
-                    }
-
-                    if ui.button("Apply").clicked() {
-                        if let Some(preset) =
-                            material_presets.get(ui_state.selected_material_preset_index)
-                        {
-                            if let Some(entry) =
-                                matl.entries.get_mut(ui_state.selected_material_index)
-                            {
-                                *entry = apply_preset(entry, preset);
-                            }
-                        }
-
-                        open = false;
-                    }
-                });
+            let entry = matl.entries.get_mut(ui_state.selected_material_index);
+            let open = preset_window(ui_state, ctx, material_presets, entry);
             if !open {
                 ui_state.preset_window_open = false;
             }
@@ -107,21 +52,32 @@ pub fn matl_editor(
                 .show(ui, |ui| {
                     // Only display a single material at a time.
                     // This avoids cluttering the UI.
+                    let entry = matl.entries.get_mut(ui_state.selected_material_index);
+                    let mut modl_entries: Vec<_> = entry
+                        .map(|entry| {
+                            modl.map(|modl| {
+                                modl.entries
+                                    .iter_mut()
+                                    .filter(|e| e.material_label == entry.material_label)
+                                    .collect()
+                            })
+                        })
+                        .flatten()
+                        .unwrap_or_default();
+
+                    ui.heading("Material");
                     ui.horizontal(|ui| {
                         ui.label("Material");
-                        egui::ComboBox::from_id_source("MatlEditorMaterialLabel")
-                            .width(400.0)
-                            .show_index(
-                                ui,
-                                &mut ui_state.selected_material_index,
-                                matl.entries.len(),
-                                |i| {
-                                    matl.entries
-                                        .get(i)
-                                        .map(|m| m.material_label.clone())
-                                        .unwrap_or_default()
-                                },
-                            );
+                        let entry = matl.entries.get_mut(ui_state.selected_material_index);
+                        if ui_state.is_editing_material_label {
+                            edit_material_label(entry, ui_state, ui, &mut modl_entries);
+                        } else {
+                            material_combo_box(ui, ui_state, matl);
+                        }
+
+                        if ui.button("Rename").clicked() {
+                            ui_state.is_editing_material_label = true;
+                        }
 
                         if ui_state.matl_editor_advanced_mode && ui.button("Delete").clicked() {
                             // TODO: Potential panic?
@@ -134,27 +90,21 @@ pub fn matl_editor(
                     ui.checkbox(&mut ui_state.matl_editor_advanced_mode, "Advanced Settings");
                     horizontal_separator_empty(ui);
 
-                    if let Some(entry) = matl.entries.get_mut(ui_state.selected_material_index) {
-                        // TODO: Avoid collect here?
-                        // Keep track of modl entries since materials may be renamed.
-                        let mut modl_entries: Vec<_> = modl
-                            .map(|m| {
-                                m.entries
-                                    .iter_mut()
-                                    .filter(|e| e.material_label == entry.material_label)
-                                    .collect()
-                            })
-                            .unwrap_or_default();
+                    let entry = matl.entries.get_mut(ui_state.selected_material_index);
 
+                    if let Some(entry) = entry {
                         let mesh_objects: Vec<_> = mesh
                             .map(|mesh| {
                                 mesh.objects
                                     .iter()
                                     .filter(|o| {
-                                        modl_entries.iter().any(|e| {
-                                            e.mesh_object_name == o.name
-                                                && e.mesh_object_sub_index == o.sub_index
-                                        })
+                                        modl_entries
+                                            .iter()
+                                            .filter(|e| e.material_label == entry.material_label)
+                                            .any(|e| {
+                                                e.mesh_object_name == o.name
+                                                    && e.mesh_object_sub_index == o.sub_index
+                                            })
                                     })
                                     .collect()
                             })
@@ -164,26 +114,6 @@ pub fn matl_editor(
                         let program =
                             shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
                         let attribute_errors = mesh_attribute_errors(program, &mesh_objects);
-
-                        // TODO: Merge this with the drop down?
-                        ui.heading("Material");
-                        ui.horizontal(|ui| {
-                            ui.label("Material Label");
-                            // TODO: Get this to work with lost_focus for efficiency.
-                            if ui
-                                .add_sized(
-                                    egui::Vec2::new(400.0, 20.0),
-                                    egui::TextEdit::singleline(&mut entry.material_label),
-                                )
-                                .changed()
-                            {
-                                // Rename any effected modl entries if the material label changes.
-                                for modl_entry in &mut modl_entries {
-                                    modl_entry.material_label = entry.material_label.clone();
-                                }
-                            }
-                        });
-                        horizontal_separator_empty(ui);
 
                         matl_entry_editor(
                             ui,
@@ -201,6 +131,117 @@ pub fn matl_editor(
         });
 
     open
+}
+
+fn preset_window(
+    ui_state: &mut UiState,
+    ctx: &egui::Context,
+    material_presets: &[MatlEntryData],
+    entry: Option<&mut MatlEntryData>,
+) -> bool {
+    let mut open = ui_state.preset_window_open;
+    egui::Window::new("Select Material Preset")
+        .open(&mut ui_state.preset_window_open)
+        .show(ctx, |ui| {
+            for (i, preset) in material_presets.iter().enumerate() {
+                ui.selectable_value(
+                    &mut ui_state.selected_material_preset_index,
+                    i,
+                    &preset.material_label,
+                );
+            }
+
+            if ui.button("Apply").clicked() {
+                if let Some(preset) = material_presets.get(ui_state.selected_material_preset_index)
+                {
+                    if let Some(entry) = entry {
+                        *entry = apply_preset(entry, preset);
+                    }
+                }
+
+                open = false;
+            }
+        });
+    open
+}
+
+fn menu_bar(ui: &mut egui::Ui, matl: &mut MatlData, ui_state: &mut UiState) {
+    egui::menu::bar(ui, |ui| {
+        egui::menu::menu_button(ui, "File", |ui| {
+            if ui.button("Save").clicked() {
+                ui.close_menu();
+
+                if let Some(file) = FileDialog::new()
+                    .add_filter("Matl", &["numatb"])
+                    .save_file()
+                {
+                    if let Err(e) = matl.write_to_file(file) {
+                        error!("Failed to save Matl (.numatb): {}", e);
+                    }
+                }
+            }
+        });
+
+        egui::menu::menu_button(ui, "Material", |ui| {
+            if ui.button("Add New Material").clicked() {
+                ui.close_menu();
+
+                // TODO: Select options from presets?
+                let new_entry = default_material();
+                matl.entries.push(new_entry);
+
+                ui_state.selected_material_index = matl.entries.len() - 1;
+            }
+
+            if ui.button("Apply Preset").clicked() {
+                ui_state.preset_window_open = true;
+            }
+        });
+    });
+}
+
+fn edit_material_label(
+    entry: Option<&mut MatlEntryData>,
+    ui_state: &mut UiState,
+    ui: &mut egui::Ui,
+    modl_entries: &mut [&mut ModlEntryData],
+) {
+    // TODO: Get this to work with lost_focus for efficiency.
+    // TODO: Show errors if these checks fail?
+    if let Some(entry) = entry {
+        let response = ui.add_sized(
+            egui::Vec2::new(400.0, 20.0),
+            egui::TextEdit::singleline(&mut entry.material_label),
+        );
+
+        if response.changed() {
+            // Rename any effected modl entries if the material label changes.
+            // Keep track of modl entries since materials may be renamed.
+            for modl_entry in modl_entries {
+                modl_entry.material_label = entry.material_label.clone();
+            }
+        }
+
+        if response.lost_focus() {
+            ui_state.is_editing_material_label = false;
+        }
+    }
+}
+
+fn material_combo_box(ui: &mut egui::Ui, ui_state: &mut UiState, matl: &MatlData) {
+    egui::ComboBox::from_id_source("MatlEditorMaterialLabel")
+        .width(400.0)
+        .show_index(
+            ui,
+            &mut ui_state.selected_material_index,
+            matl.entries.len(),
+            |i| {
+                matl.entries
+                    .get(i)
+                    .map(|m| m.material_label.clone())
+                    .unwrap_or_default()
+            },
+        );
 }
 
 fn mesh_attribute_errors(

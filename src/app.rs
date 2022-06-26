@@ -71,6 +71,8 @@ pub struct SsbhApp {
 }
 
 pub struct UiState {
+    // TODO: Add a changed flag and clear on save?
+    // This would allow showing an indication for which files need to be saved.
     // TODO: Allow more than one open editor of each type?
     pub material_editor_open: bool,
     pub render_settings_open: bool,
@@ -81,6 +83,7 @@ pub struct UiState {
     pub log_window_open: bool,
     pub preset_window_open: bool,
     pub selected_material_preset_index: usize,
+    pub is_editing_material_label: bool,
     // TODO: Is there a better way to track this?
     // Clicking an item in the file list sets the selected index.
     // If the index is not None, the corresponding editor stays open.

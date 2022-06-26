@@ -288,6 +288,7 @@ fn main() {
             right_panel_tab: ssbh_editor::app::PanelTab::MeshList,
             matl_editor_advanced_mode: false,
             log_window_open: false,
+            is_editing_material_label: false,
         },
         render_state: RenderState {
             device,
