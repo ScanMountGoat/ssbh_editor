@@ -8,7 +8,7 @@ use ssbh_editor::app::{AnimationState, RenderState, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, widgets_dark,
+    generate_model_thumbnails, widgets_dark, TexturePainter,
 };
 use ssbh_wgpu::{
     create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
@@ -254,6 +254,14 @@ fn main() {
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
 
+    // Make sure the texture preview is ready for accessed by the app.
+    // State is stored in a type map because of lifetime requirements.
+    // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
+    // TODO: Find a way to update this each frame?
+    egui_rpass.paint_callback_resources.insert(TexturePainter {
+        renderer: texture_renderer,
+    });
+
     // Track if keys like ctrl or alt are being pressed.
     let mut modifiers = ModifiersState::default();
 
@@ -289,6 +297,7 @@ fn main() {
             matl_editor_advanced_mode: false,
             log_window_open: false,
             is_editing_material_label: false,
+            selected_nutexb_index: None,
         },
         render_state: RenderState {
             device,
@@ -359,12 +368,12 @@ fn main() {
                             &app.render_state.stage_cube,
                             &app.render_state.shader_database,
                         );
+
                         app.thumbnails = generate_model_thumbnails(
-                            &texture_renderer,
+                            &mut egui_rpass,
                             &app.models,
                             &app.render_state.device,
                             &app.render_state.queue,
-                            &mut egui_rpass,
                         );
                         app.should_refresh_meshes = false;
                     }
@@ -393,7 +402,7 @@ fn main() {
                                             anim_index.as_ref(),
                                             &app.models,
                                         )
-                                        .map(|(_, a)| a)
+                                        .and_then(|(_, a)| a.as_ref().ok())
                                     });
 
                             // TODO: Make frame timing logic in ssbh_wgpu public?
@@ -405,17 +414,17 @@ fn main() {
                                     .skels
                                     .iter()
                                     .find(|(f, _)| f == "model.nusktb")
-                                    .map(|h| &h.1),
+                                    .and_then(|(_, m)| m.as_ref().ok()),
                                 model
                                     .matls
                                     .iter()
                                     .find(|(f, _)| f == "model.numatb")
-                                    .map(|h| &h.1),
+                                    .and_then(|(_, m)| m.as_ref().ok()),
                                 model
                                     .hlpbs
                                     .iter()
                                     .find(|(f, _)| f == "model.nuhlpb")
-                                    .map(|h| &h.1),
+                                    .and_then(|(_, m)| m.as_ref().ok()),
                                 app.animation_state.current_frame,
                                 &app.render_state.pipeline_data,
                                 &app.render_state.default_textures,

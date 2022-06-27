@@ -16,6 +16,11 @@ pub mod widgets;
 
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
+// TODO: Store the current nutexb to paint?
+pub struct TexturePainter {
+    pub renderer: TextureRenderer,
+}
+
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
     let mut models = ssbh_wgpu::load_model_folders(root);
     models.sort_by_key(|m| m.folder_name.to_string());
@@ -43,22 +48,26 @@ fn sort_files(model: &mut ModelFolder) {
 
 // TODO: Include default textures.
 pub fn generate_model_thumbnails(
-    renderer: &TextureRenderer,
+    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
     models: &[ssbh_wgpu::ModelFolder],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
 ) -> Vec<Vec<(String, egui::TextureId)>> {
     models
         .iter()
         .map(|m| {
             m.nutexbs
                 .iter()
+                .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
                 .filter(|(_, nutexb)| nutexb.footer.layer_count == 1) // TODO: How to handle 3d/array layers?
                 .map(|(file_name, nutexb)| {
-                    let texture = nutexb_wgpu::create_texture(nutexb, device, queue);
-                    let rgba_texture =
-                        renderer.render_to_texture_rgba(device, queue, &texture, 64, 64);
+                    let painter: &TexturePainter =
+                        egui_rpass.paint_callback_resources.get().unwrap();
+
+                    let texture = nutexb_wgpu::create_texture(&nutexb, device, queue);
+                    let rgba_texture = painter
+                        .renderer
+                        .render_to_texture_rgba(device, queue, &texture, 64, 64);
                     let rgba_view =
                         rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
                     // TODO: Does the filter mode here matter?

@@ -6,6 +6,7 @@ use crate::{
     load_model, load_models_recursive,
     render_settings::render_settings,
     widgets::*,
+    TexturePainter,
 };
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
@@ -13,7 +14,7 @@ use log::Log;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::MatlEntryData, prelude::*};
 use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
-use std::{path::Path, sync::Mutex};
+use std::{error::Error, path::Path, sync::Mutex};
 
 lazy_static! {
     pub static ref LOGGER: AppLogger = AppLogger {
@@ -91,6 +92,7 @@ pub struct UiState {
     pub selected_matl_index: Option<usize>,
     pub selected_modl_index: Option<usize>,
     pub selected_mesh_index: Option<usize>,
+    pub selected_nutexb_index: Option<usize>,
     pub selected_material_index: usize,
 }
 
@@ -103,7 +105,7 @@ impl AnimationIndex {
     pub fn get_animation<'a>(
         index: Option<&AnimationIndex>,
         models: &'a [ModelFolder],
-    ) -> Option<&'a (String, AnimData)> {
+    ) -> Option<&'a (String, Result<AnimData, Box<dyn Error>>)> {
         index.and_then(|index| {
             models
                 .get(index.folder_index)
@@ -130,6 +132,9 @@ pub struct RenderState {
     pub render_settings: RenderSettings,
     pub shader_database: ShaderDatabase,
 }
+
+const ICON_SIZE: f32 = 18.0;
+const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(200, 40, 40);
 
 // Keep track of what UI should be displayed.
 #[derive(PartialEq, Eq)]
@@ -176,8 +181,6 @@ impl SsbhApp {
         // TODO: Is there an easy way to write this?
     }
 }
-
-const ICON_SIZE: f32 = 18.0;
 
 impl SsbhApp {
     pub fn update(&mut self, ctx: &egui::Context) {
@@ -302,7 +305,7 @@ impl SsbhApp {
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
-                    if let Some((name, skel)) = model.skels.get_mut(skel_index) {
+                    if let Some((name, Ok(skel))) = model.skels.get_mut(skel_index) {
                         if !skel_editor(ctx, &display_name(&model.folder_name, name), skel) {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
@@ -311,7 +314,7 @@ impl SsbhApp {
                 }
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
-                    if let Some((name, mesh)) = model.meshes.get_mut(mesh_index) {
+                    if let Some((name, Ok(mesh))) = model.meshes.get_mut(mesh_index) {
                         if !mesh_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
@@ -326,7 +329,7 @@ impl SsbhApp {
 
                 // TODO: Make all this code a function?
                 if let Some(matl_index) = self.ui_state.selected_matl_index {
-                    if let Some((name, matl)) = model.matls.get_mut(matl_index) {
+                    if let Some((name, Ok(matl))) = model.matls.get_mut(matl_index) {
                         // TODO: Fix potential crash if thumbnails aren't present.
                         // TODO: Make this a method to simplify arguments.
                         if !matl_editor(
@@ -338,12 +341,12 @@ impl SsbhApp {
                                 .modls
                                 .iter_mut()
                                 .find(|(f, _)| f == "model.numdlb")
-                                .map(|(_, m)| m),
+                                .and_then(|(_, m)| m.as_mut().ok()),
                             model
                                 .meshes
                                 .iter()
                                 .find(|(f, _)| f == "model.numshb")
-                                .map(|(_, m)| m),
+                                .and_then(|(_, m)| m.as_ref().ok()),
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
                             &self.render_state.shader_database,
@@ -375,12 +378,12 @@ impl SsbhApp {
                 }
 
                 if let Some(modl_index) = self.ui_state.selected_modl_index {
-                    if let Some((name, modl)) = model.modls.get_mut(modl_index) {
+                    if let Some((name, Ok(modl))) = model.modls.get_mut(modl_index) {
                         let matl = model
                             .matls
                             .iter()
                             .find(|(f, _)| f == "model.numatb")
-                            .map(|(_, m)| m);
+                            .and_then(|(_, m)| m.as_ref().ok());
                         if !modl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
@@ -389,7 +392,7 @@ impl SsbhApp {
                                 .meshes
                                 .iter()
                                 .find(|(f, _)| f == "model.numshb")
-                                .map(|(_, m)| m),
+                                .and_then(|(_, m)| m.as_ref().ok()),
                             matl,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         ) {
@@ -405,7 +408,7 @@ impl SsbhApp {
                 }
 
                 if let Some(hlpb_index) = self.ui_state.selected_hlpb_index {
-                    if let Some((name, hlpb)) = model.hlpbs.get_mut(hlpb_index) {
+                    if let Some((name, Ok(hlpb))) = model.hlpbs.get_mut(hlpb_index) {
                         if !hlpb_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
@@ -414,10 +417,19 @@ impl SsbhApp {
                                 .skels
                                 .iter()
                                 .find(|(f, _)| f == "model.nusktb")
-                                .map(|(_, s)| s),
+                                .and_then(|(_, m)| m.as_ref().ok()),
                         ) {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
+                        }
+                    }
+                }
+
+                if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
+                    if let Some((name, nutexb)) = model.nutexbs.get(nutexb_index) {
+                        if !nutexb_viewer(ctx, &display_name(&model.folder_name, name)) {
+                            // Close the window.
+                            self.ui_state.selected_nutexb_index = None;
                         }
                     }
                 }
@@ -532,7 +544,7 @@ impl SsbhApp {
                                     // TODO: Cube map thumbnails.
                                     // TODO: Register wgpu textures as is without converting to RGBA?
                                     // TODO: Add a warning for nutexbs with unused padding (requires tegra_swizzle update).
-                                    for (file, nutexb) in model.nutexbs.iter() {
+                                    for (i, (file, _)) in model.nutexbs.iter().enumerate() {
                                         ui.horizontal(|ui| {
                                             if let Some(model_thumbnails) =
                                                 self.thumbnails.get(folder_index)
@@ -548,8 +560,11 @@ impl SsbhApp {
                                                 }
                                             }
                                             // TODO: Create a proper nutexb viewer.
-                                            ui.label(file)
-                                                .on_hover_text(format!("{:#?}", nutexb.footer));
+                                            if ui.button(file).clicked() {
+                                                self.ui_state.selected_folder_index =
+                                                    Some(folder_index);
+                                                self.ui_state.selected_nutexb_index = Some(i);
+                                            }
                                         });
                                     }
                                 });
@@ -684,7 +699,7 @@ impl SsbhApp {
         // Find the minimum number of frames to cover all animations.
         let mut final_frame_index = 0.0;
         for anim_index in &self.animation_state.animations {
-            if let Some((_, anim)) =
+            if let Some((_, Ok(anim))) =
                 AnimationIndex::get_animation(anim_index.as_ref(), &self.models)
             {
                 if anim.final_frame_index > final_frame_index {
@@ -694,6 +709,19 @@ impl SsbhApp {
         }
         final_frame_index
     }
+}
+
+fn nutexb_viewer(ctx: &egui::Context, title: &str) -> bool {
+    let mut open = true;
+    egui::Window::new(format!("Nutexb Viewer ({title})"))
+        .open(&mut open)
+        .resizable(true)
+        .show(ctx, |ui| {
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                let (_, rect) = ui.allocate_space(egui::Vec2::new(512.0, 512.0));
+            });
+        });
+    open
 }
 
 fn folder_display_name(model: &ModelFolder) -> String {
@@ -706,19 +734,29 @@ fn folder_display_name(model: &ModelFolder) -> String {
 
 fn list_files<T>(
     ui: &mut egui::Ui,
-    files: &[(String, T)],
+    files: &[(String, Result<T, Box<dyn Error>>)],
     folder_index: usize,
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
     required_file: Option<&'static str>,
 ) {
-    for (i, (name, _)) in files.iter().enumerate() {
+    // TODO: Should this be a grid instead?
+    for (i, (name, file)) in files.iter().enumerate() {
         ui.horizontal(|ui| {
             // TODO: How to check for and store validation?
-            empty_icon(ui);
-            if ui.button(name.clone()).clicked() {
-                *selected_folder_index = Some(folder_index);
-                *selected_file_index = Some(i);
+            match file {
+                Ok(_) => {
+                    empty_icon(ui);
+                    if ui.button(name.clone()).clicked() {
+                        *selected_folder_index = Some(folder_index);
+                        *selected_file_index = Some(i);
+                    }
+                }
+                Err(e) => {
+                    // TODO: Show file errors.
+                    error_icon(ui);
+                    ui.label(egui::RichText::new(name).color(ERROR_COLOR));
+                }
             }
         });
     }
@@ -763,7 +801,7 @@ pub fn error_icon(ui: &mut egui::Ui) {
     ui.label(
         egui::RichText::new("⚠")
             .strong()
-            .color(egui::Color32::from_rgb(200, 40, 40))
+            .color(ERROR_COLOR)
             .size(ICON_SIZE),
     );
 }
@@ -822,7 +860,7 @@ fn anim_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
                 });
             })
             .body(|ui| {
-                if let Some((_, anim)) =
+                if let Some((_, Ok(anim))) =
                     AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
                 {
                     for group in &anim.groups {
