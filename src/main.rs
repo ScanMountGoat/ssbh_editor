@@ -3,16 +3,14 @@ use egui::color::linear_f32_from_gamma_u8;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
-use ssbh_editor::app::{AnimationIndex, SsbhApp};
-use ssbh_editor::app::{AnimationState, RenderState, UiState};
+use ssbh_editor::app::{SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, widgets_dark, TexturePainter,
+    generate_model_thumbnails, widgets_dark, AnimationIndex, AnimationState, RenderState,
+    TexturePainter,
 };
-use ssbh_wgpu::{
-    create_default_textures, CameraTransforms, PipelineData, RenderSettings, SsbhRenderer,
-};
+use ssbh_wgpu::{create_default_textures, CameraTransforms, SsbhRenderer};
 use std::iter;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -210,14 +208,6 @@ fn main() {
 
     let texture_renderer = TextureRenderer::new(&device, surface_format);
 
-    // TODO: How to organize the resources needed for viewport rendering?
-    let default_textures = create_default_textures(&device, &queue);
-    let stage_cube = ssbh_wgpu::load_default_cube(&device, &queue);
-
-    // TODO: Should some of this state be moved to SsbhRenderer?
-    // This would eliminate redundant shader loads.
-    let pipeline_data = PipelineData::new(&device, surface_format);
-
     // TODO: Camera framing?
     let mut camera_state = CameraInputState {
         previous_cursor_position: PhysicalPosition { x: 0.0, y: 0.0 },
@@ -235,6 +225,8 @@ fn main() {
         window.scale_factor(),
     );
 
+    let default_textures = create_default_textures(&device, &queue);
+
     // TODO: How to ensure this cache remains up to date?
     // TODO: Should RenderModel expose its wgpu textures?
     let default_thumbnails = generate_default_thumbnails(
@@ -244,8 +236,6 @@ fn main() {
         &queue,
         &mut egui_rpass,
     );
-
-    let shader_database = ssbh_wgpu::create_database();
 
     // TODO: Log missing presets?
     let material_presets = load_material_presets("presets.json").unwrap_or_default();
@@ -257,9 +247,9 @@ fn main() {
     // Make sure the texture preview is ready for accessed by the app.
     // State is stored in a type map because of lifetime requirements.
     // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
-    // TODO: Find a way to update this each frame?
     egui_rpass.paint_callback_resources.insert(TexturePainter {
         renderer: texture_renderer,
+        bind_group: None,
     });
 
     // Track if keys like ctrl or alt are being pressed.
@@ -279,43 +269,9 @@ fn main() {
         yellow_checkerboard,
         draw_skeletons: false,
         draw_bone_names: false,
-        ui_state: UiState {
-            material_editor_open: false,
-            render_settings_open: false,
-            modl_editor_advanced_mode: false,
-            mesh_editor_advanced_mode: false,
-            preset_window_open: false,
-            selected_material_preset_index: 0,
-            selected_folder_index: None,
-            selected_skel_index: None,
-            selected_matl_index: None,
-            selected_modl_index: None,
-            selected_mesh_index: None,
-            selected_hlpb_index: None,
-            selected_material_index: 0,
-            right_panel_tab: ssbh_editor::app::PanelTab::MeshList,
-            matl_editor_advanced_mode: false,
-            log_window_open: false,
-            is_editing_material_label: false,
-            selected_nutexb_index: None,
-        },
-        render_state: RenderState {
-            device,
-            queue,
-            default_textures,
-            stage_cube,
-            pipeline_data,
-            render_settings: RenderSettings::default(),
-            shader_database,
-        },
-        animation_state: AnimationState {
-            animations: Vec::new(),
-            is_playing: false,
-            current_frame: 0.0,
-            previous_frame_start: std::time::Instant::now(),
-            animation_frame_was_changed: false,
-            selected_slot: 0,
-        },
+        ui_state: UiState::default(),
+        render_state: RenderState::new(device, queue, surface_format, default_textures),
+        animation_state: AnimationState::new(),
     };
 
     // Initialize logging.
@@ -436,6 +392,13 @@ fn main() {
                         app.animation_state.animation_frame_was_changed = false;
                     }
 
+                    // Prepare the nutexb for rendering.
+                    // TODO: Avoid doing this each frame.
+                    // TODO: Get textures from the RenderModel?
+                    let painter: &mut TexturePainter =
+                        egui_rpass.paint_callback_resources.get_mut().unwrap();
+                    painter.bind_group = get_nutexb_bind_group(&app, painter);
+
                     let mut encoder = app.render_state.device.create_command_encoder(
                         &wgpu::CommandEncoderDescriptor {
                             label: Some("Render Encoder"),
@@ -508,23 +471,14 @@ fn main() {
                             // Use the window size to avoid a potential error from size mismatches.
                             size = window.inner_size();
 
-                            surface_config.width = size.width;
-                            surface_config.height = size.height;
-                            surface.configure(&app.render_state.device, &surface_config);
-
-                            renderer.resize(
-                                &app.render_state.device,
-                                &app.render_state.queue,
-                                size.width,
-                                size.height,
-                                window.scale_factor(),
-                            );
-                            update_camera(
+                            resize(
                                 &mut renderer,
-                                &app.render_state.queue,
-                                size,
-                                &camera_state,
+                                &mut surface_config,
+                                &size,
                                 window.scale_factor(),
+                                &surface,
+                                &app,
+                                &camera_state,
                             );
                         }
                         winit::event::WindowEvent::CloseRequested => {
@@ -573,6 +527,53 @@ fn main() {
             }
         },
     );
+}
+
+fn resize(
+    renderer: &mut SsbhRenderer,
+    surface_config: &mut wgpu::SurfaceConfiguration,
+    size: &PhysicalSize<u32>,
+    scale_factor: f64,
+    surface: &wgpu::Surface,
+    app: &SsbhApp,
+    camera_state: &CameraInputState,
+) {
+    surface_config.width = size.width;
+    surface_config.height = size.height;
+    surface.configure(&app.render_state.device, &surface_config);
+
+    renderer.resize(
+        &app.render_state.device,
+        &app.render_state.queue,
+        size.width,
+        size.height,
+        scale_factor,
+    );
+
+    update_camera(
+        renderer,
+        &app.render_state.queue,
+        *size,
+        camera_state,
+        scale_factor,
+    );
+}
+
+fn get_nutexb_bind_group(app: &SsbhApp, painter: &TexturePainter) -> Option<wgpu::BindGroup> {
+    let model = app.models.get(app.ui_state.selected_folder_index?)?;
+    let nutexb = model
+        .nutexbs
+        .get(app.ui_state.selected_nutexb_index?)?
+        .1
+        .as_ref()
+        .ok()?;
+
+    let texture =
+        nutexb_wgpu::create_texture(&nutexb, &app.render_state.device, &app.render_state.queue);
+    let bind_group = painter
+        .renderer
+        .create_texture_bind_group(&app.render_state.device, &texture);
+    Some(bind_group)
 }
 
 fn egui_render_pass(

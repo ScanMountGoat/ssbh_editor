@@ -6,14 +6,14 @@ use crate::{
     load_model, load_models_recursive,
     render_settings::render_settings,
     widgets::*,
-    TexturePainter,
+    AnimationIndex, AnimationState, RenderState, TexturePainter,
 };
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
 use log::Log;
 use rfd::FileDialog;
-use ssbh_data::{matl_data::MatlEntryData, prelude::*};
-use ssbh_wgpu::{ModelFolder, PipelineData, RenderModel, RenderSettings, ShaderDatabase};
+use ssbh_data::matl_data::MatlEntryData;
+use ssbh_wgpu::{ModelFolder, RenderModel};
 use std::{error::Error, path::Path, sync::Mutex};
 
 lazy_static! {
@@ -69,6 +69,7 @@ pub struct SsbhApp {
     pub render_state: RenderState,
 }
 
+#[derive(Default)]
 pub struct UiState {
     // TODO: Add a changed flag and clear on save?
     // This would allow showing an indication for which files need to be saved.
@@ -96,43 +97,6 @@ pub struct UiState {
     pub selected_material_index: usize,
 }
 
-pub struct AnimationIndex {
-    pub folder_index: usize,
-    pub anim_index: usize,
-}
-
-impl AnimationIndex {
-    pub fn get_animation<'a>(
-        index: Option<&AnimationIndex>,
-        models: &'a [ModelFolder],
-    ) -> Option<&'a (String, Result<AnimData, Box<dyn Error>>)> {
-        index.and_then(|index| {
-            models
-                .get(index.folder_index)
-                .and_then(|m| m.anims.get(index.anim_index))
-        })
-    }
-}
-
-pub struct AnimationState {
-    pub current_frame: f32,
-    pub is_playing: bool,
-    pub animation_frame_was_changed: bool,
-    pub selected_slot: usize,
-    pub animations: Vec<Option<AnimationIndex>>,
-    pub previous_frame_start: std::time::Instant,
-}
-
-pub struct RenderState {
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-    pub default_textures: Vec<(String, wgpu::Texture)>,
-    pub stage_cube: (wgpu::TextureView, wgpu::Sampler),
-    pub pipeline_data: PipelineData,
-    pub render_settings: RenderSettings,
-    pub shader_database: ShaderDatabase,
-}
-
 const ICON_SIZE: f32 = 18.0;
 const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(200, 40, 40);
 
@@ -141,6 +105,12 @@ const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(200, 40, 40);
 pub enum PanelTab {
     MeshList,
     AnimList,
+}
+
+impl Default for PanelTab {
+    fn default() -> Self {
+        Self::MeshList
+    }
 }
 
 impl SsbhApp {
@@ -426,7 +396,7 @@ impl SsbhApp {
                 }
 
                 if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
-                    if let Some((name, nutexb)) = model.nutexbs.get(nutexb_index) {
+                    if let Some((name, Ok(nutexb))) = model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(ctx, &display_name(&model.folder_name, name)) {
                             // Close the window.
                             self.ui_state.selected_nutexb_index = None;
@@ -539,11 +509,7 @@ impl SsbhApp {
                                         });
                                     }
 
-                                    // TODO: Display larger versions when clicking?
-                                    // TODO: How to manage the thumbnails?
-                                    // TODO: Cube map thumbnails.
-                                    // TODO: Register wgpu textures as is without converting to RGBA?
-                                    // TODO: Add a warning for nutexbs with unused padding (requires tegra_swizzle update).
+                                    // TODO: Show file errors.
                                     for (i, (file, _)) in model.nutexbs.iter().enumerate() {
                                         ui.horizontal(|ui| {
                                             if let Some(model_thumbnails) =
@@ -559,7 +525,7 @@ impl SsbhApp {
                                                     );
                                                 }
                                             }
-                                            // TODO: Create a proper nutexb viewer.
+
                                             if ui.button(file).clicked() {
                                                 self.ui_state.selected_folder_index =
                                                     Some(folder_index);
@@ -719,6 +685,20 @@ fn nutexb_viewer(ctx: &egui::Context, title: &str) -> bool {
         .show(ctx, |ui| {
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 let (_, rect) = ui.allocate_space(egui::Vec2::new(512.0, 512.0));
+
+                let cb = egui_wgpu::CallbackFn::new()
+                    .prepare(move |device, queue, paint_callback_resources| {})
+                    .paint(move |_info, rpass, paint_callback_resources| {
+                        let resources: &TexturePainter = paint_callback_resources.get().unwrap();
+                        resources.paint(rpass);
+                    });
+
+                let callback = egui::PaintCallback {
+                    rect,
+                    callback: std::sync::Arc::new(cb),
+                };
+
+                ui.painter().add(callback);
             });
         });
     open

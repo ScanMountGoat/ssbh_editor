@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, error::Error, path::Path};
 
 use egui::{
     style::{WidgetVisuals, Widgets},
@@ -6,7 +6,8 @@ use egui::{
 };
 use nutexb_wgpu::TextureRenderer;
 
-use ssbh_wgpu::ModelFolder;
+use ssbh_data::prelude::*;
+use ssbh_wgpu::{ModelFolder, PipelineData, RenderSettings, ShaderDatabase};
 
 pub mod app;
 mod editors;
@@ -19,6 +20,93 @@ pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 // TODO: Store the current nutexb to paint?
 pub struct TexturePainter {
     pub renderer: TextureRenderer,
+    pub bind_group: Option<wgpu::BindGroup>,
+}
+
+impl TexturePainter {
+    pub fn paint<'rpass>(&'rpass self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+        if let Some(bind_group) = self.bind_group.as_ref() {
+            self.renderer.render(render_pass, bind_group);
+        }
+    }
+}
+
+pub struct RenderState {
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    pub default_textures: Vec<(String, wgpu::Texture)>,
+    pub stage_cube: (wgpu::TextureView, wgpu::Sampler),
+    pub pipeline_data: PipelineData,
+    pub render_settings: RenderSettings,
+    pub shader_database: ShaderDatabase,
+}
+
+impl RenderState {
+    pub fn new(
+        device: wgpu::Device,
+        queue: wgpu::Queue,
+        surface_format: wgpu::TextureFormat,
+        default_textures: Vec<(String, wgpu::Texture)>,
+    ) -> Self {
+        // TODO: How to organize the resources needed for viewport rendering?
+        let stage_cube = ssbh_wgpu::load_default_cube(&device, &queue);
+
+        // TODO: Should some of this state be moved to SsbhRenderer?
+        // This would eliminate redundant shader loads.
+        let pipeline_data = PipelineData::new(&device, surface_format);
+
+        let shader_database = ssbh_wgpu::create_database();
+
+        Self {
+            device,
+            queue,
+            default_textures,
+            stage_cube,
+            pipeline_data,
+            render_settings: RenderSettings::default(),
+            shader_database,
+        }
+    }
+}
+
+pub struct AnimationState {
+    pub current_frame: f32,
+    pub is_playing: bool,
+    pub animation_frame_was_changed: bool,
+    pub selected_slot: usize,
+    pub animations: Vec<Option<AnimationIndex>>,
+    pub previous_frame_start: std::time::Instant,
+}
+
+impl AnimationState {
+    pub fn new() -> Self {
+        Self {
+            animations: Vec::new(),
+            is_playing: false,
+            current_frame: 0.0,
+            previous_frame_start: std::time::Instant::now(),
+            animation_frame_was_changed: false,
+            selected_slot: 0,
+        }
+    }
+}
+
+pub struct AnimationIndex {
+    pub folder_index: usize,
+    pub anim_index: usize,
+}
+
+impl AnimationIndex {
+    pub fn get_animation<'a>(
+        index: Option<&AnimationIndex>,
+        models: &'a [ModelFolder],
+    ) -> Option<&'a (String, Result<AnimData, Box<dyn Error>>)> {
+        index.and_then(|index| {
+            models
+                .get(index.folder_index)
+                .and_then(|m| m.anims.get(index.anim_index))
+        })
+    }
 }
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
@@ -46,7 +134,6 @@ fn sort_files(model: &mut ModelFolder) {
     model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
 }
 
-// TODO: Include default textures.
 pub fn generate_model_thumbnails(
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
     models: &[ssbh_wgpu::ModelFolder],
@@ -61,20 +148,14 @@ pub fn generate_model_thumbnails(
                 .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
                 .filter(|(_, nutexb)| nutexb.footer.layer_count == 1) // TODO: How to handle 3d/array layers?
                 .map(|(file_name, nutexb)| {
-                    let painter: &TexturePainter =
-                        egui_rpass.paint_callback_resources.get().unwrap();
-
                     let texture = nutexb_wgpu::create_texture(&nutexb, device, queue);
-                    let rgba_texture = painter
-                        .renderer
-                        .render_to_texture_rgba(device, queue, &texture, 64, 64);
-                    let rgba_view =
-                        rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
-                    // TODO: Does the filter mode here matter?
+
+                    // Assume the textures have the appropriate usage to work with egui.
+                    // TODO: How to handle cube maps?
                     let egui_texture = egui_rpass.register_native_texture(
                         device,
-                        &rgba_view,
-                        wgpu::FilterMode::Linear,
+                        &texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                        wgpu::FilterMode::Nearest,
                     );
 
                     (file_name.clone(), egui_texture)
