@@ -1,4 +1,20 @@
 # ssbh_editor changelog
+## unreleased
+### Added
+* Added skeleton and bone name rendering to render settings.
+* Added basic, normals, bitangents, and albedo debug shading modes.
+* Added a nutexb viewer for viewing textures.
+
+### Changed
+* Changed the material shader label to always be editable.
+* Simplified the process for renaming materials.
+
+### Fixed
+* Fixed scaling of red and yellow checkerboard rendering.
+* Fixed col texture blending causing incorrect albedo color on some models.
+* Fixed inaccurate blending of alpha for transparent materials.
+* Fixed an issue where files that failed to open displayed as missing.
+
 ## 0.3.0
 ### Added
 * Added an option to reload files in the current workspace.
