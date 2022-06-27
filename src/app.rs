@@ -1,7 +1,7 @@
 use crate::{
     editors::{
         hlpb::hlpb_editor, matl::matl_editor, mesh::mesh_editor, modl::modl_editor,
-        skel::skel_editor,
+        skel::skel_editor, nutexb::nutexb_viewer,
     },
     load_model, load_models_recursive,
     render_settings::render_settings,
@@ -11,6 +11,7 @@ use crate::{
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
 use log::Log;
+use nutexb::NutexbFile;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
@@ -397,7 +398,7 @@ impl SsbhApp {
 
                 if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
                     if let Some((name, Ok(nutexb))) = model.nutexbs.get(nutexb_index) {
-                        if !nutexb_viewer(ctx, &display_name(&model.folder_name, name)) {
+                        if !nutexb_viewer(ctx, &display_name(&model.folder_name, name), nutexb) {
                             // Close the window.
                             self.ui_state.selected_nutexb_index = None;
                         }
@@ -675,33 +676,6 @@ impl SsbhApp {
         }
         final_frame_index
     }
-}
-
-fn nutexb_viewer(ctx: &egui::Context, title: &str) -> bool {
-    let mut open = true;
-    egui::Window::new(format!("Nutexb Viewer ({title})"))
-        .open(&mut open)
-        .resizable(true)
-        .show(ctx, |ui| {
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                let (_, rect) = ui.allocate_space(egui::Vec2::new(512.0, 512.0));
-
-                let cb = egui_wgpu::CallbackFn::new()
-                    .prepare(move |device, queue, paint_callback_resources| {})
-                    .paint(move |_info, rpass, paint_callback_resources| {
-                        let resources: &TexturePainter = paint_callback_resources.get().unwrap();
-                        resources.paint(rpass);
-                    });
-
-                let callback = egui::PaintCallback {
-                    rect,
-                    callback: std::sync::Arc::new(cb),
-                };
-
-                ui.painter().add(callback);
-            });
-        });
-    open
 }
 
 fn folder_display_name(model: &ModelFolder) -> String {
