@@ -1,5 +1,5 @@
 # ssbh_editor changelog
-## unreleased
+## 0.4.0
 ### Added
 * Added skeleton and bone name rendering to render settings.
 * Added basic, normals, bitangents, and albedo debug shading modes.

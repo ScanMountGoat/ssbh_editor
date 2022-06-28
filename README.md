@@ -2,22 +2,20 @@
 SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download Windows releases in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
 
 ## Features
-- View models, textures, and animations from Smash Ultimate
+- View models, textures, skeletons, and animations from Smash Ultimate
 - View the effects of transition materials like the metal box or ditto materials
 - View bloom, shadows, and post processing
 - View the effects of helper bone constraints. This is necessary for previewing animations for mods using the [EXO Skel](https://github.com/ssbucarlos/smash-ultimate-blender) method.
 - Edit formats supported by ssbh_data like numdlb, nusktb, numatb, nuhlpb, and numshb files using a more intuitive interface
 
 ## Planned Features
-- Skeleton debug display
-- Additional debug shading modes
 - Additional render settings
-- Nutexb viewer
 - View camera animations
 - Improvements to performance and accuracy of ssbh_wgpu
 - Improved validation for errors with models, textures, and animations
 - Preview stage rendering and lighting data
 - Settings to adjust UI scaling for better readability
+- Improved spacing and consistency for UI
 
 ## Getting Started
 Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
