@@ -434,11 +434,22 @@ fn main() {
                             size.width,
                             size.height,
                             mvp,
-                            app.draw_bone_names,
+                            if app.draw_bone_names {
+                                Some(18.0 * window.scale_factor() as f32)
+                            } else {
+                                None
+                            },
                         )
                     } else {
                         None
                     };
+
+                    // TODO: Find a better way to avoid drawing bone names over the UI.
+                    let mut egui_encoder = app.render_state.device.create_command_encoder(
+                        &wgpu::CommandEncoderDescriptor {
+                            label: Some("egui Render Encoder"),
+                        },
+                    );
 
                     egui_render_pass(
                         &ctx,
@@ -448,7 +459,7 @@ fn main() {
                         &surface_config,
                         &mut egui_rpass,
                         &mut app,
-                        &mut encoder,
+                        &mut egui_encoder,
                         output_view,
                     );
 
@@ -459,6 +470,7 @@ fn main() {
                             .queue
                             .submit(iter::once(bone_text_commands));
                     }
+                    app.render_state.queue.submit(iter::once(egui_encoder.finish()));
 
                     // Present the final rendered image.
                     output_frame.present();
