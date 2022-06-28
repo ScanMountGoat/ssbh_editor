@@ -150,6 +150,7 @@ pub fn generate_model_thumbnails(
                 .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
                 .filter(|(_, nutexb)| nutexb.footer.layer_count == 1) // TODO: How to handle 3d/array layers?
                 .map(|(file_name, nutexb)| {
+                    // TODO: Use the existing textures from the render model.
                     let texture = nutexb_wgpu::create_texture(&nutexb, device, queue);
 
                     // Assume the textures have the appropriate usage to work with egui.

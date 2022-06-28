@@ -563,22 +563,28 @@ fn get_nutexb_bind_group(
     app: &SsbhApp,
     painter: &TexturePainter,
 ) -> Option<nutexb_wgpu::BindGroup0> {
-    let model = app.models.get(app.ui_state.selected_folder_index?)?;
-    let nutexb = model
-        .nutexbs
-        .get(app.ui_state.selected_nutexb_index?)?
-        .1
-        .as_ref()
-        .ok()?;
+    let folder_index = app.ui_state.selected_folder_index?;
+    let model = app.models.get(folder_index)?;
+    let render_model = app.render_models.get(folder_index)?;
 
-    let texture =
-        nutexb_wgpu::create_texture(&nutexb, &app.render_state.device, &app.render_state.queue);
-    let bind_group = painter.renderer.create_bind_group(
-        &app.render_state.device,
-        &texture,
-        &app.render_state.texture_render_settings,
-    );
-    Some(bind_group)
+    // Assume file names are unique, so use the name instead of the index.
+    let (name, nutexb) = model.nutexbs.get(app.ui_state.selected_nutexb_index?)?;
+    let nutexb = nutexb.as_ref().ok()?;
+
+    // Prevent a potential crash when trying to render cube maps.
+    // TODO: Add support for cube maps to nutexb_wgpu.
+    if nutexb.footer.layer_count > 1 {
+        None
+    } else {
+        let texture = render_model.get_texture(name)?;
+
+        let bind_group = painter.renderer.create_bind_group(
+            &app.render_state.device,
+            &texture,
+            &app.render_state.texture_render_settings,
+        );
+        Some(bind_group)
+    }
 }
 
 fn egui_render_pass(
