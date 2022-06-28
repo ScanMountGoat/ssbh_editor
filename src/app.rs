@@ -28,7 +28,9 @@ pub struct AppLogger {
 
 impl Log for AppLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= log::Level::Warn
+        // TODO: Investigate why wgpu_text warns about cache resizing.
+        // Silence this error for now.
+        metadata.level() <= log::Level::Warn && metadata.target() != "wgpu_text"
     }
 
     fn log(&self, record: &log::Record) {
@@ -710,10 +712,12 @@ fn list_files<T>(
                         *selected_file_index = Some(i);
                     }
                 }
-                Err(e) => {
-                    // TODO: Show file errors.
+                Err(_) => {
+                    // TODO: Investigate a cleaner way to show binrw backtrace errors.
+                    // Don't show the full error for now to avoid showing lots of text.
                     error_icon(ui);
-                    ui.label(egui::RichText::new(name).color(ERROR_COLOR));
+                    ui.label(egui::RichText::new(name).color(ERROR_COLOR))
+                        .on_hover_text(format!("Error reading {}", name));
                 }
             }
         });
