@@ -1,8 +1,14 @@
 use crate::{horizontal_separator_empty, TexturePainter};
 use egui::DragValue;
 use nutexb::{NutexbFile, NutexbFormat};
+use nutexb_wgpu::RenderSettings;
 
-pub fn nutexb_viewer(ctx: &egui::Context, title: &str, nutexb: &NutexbFile) -> bool {
+pub fn nutexb_viewer(
+    ctx: &egui::Context,
+    title: &str,
+    nutexb: &NutexbFile,
+    settings: &mut RenderSettings,
+) -> bool {
     let mut open = true;
     egui::Window::new(format!("Nutexb Viewer ({title})"))
         .open(&mut open)
@@ -48,23 +54,28 @@ pub fn nutexb_viewer(ctx: &egui::Context, title: &str, nutexb: &NutexbFile) -> b
 
             ui.heading("Image Data");
             ui.horizontal(|ui| {
-                // TODO: Add channel toggles to the texture renderer.
-                ui.checkbox(&mut true, "R");
-                ui.checkbox(&mut true, "G");
-                ui.checkbox(&mut true, "B");
-                ui.checkbox(&mut true, "A");
+                ui.checkbox(&mut settings.render_rgba[0], "R");
+                ui.checkbox(&mut settings.render_rgba[1], "G");
+                ui.checkbox(&mut settings.render_rgba[2], "B");
+                ui.checkbox(&mut settings.render_rgba[3], "A");
 
-                // TODO: Add mip and layer parameters to the texture renderer.
+                // TODO: Show a pixel grid in screen space?
+                // TODO: Composite with a background color for alpha?
+
                 if nutexb.footer.mipmap_count > 0 {
                     ui.label("Mipmap");
                     ui.add(
-                        DragValue::new(&mut 0.0).clamp_range(0..=nutexb.footer.mipmap_count - 1),
+                        DragValue::new(&mut settings.mipmap)
+                            .clamp_range(0..=nutexb.footer.mipmap_count - 1),
                     );
                 }
 
                 if nutexb.footer.layer_count > 0 {
                     ui.label("Layer");
-                    ui.add(DragValue::new(&mut 0.0).clamp_range(0..=nutexb.footer.layer_count - 1));
+                    ui.add(
+                        DragValue::new(&mut settings.layer)
+                            .clamp_range(0..=nutexb.footer.layer_count - 1),
+                    );
                 }
             });
 

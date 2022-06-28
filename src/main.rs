@@ -559,7 +559,10 @@ fn resize(
     );
 }
 
-fn get_nutexb_bind_group(app: &SsbhApp, painter: &TexturePainter) -> Option<wgpu::BindGroup> {
+fn get_nutexb_bind_group(
+    app: &SsbhApp,
+    painter: &TexturePainter,
+) -> Option<nutexb_wgpu::BindGroup0> {
     let model = app.models.get(app.ui_state.selected_folder_index?)?;
     let nutexb = model
         .nutexbs
@@ -570,9 +573,11 @@ fn get_nutexb_bind_group(app: &SsbhApp, painter: &TexturePainter) -> Option<wgpu
 
     let texture =
         nutexb_wgpu::create_texture(&nutexb, &app.render_state.device, &app.render_state.queue);
-    let bind_group = painter
-        .renderer
-        .create_texture_bind_group(&app.render_state.device, &texture);
+    let bind_group = painter.renderer.create_bind_group(
+        &app.render_state.device,
+        &texture,
+        &app.render_state.texture_render_settings,
+    );
     Some(bind_group)
 }
 

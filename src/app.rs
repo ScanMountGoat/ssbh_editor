@@ -1,17 +1,16 @@
 use crate::{
     editors::{
         hlpb::hlpb_editor, matl::matl_editor, mesh::mesh_editor, modl::modl_editor,
-        skel::skel_editor, nutexb::nutexb_viewer,
+        nutexb::nutexb_viewer, skel::skel_editor,
     },
     load_model, load_models_recursive,
     render_settings::render_settings,
     widgets::*,
-    AnimationIndex, AnimationState, RenderState, TexturePainter,
+    AnimationIndex, AnimationState, RenderState,
 };
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
 use lazy_static::lazy_static;
 use log::Log;
-use nutexb::NutexbFile;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
@@ -398,7 +397,12 @@ impl SsbhApp {
 
                 if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
                     if let Some((name, Ok(nutexb))) = model.nutexbs.get(nutexb_index) {
-                        if !nutexb_viewer(ctx, &display_name(&model.folder_name, name), nutexb) {
+                        if !nutexb_viewer(
+                            ctx,
+                            &display_name(&model.folder_name, name),
+                            nutexb,
+                            &mut self.render_state.texture_render_settings,
+                        ) {
                             // Close the window.
                             self.ui_state.selected_nutexb_index = None;
                         }

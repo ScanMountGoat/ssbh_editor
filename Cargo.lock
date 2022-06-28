@@ -1766,11 +1766,13 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#f924a3b40d16245ac1a298bc62833d1771c15881"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#dfc12e3292853aa41146d8fedba1f26426276858"
 dependencies = [
+ "bytemuck",
  "log",
  "nutexb",
  "wgpu",
+ "wgsl_to_wgpu",
 ]
 
 [[package]]
@@ -2039,6 +2041,16 @@ name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
+
+[[package]]
+name = "prettyplease"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e1516508b396cefe095485fdce673007422f5e48e82934b7b423dc26aa5e6a4"
+dependencies = [
+ "proc-macro2",
+ "syn",
+]
 
 [[package]]
 name = "proc-macro-crate"
@@ -2622,7 +2634,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#f924a3b40d16245ac1a298bc62833d1771c15881"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#dfc12e3292853aa41146d8fedba1f26426276858"
 dependencies = [
  "bytemuck",
  "glam",
@@ -3343,11 +3355,15 @@ dependencies = [
 [[package]]
 name = "wgsl_to_wgpu"
 version = "0.2.0"
-source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#9fdce56fb8dd3fd84dc9a519b596b6bbd28a23c9"
+source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#a106ff75d85ea3f187442e91422fc1f0ec41f3a7"
 dependencies = [
  "indoc",
  "naga",
- "wgpu",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "wgpu-types",
 ]
 
 [[package]]

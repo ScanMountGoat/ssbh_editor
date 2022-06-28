@@ -20,7 +20,7 @@ pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 // TODO: Store the current nutexb to paint?
 pub struct TexturePainter {
     pub renderer: TextureRenderer,
-    pub bind_group: Option<wgpu::BindGroup>,
+    pub bind_group: Option<nutexb_wgpu::BindGroup0>,
 }
 
 impl TexturePainter {
@@ -38,6 +38,7 @@ pub struct RenderState {
     pub stage_cube: (wgpu::TextureView, wgpu::Sampler),
     pub pipeline_data: PipelineData,
     pub render_settings: RenderSettings,
+    pub texture_render_settings: nutexb_wgpu::RenderSettings,
     pub shader_database: ShaderDatabase,
 }
 
@@ -64,6 +65,7 @@ impl RenderState {
             stage_cube,
             pipeline_data,
             render_settings: RenderSettings::default(),
+            texture_render_settings: nutexb_wgpu::RenderSettings::default(),
             shader_database,
         }
     }
@@ -220,10 +222,12 @@ pub fn generate_default_thumbnails(
     queue: &wgpu::Queue,
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
 ) -> Vec<(String, egui::TextureId)> {
+    let settings = &nutexb_wgpu::RenderSettings::default();
     let mut thumbnails: Vec<_> = default_textures
         .iter()
         .map(|(name, texture)| {
-            let rgba_texture = renderer.render_to_texture_rgba(device, queue, texture, 64, 64);
+            let rgba_texture =
+                renderer.render_to_texture_rgba(device, queue, texture, 64, 64, &settings);
             let rgba_view = rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
             // TODO: Does the filter mode here matter?
             let egui_texture =
