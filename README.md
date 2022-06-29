@@ -6,6 +6,7 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - View the effects of transition materials like the metal box or ditto materials
 - View bloom, shadows, and post processing
 - View the effects of helper bone constraints. This is necessary for previewing animations for mods using the [EXO Skel](https://github.com/ssbucarlos/smash-ultimate-blender) method.
+- More accurate normals when animating meshes with RENORMAL materials
 - Edit formats supported by ssbh_data like numdlb, nusktb, numatb, nuhlpb, and numshb files using a more intuitive interface
 
 ## Planned Features
