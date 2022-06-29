@@ -7,7 +7,7 @@ use crate::{
     },
     widgets::*,
 };
-use egui::ScrollArea;
+use egui::{ComboBox, DragValue, Grid, Label, ScrollArea, Slider, Ui, Window};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
@@ -31,7 +31,7 @@ pub fn matl_editor(
 ) -> bool {
     let mut open = true;
 
-    egui::Window::new(format!("Matl Editor ({title})"))
+    Window::new(format!("Matl Editor ({title})"))
         .open(&mut open)
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
@@ -139,7 +139,7 @@ fn preset_window(
     entry: Option<&mut MatlEntryData>,
 ) -> bool {
     let mut open = ui_state.preset_window_open;
-    egui::Window::new("Select Material Preset")
+    Window::new("Select Material Preset")
         .open(&mut ui_state.preset_window_open)
         .show(ctx, |ui| {
             for (i, preset) in material_presets.iter().enumerate() {
@@ -164,7 +164,7 @@ fn preset_window(
     open
 }
 
-fn menu_bar(ui: &mut egui::Ui, matl: &mut MatlData, ui_state: &mut UiState) {
+fn menu_bar(ui: &mut Ui, matl: &mut MatlData, ui_state: &mut UiState) {
     egui::menu::bar(ui, |ui| {
         egui::menu::menu_button(ui, "File", |ui| {
             if ui.button("Save").clicked() {
@@ -202,7 +202,7 @@ fn menu_bar(ui: &mut egui::Ui, matl: &mut MatlData, ui_state: &mut UiState) {
 fn edit_material_label(
     entry: Option<&mut MatlEntryData>,
     ui_state: &mut UiState,
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     modl_entries: &mut [&mut ModlEntryData],
 ) {
     // TODO: Get this to work with lost_focus for efficiency.
@@ -227,8 +227,8 @@ fn edit_material_label(
     }
 }
 
-fn material_combo_box(ui: &mut egui::Ui, ui_state: &mut UiState, matl: &MatlData) {
-    egui::ComboBox::from_id_source("MatlEditorMaterialLabel")
+fn material_combo_box(ui: &mut Ui, ui_state: &mut UiState, matl: &MatlData) {
+    ComboBox::from_id_source("MatlEditorMaterialLabel")
         .width(400.0)
         .show_index(
             ui,
@@ -272,7 +272,7 @@ fn mesh_attribute_errors(
 }
 
 fn edit_shader_label(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     shader_label: &mut String,
     is_valid: bool,
     red_checkerboard: egui::TextureId,
@@ -290,7 +290,7 @@ fn edit_shader_label(
 }
 
 fn matl_entry_editor(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
     attribute_errors: &[(String, Vec<String>)],
     texture_thumbnails: &[(String, egui::TextureId)],
@@ -314,11 +314,11 @@ fn matl_entry_editor(
         );
     });
     if advanced_mode {
-        egui::Grid::new("shader_grid").show(ui, |ui| {
+        Grid::new("shader_grid").show(ui, |ui| {
             // TODO: Should this be part of the basic mode.
             ui.label("Render Pass");
             let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
-            egui::ComboBox::from_id_source("render pass")
+            ComboBox::from_id_source("render pass")
                 .selected_text(entry.shader_label.get(25..).unwrap_or(""))
                 .show_ui(ui, |ui| {
                     for pass in [
@@ -342,7 +342,7 @@ fn matl_entry_editor(
                 ui.end_row();
 
                 ui.label("Vertex Attributes");
-                ui.add(egui::Label::new(program.vertex_attributes.join(",")).wrap(true));
+                ui.add(Label::new(program.vertex_attributes.join(",")).wrap(true));
                 ui.end_row();
             }
         });
@@ -418,7 +418,7 @@ fn matl_entry_editor(
             ui.horizontal(|ui| {
                 // TODO: Store this size somewhere to ensure labels align?
                 ui.label(param_label(param.param_id));
-                ui.add(egui::Slider::new(&mut param.data, 0.0..=1.0));
+                ui.add(Slider::new(&mut param.data, 0.0..=1.0));
             })
         });
     }
@@ -431,7 +431,7 @@ fn matl_entry_editor(
             });
         }
     } else {
-        egui::Grid::new("vectors").show(ui, |ui| {
+        Grid::new("vectors").show(ui, |ui| {
             for param in entry.vectors.iter_mut() {
                 ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
                     edit_vector(ui, param);
@@ -452,7 +452,7 @@ fn matl_entry_editor(
         horizontal_separator_empty(ui);
     }
 
-    egui::Grid::new("matl textures").show(ui, |ui| {
+    Grid::new("matl textures").show(ui, |ui| {
         for param in &mut entry.textures {
             // TODO: Get disabled UI working with the texture grid.
             edit_texture(
@@ -481,10 +481,10 @@ fn matl_entry_editor(
     }
 }
 
-fn edit_blend(ui: &mut egui::Ui, param: &mut BlendStateParam) {
+fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) {
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
-        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        Grid::new(param.param_id.to_string()).show(ui, |ui| {
             enum_combo_box(
                 ui,
                 "Source Color",
@@ -512,11 +512,11 @@ fn edit_blend(ui: &mut egui::Ui, param: &mut BlendStateParam) {
     });
 }
 
-fn edit_rasterizer(ui: &mut egui::Ui, param: &mut RasterizerStateParam) {
+fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) {
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
         // TODO: These param IDs might not be unique?
-        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        Grid::new(param.param_id.to_string()).show(ui, |ui| {
             enum_combo_box(
                 ui,
                 "Polygon Fill",
@@ -536,7 +536,7 @@ fn edit_rasterizer(ui: &mut egui::Ui, param: &mut RasterizerStateParam) {
 }
 
 fn edit_texture(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     param: &mut TextureParam,
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
@@ -561,7 +561,7 @@ fn edit_texture(
         ui.text_edit_singleline(&mut param.data);
     } else {
         // Texture files should be present in the folder, which allows for image previews.
-        egui::ComboBox::from_id_source(param.param_id.to_string())
+        ComboBox::from_id_source(param.param_id.to_string())
             .selected_text(&param.data)
             .width(300.0)
             .show_ui(ui, |ui| {
@@ -583,10 +583,10 @@ fn edit_texture(
     }
 }
 
-fn edit_sampler(ui: &mut egui::Ui, param: &mut SamplerParam) {
+fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
-        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        Grid::new(param.param_id.to_string()).show(ui, |ui| {
             enum_combo_box(
                 ui,
                 "Wrap S",
@@ -630,7 +630,7 @@ fn edit_sampler(ui: &mut egui::Ui, param: &mut SamplerParam) {
     });
 }
 
-fn edit_vector(ui: &mut egui::Ui, param: &mut Vector4Param) {
+fn edit_vector(ui: &mut Ui, param: &mut Vector4Param) {
     ui.label(param_label(param.param_id));
     let mut color = [param.data.x, param.data.y, param.data.z];
     if ui.color_edit_button_rgb(&mut color).changed() {
@@ -640,22 +640,22 @@ fn edit_vector(ui: &mut egui::Ui, param: &mut Vector4Param) {
     }
     ui.horizontal(|ui| {
         ui.label("X");
-        ui.add(egui::DragValue::new(&mut param.data.x).speed(0.01));
+        ui.add(DragValue::new(&mut param.data.x).speed(0.01));
         ui.label("Y");
-        ui.add(egui::DragValue::new(&mut param.data.y).speed(0.01));
+        ui.add(DragValue::new(&mut param.data.y).speed(0.01));
         ui.label("Z");
-        ui.add(egui::DragValue::new(&mut param.data.z).speed(0.01));
+        ui.add(DragValue::new(&mut param.data.z).speed(0.01));
         ui.label("W");
-        ui.add(egui::DragValue::new(&mut param.data.w).speed(0.01));
+        ui.add(DragValue::new(&mut param.data.w).speed(0.01));
     });
 }
 
-fn edit_vector_advanced(ui: &mut egui::Ui, param: &mut Vector4Param) {
+fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
     // TODO: Make a custom expander that expands to sliders?
     // TODO: Set custom labels and ranges.
     // TODO: Add parameter descriptions.
     ui.horizontal(|ui| {
-        ui.add_sized([80.0, 20.0], egui::Label::new(param.param_id.to_string()));
+        ui.add_sized([80.0, 20.0], Label::new(param.param_id.to_string()));
 
         let mut color = [param.data.x, param.data.y, param.data.z];
         if ui.color_edit_button_rgb(&mut color).changed() {
@@ -665,21 +665,21 @@ fn edit_vector_advanced(ui: &mut egui::Ui, param: &mut Vector4Param) {
         }
     });
     ui.indent("indent", |ui| {
-        egui::Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        Grid::new(param.param_id.to_string()).show(ui, |ui| {
             ui.label("X");
-            ui.add(egui::Slider::new(&mut param.data.x, 0.0..=1.0).clamp_to_range(false));
+            ui.add(Slider::new(&mut param.data.x, 0.0..=1.0).clamp_to_range(false));
             ui.end_row();
 
             ui.label("Y");
-            ui.add(egui::Slider::new(&mut param.data.y, 0.0..=1.0).clamp_to_range(false));
+            ui.add(Slider::new(&mut param.data.y, 0.0..=1.0).clamp_to_range(false));
             ui.end_row();
 
             ui.label("Z");
-            ui.add(egui::Slider::new(&mut param.data.z, 0.0..=1.0).clamp_to_range(false));
+            ui.add(Slider::new(&mut param.data.z, 0.0..=1.0).clamp_to_range(false));
             ui.end_row();
 
             ui.label("W");
-            ui.add(egui::Slider::new(&mut param.data.w, 0.0..=1.0).clamp_to_range(false));
+            ui.add(Slider::new(&mut param.data.w, 0.0..=1.0).clamp_to_range(false));
             ui.end_row();
         });
     });

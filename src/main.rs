@@ -225,6 +225,7 @@ fn main() {
         window.scale_factor(),
     );
 
+    // TODO: Avoid loading these twice?
     let default_textures = create_default_textures(&device, &queue);
 
     // TODO: How to ensure this cache remains up to date?
@@ -270,7 +271,7 @@ fn main() {
         draw_skeletons: false,
         draw_bone_names: false,
         ui_state: UiState::default(),
-        render_state: RenderState::new(device, queue, surface_format, default_textures),
+        render_state: RenderState::new(device, queue, surface_format),
         animation_state: AnimationState::new(),
     };
 
@@ -318,11 +319,8 @@ fn main() {
                         app.render_models = ssbh_wgpu::load_render_models(
                             &app.render_state.device,
                             &app.render_state.queue,
-                            &app.render_state.pipeline_data,
                             &app.models,
-                            &app.render_state.default_textures,
-                            &app.render_state.stage_cube,
-                            &app.render_state.shader_database,
+                            &app.render_state.shared_data,
                         );
 
                         app.thumbnails = generate_model_thumbnails(
@@ -382,10 +380,7 @@ fn main() {
                                     .find(|(f, _)| f == "model.nuhlpb")
                                     .and_then(|(_, m)| m.as_ref().ok()),
                                 app.animation_state.current_frame,
-                                &app.render_state.pipeline_data,
-                                &app.render_state.default_textures,
-                                &app.render_state.stage_cube,
-                                &app.render_state.shader_database,
+                                &app.render_state.shared_data,
                             );
                         }
 
@@ -411,7 +406,7 @@ fn main() {
                         &mut encoder,
                         &output_view,
                         &app.render_models,
-                        &app.render_state.shader_database,
+                        &app.render_state.shared_data.database,
                     );
 
                     // TODO: Avoid calculating the MVP matrix every frame.
@@ -470,7 +465,9 @@ fn main() {
                             .queue
                             .submit(iter::once(bone_text_commands));
                     }
-                    app.render_state.queue.submit(iter::once(egui_encoder.finish()));
+                    app.render_state
+                        .queue
+                        .submit(iter::once(egui_encoder.finish()));
 
                     // Present the final rendered image.
                     output_frame.present();

@@ -7,7 +7,7 @@ use egui::{
 use nutexb_wgpu::TextureRenderer;
 
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{ModelFolder, PipelineData, RenderSettings, ShaderDatabase};
+use ssbh_wgpu::{ModelFolder, RenderSettings, SharedRenderData};
 
 pub mod app;
 mod editors;
@@ -34,12 +34,9 @@ impl TexturePainter {
 pub struct RenderState {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pub default_textures: Vec<(String, wgpu::Texture)>,
-    pub stage_cube: (wgpu::TextureView, wgpu::Sampler),
-    pub pipeline_data: PipelineData,
     pub render_settings: RenderSettings,
     pub texture_render_settings: nutexb_wgpu::RenderSettings,
-    pub shader_database: ShaderDatabase,
+    pub shared_data: SharedRenderData,
 }
 
 impl RenderState {
@@ -47,26 +44,14 @@ impl RenderState {
         device: wgpu::Device,
         queue: wgpu::Queue,
         surface_format: wgpu::TextureFormat,
-        default_textures: Vec<(String, wgpu::Texture)>,
     ) -> Self {
-        // TODO: How to organize the resources needed for viewport rendering?
-        let stage_cube = ssbh_wgpu::load_default_cube(&device, &queue);
-
-        // TODO: Should some of this state be moved to SsbhRenderer?
-        // This would eliminate redundant shader loads.
-        let pipeline_data = PipelineData::new(&device, surface_format);
-
-        let shader_database = ssbh_wgpu::create_database();
-
+        let shared_data = SharedRenderData::new(&device, &queue, surface_format);
         Self {
             device,
             queue,
-            default_textures,
-            stage_cube,
-            pipeline_data,
             render_settings: RenderSettings::default(),
             texture_render_settings: nutexb_wgpu::RenderSettings::default(),
-            shader_database,
+            shared_data,
         }
     }
 }

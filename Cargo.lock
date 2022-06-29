@@ -656,9 +656,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
 name = "emath"
@@ -1245,12 +1245,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indoc"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05a0bd019339e5d968b37855180087b7b9d512c5046fbd244cf8c95687927d6e"
-
-[[package]]
 name = "inplace_it"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1766,7 +1760,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#2e0b41406cd7c773ccb8db03f21e44e0a0baef7c"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#e953b3ced7f0c6facdf7b391c06b5e69d0b4e316"
 dependencies = [
  "bytemuck",
  "log",
@@ -2377,9 +2371,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a41d061efea015927ac527063765e73601444cdc344ba855bc7bd44578b25e1c"
+checksum = "3d92beeab217753479be2f74e54187a6aed4c125ff0703a866c3147a02f0c6dd"
 
 [[package]]
 name = "serde"
@@ -2412,9 +2406,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.81"
+version = "1.0.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b7ce2b32a1aed03c558dc61a5cd328f15aff2dbc17daad8fb8af04d2100e15c"
+checksum = "82c2c1fdcd807d1098552c5b9a36e425e42e9fbd7c6a37a8425f390f781f7fa7"
 dependencies = [
  "itoa",
  "ryu",
@@ -2634,7 +2628,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#2e0b41406cd7c773ccb8db03f21e44e0a0baef7c"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#e953b3ced7f0c6facdf7b391c06b5e69d0b4e316"
 dependencies = [
  "bytemuck",
  "glam",
@@ -3355,9 +3349,8 @@ dependencies = [
 [[package]]
 name = "wgsl_to_wgpu"
 version = "0.2.0"
-source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#a106ff75d85ea3f187442e91422fc1f0ec41f3a7"
+source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#8c61627d450689c13b3f604895e32ae8e6959abc"
 dependencies = [
- "indoc",
  "naga",
  "prettyplease",
  "proc-macro2",
@@ -3595,6 +3588,6 @@ checksum = "d2d7d3948613f75c98fd9328cfdcc45acc4d360655289d0a7d4ec931392200a3"
 
 [[package]]
 name = "zeroize"
-version = "1.5.5"
+version = "1.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94693807d016b2f2d2e14420eb3bfcca689311ff775dcf113d74ea624b7cdf07"
+checksum = "20b578acffd8516a6c3f2a1bdefc1ec37e547bb4e0fb8b6b01a4cafc886b4442"

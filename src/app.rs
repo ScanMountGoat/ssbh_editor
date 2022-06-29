@@ -8,7 +8,10 @@ use crate::{
     widgets::*,
     AnimationIndex, AnimationState, RenderState,
 };
-use egui::{collapsing_header::CollapsingState, CollapsingHeader, ScrollArea};
+use egui::{
+    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, RichText, ScrollArea,
+    SidePanel, TopBottomPanel, Ui, Window,
+};
 use lazy_static::lazy_static;
 use log::Log;
 use rfd::FileDialog;
@@ -155,69 +158,8 @@ impl SsbhApp {
 }
 
 impl SsbhApp {
-    pub fn update(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
-                    let button =
-                        |ui: &mut egui::Ui, text| ui.add(egui::Button::new(text).wrap(false));
-
-                    if button(ui, "Open Folder...    (Ctrl+O)").clicked() {
-                        ui.close_menu();
-                        self.open_folder();
-                    }
-
-                    if button(ui, "Add Folder to Workspace...").clicked() {
-                        ui.close_menu();
-                        self.add_folder_to_workspace();
-                    }
-
-                    if button(ui, "Reload Workspace    (Ctrl+R)").clicked() {
-                        ui.close_menu();
-                        self.reload_workspace();
-                    }
-
-                    if button(ui, "Clear Workspace").clicked() {
-                        ui.close_menu();
-                        self.clear_workspace();
-                    }
-                });
-
-                egui::menu::menu_button(ui, "Menu", |ui| {
-                    if ui.button("Render Settings").clicked() {
-                        ui.close_menu();
-                        self.ui_state.render_settings_open = true;
-                    }
-                });
-
-                egui::menu::menu_button(ui, "Help", |ui| {
-                    if ui.button("GitHub Repository").clicked() {
-                        ui.close_menu();
-                        let link = "https://github.com/ScanMountGoat/ssbh_editor";
-                        if let Err(open_err) = open::that(link) {
-                            log::error!("Failed to open link ({link}). {open_err}");
-                        }
-                    }
-
-                    if ui.button("Report Issues").clicked() {
-                        ui.close_menu();
-                        let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
-                        if let Err(open_err) = open::that(link) {
-                            log::error!("Failed to open link ({link}). {open_err}");
-                        }
-                    }
-
-                    if ui.button("Changelog").clicked() {
-                        ui.close_menu();
-                        let link =
-                            "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
-                        if let Err(open_err) = open::that(link) {
-                            log::error!("Failed to open link ({link}). {open_err}");
-                        }
-                    }
-                });
-            });
-        });
+    pub fn update(&mut self, ctx: &Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| self.menu_bar(ui));
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
@@ -236,34 +178,60 @@ impl SsbhApp {
 
         // Don't reopen the window once closed.
         if self.should_show_update {
-            if let Some(new_release_tag) = &self.new_release_tag {
-                egui::Window::new("New Release Available")
-                    .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-                    .resizable(false)
-                    .collapsible(false)
-                    .open(&mut self.should_show_update)
-                    .show(ctx, |ui| {
-                        ui.label("A new release of SSBH Editor is available!");
-                        ui.label(format!(
-                            "The latest version is {}. The current version is {}.",
-                            new_release_tag,
-                            env!("CARGO_PKG_VERSION")
-                        ));
-                        ui.label("Download the new version from here:");
-                        let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
-                        if ui.hyperlink(release_link).clicked() {
-                            if let Err(open_err) = open::that(release_link) {
-                                log::error!(
-                                    "Failed to open link ({release_link}) to releases {open_err}"
-                                );
-                            }
-                        }
-                        // TODO: Show latest version and release notes.
-                        // TODO: Parse release notes from changelog.
-                    });
-            }
+            self.new_release_window(ctx);
         }
 
+        self.file_editors(ctx);
+
+        let _viewport_left = SidePanel::left("left_panel")
+            .min_width(200.0)
+            .show(ctx, |ui| self.files_list(ui))
+            .response
+            .rect
+            .right();
+
+        TopBottomPanel::bottom("bottom panel").show(ctx, |ui| self.animation_and_log(ui));
+
+        let _viewport_right = SidePanel::right("right panel")
+            .min_width(350.0)
+            .show(ctx, |ui| self.right_panel(ctx, ui))
+            .response
+            .rect
+            .left();
+
+        // TODO: Reduce overdraw when the UI overlaps the viewport.
+    }
+
+    fn new_release_window(&mut self, ctx: &Context) {
+        if let Some(new_release_tag) = &self.new_release_tag {
+            Window::new("New Release Available")
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .resizable(false)
+                .collapsible(false)
+                .open(&mut self.should_show_update)
+                .show(ctx, |ui| {
+                    ui.label("A new release of SSBH Editor is available!");
+                    ui.label(format!(
+                        "The latest version is {}. The current version is {}.",
+                        new_release_tag,
+                        env!("CARGO_PKG_VERSION")
+                    ));
+                    ui.label("Download the new version from here:");
+                    let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
+                    if ui.hyperlink(release_link).clicked() {
+                        if let Err(open_err) = open::that(release_link) {
+                            log::error!(
+                                "Failed to open link ({release_link}) to releases {open_err}"
+                            );
+                        }
+                    }
+                    // TODO: Show latest version and release notes.
+                    // TODO: Parse release notes from changelog.
+                });
+        }
+    }
+
+    fn file_editors(&mut self, ctx: &Context) {
         let display_name = |folder: &str, name: &str| {
             format!(
                 "{}/{}",
@@ -271,7 +239,6 @@ impl SsbhApp {
                 name
             )
         };
-
         // TODO: Refactor this so they can also be "docked" in side panel tabs.
         // The functions should take an additional ui parameter.
         if let Some(folder_index) = self.ui_state.selected_folder_index {
@@ -321,7 +288,7 @@ impl SsbhApp {
                                 .and_then(|(_, m)| m.as_ref().ok()),
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
-                            &self.render_state.shader_database,
+                            &self.render_state.shared_data.database,
                             &self.material_presets,
                             self.red_checkerboard,
                             self.yellow_checkerboard,
@@ -339,10 +306,7 @@ impl SsbhApp {
                                     &self.render_state.device,
                                     &self.render_state.queue,
                                     &matl.entries,
-                                    &self.render_state.pipeline_data,
-                                    &self.render_state.default_textures,
-                                    &self.render_state.stage_cube,
-                                    &self.render_state.shader_database,
+                                    &self.render_state.shared_data,
                                 );
                             }
                         }
@@ -412,215 +376,9 @@ impl SsbhApp {
                 }
             }
         }
-
-        egui::SidePanel::left("left_panel")
-            .min_width(200.0)
-            .show(ctx, |ui| {
-                ui.heading("Files");
-
-                ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| {
-                        for (folder_index, model) in self.models.iter_mut().enumerate() {
-                            CollapsingHeader::new(folder_display_name(model))
-                                .id_source(format!("folder.{}", folder_index))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    // TODO: Show a visual indication if a file has warnings/errors.
-                                    // This will encourage users to click and investigate the errors.
-
-                                    // Avoid a confusing missing file error for animation folders.
-                                    let just_anim = model.meshes.is_empty()
-                                        && model.modls.is_empty()
-                                        && model.skels.is_empty()
-                                        && model.matls.is_empty()
-                                        && !model.anims.is_empty();
-
-                                    let required_file =
-                                        |name| if just_anim { None } else { Some(name) };
-
-                                    // Clicking a file opens the corresponding editor.
-                                    // Set selected index so the editor remains open for the file.
-                                    // TODO: Should the index be cleared when reloading models?
-                                    list_files(
-                                        ui,
-                                        &model.meshes,
-                                        folder_index,
-                                        &mut self.ui_state.selected_folder_index,
-                                        &mut self.ui_state.selected_mesh_index,
-                                        required_file("model.numshb"),
-                                    );
-
-                                    list_files(
-                                        ui,
-                                        &model.skels,
-                                        folder_index,
-                                        &mut self.ui_state.selected_folder_index,
-                                        &mut self.ui_state.selected_skel_index,
-                                        required_file("model.nusktb"),
-                                    );
-
-                                    list_files(
-                                        ui,
-                                        &model.hlpbs,
-                                        folder_index,
-                                        &mut self.ui_state.selected_folder_index,
-                                        &mut self.ui_state.selected_hlpb_index,
-                                        None,
-                                    );
-
-                                    list_files(
-                                        ui,
-                                        &model.matls,
-                                        folder_index,
-                                        &mut self.ui_state.selected_folder_index,
-                                        &mut self.ui_state.selected_matl_index,
-                                        required_file("model.numatb"),
-                                    );
-
-                                    list_files(
-                                        ui,
-                                        &model.modls,
-                                        folder_index,
-                                        &mut self.ui_state.selected_folder_index,
-                                        &mut self.ui_state.selected_modl_index,
-                                        required_file("model.numdlb"),
-                                    );
-
-                                    for (i, (name, _)) in model.anims.iter().enumerate() {
-                                        ui.horizontal(|ui| {
-                                            empty_icon(ui);
-                                            if ui.button(name).clicked() {
-                                                let animation = AnimationIndex {
-                                                    folder_index,
-                                                    anim_index: i,
-                                                };
-
-                                                // Create the first slot if it doesn't exist to save mouse clicks.
-                                                if self.animation_state.animations.is_empty() {
-                                                    self.animation_state
-                                                        .animations
-                                                        .push(Some(animation));
-                                                } else if let Some(slot) = self
-                                                    .animation_state
-                                                    .animations
-                                                    .get_mut(self.animation_state.selected_slot)
-                                                {
-                                                    *slot = Some(animation);
-                                                }
-
-                                                // Preview the new animation as soon as it is clicked.
-                                                self.animation_state.animation_frame_was_changed =
-                                                    true;
-                                            }
-                                        });
-                                    }
-
-                                    // TODO: Show file errors.
-                                    for (i, (file, _)) in model.nutexbs.iter().enumerate() {
-                                        ui.horizontal(|ui| {
-                                            if let Some(model_thumbnails) =
-                                                self.thumbnails.get(folder_index)
-                                            {
-                                                if let Some((_, thumbnail)) = model_thumbnails
-                                                    .iter()
-                                                    .find(|(name, _)| name == file)
-                                                {
-                                                    ui.image(
-                                                        *thumbnail,
-                                                        egui::Vec2::new(ICON_SIZE, ICON_SIZE),
-                                                    );
-                                                }
-                                            }
-
-                                            if ui.button(file).clicked() {
-                                                self.ui_state.selected_folder_index =
-                                                    Some(folder_index);
-                                                self.ui_state.selected_nutexb_index = Some(i);
-                                            }
-                                        });
-                                    }
-                                });
-                        }
-                    });
-            });
-
-        egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui| {
-            ui.with_layout(
-                egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
-                |ui| {
-                    self.animation_bar(ui);
-
-                    // The next layout needs to be min since it's nested inside a centered layout.
-                    ui.with_layout(
-                        egui::Layout::right_to_left().with_cross_align(egui::Align::Min),
-                        |ui| {
-                            ui.horizontal(|ui| {
-                                if let Some((level, message)) =
-                                    LOGGER.messages.lock().unwrap().last()
-                                {
-                                    if ui
-                                        .add_sized([60.0, 30.0], egui::Button::new("Logs"))
-                                        .clicked()
-                                    {
-                                        self.ui_state.log_window_open = true;
-                                    }
-
-                                    // Clicking the message also opens the log window.
-                                    let abbreviated_message =
-                                        message.get(..40).unwrap_or_default().to_string() + "...";
-                                    if ui
-                                        .add(
-                                            egui::Label::new(abbreviated_message)
-                                                .sense(egui::Sense::click()),
-                                        )
-                                        .clicked()
-                                    {
-                                        self.ui_state.log_window_open = true;
-                                    }
-
-                                    match level {
-                                        log::Level::Error => error_icon(ui),
-                                        log::Level::Warn => warning_icon(ui),
-                                        log::Level::Info => (),
-                                        log::Level::Debug => (),
-                                        log::Level::Trace => (),
-                                    }
-                                }
-                            });
-                        },
-                    );
-                },
-            );
-        });
-
-        egui::SidePanel::right("right panel")
-            .min_width(350.0)
-            .show(ctx, |ui| {
-                // TODO: Is it worth creating a dedicated tab control?
-                ui.horizontal(|ui| {
-                    ui.selectable_value(
-                        &mut self.ui_state.right_panel_tab,
-                        PanelTab::MeshList,
-                        egui::RichText::new("Meshes").heading(),
-                    );
-                    ui.selectable_value(
-                        &mut self.ui_state.right_panel_tab,
-                        PanelTab::AnimList,
-                        egui::RichText::new("Animations").heading(),
-                    );
-                });
-
-                ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| match self.ui_state.right_panel_tab {
-                        PanelTab::MeshList => mesh_list(ctx, self, ui),
-                        PanelTab::AnimList => anim_list(ctx, self, ui),
-                    });
-            });
     }
 
-    fn animation_bar(&mut self, ui: &mut egui::Ui) {
+    fn animation_bar(&mut self, ui: &mut Ui) {
         let final_frame_index = self.max_final_frame_index();
 
         // TODO: How to fill available space?
@@ -660,10 +418,10 @@ impl SsbhApp {
         // TODO: Checkbox for looping?
         // TODO: Playback speed?
         if self.animation_state.is_playing {
-            if ui.add_sized(size, egui::Button::new("Pause")).clicked() {
+            if ui.add_sized(size, Button::new("Pause")).clicked() {
                 self.animation_state.is_playing = false;
             }
-        } else if ui.add_sized(size, egui::Button::new("Play")).clicked() {
+        } else if ui.add_sized(size, Button::new("Play")).clicked() {
             self.animation_state.is_playing = true;
         }
     }
@@ -682,6 +440,257 @@ impl SsbhApp {
         }
         final_frame_index
     }
+
+    fn files_list(&mut self, ui: &mut Ui) {
+        ui.heading("Files");
+        ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                for (folder_index, model) in self.models.iter_mut().enumerate() {
+                    CollapsingHeader::new(folder_display_name(model))
+                        .id_source(format!("folder.{}", folder_index))
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            // TODO: Show a visual indication if a file has warnings/errors.
+                            // This will encourage users to click and investigate the errors.
+
+                            // Avoid a confusing missing file error for animation folders.
+                            let just_anim = model.meshes.is_empty()
+                                && model.modls.is_empty()
+                                && model.skels.is_empty()
+                                && model.matls.is_empty()
+                                && !model.anims.is_empty();
+
+                            let required_file = |name| if just_anim { None } else { Some(name) };
+
+                            // Clicking a file opens the corresponding editor.
+                            // Set selected index so the editor remains open for the file.
+                            // TODO: Should the index be cleared when reloading models?
+                            list_files(
+                                ui,
+                                &model.meshes,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_mesh_index,
+                                required_file("model.numshb"),
+                            );
+
+                            list_files(
+                                ui,
+                                &model.skels,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_skel_index,
+                                required_file("model.nusktb"),
+                            );
+
+                            list_files(
+                                ui,
+                                &model.hlpbs,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_hlpb_index,
+                                None,
+                            );
+
+                            list_files(
+                                ui,
+                                &model.matls,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_matl_index,
+                                required_file("model.numatb"),
+                            );
+
+                            list_files(
+                                ui,
+                                &model.modls,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_modl_index,
+                                required_file("model.numdlb"),
+                            );
+
+                            for (i, (name, _)) in model.anims.iter().enumerate() {
+                                ui.horizontal(|ui| {
+                                    empty_icon(ui);
+                                    if ui.button(name).clicked() {
+                                        let animation = AnimationIndex {
+                                            folder_index,
+                                            anim_index: i,
+                                        };
+
+                                        // Create the first slot if it doesn't exist to save mouse clicks.
+                                        if self.animation_state.animations.is_empty() {
+                                            self.animation_state.animations.push(Some(animation));
+                                        } else if let Some(slot) = self
+                                            .animation_state
+                                            .animations
+                                            .get_mut(self.animation_state.selected_slot)
+                                        {
+                                            *slot = Some(animation);
+                                        }
+
+                                        // Preview the new animation as soon as it is clicked.
+                                        self.animation_state.animation_frame_was_changed = true;
+                                    }
+                                });
+                            }
+
+                            // TODO: Show file errors.
+                            for (i, (file, _)) in model.nutexbs.iter().enumerate() {
+                                ui.horizontal(|ui| {
+                                    if let Some(model_thumbnails) =
+                                        self.thumbnails.get(folder_index)
+                                    {
+                                        if let Some((_, thumbnail)) =
+                                            model_thumbnails.iter().find(|(name, _)| name == file)
+                                        {
+                                            ui.image(
+                                                *thumbnail,
+                                                egui::Vec2::new(ICON_SIZE, ICON_SIZE),
+                                            );
+                                        }
+                                    }
+
+                                    if ui.button(file).clicked() {
+                                        self.ui_state.selected_folder_index = Some(folder_index);
+                                        self.ui_state.selected_nutexb_index = Some(i);
+                                    }
+                                });
+                            }
+                        });
+                }
+            });
+    }
+
+    fn animation_and_log(&mut self, ui: &mut Ui) {
+        ui.with_layout(
+            egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
+            |ui| {
+                self.animation_bar(ui);
+
+                // The next layout needs to be min since it's nested inside a centered layout.
+                ui.with_layout(
+                    egui::Layout::right_to_left().with_cross_align(egui::Align::Min),
+                    |ui| {
+                        ui.horizontal(|ui| {
+                            if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
+                                if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
+                                    self.ui_state.log_window_open = true;
+                                }
+
+                                // Clicking the message also opens the log window.
+                                let abbreviated_message =
+                                    message.get(..40).unwrap_or_default().to_string() + "...";
+                                if ui
+                                    .add(
+                                        egui::Label::new(abbreviated_message)
+                                            .sense(egui::Sense::click()),
+                                    )
+                                    .clicked()
+                                {
+                                    self.ui_state.log_window_open = true;
+                                }
+
+                                match level {
+                                    log::Level::Error => error_icon(ui),
+                                    log::Level::Warn => warning_icon(ui),
+                                    log::Level::Info => (),
+                                    log::Level::Debug => (),
+                                    log::Level::Trace => (),
+                                }
+                            }
+                        });
+                    },
+                );
+            },
+        );
+    }
+
+    fn right_panel(&mut self, ctx: &Context, ui: &mut Ui) {
+        // TODO: Is it worth creating a dedicated tab control?
+        ui.horizontal(|ui| {
+            ui.selectable_value(
+                &mut self.ui_state.right_panel_tab,
+                PanelTab::MeshList,
+                RichText::new("Meshes").heading(),
+            );
+            ui.selectable_value(
+                &mut self.ui_state.right_panel_tab,
+                PanelTab::AnimList,
+                RichText::new("Animations").heading(),
+            );
+        });
+        ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| match self.ui_state.right_panel_tab {
+                PanelTab::MeshList => mesh_list(ctx, self, ui),
+                PanelTab::AnimList => anim_list(ctx, self, ui),
+            });
+    }
+
+    fn menu_bar(&mut self, ui: &mut Ui) {
+        egui::menu::bar(ui, |ui| {
+            egui::menu::menu_button(ui, "File", |ui| {
+                let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+
+                if button(ui, "Open Folder...    (Ctrl+O)").clicked() {
+                    ui.close_menu();
+                    self.open_folder();
+                }
+
+                if button(ui, "Add Folder to Workspace...").clicked() {
+                    ui.close_menu();
+                    self.add_folder_to_workspace();
+                }
+
+                if button(ui, "Reload Workspace    (Ctrl+R)").clicked() {
+                    ui.close_menu();
+                    self.reload_workspace();
+                }
+
+                if button(ui, "Clear Workspace").clicked() {
+                    ui.close_menu();
+                    self.clear_workspace();
+                }
+            });
+
+            egui::menu::menu_button(ui, "Menu", |ui| {
+                if ui.button("Render Settings").clicked() {
+                    ui.close_menu();
+                    self.ui_state.render_settings_open = true;
+                }
+            });
+
+            egui::menu::menu_button(ui, "Help", |ui| {
+                if ui.button("GitHub Repository").clicked() {
+                    ui.close_menu();
+                    let link = "https://github.com/ScanMountGoat/ssbh_editor";
+                    if let Err(open_err) = open::that(link) {
+                        log::error!("Failed to open link ({link}). {open_err}");
+                    }
+                }
+
+                if ui.button("Report Issues").clicked() {
+                    ui.close_menu();
+                    let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
+                    if let Err(open_err) = open::that(link) {
+                        log::error!("Failed to open link ({link}). {open_err}");
+                    }
+                }
+
+                if ui.button("Changelog").clicked() {
+                    ui.close_menu();
+                    let link =
+                        "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
+                    if let Err(open_err) = open::that(link) {
+                        log::error!("Failed to open link ({link}). {open_err}");
+                    }
+                }
+            });
+        });
+    }
 }
 
 fn folder_display_name(model: &ModelFolder) -> String {
@@ -693,7 +702,7 @@ fn folder_display_name(model: &ModelFolder) -> String {
 }
 
 fn list_files<T>(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     files: &[(String, Result<T, Box<dyn Error>>)],
     folder_index: usize,
     selected_folder_index: &mut Option<usize>,
@@ -716,7 +725,7 @@ fn list_files<T>(
                     // TODO: Investigate a cleaner way to show binrw backtrace errors.
                     // Don't show the full error for now to avoid showing lots of text.
                     error_icon(ui);
-                    ui.label(egui::RichText::new(name).color(ERROR_COLOR))
+                    ui.label(RichText::new(name).color(ERROR_COLOR))
                         .on_hover_text(format!("Error reading {}", name));
                 }
             }
@@ -729,46 +738,43 @@ fn list_files<T>(
     }
 }
 
-fn missing_file(ui: &mut egui::Ui, name: &str) {
+fn missing_file(ui: &mut Ui, name: &str) {
     // TODO: Should the tooltip cover the entire layout?
     ui.horizontal(|ui| {
         missing_icon(ui);
-        ui.add_enabled(
-            false,
-            egui::Button::new(egui::RichText::new(name).strikethrough()),
-        );
+        ui.add_enabled(false, Button::new(RichText::new(name).strikethrough()));
     })
     .response
     .on_hover_text(format!("Missing required file {name}"));
 }
 
-pub fn empty_icon(ui: &mut egui::Ui) {
+pub fn empty_icon(ui: &mut Ui) {
     ui.allocate_space(egui::Vec2::new(ICON_SIZE, ICON_SIZE));
 }
 
-pub fn missing_icon(ui: &mut egui::Ui) {
-    ui.label(egui::RichText::new("⚠").size(ICON_SIZE));
+pub fn missing_icon(ui: &mut Ui) {
+    ui.label(RichText::new("⚠").size(ICON_SIZE));
 }
 
-pub fn warning_icon(ui: &mut egui::Ui) {
+pub fn warning_icon(ui: &mut Ui) {
     ui.label(
-        egui::RichText::new("⚠")
+        RichText::new("⚠")
             .strong()
             .color(egui::Color32::from_rgb(255, 210, 0))
             .size(ICON_SIZE),
     );
 }
 
-pub fn error_icon(ui: &mut egui::Ui) {
+pub fn error_icon(ui: &mut Ui) {
     ui.label(
-        egui::RichText::new("⚠")
+        RichText::new("⚠")
             .strong()
             .color(ERROR_COLOR)
             .size(ICON_SIZE),
     );
 }
 
-fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
+fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     // TODO: Display folders that only have animations differently?
     for (i, folder) in app.models.iter().enumerate() {
         let name = format!("meshlist.{}", i);
@@ -794,7 +800,7 @@ fn mesh_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     }
 }
 
-fn anim_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
+fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     // TODO: Will these IDs be unique?
     if ui.button("Add Slot").clicked() {
         app.animation_state.animations.push(None);
@@ -861,8 +867,8 @@ fn anim_list(ctx: &egui::Context, app: &mut SsbhApp, ui: &mut egui::Ui) {
     }
 }
 
-fn log_window(ctx: &egui::Context, open: &mut bool) {
-    egui::Window::new("Application Log")
+fn log_window(ctx: &Context, open: &mut bool) {
+    Window::new("Application Log")
         .open(open)
         .resizable(true)
         .show(ctx, |ui| {
