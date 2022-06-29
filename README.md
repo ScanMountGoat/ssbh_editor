@@ -16,6 +16,7 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - Preview stage rendering and lighting data
 - Settings to adjust UI scaling for better readability
 - Improved spacing and consistency for UI
+- Support for cube maps and 3D textures in Nutexb viewer and thumbnails
 
 ## Getting Started
 Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
