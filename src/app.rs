@@ -235,7 +235,10 @@ impl SsbhApp {
         let display_name = |folder: &str, name: &str| {
             format!(
                 "{}/{}",
-                Path::new(folder).file_name().unwrap().to_string_lossy(),
+                Path::new(folder)
+                    .file_name()
+                    .map(|f| f.to_string_lossy().to_string())
+                    .unwrap_or_default(),
                 name
             )
         };
@@ -696,9 +699,8 @@ impl SsbhApp {
 fn folder_display_name(model: &ModelFolder) -> String {
     Path::new(&model.folder_name)
         .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string()
+        .map(|f| f.to_string_lossy().to_string())
+        .unwrap_or_default()
 }
 
 fn list_files<T>(
