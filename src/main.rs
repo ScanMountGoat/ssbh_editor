@@ -675,6 +675,7 @@ fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app:
             if let Some(key) = input.virtual_keycode {
                 match (modifiers, key) {
                     (ModifiersState::CTRL, VirtualKeyCode::O) => app.open_folder(),
+                    (ctrl_shift, VirtualKeyCode::O) if ctrl_shift == ModifiersState::CTRL | ModifiersState::SHIFT => app.add_folder_to_workspace(),
                     (ModifiersState::CTRL, VirtualKeyCode::R) => app.reload_workspace(),
                     _ => (),
                 }
