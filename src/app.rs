@@ -643,7 +643,7 @@ impl SsbhApp {
                     self.open_folder();
                 }
 
-                if button(ui, "Add Folder to Workspace...").clicked() {
+                if button(ui, "Add Folder to Workspace...    (Ctrl+Shift+O)").clicked() {
                     ui.close_menu();
                     self.add_folder_to_workspace();
                 }
