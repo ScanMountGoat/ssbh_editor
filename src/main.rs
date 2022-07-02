@@ -273,6 +273,9 @@ fn main() {
         ui_state: UiState::default(),
         render_state: RenderState::new(device, queue, surface_format),
         animation_state: AnimationState::new(),
+        show_left_panel: true,
+        show_right_panel: true,
+        show_bottom_panel: true,
     };
 
     // Initialize logging.

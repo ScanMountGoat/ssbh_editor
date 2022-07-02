@@ -72,6 +72,10 @@ pub struct SsbhApp {
     pub default_thumbnails: Vec<(String, egui::TextureId)>,
     pub animation_state: AnimationState,
     pub render_state: RenderState,
+
+    pub show_left_panel: bool,
+    pub show_right_panel: bool,
+    pub show_bottom_panel: bool,
 }
 
 #[derive(Default)]
@@ -183,21 +187,27 @@ impl SsbhApp {
 
         self.file_editors(ctx);
 
-        let _viewport_left = SidePanel::left("left_panel")
-            .min_width(200.0)
-            .show(ctx, |ui| self.files_list(ui))
-            .response
-            .rect
-            .right();
+        if self.show_left_panel {
+            let _viewport_left = SidePanel::left("left_panel")
+                .min_width(200.0)
+                .show(ctx, |ui| self.files_list(ui))
+                .response
+                .rect
+                .right();
+        }
 
-        TopBottomPanel::bottom("bottom panel").show(ctx, |ui| self.animation_and_log(ui));
+        if self.show_bottom_panel {
+            TopBottomPanel::bottom("bottom panel").show(ctx, |ui| self.animation_and_log(ui));
+        }
 
-        let _viewport_right = SidePanel::right("right panel")
-            .min_width(350.0)
-            .show(ctx, |ui| self.right_panel(ctx, ui))
-            .response
-            .rect
-            .left();
+        if self.show_right_panel {
+            let _viewport_right = SidePanel::right("right panel")
+                .min_width(350.0)
+                .show(ctx, |ui| self.right_panel(ctx, ui))
+                .response
+                .rect
+                .left();
+        }
 
         // TODO: Reduce overdraw when the UI overlaps the viewport.
     }
@@ -664,6 +674,12 @@ impl SsbhApp {
                     ui.close_menu();
                     self.ui_state.render_settings_open = true;
                 }
+            });
+
+            egui::menu::menu_button(ui, "View", |ui| {
+                ui.checkbox(&mut self.show_left_panel, "Left Panel");
+                ui.checkbox(&mut self.show_right_panel, "Right Panel");
+                ui.checkbox(&mut self.show_bottom_panel, "Bottom Panel");
             });
 
             egui::menu::menu_button(ui, "Help", |ui| {
