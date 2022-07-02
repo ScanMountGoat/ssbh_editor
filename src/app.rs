@@ -794,9 +794,16 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
             .body(|ui| {
                 // TODO: How to ensure the render models stay in sync with the model folder?
                 if let Some(render_model) = app.render_models.get_mut(i) {
-                    for mesh in &mut render_model.meshes {
-                        ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
-                    }
+                    ui.add_enabled_ui(render_model.is_visible, |ui| {
+                        // Indent without the vertical line.
+                        ui.visuals_mut().widgets.noninteractive.bg_stroke.width = 0.0;
+                        ui.spacing_mut().indent = 24.0;
+                        ui.indent("indent", |ui| {
+                            for mesh in &mut render_model.meshes {
+                                ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
+                            }
+                        });
+                    });
                 }
             });
     }
