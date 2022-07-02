@@ -1,7 +1,16 @@
 # ssbh_editor changelog
 ## unreleased
+### Added
+* Added vertex color, nor channels, and prm channels to render settings.
+* Added the keyboard shortcut Ctrl+Shift+O for adding a folder to the workspace.
+
+### Changed
+* Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
+
 ### Fixed
-* Fixed a rare crash when opening Nutexb files with invalid dimensions
+* Fixed a rare crash when opening Nutexb files with invalid dimensions.
+* Fixed an issue rendering models with sprite sheet params.
+* Fixed an issue where all materials showed as not having alpha testing in the material editor.
 
 ## 0.4.0
 ### Added
