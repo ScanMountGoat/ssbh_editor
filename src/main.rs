@@ -326,8 +326,8 @@ fn main() {
                         app.thumbnails = generate_model_thumbnails(
                             &mut egui_rpass,
                             &app.models,
+                            &app.render_models,
                             &app.render_state.device,
-                            &app.render_state.queue,
                         );
                         app.should_refresh_meshes = false;
                     }
@@ -675,7 +675,11 @@ fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app:
             if let Some(key) = input.virtual_keycode {
                 match (modifiers, key) {
                     (ModifiersState::CTRL, VirtualKeyCode::O) => app.open_folder(),
-                    (ctrl_shift, VirtualKeyCode::O) if ctrl_shift == ModifiersState::CTRL | ModifiersState::SHIFT => app.add_folder_to_workspace(),
+                    (ctrl_shift, VirtualKeyCode::O)
+                        if ctrl_shift == ModifiersState::CTRL | ModifiersState::SHIFT =>
+                    {
+                        app.add_folder_to_workspace()
+                    }
                     (ModifiersState::CTRL, VirtualKeyCode::R) => app.reload_workspace(),
                     _ => (),
                 }

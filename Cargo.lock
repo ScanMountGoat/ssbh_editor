@@ -1760,11 +1760,12 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#e953b3ced7f0c6facdf7b391c06b5e69d0b4e316"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#36470b97b0a9ab7ed8e9b77179169a3d292d65f2"
 dependencies = [
  "bytemuck",
  "log",
  "nutexb",
+ "thiserror",
  "wgpu",
  "wgsl_to_wgpu",
 ]
@@ -2371,9 +2372,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.11"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d92beeab217753479be2f74e54187a6aed4c125ff0703a866c3147a02f0c6dd"
+checksum = "a2333e6df6d6598f2b1974829f853c2b4c5f4a6e503c10af918081aa6f8564e1"
 
 [[package]]
 name = "serde"
@@ -2465,9 +2466,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc88c725d61fc6c3132893370cac4a0200e3fedf5da8331c570664b1987f5ca2"
+checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -2568,7 +2569,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#70714caf77e0e755ff2c1a9831ef8906c63dea9f"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c787f0dc02139752a4d2dfe4dfd261851d36a8aa"
 dependencies = [
  "ahash",
  "binrw",
@@ -2614,7 +2615,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#70714caf77e0e755ff2c1a9831ef8906c63dea9f"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c787f0dc02139752a4d2dfe4dfd261851d36a8aa"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2628,7 +2629,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#e953b3ced7f0c6facdf7b391c06b5e69d0b4e316"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#36470b97b0a9ab7ed8e9b77179169a3d292d65f2"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2648,7 +2649,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#70714caf77e0e755ff2c1a9831ef8906c63dea9f"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c787f0dc02139752a4d2dfe4dfd261851d36a8aa"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2656,7 +2657,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#70714caf77e0e755ff2c1a9831ef8906c63dea9f"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c787f0dc02139752a4d2dfe4dfd261851d36a8aa"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2904,9 +2905,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.21"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc6b8ad3567499f98a1db7a752b07a7c8c7c7c34c332ec00effb2b0027974b7c"
+checksum = "11c75893af559bc8e10716548bdef5cb2b983f8e637db9d0e15126b61b484ee2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2977,9 +2978,9 @@ checksum = "5bd2fe26506023ed7b5e1e315add59d6f584c621d037f9368fea9cfb988f368c"
 
 [[package]]
 name = "unicode-normalization"
-version = "0.1.20"
+version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81dee68f85cab8cf68dec42158baf3a79a1cdc065a8b103025965d6ccb7f6cbd"
+checksum = "854cbdc4f7bc6ae19c820d44abdc3277ac3e1b2b93db20a636825d9322fb60e6"
 dependencies = [
  "tinyvec",
 ]
@@ -3349,13 +3350,14 @@ dependencies = [
 [[package]]
 name = "wgsl_to_wgpu"
 version = "0.2.0"
-source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#8c61627d450689c13b3f604895e32ae8e6959abc"
+source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#1c7529dd17888a19d3f295f7c90381e79996b2c0"
 dependencies = [
  "naga",
  "prettyplease",
  "proc-macro2",
  "quote",
  "syn",
+ "thiserror",
  "wgpu-types",
 ]
 

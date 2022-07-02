@@ -124,19 +124,20 @@ fn sort_files(model: &mut ModelFolder) {
 pub fn generate_model_thumbnails(
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
     models: &[ssbh_wgpu::ModelFolder],
+    render_models: &[ssbh_wgpu::RenderModel],
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
 ) -> Vec<Vec<(String, egui::TextureId)>> {
     models
         .iter()
-        .map(|m| {
-            m.nutexbs
+        .zip(render_models)
+        .map(|(model, render_model)| {
+            model.nutexbs
                 .iter()
                 .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
                 .filter(|(_, nutexb)| nutexb.footer.layer_count == 1) // TODO: How to handle 3d/array layers?
-                .map(|(file_name, nutexb)| {
-                    // TODO: Use the existing textures from the render model.
-                    let texture = nutexb_wgpu::create_texture(&nutexb, device, queue);
+                .filter_map(|(file_name, _)| {
+                    // TODO: Will this correctly handle missing thumbnails?
+                    let texture = render_model.get_texture(file_name)?;
 
                     // Assume the textures have the appropriate usage to work with egui.
                     // TODO: How to handle cube maps?
@@ -146,7 +147,7 @@ pub fn generate_model_thumbnails(
                         wgpu::FilterMode::Nearest,
                     );
 
-                    (file_name.clone(), egui_texture)
+                    Some((file_name.clone(), egui_texture))
                 })
                 .collect()
         })

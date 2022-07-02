@@ -1,4 +1,8 @@
 # ssbh_editor changelog
+## unreleased
+### Fixed
+* Fixed a rare crash when opening Nutexb files with invalid dimensions
+
 ## 0.4.0
 ### Added
 * Added skeleton and bone name rendering to render settings.
