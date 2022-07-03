@@ -1,5 +1,5 @@
 use ssbh_data::prelude::*;
-use ssbh_wgpu::ShaderDatabase;
+use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 
 // TODO: How to update these only when a file changes?
 // TODO: Only validate known names like model.numatb or model.numdlb?
@@ -13,6 +13,26 @@ pub struct ModelValidationErrors {
     pub anim_errors: Vec<AnimValidationError>,
     pub hlpb_errors: Vec<HlpbValidationError>,
     pub nutexb_errors: Vec<NutexbValidationError>,
+}
+
+impl ModelValidationErrors {
+    pub fn from_model(model: &ModelFolder, shader_database: &ShaderDatabase) -> Self {
+        let matl_errors = model
+            .find_matl()
+            .map(|matl| validate_matl(matl, model.find_modl(), model.find_mesh(), shader_database))
+            .unwrap_or_default();
+
+        Self {
+            mesh_errors: Vec::new(),
+            skel_errors: Vec::new(),
+            matl_errors,
+            modl_errors: Vec::new(),
+            adj_errors: Vec::new(),
+            anim_errors: Vec::new(),
+            hlpb_errors: Vec::new(),
+            nutexb_errors: Vec::new(),
+        }
+    }
 }
 
 pub struct MeshValidationError;
@@ -39,7 +59,7 @@ pub struct HlpbValidationError;
 pub struct NutexbValidationError;
 
 // TODO: How to incorporate this with the UI?
-pub fn validate_matl(
+fn validate_matl(
     matl: &MatlData,
     modl: Option<&ModlData>,
     mesh: Option<&MeshData>,

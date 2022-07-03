@@ -943,7 +943,9 @@ fn log_window(ctx: &Context, open: &mut bool) {
                             }
                             // binrw formats backtraces, which isn't supported by egui font rendering.
                             // ui.label(message);
-                            let clean_message = strip_ansi_escapes::strip(message).map(|m| String::from_utf8_lossy(&m).to_string()).unwrap_or(message.clone());
+                            let clean_message = strip_ansi_escapes::strip(message)
+                                .map(|m| String::from_utf8_lossy(&m).to_string())
+                                .unwrap_or(message.clone());
                             ui.label(clean_message);
                         });
                     }
