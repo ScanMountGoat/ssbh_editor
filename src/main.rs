@@ -5,6 +5,7 @@ use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::{SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
+use ssbh_editor::validation::{validate_matl, ModelValidationErrors};
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
     generate_model_thumbnails, widgets_dark, AnimationIndex, AnimationState, RenderState,
@@ -326,6 +327,11 @@ fn main() {
                             &app.models,
                             &app.render_state.shared_data,
                         );
+                        app.validation_errors = app
+                            .models
+                            .iter()
+                            .map(|_| ModelValidationErrors::default())
+                            .collect();
 
                         app.thumbnails = generate_model_thumbnails(
                             &mut egui_rpass,
@@ -342,6 +348,21 @@ fn main() {
                             &app.render_state.render_settings,
                         );
                         app.should_refresh_render_settings = false;
+                    }
+
+                    // TODO: Only calculate validation on changes.
+                    for (model, validation) in
+                        app.models.iter().zip(app.validation_errors.iter_mut())
+                    {
+                        if let Some(matl) = model.find_matl() {
+                            // TODO: Make this a method from_model?
+                            validation.matl_errors = validate_matl(
+                                matl,
+                                model.find_modl(),
+                                model.find_mesh(),
+                                &app.render_state.shared_data.database,
+                            );
+                        }
                     }
 
                     // TODO: How to handle model.nuanmb?

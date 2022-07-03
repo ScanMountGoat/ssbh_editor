@@ -5,7 +5,7 @@ use crate::{
     },
     load_model, load_models_recursive,
     render_settings::render_settings,
-    validation::{validate_matl, ModelValidationErrors},
+    validation::ModelValidationErrors,
     widgets::*,
     AnimationIndex, AnimationState, RenderState,
 };
@@ -286,26 +286,8 @@ impl SsbhApp {
                     if let Some((name, Ok(matl))) = model.matls.get_mut(matl_index) {
                         // TODO: Fix potential crash if thumbnails aren't present.
                         // TODO: Make this a method to simplify arguments.
-
-                        let modl = model
-                            .modls
-                            .iter()
-                            .find(|(f, _)| f == "model.numdlb")
-                            .and_then(|(_, m)| m.as_ref().ok());
-
-                        let mesh = model
-                            .meshes
-                            .iter()
-                            .find(|(f, _)| f == "model.numshb")
-                            .and_then(|(_, m)| m.as_ref().ok());
-
-                        // TODO: Only calculate validation on changes.
-                        let validation_errors = validate_matl(
-                            matl,
-                            modl,
-                            mesh,
-                            &self.render_state.shared_data.database,
-                        );
+                        // TODO: Potential index panic.
+                        let validation_errors = &self.validation_errors[folder_index].matl_errors;
 
                         if !matl_editor(
                             ctx,
@@ -478,7 +460,12 @@ impl SsbhApp {
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| {
-                for (folder_index, model) in self.models.iter_mut().enumerate() {
+                for (folder_index, (model, validation)) in self
+                    .models
+                    .iter_mut()
+                    .zip(self.validation_errors.iter())
+                    .enumerate()
+                {
                     CollapsingHeader::new(folder_display_name(model))
                         .id_source(format!("folder.{}", folder_index))
                         .default_open(true)
@@ -505,6 +492,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_mesh_index,
                                 required_file("model.numshb"),
+                                validation.mesh_errors.len() > 0,
                             );
 
                             list_files(
@@ -514,6 +502,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_skel_index,
                                 required_file("model.nusktb"),
+                                validation.skel_errors.len() > 0,
                             );
 
                             list_files(
@@ -523,6 +512,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_hlpb_index,
                                 None,
+                                validation.hlpb_errors.len() > 0,
                             );
 
                             list_files(
@@ -532,6 +522,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_matl_index,
                                 required_file("model.numatb"),
+                                validation.matl_errors.len() > 0,
                             );
 
                             list_files(
@@ -541,6 +532,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_modl_index,
                                 required_file("model.numdlb"),
+                                validation.modl_errors.len() > 0,
                             );
 
                             for (i, (name, _)) in model.anims.iter().enumerate() {
@@ -745,15 +737,24 @@ fn list_files<T>(
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
     required_file: Option<&'static str>,
+    has_validation_errors: bool,
 ) {
     // TODO: Should this be a grid instead?
     for (i, (name, file)) in files.iter().enumerate() {
         ui.horizontal(|ui| {
-            // TODO: How to access the appropriate validation errors?
-            // TODO: Show a yellow warning if there are validation errors.
             match file {
                 Ok(_) => {
-                    empty_icon(ui);
+                    // Assume only the required file is validated for now.
+                    // This excludes files like metamon_model.numatb.
+                    if has_validation_errors && Some(name.as_str()) == required_file {
+                        // TODO: How to access the appropriate validation errors?
+                        warning_icon_with_tooltip(
+                            ui,
+                            "The file contains errors. Open the editor for details.",
+                        );
+                    } else {
+                        empty_icon(ui);
+                    }
                     if ui.button(name.clone()).clicked() {
                         *selected_folder_index = Some(folder_index);
                         *selected_file_index = Some(i);
@@ -786,6 +787,7 @@ fn missing_file(ui: &mut Ui, name: &str) {
     .on_hover_text(format!("Missing required file {name}"));
 }
 
+// TODO: Investigate why these have different sizes.
 pub fn empty_icon(ui: &mut Ui) {
     ui.allocate_space(egui::Vec2::new(ICON_SIZE, ICON_SIZE));
 }
@@ -801,6 +803,16 @@ pub fn warning_icon(ui: &mut Ui) {
             .color(egui::Color32::from_rgb(255, 210, 0))
             .size(ICON_SIZE),
     );
+}
+
+pub fn warning_icon_with_tooltip(ui: &mut Ui, tooltip: &str) {
+    ui.label(
+        RichText::new("⚠")
+            .strong()
+            .color(egui::Color32::from_rgb(255, 210, 0))
+            .size(ICON_SIZE),
+    )
+    .on_hover_text(tooltip);
 }
 
 pub fn error_icon(ui: &mut Ui) {

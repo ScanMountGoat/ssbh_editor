@@ -2,6 +2,8 @@ use ssbh_data::prelude::*;
 use ssbh_wgpu::ShaderDatabase;
 
 // TODO: How to update these only when a file changes?
+// TODO: Only validate known names like model.numatb or model.numdlb?
+#[derive(Default)]
 pub struct ModelValidationErrors {
     pub mesh_errors: Vec<MeshValidationError>,
     pub skel_errors: Vec<SkelValidationError>,
