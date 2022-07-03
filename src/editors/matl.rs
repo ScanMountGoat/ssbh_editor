@@ -546,12 +546,14 @@ fn edit_texture(
     // TODO: Create a texture for an invalid thumbnail or missing texture?
     // TODO: Should this functionality be part of ssbh_wgpu?
     ui.label(param_label(param.param_id));
-    // TODO: How to handle #replace_cubemap?
     // Texture parameters don't include the file extension since it's implied.
+    // Texture names aren't case sensitive.
+    // TODO: Avoid allocating here.
+    // TODO: Don't store the extension with the thumbnail at all?
     if let Some(thumbnail) = texture_thumbnails
         .iter()
         .chain(default_thumbnails.iter())
-        .find(|t| Path::new(&t.0).with_extension("") == Path::new(&param.data))
+        .find(|t| Path::new(&t.0).with_extension("").to_string_lossy().eq_ignore_ascii_case(&param.data))
         .map(|t| t.1)
     {
         ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));
@@ -574,6 +576,7 @@ fn edit_texture(
                         .to_string_lossy()
                         .to_string();
 
+                    // TODO: Show a texture as selected even if the case doesn't match?
                     ui.horizontal(|ui| {
                         ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
                         ui.selectable_value(&mut param.data, text.to_string(), text);
