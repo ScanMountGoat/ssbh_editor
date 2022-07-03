@@ -5,13 +5,14 @@ use crate::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
         remove_parameters, unused_parameters,
     },
+    validation::MatlValidationError,
     widgets::*,
 };
 use egui::{ComboBox, DragValue, Grid, Label, ScrollArea, Slider, Ui, Window};
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{matl_data::*, mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
-use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
+use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
+use ssbh_wgpu::ShaderDatabase;
 use std::path::Path;
 
 #[allow(clippy::too_many_arguments)]
@@ -21,7 +22,7 @@ pub fn matl_editor(
     ui_state: &mut UiState,
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
-    mesh: Option<&MeshData>,
+    validation: &[MatlValidationError],
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     shader_database: &ShaderDatabase,
@@ -92,32 +93,15 @@ pub fn matl_editor(
                     let entry = matl.entries.get_mut(ui_state.selected_material_index);
 
                     if let Some(entry) = entry {
-                        let mesh_objects: Vec<_> = mesh
-                            .map(|mesh| {
-                                mesh.objects
-                                    .iter()
-                                    .filter(|o| {
-                                        modl_entries
-                                            .iter()
-                                            .filter(|e| e.material_label == entry.material_label)
-                                            .any(|e| {
-                                                e.mesh_object_name == o.name
-                                                    && e.mesh_object_sub_index == o.sub_index
-                                            })
-                                    })
-                                    .collect()
-                            })
-                            .unwrap_or_default();
-
-                        // Find meshes with missing required attributes.
-                        let program =
-                            shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
-                        let attribute_errors = mesh_attribute_errors(program, &mesh_objects);
-
+                        // TODO: Avoid allocating here.
+                        let validation: Vec<_> = validation
+                            .iter()
+                            .filter(|e| e.entry_index() == ui_state.selected_material_index)
+                            .collect();
                         matl_entry_editor(
                             ui,
                             entry,
-                            &attribute_errors,
+                            &validation,
                             folder_thumbnails,
                             default_thumbnails,
                             ui_state.matl_editor_advanced_mode,
@@ -243,34 +227,6 @@ fn material_combo_box(ui: &mut Ui, ui_state: &mut UiState, matl: &MatlData) {
         );
 }
 
-fn mesh_attribute_errors(
-    program: Option<&ShaderProgram>,
-    mesh_objects: &[&MeshObjectData],
-) -> Vec<(String, Vec<String>)> {
-    program
-        .map(|program| {
-            mesh_objects
-                .iter()
-                .filter_map(|mesh| {
-                    let attribute_names: Vec<_> = mesh
-                        .texture_coordinates
-                        .iter()
-                        .map(|a| a.name.to_string())
-                        .chain(mesh.color_sets.iter().map(|a| a.name.to_string()))
-                        .collect();
-
-                    let missing_attributes = program.missing_required_attributes(&attribute_names);
-                    if !missing_attributes.is_empty() {
-                        Some((mesh.name.to_string(), missing_attributes))
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 fn edit_shader_label(
     ui: &mut Ui,
     shader_label: &mut String,
@@ -292,7 +248,7 @@ fn edit_shader_label(
 fn matl_entry_editor(
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
-    attribute_errors: &[(String, Vec<String>)],
+    validation_errors: &[&MatlValidationError],
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
@@ -351,18 +307,26 @@ fn matl_entry_editor(
 
     // TODO: Show errors in the material selector.
     // TODO: Add a button to open the mesh editor?
-    if !attribute_errors.is_empty() {
+    if !validation_errors.is_empty() {
         ui.heading("Shader Errors");
-        if !attribute_errors.is_empty() {
+        if !validation_errors.is_empty() {
             ui.label(
                 "Meshes with this material are missing these vertex attributes required by the shader.",
             );
-            for (mesh, missing_attributes) in attribute_errors {
-                ui.horizontal(|ui| {
-                    ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
-                    ui.label(mesh);
-                    ui.label(missing_attributes.join(","));
-                });
+            for error in validation_errors {
+                match error {
+                    MatlValidationError::MissingRequiredVertexAttributes {
+                        mesh_name,
+                        missing_attributes,
+                        ..
+                    } => {
+                        ui.horizontal(|ui| {
+                            ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
+                            ui.label(mesh_name);
+                            ui.label(missing_attributes.join(","));
+                        });
+                    }
+                }
             }
         }
 
@@ -553,7 +517,12 @@ fn edit_texture(
     if let Some(thumbnail) = texture_thumbnails
         .iter()
         .chain(default_thumbnails.iter())
-        .find(|t| Path::new(&t.0).with_extension("").to_string_lossy().eq_ignore_ascii_case(&param.data))
+        .find(|t| {
+            Path::new(&t.0)
+                .with_extension("")
+                .to_string_lossy()
+                .eq_ignore_ascii_case(&param.data)
+        })
         .map(|t| t.1)
     {
         ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));

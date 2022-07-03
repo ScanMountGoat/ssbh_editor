@@ -5,6 +5,7 @@ use crate::{
     },
     load_model, load_models_recursive,
     render_settings::render_settings,
+    validation::{validate_matl, ModelValidationErrors},
     widgets::*,
     AnimationIndex, AnimationState, RenderState,
 };
@@ -64,11 +65,12 @@ pub struct SsbhApp {
     pub draw_bone_names: bool,
 
     pub ui_state: UiState,
-    // TODO: How to manage the thumbnail cache?
     // TODO: Is parallel list with models the best choice here?
     pub models: Vec<ModelFolder>,
     pub render_models: Vec<RenderModel>,
     pub thumbnails: Vec<Vec<(String, egui::TextureId)>>,
+    pub validation_errors: Vec<ModelValidationErrors>,
+
     pub default_thumbnails: Vec<(String, egui::TextureId)>,
     pub animation_state: AnimationState,
     pub render_state: RenderState,
@@ -284,6 +286,27 @@ impl SsbhApp {
                     if let Some((name, Ok(matl))) = model.matls.get_mut(matl_index) {
                         // TODO: Fix potential crash if thumbnails aren't present.
                         // TODO: Make this a method to simplify arguments.
+
+                        let modl = model
+                            .modls
+                            .iter()
+                            .find(|(f, _)| f == "model.numdlb")
+                            .and_then(|(_, m)| m.as_ref().ok());
+
+                        let mesh = model
+                            .meshes
+                            .iter()
+                            .find(|(f, _)| f == "model.numshb")
+                            .and_then(|(_, m)| m.as_ref().ok());
+
+                        // TODO: Only calculate validation on changes.
+                        let validation_errors = validate_matl(
+                            matl,
+                            modl,
+                            mesh,
+                            &self.render_state.shared_data.database,
+                        );
+
                         if !matl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
@@ -294,11 +317,7 @@ impl SsbhApp {
                                 .iter_mut()
                                 .find(|(f, _)| f == "model.numdlb")
                                 .and_then(|(_, m)| m.as_mut().ok()),
-                            model
-                                .meshes
-                                .iter()
-                                .find(|(f, _)| f == "model.numshb")
-                                .and_then(|(_, m)| m.as_ref().ok()),
+                            &validation_errors,
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
                             &self.render_state.shared_data.database,
@@ -730,7 +749,8 @@ fn list_files<T>(
     // TODO: Should this be a grid instead?
     for (i, (name, file)) in files.iter().enumerate() {
         ui.horizontal(|ui| {
-            // TODO: How to check for and store validation?
+            // TODO: How to access the appropriate validation errors?
+            // TODO: Show a yellow warning if there are validation errors.
             match file {
                 Ok(_) => {
                     empty_icon(ui);

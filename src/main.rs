@@ -260,6 +260,7 @@ fn main() {
         models: Vec::new(),
         render_models: Vec::new(),
         thumbnails: Vec::new(),
+        validation_errors: Vec::new(),
         default_thumbnails,
         should_refresh_meshes: false,
         should_show_update,

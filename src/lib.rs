@@ -13,6 +13,7 @@ pub mod app;
 mod editors;
 pub mod material;
 mod render_settings;
+pub mod validation;
 pub mod widgets;
 
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
@@ -131,7 +132,8 @@ pub fn generate_model_thumbnails(
         .iter()
         .zip(render_models)
         .map(|(model, render_model)| {
-            model.nutexbs
+            model
+                .nutexbs
                 .iter()
                 .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
                 .filter(|(_, nutexb)| nutexb.footer.layer_count == 1) // TODO: How to handle 3d/array layers?
