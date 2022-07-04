@@ -161,6 +161,36 @@ impl SsbhApp {
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }
+
+    pub fn hide_expressions(&mut self) {
+        let patterns: [&str; 34] =
+            ["blink", "attack", "ouch", "talk",
+            "capture", "ottotto", "escape", "half",
+            "pattern", "result", "harf", "hot", "heavy",
+            "voice", "fura", "catch", "cliff", "flip",
+            "bound", "down", "final", "result", "steppose",
+            "sorori", "fall", "appeal", "damage", "camerahit", "laugh",
+            "breath", "swell", "_low", "_bink", "inkmesh"];
+
+        for (i, folder) in self.models.iter().enumerate() {
+            if let Some(render_model) = self.render_models.get_mut(i) {
+                for mesh in &mut render_model.meshes {
+                    let name: &str = &mesh.name.to_lowercase();
+                    for pattern in patterns {
+                        //Default expressions
+                        if name.contains("openblink") || name.contains("belly_low") || name.contains("facen") {
+                            continue
+                        }
+
+                        //Make all other expressions invisible
+                        if name.contains(&pattern){
+                            mesh.is_visible = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl SsbhApp {
@@ -684,6 +714,11 @@ impl SsbhApp {
                 if ui.button("Render Settings").clicked() {
                     ui.close_menu();
                     self.ui_state.render_settings_open = true;
+                }
+
+                if ui.button("Hide Expressions").clicked() {
+                    ui.close_menu();
+                    self.hide_expressions();
                 }
             });
 
