@@ -211,16 +211,16 @@ pub fn generate_default_thumbnails(
     queue: &wgpu::Queue,
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
 ) -> Vec<(String, egui::TextureId)> {
-    let settings = &nutexb_wgpu::RenderSettings::default();
     let mut thumbnails: Vec<_> = default_textures
         .iter()
         .map(|(name, texture)| {
-            let rgba_texture =
-                renderer.render_to_texture_rgba(device, queue, texture, 64, 64, &settings);
-            let rgba_view = rgba_texture.create_view(&wgpu::TextureViewDescriptor::default());
-            // TODO: Does the filter mode here matter?
-            let egui_texture =
-                egui_rpass.register_native_texture(device, &rgba_view, wgpu::FilterMode::Linear);
+            // Assume the textures have the appropriate usage to work with egui.
+            // TODO: How to handle cube maps?
+            let egui_texture = egui_rpass.register_native_texture(
+                device,
+                &texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                wgpu::FilterMode::Nearest,
+            );
 
             (name.clone(), egui_texture)
         })
