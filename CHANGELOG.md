@@ -3,14 +3,17 @@
 ### Added
 * Added vertex color, nor channels, and prm channels to render settings.
 * Added the keyboard shortcut Ctrl+Shift+O for adding a folder to the workspace.
+* Added support for cube maps and 3d textures to thumbnails and the Nutexb Viewer.
 
 ### Changed
 * Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
+* The file list now shows a warning icon for files with validation errors instead of only in the editors.
 
 ### Fixed
 * Fixed a rare crash when opening Nutexb files with invalid dimensions.
 * Fixed an issue rendering models with sprite sheet params.
 * Fixed an issue where all materials showed as not having alpha testing in the material editor.
+* Fixed rendered colors for the texture "/common/shader/sfxpbs/default_diffuse2".
 
 ## 0.4.0
 ### Added

@@ -1766,7 +1766,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#1812b5c5ef62464f22687d438ac425a748c80768"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#d3a90b54a21e42f1ca8284b201872290f06b1033"
 dependencies = [
  "bytemuck",
  "log",
@@ -2636,7 +2636,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#1812b5c5ef62464f22687d438ac425a748c80768"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#d3a90b54a21e42f1ca8284b201872290f06b1033"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2957,7 +2957,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "rand",
  "static_assertions",
 ]
