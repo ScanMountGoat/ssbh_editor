@@ -171,21 +171,22 @@ impl SsbhApp {
             "bound", "down", "final", "result", "steppose",
             "sorori", "fall", "appeal", "damage", "camerahit", "laugh",
             "breath", "swell", "_low", "_bink", "inkmesh"];
+        let pattern_exceptions: [&str; 3] = ["openblink", "belly_low", "facen"];
 
-        for (i, folder) in self.models.iter().enumerate() {
-            if let Some(render_model) = self.render_models.get_mut(i) {
-                for mesh in &mut render_model.meshes {
-                    let name: &str = &mesh.name.to_lowercase();
-                    for pattern in patterns {
-                        //Default expressions
-                        if name.contains("openblink") || name.contains("belly_low") || name.contains("facen") {
-                            continue
+        for render_model in &mut self.render_models {
+            for mesh in &mut render_model.meshes {
+                let name: &str = &mesh.name.to_lowercase();
+                'pattern_search: for pattern in patterns {
+                    //Default expressions
+                    for pattern_exception in pattern_exceptions {
+                        if name.contains(&pattern_exception) {
+                            continue 'pattern_search;
                         }
+                    }
 
-                        //Make all other expressions invisible
-                        if name.contains(&pattern){
-                            mesh.is_visible = false;
-                        }
+                    //Make all other expressions invisible
+                    if name.contains(&pattern){
+                        mesh.is_visible = false;
                     }
                 }
             }
@@ -715,7 +716,9 @@ impl SsbhApp {
                     ui.close_menu();
                     self.ui_state.render_settings_open = true;
                 }
+            });
 
+            egui::menu::menu_button(ui, "Meshes", |ui| {
                 if ui.button("Hide Expressions").clicked() {
                     ui.close_menu();
                     self.hide_expressions();
