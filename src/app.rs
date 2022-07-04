@@ -163,19 +163,47 @@ impl SsbhApp {
     }
 
     pub fn hide_expressions(&mut self) {
-        let patterns: [&str; 34] =
-            ["blink", "attack", "ouch", "talk",
-            "capture", "ottotto", "escape", "half",
-            "pattern", "result", "harf", "hot", "heavy",
-            "voice", "fura", "catch", "cliff", "flip",
-            "bound", "down", "final", "result", "steppose",
-            "sorori", "fall", "appeal", "damage", "camerahit", "laugh",
-            "breath", "swell", "_low", "_bink", "inkmesh"];
+        let patterns: [&str; 34] = [
+            "blink",
+            "attack",
+            "ouch",
+            "talk",
+            "capture",
+            "ottotto",
+            "escape",
+            "half",
+            "pattern",
+            "result",
+            "harf",
+            "hot",
+            "heavy",
+            "voice",
+            "fura",
+            "catch",
+            "cliff",
+            "flip",
+            "bound",
+            "down",
+            "final",
+            "result",
+            "steppose",
+            "sorori",
+            "fall",
+            "appeal",
+            "damage",
+            "camerahit",
+            "laugh",
+            "breath",
+            "swell",
+            "_low",
+            "_bink",
+            "inkmesh",
+        ];
         let pattern_exceptions: [&str; 3] = ["openblink", "belly_low", "facen"];
 
         for render_model in &mut self.render_models {
             for mesh in &mut render_model.meshes {
-                let name: &str = &mesh.name.to_lowercase();
+                let name = &mesh.name.to_lowercase();
                 'pattern_search: for pattern in patterns {
                     //Default expressions
                     for pattern_exception in pattern_exceptions {
@@ -185,7 +213,7 @@ impl SsbhApp {
                     }
 
                     //Make all other expressions invisible
-                    if name.contains(&pattern){
+                    if name.contains(&pattern) {
                         mesh.is_visible = false;
                     }
                 }
