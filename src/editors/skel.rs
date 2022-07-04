@@ -2,6 +2,7 @@ use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
+use ssbh_data::skel_data::*;
 
 pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> bool {
     let mut open = true;
@@ -37,6 +38,7 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                         // Header
                         ui.heading("Bone");
                         ui.heading("Parent");
+                        ui.heading("Billboard Type");
                         ui.end_row();
 
                         // TODO: Do this without clone?
@@ -63,6 +65,30 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                                             &other_bone.name,
                                         );
                                     }
+                                });
+
+                                let billboard_type_str: &str = match bone.billboard_type {
+                                    BillboardType::Disabled => "Disabled",
+                                    BillboardType::XAxisViewPointAligned => "XAxisViewPointAligned",
+                                    BillboardType::YAxisViewPointAligned => "YAxisViewPointAligned",
+                                    BillboardType::Unk3 => "Unk3",
+                                    BillboardType::XYAxisViewPointAligned => "XYAxisViewPointAligned",
+                                    BillboardType::YAxisViewPlaneAligned => "YAxisViewPlaneAligned",
+                                    BillboardType::XYAxisViewPlaneAligned => "XYAxisViewPlaneAligned",
+                                    _ => "Disabled"
+                                };
+                            egui::ComboBox::from_id_source(i + 1024)
+                                .selected_text(billboard_type_str)
+                                .width(200.0)
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::Disabled, "Disabled");
+                                    ui.separator();
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::XAxisViewPointAligned, "XAxisViewPointAligned");
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::YAxisViewPointAligned, "YAxisViewPointAligned");
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::Unk3, "Unk3");
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::XYAxisViewPointAligned, "XYAxisViewPointAligned");
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::YAxisViewPlaneAligned, "YAxisViewPlaneAligned");
+                                    ui.selectable_value(&mut bone.billboard_type, BillboardType::XYAxisViewPlaneAligned, "XYAxisViewPlaneAligned");
                                 });
                             ui.end_row();
                         }
