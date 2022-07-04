@@ -161,6 +161,65 @@ impl SsbhApp {
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }
+
+    pub fn hide_expressions(&mut self) {
+        let patterns: [&str; 34] = [
+            "blink",
+            "attack",
+            "ouch",
+            "talk",
+            "capture",
+            "ottotto",
+            "escape",
+            "half",
+            "pattern",
+            "result",
+            "harf",
+            "hot",
+            "heavy",
+            "voice",
+            "fura",
+            "catch",
+            "cliff",
+            "flip",
+            "bound",
+            "down",
+            "final",
+            "result",
+            "steppose",
+            "sorori",
+            "fall",
+            "appeal",
+            "damage",
+            "camerahit",
+            "laugh",
+            "breath",
+            "swell",
+            "_low",
+            "_bink",
+            "inkmesh",
+        ];
+        let pattern_exceptions: [&str; 3] = ["openblink", "belly_low", "facen"];
+
+        for render_model in &mut self.render_models {
+            for mesh in &mut render_model.meshes {
+                let name = &mesh.name.to_lowercase();
+                'pattern_search: for pattern in patterns {
+                    //Default expressions
+                    for pattern_exception in pattern_exceptions {
+                        if name.contains(&pattern_exception) {
+                            continue 'pattern_search;
+                        }
+                    }
+
+                    //Make all other expressions invisible
+                    if name.contains(&pattern) {
+                        mesh.is_visible = false;
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl SsbhApp {
@@ -684,6 +743,13 @@ impl SsbhApp {
                 if ui.button("Render Settings").clicked() {
                     ui.close_menu();
                     self.ui_state.render_settings_open = true;
+                }
+            });
+
+            egui::menu::menu_button(ui, "Meshes", |ui| {
+                if ui.button("Hide Expressions").clicked() {
+                    ui.close_menu();
+                    self.hide_expressions();
                 }
             });
 
