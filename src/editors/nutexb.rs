@@ -70,11 +70,20 @@ pub fn nutexb_viewer(
                     );
                 }
 
-                if nutexb.footer.layer_count > 0 {
+                // TODO: Disable UI if there are no mips/layers?
+                if nutexb.footer.layer_count > 1 {
+                    // TODO: Show cube map labels like X+?
                     ui.label("Layer");
                     ui.add(
                         DragValue::new(&mut settings.layer)
                             .clamp_range(0..=nutexb.footer.layer_count - 1),
+                    );
+                } else if nutexb.footer.depth > 1 {
+                    // TODO: Show this be "Slice" instead?
+                    ui.label("Depth");
+                    ui.add(
+                        DragValue::new(&mut settings.layer)
+                            .clamp_range(0..=nutexb.footer.depth - 1),
                     );
                 }
             });

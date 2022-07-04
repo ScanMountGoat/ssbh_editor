@@ -127,8 +127,6 @@ impl Default for PanelTab {
 impl SsbhApp {
     pub fn open_folder(&mut self) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            // TODO: Sort alphabetically?
-            // TODO: Allow for opening folders with no mesh/modl?
             self.models = load_models_recursive(folder);
             self.should_refresh_meshes = true;
         }
@@ -1011,7 +1009,7 @@ fn log_window(ctx: &Context, open: &mut bool) {
                             // ui.label(message);
                             let clean_message = strip_ansi_escapes::strip(message)
                                 .map(|m| String::from_utf8_lossy(&m).to_string())
-                                .unwrap_or(message.clone());
+                                .unwrap_or_else(|_| message.clone());
                             ui.label(clean_message);
                         });
                     }

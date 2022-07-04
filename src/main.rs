@@ -207,7 +207,14 @@ fn main() {
         ssbh_editor::FONT_BYTES,
     );
 
-    let texture_renderer = TextureRenderer::new(&device, surface_format);
+    let texture_renderer = TextureRenderer::new(&device, &queue, surface_format);
+    // Make sure the texture preview is ready for accessed by the app.
+    // State is stored in a type map because of lifetime requirements.
+    // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
+    egui_rpass.paint_callback_resources.insert(TexturePainter {
+        renderer: texture_renderer,
+        texture: None,
+    });
 
     // TODO: Camera framing?
     let mut camera_state = CameraInputState {
@@ -231,13 +238,8 @@ fn main() {
 
     // TODO: How to ensure this cache remains up to date?
     // TODO: Should RenderModel expose its wgpu textures?
-    let default_thumbnails = generate_default_thumbnails(
-        &texture_renderer,
-        &default_textures,
-        &device,
-        &queue,
-        &mut egui_rpass,
-    );
+    let default_thumbnails =
+        generate_default_thumbnails(&mut egui_rpass, &default_textures, &device);
 
     // TODO: Log missing presets?
     let material_presets = load_material_presets("presets.json").unwrap_or_default();
@@ -245,14 +247,6 @@ fn main() {
     let red_checkerboard = checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 0, 0, 255]);
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
-
-    // Make sure the texture preview is ready for accessed by the app.
-    // State is stored in a type map because of lifetime requirements.
-    // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
-    egui_rpass.paint_callback_resources.insert(TexturePainter {
-        renderer: texture_renderer,
-        bind_group: None,
-    });
 
     // Track if keys like ctrl or alt are being pressed.
     let mut modifiers = ModifiersState::default();
@@ -338,6 +332,7 @@ fn main() {
                             &app.models,
                             &app.render_models,
                             &app.render_state.device,
+                            &app.render_state.queue,
                         );
                         app.should_refresh_meshes = false;
                     }
@@ -409,10 +404,18 @@ fn main() {
 
                     // Prepare the nutexb for rendering.
                     // TODO: Avoid doing this each frame.
-                    // TODO: Get textures from the RenderModel?
                     let painter: &mut TexturePainter =
                         egui_rpass.paint_callback_resources.get_mut().unwrap();
-                    painter.bind_group = get_nutexb_bind_group(&app, painter);
+                    if let Some((texture, dimension, size)) = get_nutexb_to_render(&app) {
+                        painter.renderer.update(
+                            &app.render_state.device,
+                            &app.render_state.queue,
+                            texture,
+                            *dimension,
+                            size,
+                            &app.render_state.texture_render_settings,
+                        );
+                    }
 
                     let mut encoder = app.render_state.device.create_command_encoder(
                         &wgpu::CommandEncoderDescriptor {
@@ -569,7 +572,7 @@ fn resize(
 ) {
     surface_config.width = size.width;
     surface_config.height = size.height;
-    surface.configure(&app.render_state.device, &surface_config);
+    surface.configure(&app.render_state.device, surface_config);
 
     renderer.resize(
         &app.render_state.device,
@@ -588,10 +591,9 @@ fn resize(
     );
 }
 
-fn get_nutexb_bind_group(
+fn get_nutexb_to_render(
     app: &SsbhApp,
-    painter: &TexturePainter,
-) -> Option<nutexb_wgpu::BindGroup0> {
+) -> Option<(&wgpu::Texture, &wgpu::TextureViewDimension, (u32, u32, u32))> {
     let folder_index = app.ui_state.selected_folder_index?;
     let model = app.models.get(folder_index)?;
     let render_model = app.render_models.get(folder_index)?;
@@ -600,20 +602,17 @@ fn get_nutexb_bind_group(
     let (name, nutexb) = model.nutexbs.get(app.ui_state.selected_nutexb_index?)?;
     let nutexb = nutexb.as_ref().ok()?;
 
-    // Prevent a potential crash when trying to render cube maps.
-    // TODO: Add support for cube maps to nutexb_wgpu.
-    if nutexb.footer.layer_count > 1 {
-        None
-    } else {
-        let texture = render_model.get_texture(name)?;
-
-        let bind_group = painter.renderer.create_bind_group(
-            &app.render_state.device,
-            &texture,
-            &app.render_state.texture_render_settings,
-        );
-        Some(bind_group)
-    }
+    render_model.get_texture(name).map(|(t, d)| {
+        (
+            t,
+            d,
+            (
+                nutexb.footer.width,
+                nutexb.footer.height,
+                nutexb.footer.depth,
+            ),
+        )
+    })
 }
 
 fn egui_render_pass(

@@ -19,16 +19,14 @@ pub mod widgets;
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
 // TODO: Store the current nutexb to paint?
-pub struct TexturePainter {
+pub struct TexturePainter<'a> {
     pub renderer: TextureRenderer,
-    pub bind_group: Option<nutexb_wgpu::BindGroup0>,
+    pub texture: Option<(&'a wgpu::Texture, &'a wgpu::TextureViewDimension)>,
 }
 
-impl TexturePainter {
+impl<'a> TexturePainter<'a> {
     pub fn paint<'rpass>(&'rpass self, render_pass: &mut wgpu::RenderPass<'rpass>) {
-        if let Some(bind_group) = self.bind_group.as_ref() {
-            self.renderer.render(render_pass, bind_group);
-        }
+        self.renderer.render(render_pass);
     }
 }
 
@@ -98,6 +96,9 @@ impl AnimationIndex {
 }
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
+    // TODO: Allow for opening folders with no mesh/modl?
+    // TODO: Always open the initial folder even if it is empty?
+    // TODO: Display a warning when opening an animation folder?
     let mut models = ssbh_wgpu::load_model_folders(root);
     models.sort_by_key(|m| m.folder_name.to_string());
     for model in &mut models {
@@ -127,6 +128,7 @@ pub fn generate_model_thumbnails(
     models: &[ssbh_wgpu::ModelFolder],
     render_models: &[ssbh_wgpu::RenderModel],
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
 ) -> Vec<Vec<(String, egui::TextureId)>> {
     models
         .iter()
@@ -136,18 +138,43 @@ pub fn generate_model_thumbnails(
                 .nutexbs
                 .iter()
                 .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
-                .filter(|(_, nutexb)| nutexb.footer.layer_count == 1) // TODO: How to handle 3d/array layers?
-                .filter_map(|(file_name, _)| {
+                .filter_map(|(file_name, n)| {
                     // TODO: Will this correctly handle missing thumbnails?
-                    let texture = render_model.get_texture(file_name)?;
+                    let (texture, dimension) = render_model.get_texture(file_name)?;
 
                     // Assume the textures have the appropriate usage to work with egui.
                     // TODO: How to handle cube maps?
-                    let egui_texture = egui_rpass.register_native_texture(
-                        device,
-                        &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                        wgpu::FilterMode::Nearest,
-                    );
+                    // egui is expecting a 2D RGBA texture.
+                    let egui_texture = match dimension {
+                        wgpu::TextureViewDimension::D2 => egui_rpass.register_native_texture(
+                            device,
+                            &texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                            wgpu::FilterMode::Nearest,
+                        ),
+                        _ => {
+                            let painter: &TexturePainter =
+                                egui_rpass.paint_callback_resources.get().unwrap();
+
+                            // Convert cube maps and 3d textures to 2D.
+                            let new_texture = painter.renderer.render_to_texture_2d_rgba(
+                                device,
+                                queue,
+                                texture,
+                                *dimension,
+                                (n.footer.width, n.footer.height, n.footer.depth),
+                                64,
+                                64,
+                                &nutexb_wgpu::RenderSettings::default(),
+                            );
+
+                            // We forced 2D above, so we don't need to set the descriptor dimensions.
+                            egui_rpass.register_native_texture(
+                                device,
+                                &new_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                                wgpu::FilterMode::Nearest,
+                            )
+                        }
+                    };
 
                     Some((file_name.clone(), egui_texture))
                 })
@@ -205,15 +232,13 @@ pub fn checkerboard_texture(
 }
 
 pub fn generate_default_thumbnails(
-    renderer: &TextureRenderer,
-    default_textures: &[(String, wgpu::Texture)],
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    default_textures: &[(String, wgpu::Texture, wgpu::TextureViewDimension)],
+    device: &wgpu::Device,
 ) -> Vec<(String, egui::TextureId)> {
     let mut thumbnails: Vec<_> = default_textures
         .iter()
-        .map(|(name, texture)| {
+        .map(|(name, texture, _)| {
             // Assume the textures have the appropriate usage to work with egui.
             // TODO: How to handle cube maps?
             let egui_texture = egui_rpass.register_native_texture(
