@@ -7,7 +7,8 @@
 
 ### Changed
 * Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
-* The file list now shows a warning icon for files with validation errors instead of only in the editors.
+* Adjusted the file list to show a warning icon for files with validation errors instead of only in the editors.
+* Modified the behavior of open folder to open folders without model files and not skip animation or texture folders.
 
 ### Fixed
 * Fixed a rare crash when opening Nutexb files with invalid dimensions.

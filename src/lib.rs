@@ -96,9 +96,6 @@ impl AnimationIndex {
 }
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
-    // TODO: Allow for opening folders with no mesh/modl?
-    // TODO: Always open the initial folder even if it is empty?
-    // TODO: Display a warning when opening an animation folder?
     let mut models = ssbh_wgpu::load_model_folders(root);
     models.sort_by_key(|m| m.folder_name.to_string());
     for model in &mut models {
@@ -114,6 +111,7 @@ pub fn load_model<P: AsRef<Path>>(root: P) -> ModelFolder {
 }
 
 fn sort_files(model: &mut ModelFolder) {
+    // Sort by file name for consistent ordering in the UI.
     model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
     model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
     model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
