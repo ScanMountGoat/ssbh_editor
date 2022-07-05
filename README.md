@@ -37,7 +37,7 @@ Cross Mod has been replaced by SSBH Editor. The material presets from Cross Mod 
 3. Rename the JSON file to `presets.json` and place it in the folder containing SSBH Editor.
 
 ## Building
-Prebuilt binaries are only provided for Windows at this time. Users on Linux or MacOS will need to compile from source. With the Rust toolchain installed, run `cargo build --release`. Include the provided `presets.json` with the compiled executable.
+Prebuilt binaries are only provided for Windows at this time. Users on Linux or MacOS will need to compile from source. With version 1.60 or later of the Rust toolchain installed, run `cargo build --release`. Include the provided `presets.json` with the compiled executable.
 
 ## Useful Tools
 SSBH Editor is designed for editing existing models from imports or in game. For other steps of the mod creation process, see the tools linked below.
