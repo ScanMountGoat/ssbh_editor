@@ -15,6 +15,7 @@
 * Fixed an issue rendering models with sprite sheet params.
 * Fixed an issue where all materials showed as not having alpha testing in the material editor.
 * Fixed rendered colors for the texture "/common/shader/sfxpbs/default_diffuse2".
+* Fixed an issue where some emissive materials would incorrectly render as having specular shading.
 
 ## 0.4.0
 ### Added
