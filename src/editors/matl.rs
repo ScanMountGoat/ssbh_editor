@@ -307,26 +307,31 @@ fn matl_entry_editor(
 
     // TODO: Show errors in the material selector.
     // TODO: Add a button to open the mesh editor?
-    if !validation_errors.is_empty() {
+    if validation_errors.iter().any(|e| {
+        matches!(
+            e,
+            MatlValidationError::MissingRequiredVertexAttributes { .. }
+        )
+    }) {
         ui.heading("Shader Errors");
-        if !validation_errors.is_empty() {
-            ui.label(
-                "Meshes with this material are missing these vertex attributes required by the shader.",
-            );
-            for error in validation_errors {
-                match error {
-                    MatlValidationError::MissingRequiredVertexAttributes {
-                        mesh_name,
-                        missing_attributes,
-                        ..
-                    } => {
-                        ui.horizontal(|ui| {
-                            ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
-                            ui.label(mesh_name);
-                            ui.label(missing_attributes.join(","));
-                        });
-                    }
+        // TODO: Have the display impl show the missing attributes instead?
+        ui.label(
+            "Meshes with this material are missing these vertex attributes required by the shader.",
+        );
+        for error in validation_errors {
+            match error {
+                MatlValidationError::MissingRequiredVertexAttributes {
+                    mesh_name,
+                    missing_attributes,
+                    ..
+                } => {
+                    ui.horizontal(|ui| {
+                        ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
+                        ui.label(mesh_name);
+                        ui.label(missing_attributes.join(","));
+                    });
                 }
+                _ => (),
             }
         }
 

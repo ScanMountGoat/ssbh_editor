@@ -1,6 +1,7 @@
-use std::fmt::Display;
+use std::{error::Error, fmt::Display, path::Path};
 
-use ssbh_data::prelude::*;
+use nutexb::{NutexbFile, NutexbFormat};
+use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 
 // TODO: How to update these only when a file changes?
@@ -30,6 +31,8 @@ impl ModelValidationErrors {
                 model.find_mesh(),
                 shader_database,
             );
+
+            validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
         }
         validation
     }
@@ -57,6 +60,13 @@ pub enum MatlValidationError {
         mesh_name: String,
         missing_attributes: Vec<String>,
     },
+    InvalidTextureFormat {
+        entry_index: usize,
+        material_label: String,
+        param: ParamId,
+        nutexb: String,
+        format: NutexbFormat,
+    },
 }
 
 impl Display for MatlValidationError {
@@ -69,10 +79,29 @@ impl Display for MatlValidationError {
                 ..
             } => write!(
                 f,
-                "Mesh {} is missing {} attributes required by assigned material {}",
+                "Mesh {:?} is missing {} attributes required by assigned material {:?}.",
                 mesh_name,
                 missing_attributes.len(),
                 material_label
+            ),
+            MatlValidationError::InvalidTextureFormat {
+                material_label,
+                param,
+                nutexb,
+                format,
+                ..
+            } => write!(
+                f,
+                "Texture {:?} for material {:?} has format {:?}, but {} {} an sRGB format.",
+                nutexb,
+                material_label,
+                format,
+                param,
+                if expects_srgb(*param) {
+                    "expects"
+                } else {
+                    "does not expect"
+                }
             ),
         }
     }
@@ -84,6 +113,7 @@ impl MatlValidationError {
         // The material label in user created files isn't always unique.
         match self {
             Self::MissingRequiredVertexAttributes { entry_index, .. } => *entry_index,
+            Self::InvalidTextureFormat { entry_index, .. } => *entry_index,
         }
     }
 }
@@ -175,14 +205,94 @@ fn validate_required_attributes(
     }
 }
 
+fn validate_texture_format_usage(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    nutexbs: &[(String, Result<NutexbFile, Box<dyn Error>>)],
+) {
+    // define an expected is_srgb for each texture
+    // for each material texture, get the nutexb format
+    // TODO: Errors for both matl and nutexb?
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        for texture in &entry.textures {
+            if let Some((f, Ok(nutexb))) = nutexbs.iter().find(|(f, _)| {
+                Path::new(f)
+                    .with_extension("")
+                    .as_os_str()
+                    .eq_ignore_ascii_case(&texture.data)
+            }) {
+                // Check for sRGB mismatches.
+                if expects_srgb(texture.param_id) != is_srgb(nutexb.footer.image_format) {
+                    let error = MatlValidationError::InvalidTextureFormat {
+                        entry_index,
+                        material_label: entry.material_label.clone(),
+                        param: texture.param_id,
+                        nutexb: f.to_string(),
+                        format: nutexb.footer.image_format,
+                    };
+
+                    validation.matl_errors.push(error);
+                }
+            }
+        }
+    }
+}
+
+fn expects_srgb(texture: ParamId) -> bool {
+    // These formats will render inaccurately with sRGB.
+    return !matches!(
+        texture,
+        ParamId::Texture2
+            | ParamId::Texture4
+            | ParamId::Texture6
+            | ParamId::Texture7
+            | ParamId::Texture16
+    );
+}
+
+fn is_srgb(format: NutexbFormat) -> bool {
+    return matches!(
+        format,
+        NutexbFormat::R8G8B8A8Srgb
+            | NutexbFormat::B8G8R8A8Srgb
+            | NutexbFormat::BC1Srgb
+            | NutexbFormat::BC2Srgb
+            | NutexbFormat::BC3Srgb
+            | NutexbFormat::BC7Srgb
+    );
+}
+
 #[cfg(test)]
 mod tests {
+    use nutexb::{NutexbFile, NutexbFooter, NutexbFormat};
     use ssbh_data::{
-        matl_data::MatlEntryData, mesh_data::MeshObjectData, modl_data::ModlEntryData,
+        matl_data::{MatlEntryData, TextureParam},
+        mesh_data::MeshObjectData,
+        modl_data::ModlEntryData,
     };
     use ssbh_wgpu::create_database;
 
     use super::*;
+
+    fn nutexb(image_format: NutexbFormat) -> NutexbFile {
+        NutexbFile {
+            data: Vec::new(),
+            layer_mipmaps: Vec::new(),
+            footer: NutexbFooter {
+                string: Vec::new().into(),
+                width: 1,
+                height: 1,
+                depth: 1,
+                image_format,
+                unk2: 1,
+                mipmap_count: 1,
+                unk3: 1,
+                layer_count: 1,
+                data_size: 0,
+                version: (1, 2),
+            },
+        }
+    }
 
     #[test]
     fn required_attributes_all_missing() {
@@ -244,6 +354,77 @@ mod tests {
                 missing_attributes: vec!["map1".to_string(), "uvSet".to_string()]
             }],
             validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Mesh "object1" is missing 2 attributes required by assigned material "a"."#,
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn texture_format_usage_all_invalid() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_string(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: vec![
+                    TextureParam {
+                        param_id: ParamId::Texture0,
+                        data: "texture0".to_string(),
+                    },
+                    TextureParam {
+                        param_id: ParamId::Texture4,
+                        data: "texture4".to_string(),
+                    },
+                ],
+            }],
+        };
+
+        let textures = vec![
+            ("texture0".to_string(), Ok(nutexb(NutexbFormat::BC1Unorm))),
+            ("texture4".to_string(), Ok(nutexb(NutexbFormat::BC2Srgb))),
+        ];
+
+        let mut validation = ModelValidationErrors::default();
+        validate_texture_format_usage(&mut validation, &matl, &textures);
+
+        // TODO: Add a nutexb error as well?
+        assert_eq!(
+            vec![
+                MatlValidationError::InvalidTextureFormat {
+                    entry_index: 0,
+                    material_label: "a".to_string(),
+                    param: ParamId::Texture0,
+                    nutexb: "texture0".to_string(),
+                    format: NutexbFormat::BC1Unorm
+                },
+                MatlValidationError::InvalidTextureFormat {
+                    entry_index: 0,
+                    material_label: "a".to_string(),
+                    param: ParamId::Texture4,
+                    nutexb: "texture4".to_string(),
+                    format: NutexbFormat::BC2Srgb
+                }
+            ],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Texture "texture0" for material "a" has format BC1Unorm, but Texture0 expects an sRGB format."#,
+            format!("{}", validation.matl_errors[0])
+        );
+        assert_eq!(
+            r#"Texture "texture4" for material "a" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
+            format!("{}", validation.matl_errors[1])
         );
     }
 }

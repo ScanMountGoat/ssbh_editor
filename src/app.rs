@@ -806,13 +806,12 @@ fn list_files<T, E: std::fmt::Display>(
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
                     if !validation_errors.is_empty() && Some(name.as_str()) == required_file {
-                        // TODO: How to access the appropriate validation errors?
                         let mut message = "Validation Errors:\n".to_string();
                         message += &validation_errors
                             .iter()
                             .map(|e| format!("{}", e))
                             .collect::<Vec<_>>()
-                            .join(",\n");
+                            .join("\n");
 
                         warning_icon_with_tooltip(ui, &message);
                     } else {
@@ -824,7 +823,7 @@ fn list_files<T, E: std::fmt::Display>(
                     }
                 }
                 Err(_) => {
-                    // TODO: Investigate a cleaner way to show binrw backtrace errors.
+                    // TODO: Investigate a cleaner way to summarize errors.
                     // Don't show the full error for now to avoid showing lots of text.
                     error_icon(ui);
                     ui.label(RichText::new(name).color(ERROR_COLOR))
