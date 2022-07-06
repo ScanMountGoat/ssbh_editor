@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 
@@ -34,29 +36,92 @@ impl ModelValidationErrors {
 }
 
 pub struct MeshValidationError;
+impl Display for MeshValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 pub struct SkelValidationError;
+impl Display for SkelValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MatlValidationError {
     MissingRequiredVertexAttributes {
         entry_index: usize,
+        material_label: String,
         mesh_name: String,
         missing_attributes: Vec<String>,
     },
 }
 
+impl Display for MatlValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MatlValidationError::MissingRequiredVertexAttributes {
+                material_label,
+                mesh_name,
+                missing_attributes,
+                ..
+            } => write!(
+                f,
+                "Mesh {} is missing {} attributes required by assigned material {}",
+                mesh_name,
+                missing_attributes.len(),
+                material_label
+            ),
+        }
+    }
+}
+
 impl MatlValidationError {
     pub fn entry_index(&self) -> usize {
+        // Use the index to associate errors to entries.
+        // The material label in user created files isn't always unique.
         match self {
             Self::MissingRequiredVertexAttributes { entry_index, .. } => *entry_index,
         }
     }
 }
+
 pub struct ModlValidationError;
+impl Display for ModlValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 pub struct AdjValidationError;
+impl Display for AdjValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 pub struct AnimValidationError;
+impl Display for AnimValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 pub struct HlpbValidationError;
+impl Display for HlpbValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 pub struct NutexbValidationError;
+impl Display for NutexbValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
 
 fn validate_required_attributes(
     validation: &mut ModelValidationErrors,
@@ -95,6 +160,7 @@ fn validate_required_attributes(
                         if !missing_attributes.is_empty() {
                             let error = MatlValidationError::MissingRequiredVertexAttributes {
                                 entry_index,
+                                material_label: entry.material_label.clone(),
                                 mesh_name: o.name.clone(),
                                 missing_attributes,
                             };
@@ -173,6 +239,7 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError::MissingRequiredVertexAttributes {
                 entry_index: 0,
+                material_label: "a".to_string(),
                 mesh_name: "object1".to_string(),
                 missing_attributes: vec!["map1".to_string(), "uvSet".to_string()]
             }],

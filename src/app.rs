@@ -544,7 +544,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_mesh_index,
                                 required_file("model.numshb"),
-                                !validation.mesh_errors.is_empty(),
+                                &validation.mesh_errors,
                             );
 
                             list_files(
@@ -554,7 +554,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_skel_index,
                                 required_file("model.nusktb"),
-                                !validation.skel_errors.is_empty(),
+                                &validation.skel_errors,
                             );
 
                             list_files(
@@ -564,7 +564,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_hlpb_index,
                                 None,
-                                !validation.hlpb_errors.is_empty(),
+                                &validation.hlpb_errors,
                             );
 
                             list_files(
@@ -574,7 +574,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_matl_index,
                                 required_file("model.numatb"),
-                                !validation.matl_errors.is_empty(),
+                                &validation.matl_errors,
                             );
 
                             list_files(
@@ -584,7 +584,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_modl_index,
                                 required_file("model.numdlb"),
-                                !validation.modl_errors.is_empty(),
+                                &validation.modl_errors,
                             );
 
                             for (i, (name, _)) in model.anims.iter().enumerate() {
@@ -789,14 +789,14 @@ fn folder_display_name(model: &ModelFolder) -> String {
         .unwrap_or_default()
 }
 
-fn list_files<T>(
+fn list_files<T, E: std::fmt::Display>(
     ui: &mut Ui,
     files: &[(String, Result<T, Box<dyn Error>>)],
     folder_index: usize,
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
     required_file: Option<&'static str>,
-    has_validation_errors: bool,
+    validation_errors: &[E],
 ) {
     // TODO: Should this be a grid instead?
     for (i, (name, file)) in files.iter().enumerate() {
@@ -805,12 +805,16 @@ fn list_files<T>(
                 Ok(_) => {
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
-                    if has_validation_errors && Some(name.as_str()) == required_file {
+                    if !validation_errors.is_empty() && Some(name.as_str()) == required_file {
                         // TODO: How to access the appropriate validation errors?
-                        warning_icon_with_tooltip(
-                            ui,
-                            "The file contains errors. Open the editor for details.",
-                        );
+                        let mut message = "Validation Errors:\n".to_string();
+                        message += &validation_errors
+                            .iter()
+                            .map(|e| format!("{}", e))
+                            .collect::<Vec<_>>()
+                            .join(",\n");
+
+                        warning_icon_with_tooltip(ui, &message);
                     } else {
                         empty_icon(ui);
                     }
