@@ -79,9 +79,9 @@ impl Display for MatlValidationError {
                 ..
             } => write!(
                 f,
-                "Mesh {:?} is missing {} attributes required by assigned material {:?}.",
+                "Mesh {:?} is missing attributes {} required by assigned material {:?}.",
                 mesh_name,
-                missing_attributes.len(),
+                missing_attributes.join(", "),
                 material_label
             ),
             MatlValidationError::InvalidTextureFormat {
@@ -357,7 +357,7 @@ mod tests {
         );
 
         assert_eq!(
-            r#"Mesh "object1" is missing 2 attributes required by assigned material "a"."#,
+            r#"Mesh "object1" is missing attributes map1, uvSet required by assigned material "a"."#,
             format!("{}", validation.matl_errors[0])
         );
     }

@@ -815,6 +815,7 @@ fn list_files<T, E: std::fmt::Display>(
 
                         warning_icon_with_tooltip(ui, &message);
                     } else {
+                        // TODO: This doesn't have the same size as the others?
                         empty_icon(ui);
                     }
                     if ui.button(name.clone()).clicked() {

@@ -314,7 +314,6 @@ fn matl_entry_editor(
         )
     }) {
         ui.heading("Shader Errors");
-        // TODO: Have the display impl show the missing attributes instead?
         ui.label(
             "Meshes with this material are missing these vertex attributes required by the shader.",
         );
