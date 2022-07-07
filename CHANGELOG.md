@@ -4,6 +4,7 @@
 * Added vertex color, nor channels, and prm channels to render settings.
 * Added the keyboard shortcut Ctrl+Shift+O for adding a folder to the workspace.
 * Added support for cube maps and 3d textures to thumbnails and the Nutexb Viewer.
+* Added the ability to edit the billboard type to the skel editor.
 
 ### Changed
 * Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
