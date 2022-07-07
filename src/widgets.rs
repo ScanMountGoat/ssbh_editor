@@ -90,7 +90,9 @@ pub fn enum_combo_box<V>(
     V: PartialEq + strum::VariantNames + ToString + FromStr,
     <V as FromStr>::Err: std::fmt::Debug,
 {
-    ui.label(label);
+    if label != "" {
+        ui.label(label);
+    }
 
     egui::ComboBox::from_id_source(id_source)
         .width(200.0)
