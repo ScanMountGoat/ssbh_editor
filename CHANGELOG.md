@@ -5,6 +5,7 @@
 * Added the keyboard shortcut Ctrl+Shift+O for adding a folder to the workspace.
 * Added support for cube maps and 3d textures to thumbnails and the Nutexb Viewer.
 * Added the ability to edit the billboard type to the skel editor.
+* Added a validation check for invalid nutexb texture formats such as a nor texture using BC7Srgb instead of Bc7Unorm.
 
 ### Changed
 * Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
@@ -13,8 +14,8 @@
 
 ### Fixed
 * Fixed a rare crash when opening Nutexb files with invalid dimensions.
-* Fixed an issue rendering models with sprite sheet params.
-* Fixed an issue where all materials showed as not having alpha testing in the material editor.
+* Fixed inaccurate UVs when rendering models with sprite sheet params.
+* Fixed an issue where all materials had alpha testing disabled in the viewport and matl editor.
 * Fixed rendered colors for the texture "/common/shader/sfxpbs/default_diffuse2".
 * Fixed an issue where some emissive materials would incorrectly render as having specular shading.
 
