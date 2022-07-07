@@ -17,7 +17,6 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - Preview stage rendering and lighting data
 - Settings to adjust UI scaling for better readability
 - Improved spacing and consistency for UI
-- Support for cube maps and 3D textures in Nutexb viewer and thumbnails
 - Support for model.nuanmb and applying animations to specific folders
 
 ## Getting Started
