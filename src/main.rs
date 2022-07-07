@@ -500,18 +500,21 @@ fn main() {
 
                     match event {
                         winit::event::WindowEvent::Resized(_) => {
-                            // Use the window size to avoid a potential error from size mismatches.
-                            size = window.inner_size();
+                            // The dimensions must both be non-zero before resizing.
+                            if window.inner_size().width > 0 && window.inner_size().height > 0 {
+                                // Use the window size to avoid a potential error from size mismatches.
+                                size = window.inner_size();
 
-                            resize(
-                                &mut renderer,
-                                &mut surface_config,
-                                &size,
-                                window.scale_factor(),
-                                &surface,
-                                &app,
-                                &camera_state,
-                            );
+                                resize(
+                                    &mut renderer,
+                                    &mut surface_config,
+                                    &size,
+                                    window.scale_factor(),
+                                    &surface,
+                                    &app,
+                                    &camera_state,
+                                );
+                            }
                         }
                         winit::event::WindowEvent::CloseRequested => {
                             // TODO: Create an app.exit() method?

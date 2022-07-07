@@ -18,6 +18,7 @@
 * Fixed an issue where all materials had alpha testing disabled in the viewport and matl editor.
 * Fixed rendered colors for the texture "/common/shader/sfxpbs/default_diffuse2".
 * Fixed an issue where some emissive materials would incorrectly render as having specular shading.
+* Fixed a crash when minimizing the window.
 
 ## 0.4.0
 ### Added
