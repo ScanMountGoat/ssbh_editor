@@ -284,216 +284,217 @@ fn main() {
         move |event: winit::event::Event<'_, usize>, _, control_flow| {
             match event {
                 winit::event::Event::RedrawRequested(..) => {
-                    let raw_input = winit_state.take_egui_input(&window);
+                    // Don't render if the application window is minimized.
+                    if window.inner_size().width > 0 && window.inner_size().height > 0 {
+                        let raw_input = winit_state.take_egui_input(&window);
 
-                    // Always update the frame times even if no animation is playing.
-                    // This avoids skipping when resuming playback.
-                    let current_frame_start = std::time::Instant::now();
+                        // Always update the frame times even if no animation is playing.
+                        // This avoids skipping when resuming playback.
+                        let current_frame_start = std::time::Instant::now();
 
-                    let final_frame_index = app.max_final_frame_index();
+                        let final_frame_index = app.max_final_frame_index();
 
-                    if app.animation_state.is_playing {
-                        app.animation_state.current_frame = next_frame(
-                            app.animation_state.current_frame,
-                            app.animation_state.previous_frame_start,
-                            current_frame_start,
-                            final_frame_index,
-                        );
-                    }
-                    app.animation_state.previous_frame_start = current_frame_start;
-
-                    let output_frame = match surface.get_current_texture() {
-                        Ok(frame) => frame,
-                        Err(e) => {
-                            eprintln!("Dropped frame with error: {}", e);
-                            return;
+                        if app.animation_state.is_playing {
+                            app.animation_state.current_frame = next_frame(
+                                app.animation_state.current_frame,
+                                app.animation_state.previous_frame_start,
+                                current_frame_start,
+                                final_frame_index,
+                            );
                         }
-                    };
-                    let output_view = output_frame
-                        .texture
-                        .create_view(&wgpu::TextureViewDescriptor::default());
+                        app.animation_state.previous_frame_start = current_frame_start;
 
-                    // TODO: Load models on a separate thread to avoid freezing the UI.
-                    if app.should_refresh_meshes {
-                        app.render_models = ssbh_wgpu::load_render_models(
-                            &app.render_state.device,
-                            &app.render_state.queue,
-                            &app.models,
-                            &app.render_state.shared_data,
-                        );
-                        app.validation_errors = app
-                            .models
-                            .iter()
-                            .map(|_| ModelValidationErrors::default())
-                            .collect();
+                        let output_frame = match surface.get_current_texture() {
+                            Ok(frame) => frame,
+                            Err(e) => {
+                                eprintln!("Dropped frame with error: {}", e);
+                                return;
+                            }
+                        };
+                        let output_view = output_frame
+                            .texture
+                            .create_view(&wgpu::TextureViewDescriptor::default());
 
-                        app.thumbnails = generate_model_thumbnails(
-                            &mut egui_rpass,
-                            &app.models,
-                            &app.render_models,
-                            &app.render_state.device,
-                            &app.render_state.queue,
-                        );
-                        app.should_refresh_meshes = false;
-                    }
+                        // TODO: Load models on a separate thread to avoid freezing the UI.
+                        if app.should_refresh_meshes {
+                            app.render_models = ssbh_wgpu::load_render_models(
+                                &app.render_state.device,
+                                &app.render_state.queue,
+                                &app.models,
+                                &app.render_state.shared_data,
+                            );
+                            app.validation_errors = app
+                                .models
+                                .iter()
+                                .map(|_| ModelValidationErrors::default())
+                                .collect();
 
-                    if app.should_refresh_render_settings {
-                        renderer.update_render_settings(
-                            &app.render_state.queue,
-                            &app.render_state.render_settings,
-                        );
-                        app.should_refresh_render_settings = false;
-                    }
+                            app.thumbnails = generate_model_thumbnails(
+                                &mut egui_rpass,
+                                &app.models,
+                                &app.render_models,
+                                &app.render_state.device,
+                                &app.render_state.queue,
+                            );
+                            app.should_refresh_meshes = false;
+                        }
 
-                    // TODO: Only calculate validation on changes.
-                    for (model, validation) in
-                        app.models.iter().zip(app.validation_errors.iter_mut())
-                    {
-                        *validation = ModelValidationErrors::from_model(
-                            model,
-                            &app.render_state.shared_data.database,
-                        );
-                    }
+                        if app.should_refresh_render_settings {
+                            renderer.update_render_settings(
+                                &app.render_state.queue,
+                                &app.render_state.render_settings,
+                            );
+                            app.should_refresh_render_settings = false;
+                        }
 
-                    // TODO: How to handle model.nuanmb?
-                    if app.animation_state.is_playing
-                        || app.animation_state.animation_frame_was_changed
-                    {
-                        for (render_model, model) in
-                            app.render_models.iter_mut().zip(app.models.iter())
+                        // TODO: Only calculate validation on changes.
+                        for (model, validation) in
+                            app.models.iter().zip(app.validation_errors.iter_mut())
                         {
-                            let animations =
-                                app.animation_state
-                                    .animations
-                                    .iter()
-                                    .filter_map(|anim_index| {
+                            *validation = ModelValidationErrors::from_model(
+                                model,
+                                &app.render_state.shared_data.database,
+                            );
+                        }
+
+                        // TODO: How to handle model.nuanmb?
+                        if app.animation_state.is_playing
+                            || app.animation_state.animation_frame_was_changed
+                        {
+                            for (render_model, model) in
+                                app.render_models.iter_mut().zip(app.models.iter())
+                            {
+                                let animations = app.animation_state.animations.iter().filter_map(
+                                    |anim_index| {
                                         AnimationIndex::get_animation(
                                             anim_index.as_ref(),
                                             &app.models,
                                         )
                                         .and_then(|(_, a)| a.as_ref().ok())
-                                    });
+                                    },
+                                );
 
-                            // TODO: Make frame timing logic in ssbh_wgpu public?
-                            render_model.apply_anim(
+                                // TODO: Make frame timing logic in ssbh_wgpu public?
+                                render_model.apply_anim(
+                                    &app.render_state.device,
+                                    &app.render_state.queue,
+                                    animations,
+                                    model
+                                        .skels
+                                        .iter()
+                                        .find(|(f, _)| f == "model.nusktb")
+                                        .and_then(|(_, m)| m.as_ref().ok()),
+                                    model
+                                        .matls
+                                        .iter()
+                                        .find(|(f, _)| f == "model.numatb")
+                                        .and_then(|(_, m)| m.as_ref().ok()),
+                                    model
+                                        .hlpbs
+                                        .iter()
+                                        .find(|(f, _)| f == "model.nuhlpb")
+                                        .and_then(|(_, m)| m.as_ref().ok()),
+                                    app.animation_state.current_frame,
+                                    &app.render_state.shared_data,
+                                );
+                            }
+
+                            app.animation_state.animation_frame_was_changed = false;
+                        }
+
+                        // Prepare the nutexb for rendering.
+                        // TODO: Avoid doing this each frame.
+                        let painter: &mut TexturePainter =
+                            egui_rpass.paint_callback_resources.get_mut().unwrap();
+                        if let Some((texture, dimension, size)) = get_nutexb_to_render(&app) {
+                            painter.renderer.update(
                                 &app.render_state.device,
                                 &app.render_state.queue,
-                                animations,
-                                model
-                                    .skels
-                                    .iter()
-                                    .find(|(f, _)| f == "model.nusktb")
-                                    .and_then(|(_, m)| m.as_ref().ok()),
-                                model
-                                    .matls
-                                    .iter()
-                                    .find(|(f, _)| f == "model.numatb")
-                                    .and_then(|(_, m)| m.as_ref().ok()),
-                                model
-                                    .hlpbs
-                                    .iter()
-                                    .find(|(f, _)| f == "model.nuhlpb")
-                                    .and_then(|(_, m)| m.as_ref().ok()),
-                                app.animation_state.current_frame,
-                                &app.render_state.shared_data,
+                                texture,
+                                *dimension,
+                                size,
+                                &app.render_state.texture_render_settings,
                             );
                         }
 
-                        app.animation_state.animation_frame_was_changed = false;
-                    }
-
-                    // Prepare the nutexb for rendering.
-                    // TODO: Avoid doing this each frame.
-                    let painter: &mut TexturePainter =
-                        egui_rpass.paint_callback_resources.get_mut().unwrap();
-                    if let Some((texture, dimension, size)) = get_nutexb_to_render(&app) {
-                        painter.renderer.update(
-                            &app.render_state.device,
-                            &app.render_state.queue,
-                            texture,
-                            *dimension,
-                            size,
-                            &app.render_state.texture_render_settings,
+                        let mut encoder = app.render_state.device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor {
+                                label: Some("Render Encoder"),
+                            },
                         );
-                    }
 
-                    let mut encoder = app.render_state.device.create_command_encoder(
-                        &wgpu::CommandEncoderDescriptor {
-                            label: Some("Render Encoder"),
-                        },
-                    );
-
-                    // First we draw the 3D viewport and main background color.
-                    // TODO: Customizeable background color for the renderer?
-                    renderer.render_ssbh_passes(
-                        &mut encoder,
-                        &output_view,
-                        &app.render_models,
-                        &app.render_state.shared_data.database,
-                    );
-
-                    // TODO: Avoid calculating the MVP matrix every frame.
-                    let (_, _, mvp) = calculate_mvp(
-                        size,
-                        camera_state.translation_xyz,
-                        camera_state.rotation_xyz,
-                    );
-
-                    // TODO: Make the font size configurable.
-                    let skels: Vec<_> = app.models.iter().map(|m| m.find_skel()).collect();
-                    let bone_text_commands = if app.draw_skeletons {
-                        renderer.render_skeleton(
-                            &app.render_state.device,
-                            &app.render_state.queue,
+                        // First we draw the 3D viewport and main background color.
+                        // TODO: Customizeable background color for the renderer?
+                        renderer.render_ssbh_passes(
                             &mut encoder,
                             &output_view,
                             &app.render_models,
-                            &skels,
-                            size.width,
-                            size.height,
-                            mvp,
-                            if app.draw_bone_names {
-                                Some(18.0 * window.scale_factor() as f32)
-                            } else {
-                                None
+                            &app.render_state.shared_data.database,
+                        );
+
+                        // TODO: Avoid calculating the MVP matrix every frame.
+                        let (_, _, mvp) = calculate_mvp(
+                            size,
+                            camera_state.translation_xyz,
+                            camera_state.rotation_xyz,
+                        );
+
+                        // TODO: Make the font size configurable.
+                        let skels: Vec<_> = app.models.iter().map(|m| m.find_skel()).collect();
+                        let bone_text_commands = if app.draw_skeletons {
+                            renderer.render_skeleton(
+                                &app.render_state.device,
+                                &app.render_state.queue,
+                                &mut encoder,
+                                &output_view,
+                                &app.render_models,
+                                &skels,
+                                size.width,
+                                size.height,
+                                mvp,
+                                if app.draw_bone_names {
+                                    Some(18.0 * window.scale_factor() as f32)
+                                } else {
+                                    None
+                                },
+                            )
+                        } else {
+                            None
+                        };
+
+                        // TODO: Find a better way to avoid drawing bone names over the UI.
+                        let mut egui_encoder = app.render_state.device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor {
+                                label: Some("egui Render Encoder"),
                             },
-                        )
-                    } else {
-                        None
-                    };
+                        );
 
-                    // TODO: Find a better way to avoid drawing bone names over the UI.
-                    let mut egui_encoder = app.render_state.device.create_command_encoder(
-                        &wgpu::CommandEncoderDescriptor {
-                            label: Some("egui Render Encoder"),
-                        },
-                    );
+                        egui_render_pass(
+                            &ctx,
+                            raw_input,
+                            &mut winit_state,
+                            &window,
+                            &surface_config,
+                            &mut egui_rpass,
+                            &mut app,
+                            &mut egui_encoder,
+                            output_view,
+                        );
 
-                    egui_render_pass(
-                        &ctx,
-                        raw_input,
-                        &mut winit_state,
-                        &window,
-                        &surface_config,
-                        &mut egui_rpass,
-                        &mut app,
-                        &mut egui_encoder,
-                        output_view,
-                    );
-
-                    // Submit the commands.
-                    app.render_state.queue.submit(iter::once(encoder.finish()));
-                    if let Some(bone_text_commands) = bone_text_commands {
+                        // Submit the commands.
+                        app.render_state.queue.submit(iter::once(encoder.finish()));
+                        if let Some(bone_text_commands) = bone_text_commands {
+                            app.render_state
+                                .queue
+                                .submit(iter::once(bone_text_commands));
+                        }
                         app.render_state
                             .queue
-                            .submit(iter::once(bone_text_commands));
-                    }
-                    app.render_state
-                        .queue
-                        .submit(iter::once(egui_encoder.finish()));
+                            .submit(iter::once(egui_encoder.finish()));
 
-                    // Present the final rendered image.
-                    output_frame.present();
+                        // Present the final rendered image.
+                        output_frame.present();
+                    }
                 }
                 winit::event::Event::WindowEvent { event, .. } => {
                     winit_state.on_event(&ctx, &event);
