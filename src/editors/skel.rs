@@ -1,3 +1,4 @@
+use crate::widgets::enum_combo_box;
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
@@ -37,6 +38,7 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                         // Header
                         ui.heading("Bone");
                         ui.heading("Parent");
+                        ui.heading("Billboard Type");
                         ui.end_row();
 
                         // TODO: Do this without clone?
@@ -64,6 +66,9 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                                         );
                                     }
                                 });
+
+                            enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
+
                             ui.end_row();
                         }
                     });
