@@ -1,16 +1,18 @@
 # ssbh_editor changelog
-## unreleased
+## 0.4.1
 ### Added
 * Added vertex color, nor channels, and prm channels to render settings.
 * Added the keyboard shortcut Ctrl+Shift+O for adding a folder to the workspace.
 * Added support for cube maps and 3d textures to thumbnails and the Nutexb Viewer.
 * Added the ability to edit the billboard type to the skel editor.
 * Added a validation check for invalid nutexb texture formats such as a nor texture using Bc7Srgb instead of Bc7Unorm.
+* Added the ability to hide fighter expressions with Meshes > Hide Expressions.
 
 ### Changed
 * Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
 * Adjusted the file list to show a warning icon for files with validation errors instead of only in the editors.
 * Modified the behavior of open folder to open folders without model files and not skip animation or texture folders.
+* Reduced GPU usage while the application is minimized.
 
 ### Fixed
 * Fixed a rare crash when opening Nutexb files with invalid dimensions.
