@@ -7,6 +7,7 @@
 * Added the ability to edit the billboard type to the skel editor.
 * Added a validation check for invalid nutexb texture formats such as a nor texture using Bc7Srgb instead of Bc7Unorm.
 * Added the ability to hide fighter expressions with Meshes > Hide Expressions.
+* Added an option to hide the UI panels.
 
 ### Changed
 * Changed the meshes list to better show that meshes are hidden when the parent folder is hidden.
