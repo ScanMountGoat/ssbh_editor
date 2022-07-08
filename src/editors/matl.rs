@@ -125,6 +125,7 @@ fn preset_window(
     let mut open = ui_state.preset_window_open;
     Window::new("Select Material Preset")
         .open(&mut ui_state.preset_window_open)
+        .resizable(false)
         .show(ctx, |ui| {
             for (i, preset) in material_presets.iter().enumerate() {
                 ui.selectable_value(
