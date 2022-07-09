@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use egui::color::linear_f32_from_gamma_u8;
+use log::error;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
@@ -109,6 +110,11 @@ fn get_latest_release() -> Option<Release> {
 }
 
 fn main() {
+    // Initialize logging.
+    log::set_logger(&*ssbh_editor::app::LOGGER)
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .unwrap();
+
     let event_loop = winit::event_loop::EventLoop::with_user_event();
     let window = winit::window::WindowBuilder::new()
         .with_decorations(true)
@@ -241,8 +247,12 @@ fn main() {
     let default_thumbnails =
         generate_default_thumbnails(&mut egui_rpass, &default_textures, &device);
 
-    // TODO: Log missing presets?
-    let material_presets = load_material_presets("presets.json").unwrap_or_default();
+    let material_presets = load_material_presets("presets.json")
+        .map_err(|e| {
+            error!("Failed to load presets.json: {}", e);
+            e
+        })
+        .unwrap_or_default();
 
     let red_checkerboard = checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 0, 0, 255]);
     let yellow_checkerboard =
@@ -273,11 +283,6 @@ fn main() {
         show_right_panel: true,
         show_bottom_panel: true,
     };
-
-    // Initialize logging.
-    log::set_logger(&*ssbh_editor::app::LOGGER)
-        .map(|()| log::set_max_level(log::LevelFilter::Info))
-        .unwrap();
 
     // TODO: Does the T in the the event type matter here?
     event_loop.run(

@@ -128,23 +128,27 @@ fn preset_window(
         .open(&mut ui_state.preset_window_open)
         .resizable(false)
         .show(ctx, |ui| {
-            for (i, preset) in material_presets.iter().enumerate() {
-                ui.selectable_value(
-                    &mut ui_state.selected_material_preset_index,
-                    i,
-                    &preset.material_label,
-                );
-            }
-
-            if ui.button("Apply").clicked() {
-                if let Some(preset) = material_presets.get(ui_state.selected_material_preset_index)
-                {
-                    if let Some(entry) = entry {
-                        *entry = apply_preset(entry, preset);
-                    }
+            if material_presets.is_empty() {
+                ui.label("No material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
+            } else {
+                for (i, preset) in material_presets.iter().enumerate() {
+                    ui.selectable_value(
+                        &mut ui_state.selected_material_preset_index,
+                        i,
+                        &preset.material_label,
+                    );
                 }
 
-                open = false;
+                if ui.button("Apply").clicked() {
+                    if let Some(preset) = material_presets.get(ui_state.selected_material_preset_index)
+                    {
+                        if let Some(entry) = entry {
+                            *entry = apply_preset(entry, preset);
+                        }
+                    }
+
+                    open = false;
+                }
             }
         });
     open
