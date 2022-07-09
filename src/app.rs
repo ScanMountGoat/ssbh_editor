@@ -360,7 +360,7 @@ impl SsbhApp {
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
                             &self.render_state.shared_data.database,
-                            &self.material_presets,
+                            &mut self.material_presets,
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         ) {

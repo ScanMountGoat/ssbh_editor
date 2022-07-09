@@ -4,6 +4,7 @@ use log::error;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
+use ssbh_data::matl_data::MatlData;
 use ssbh_editor::app::{SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::validation::ModelValidationErrors;
@@ -523,12 +524,7 @@ fn main() {
                             }
                         }
                         winit::event::WindowEvent::CloseRequested => {
-                            // TODO: Create an app.exit() method?
-                            // TODO: Use json to support more settings.
-                            // TODO: Where to store this on mac/linux?
-                            std::fs::write("ssbh_editor_config.txt", update_check_time.to_string())
-                                .unwrap();
-
+                            exit_application(&mut app, update_check_time);
                             *control_flow = ControlFlow::Exit;
                         }
                         winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
@@ -568,6 +564,22 @@ fn main() {
             }
         },
     );
+}
+
+fn exit_application(app: &mut SsbhApp, update_check_time: DateTime<Utc>) {
+    // TODO: Handle errors and write to log file?
+    // TODO: Use json to support more settings.
+    // TODO: Where to store this on mac/linux?
+    std::fs::write("ssbh_editor_config.txt", update_check_time.to_string()).unwrap();
+
+    // TODO: Add this to a preset editor instead.
+    let presets_json = serde_json::to_string_pretty(&MatlData {
+        major_version: 1,
+        minor_version: 6,
+        entries: app.material_presets.clone(),
+    })
+    .unwrap();
+    std::fs::write("presets.json", presets_json).unwrap();
 }
 
 fn resize(

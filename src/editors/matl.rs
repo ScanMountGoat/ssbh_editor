@@ -26,7 +26,7 @@ pub fn matl_editor(
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     shader_database: &ShaderDatabase,
-    material_presets: &[MatlEntryData],
+    material_presets: &mut Vec<MatlEntryData>,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
 ) -> bool {
@@ -37,7 +37,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            menu_bar(ui, matl, ui_state);
+            menu_bar(ui, matl, ui_state, material_presets);
 
             // TODO: Simplify logic for closing window.
             let entry = matl.entries.get_mut(ui_state.selected_material_index);
@@ -154,7 +154,12 @@ fn preset_window(
     open
 }
 
-fn menu_bar(ui: &mut Ui, matl: &mut MatlData, ui_state: &mut UiState) {
+fn menu_bar(
+    ui: &mut Ui,
+    matl: &mut MatlData,
+    ui_state: &mut UiState,
+    material_presets: &mut Vec<MatlEntryData>,
+) {
     egui::menu::bar(ui, |ui| {
         egui::menu::menu_button(ui, "File", |ui| {
             if ui.button("Save").clicked() {
@@ -180,6 +185,15 @@ fn menu_bar(ui: &mut Ui, matl: &mut MatlData, ui_state: &mut UiState) {
                 matl.entries.push(new_entry);
 
                 ui_state.selected_material_index = matl.entries.len() - 1;
+            }
+
+            if ui.button("Add Material to Presets").clicked() {
+                ui.close_menu();
+
+                // TODO: Prompt for naming the preset?
+                if let Some(entry) = matl.entries.get(ui_state.selected_material_index) {
+                    material_presets.push(entry.clone());
+                }
             }
 
             if ui.button("Apply Preset").clicked() {
