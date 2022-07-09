@@ -806,14 +806,9 @@ fn list_files<T, E: std::fmt::Display>(
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
                     if !validation_errors.is_empty() && Some(name.as_str()) == required_file {
-                        let mut message = "Validation Errors:\n".to_string();
-                        message += &validation_errors
-                            .iter()
-                            .map(|e| format!("{}", e))
-                            .collect::<Vec<_>>()
-                            .join("\n");
-
-                        warning_icon_with_tooltip(ui, &message);
+                        let messages: Vec<_> =
+                            validation_errors.iter().map(|e| format!("{}", e)).collect();
+                        warning_icon_with_messages(ui, &messages);
                     } else {
                         // TODO: This doesn't have the same size as the others?
                         empty_icon(ui);
@@ -868,14 +863,21 @@ pub fn warning_icon(ui: &mut Ui) {
     );
 }
 
-pub fn warning_icon_with_tooltip(ui: &mut Ui, tooltip: &str) {
+pub fn warning_icon_with_messages(ui: &mut Ui, messages: &[String]) {
     ui.label(
         RichText::new("⚠")
             .strong()
             .color(egui::Color32::from_rgb(255, 210, 0))
             .size(ICON_SIZE),
     )
-    .on_hover_text(tooltip);
+    .on_hover_ui(|ui| {
+        for message in messages {
+            ui.horizontal(|ui| {
+                warning_icon(ui);
+                ui.label(message);
+            });
+        }
+    });
 }
 
 pub fn error_icon(ui: &mut Ui) {
