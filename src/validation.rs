@@ -6,6 +6,7 @@ use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 
 // TODO: How to update these only when a file changes?
 // TODO: Only validate known names like model.numatb or model.numdlb?
+// TODO: Add a severity level to differentiate warnings vs errors.
 #[derive(Default)]
 pub struct ModelValidationErrors {
     pub mesh_errors: Vec<MeshValidationError>,
@@ -33,6 +34,14 @@ impl ModelValidationErrors {
             );
 
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
+
+            validate_renormal_material_entries(
+                &mut validation,
+                matl,
+                model.find_adj(),
+                model.find_modl(),
+                model.find_mesh(),
+            );
         }
         validation
     }
@@ -52,6 +61,7 @@ impl Display for SkelValidationError {
     }
 }
 
+// TODO: Move the entry index and label out of the enum?
 #[derive(Debug, PartialEq, Eq)]
 pub enum MatlValidationError {
     MissingRequiredVertexAttributes {
@@ -66,6 +76,15 @@ pub enum MatlValidationError {
         param: ParamId,
         nutexb: String,
         format: NutexbFormat,
+    },
+    RenormalMaterialMissingMeshAdjEntry {
+        entry_index: usize,
+        material_label: String,
+        mesh_name: String,
+    },
+    RenormalMaterialMissingAdj {
+        entry_index: usize,
+        material_label: String,
     },
 }
 
@@ -103,6 +122,24 @@ impl Display for MatlValidationError {
                     "does not expect"
                 }
             ),
+            MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
+                material_label,
+                mesh_name,
+                ..
+            } => write!(
+                f,
+                "Mesh {:?} has the RENORMAL material {:?} but no corresponding entry in the model.adjb.",
+                mesh_name,
+                material_label
+            ),
+            MatlValidationError::RenormalMaterialMissingAdj {
+                material_label,
+                ..
+            } => write!(
+                f,
+                "Material {:?} is a RENORMAL material, but the model.adjb file is missing.",
+                material_label
+            ),
         }
     }
 }
@@ -114,6 +151,8 @@ impl MatlValidationError {
         match self {
             Self::MissingRequiredVertexAttributes { entry_index, .. } => *entry_index,
             Self::InvalidTextureFormat { entry_index, .. } => *entry_index,
+            Self::RenormalMaterialMissingMeshAdjEntry { entry_index, .. } => *entry_index,
+            Self::RenormalMaterialMissingAdj { entry_index, .. } => *entry_index,
         }
     }
 }
@@ -210,8 +249,6 @@ fn validate_texture_format_usage(
     matl: &MatlData,
     nutexbs: &[(String, Result<NutexbFile, Box<dyn Error>>)],
 ) {
-    // define an expected is_srgb for each texture
-    // for each material texture, get the nutexb format
     // TODO: Errors for both matl and nutexb?
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
@@ -234,6 +271,62 @@ fn validate_texture_format_usage(
                     validation.matl_errors.push(error);
                 }
             }
+        }
+    }
+}
+
+fn validate_renormal_material_entries(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    adj: Option<&AdjData>,
+    modl: Option<&ModlData>,
+    mesh: Option<&MeshData>,
+) {
+    // TODO: Errors for both matl and adj?
+    // TODO: Is this check case sensitive?
+    for (entry_index, entry) in matl
+        .entries
+        .iter()
+        .filter(|e| e.material_label.contains("RENORMAL"))
+        .enumerate()
+    {
+        if let Some(adj) = adj {
+            // TODO: Get assigned meshes
+            if let Some(modl) = modl {
+                if let Some(mesh) = mesh {
+                    for (mesh_index, mesh) in modl
+                        .entries
+                        .iter()
+                        .filter(|e| e.material_label == entry.material_label)
+                        .filter_map(|e| {
+                            mesh.objects.iter().find(|o| {
+                                o.name == e.mesh_object_name
+                                    && o.sub_index == e.mesh_object_sub_index
+                            })
+                        })
+                        .enumerate()
+                    {
+                        if !adj
+                            .entries
+                            .iter()
+                            .any(|a| a.mesh_object_index == mesh_index)
+                        {
+                            let error = MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
+                                entry_index,
+                                material_label: entry.material_label.clone(),
+                                mesh_name: mesh.name.clone(),
+                            };
+                            validation.matl_errors.push(error);
+                        }
+                    }
+                }
+            }
+        } else {
+            let error = MatlValidationError::RenormalMaterialMissingAdj {
+                entry_index,
+                material_label: entry.material_label.clone(),
+            };
+            validation.matl_errors.push(error);
         }
     }
 }
@@ -358,6 +451,132 @@ mod tests {
 
         assert_eq!(
             r#"Mesh "object1" is missing attributes map1, uvSet required by assigned material "a"."#,
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn renormal_material_missing_adj() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a_RENORMAL".to_string(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: Vec::new(),
+            }],
+        };
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![MeshObjectData {
+                name: "object1".to_string(),
+                sub_index: 0,
+                ..Default::default()
+            }],
+        };
+        let modl = ModlData {
+            major_version: 1,
+            minor_version: 0,
+            model_name: String::new(),
+            skeleton_file_name: String::new(),
+            material_file_names: Vec::new(),
+            animation_file_name: None,
+            mesh_file_name: String::new(),
+            entries: vec![ModlEntryData {
+                mesh_object_name: "object1".to_owned(),
+                mesh_object_sub_index: 0,
+                material_label: "a_RENORMAL".to_string(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_renormal_material_entries(&mut validation, &matl, None, Some(&modl), Some(&mesh));
+
+        assert_eq!(
+            vec![MatlValidationError::RenormalMaterialMissingAdj {
+                entry_index: 0,
+                material_label: "a_RENORMAL".to_string(),
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Material "a_RENORMAL" is a RENORMAL material, but the model.adjb file is missing."#,
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn renormal_material_missing_adj_entry() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a_RENORMAL".to_string(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: Vec::new(),
+            }],
+        };
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![MeshObjectData {
+                name: "object1".to_string(),
+                sub_index: 0,
+                ..Default::default()
+            }],
+        };
+        let modl = ModlData {
+            major_version: 1,
+            minor_version: 0,
+            model_name: String::new(),
+            skeleton_file_name: String::new(),
+            material_file_names: Vec::new(),
+            animation_file_name: None,
+            mesh_file_name: String::new(),
+            entries: vec![ModlEntryData {
+                mesh_object_name: "object1".to_owned(),
+                mesh_object_sub_index: 0,
+                material_label: "a_RENORMAL".to_string(),
+            }],
+        };
+        let adj = AdjData {
+            entries: Vec::new(),
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_renormal_material_entries(
+            &mut validation,
+            &matl,
+            Some(&adj),
+            Some(&modl),
+            Some(&mesh),
+        );
+
+        assert_eq!(
+            vec![MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
+                entry_index: 0,
+                material_label: "a_RENORMAL".to_string(),
+                mesh_name: "object1".to_string()
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Mesh "object1" has the RENORMAL material "a_RENORMAL" but no corresponding entry in the model.adjb."#,
             format!("{}", validation.matl_errors[0])
         );
     }

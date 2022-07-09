@@ -76,6 +76,7 @@ pub fn matl_editor(
                         }
 
                         if ui.button("Rename").clicked() {
+                            // TODO: The material assignments don't always update in the viewport.
                             ui_state.is_editing_material_label = true;
                         }
 
