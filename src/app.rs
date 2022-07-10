@@ -105,6 +105,7 @@ pub struct UiState {
     pub selected_modl_index: Option<usize>,
     pub selected_mesh_index: Option<usize>,
     pub selected_nutexb_index: Option<usize>,
+    pub selected_adj_index: Option<usize>,
     pub selected_material_index: usize,
 }
 
@@ -585,6 +586,16 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_modl_index,
                                 required_file("model.numdlb"),
                                 &validation.modl_errors,
+                            );
+
+                            list_files(
+                                ui,
+                                &model.adjs,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_adj_index,
+                                None,
+                                &validation.adj_errors,
                             );
 
                             for (i, (name, _)) in model.anims.iter().enumerate() {
