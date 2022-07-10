@@ -108,12 +108,21 @@ fn main() {
         .map(|()| log::set_max_level(log::LevelFilter::Info))
         .unwrap();
 
+    let icon = image::load_from_memory_with_format(
+        include_bytes!("icons/ssbh_editor32.png"),
+        image::ImageFormat::Png,
+    )
+    .unwrap();
+
     let event_loop = winit::event_loop::EventLoop::with_user_event();
     let window = winit::window::WindowBuilder::new()
         .with_decorations(true)
         .with_resizable(true)
         .with_transparent(false)
         .with_title(concat!("SSBH Editor ", env!("CARGO_PKG_VERSION")))
+        .with_window_icon(Some(
+            winit::window::Icon::from_rgba(icon.into_bytes(), 32, 32).unwrap(),
+        ))
         .with_inner_size(winit::dpi::Size::Logical(winit::dpi::LogicalSize::new(
             // Set a small initial size so the window doesn't overflow the screen.
             1280.0, 720.0,
