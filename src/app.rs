@@ -1,7 +1,7 @@
 use crate::{
     editors::{
-        hlpb::hlpb_editor, matl::matl_editor, mesh::mesh_editor, modl::modl_editor,
-        nutexb::nutexb_viewer, skel::skel_editor,
+        adj::adj_editor, hlpb::hlpb_editor, matl::matl_editor, mesh::mesh_editor,
+        modl::modl_editor, nutexb::nutexb_viewer, skel::skel_editor,
     },
     load_model, load_models_recursive,
     render_settings::render_settings,
@@ -110,6 +110,7 @@ pub struct UiState {
     pub selected_mesh_index: Option<usize>,
     pub selected_nutexb_index: Option<usize>,
     pub selected_adj_index: Option<usize>,
+    pub selected_mesh_influences_index: Option<usize>,
     pub selected_material_index: usize,
 }
 
@@ -344,7 +345,7 @@ impl SsbhApp {
                             ctx,
                             &display_name(&model.folder_name, name),
                             mesh,
-                            &mut self.ui_state.mesh_editor_advanced_mode,
+                            &mut self.ui_state,
                         ) {
                             // Close the window.
                             self.ui_state.selected_mesh_index = None;
@@ -442,6 +443,15 @@ impl SsbhApp {
                         ) {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
+                        }
+                    }
+                }
+
+                if let Some(adj_index) = self.ui_state.selected_adj_index {
+                    if let Some((name, Ok(adj))) = model.adjs.get_mut(adj_index) {
+                        if !adj_editor(ctx, &display_name(&model.folder_name, name), adj) {
+                            // Close the window.
+                            self.ui_state.selected_adj_index = None;
                         }
                     }
                 }
