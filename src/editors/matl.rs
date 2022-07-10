@@ -421,9 +421,7 @@ fn matl_entry_editor(
     } else {
         Grid::new("vectors").show(ui, |ui| {
             for param in entry.vectors.iter_mut() {
-                ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                    edit_vector(ui, param);
-                });
+                edit_vector(ui, param, !unused_parameters.contains(&param.param_id));
                 ui.end_row();
             }
         });
@@ -626,39 +624,63 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
     });
 }
 
-fn edit_vector(ui: &mut Ui, param: &mut Vector4Param) {
-    ui.label(param_label(param.param_id));
+fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
+    // Disabling the entire row interferes with the grid columns.
+    // Disable each item individually.
     let mut color = [param.data.x, param.data.y, param.data.z];
-    if ui.color_edit_button_rgb(&mut color).changed() {
-        param.data.x = color[0];
-        param.data.y = color[1];
-        param.data.z = color[2];
-    }
-    ui.horizontal(|ui| {
-        ui.label("X");
-        ui.add(DragValue::new(&mut param.data.x).speed(0.01));
-        ui.label("Y");
-        ui.add(DragValue::new(&mut param.data.y).speed(0.01));
-        ui.label("Z");
-        ui.add(DragValue::new(&mut param.data.z).speed(0.01));
-        ui.label("W");
-        ui.add(DragValue::new(&mut param.data.w).speed(0.01));
+    ui.add_enabled_ui(enabled, |ui| {
+        if ui.color_edit_button_rgb(&mut color).changed() {
+            param.data.x = color[0];
+            param.data.y = color[1];
+            param.data.z = color[2];
+        }
+    });
+
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.label(param_label(param.param_id));
+    });
+
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.horizontal(|ui| {
+            ui.label("X");
+            ui.add(DragValue::new(&mut param.data.x).speed(0.01));
+        });
+    });
+
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.horizontal(|ui| {
+            ui.label("Y");
+            ui.add(DragValue::new(&mut param.data.y).speed(0.01));
+        });
+    });
+
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.horizontal(|ui| {
+            ui.label("Z");
+            ui.add(DragValue::new(&mut param.data.z).speed(0.01));
+        });
+    });
+
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.horizontal(|ui| {
+            ui.label("W");
+            ui.add(DragValue::new(&mut param.data.w).speed(0.01));
+        });
     });
 }
 
 fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
-    // TODO: Make a custom expander that expands to sliders?
     // TODO: Set custom labels and ranges.
     // TODO: Add parameter descriptions.
     ui.horizontal(|ui| {
-        ui.add_sized([80.0, 20.0], Label::new(param.param_id.to_string()));
-
         let mut color = [param.data.x, param.data.y, param.data.z];
         if ui.color_edit_button_rgb(&mut color).changed() {
             param.data.x = color[0];
             param.data.y = color[1];
             param.data.z = color[2];
         }
+
+        ui.label(param_label(param.param_id));
     });
     ui.indent("indent", |ui| {
         Grid::new(param.param_id.to_string()).show(ui, |ui| {
