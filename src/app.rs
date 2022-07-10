@@ -942,7 +942,10 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         ui.spacing_mut().indent = 24.0;
                         ui.indent("indent", |ui| {
                             for mesh in &mut render_model.meshes {
-                                ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
+                                // TODO: Select entire render models?
+                                let response =
+                                    ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
+                                mesh.is_selected = response.hovered();
                             }
                         });
                     });
