@@ -7,7 +7,7 @@ use crate::{
     render_settings::render_settings,
     validation::ModelValidationErrors,
     widgets::*,
-    AnimationIndex, AnimationState, RenderState,
+    AnimationIndex, AnimationState, CameraInputState, RenderState,
 };
 use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, RichText, ScrollArea,
@@ -18,7 +18,7 @@ use log::Log;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
-use std::{error::Error, path::Path, sync::Mutex};
+use std::{error::Error, f32::consts::PI, path::Path, sync::Mutex};
 
 lazy_static! {
     pub static ref LOGGER: AppLogger = AppLogger {
@@ -52,6 +52,7 @@ impl Log for AppLogger {
 pub struct SsbhApp {
     pub should_refresh_meshes: bool,
     pub should_refresh_render_settings: bool,
+    pub should_refresh_camera_settings: bool,
 
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
@@ -78,6 +79,8 @@ pub struct SsbhApp {
     pub show_left_panel: bool,
     pub show_right_panel: bool,
     pub show_bottom_panel: bool,
+
+    pub camera_state: CameraInputState,
 }
 
 #[derive(Default)]
@@ -87,6 +90,7 @@ pub struct UiState {
     // TODO: Allow more than one open editor of each type?
     pub material_editor_open: bool,
     pub render_settings_open: bool,
+    pub camera_settings_open: bool,
     pub right_panel_tab: PanelTab,
     pub matl_editor_advanced_mode: bool,
     pub modl_editor_advanced_mode: bool,
@@ -227,9 +231,6 @@ impl SsbhApp {
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
-        if self.ui_state.render_settings_open {
-            self.should_refresh_render_settings = true;
-        }
         render_settings(
             ctx,
             &mut self.render_state.render_settings,
@@ -237,6 +238,18 @@ impl SsbhApp {
             &mut self.draw_skeletons,
             &mut self.draw_bone_names,
         );
+        if self.ui_state.render_settings_open {
+            self.should_refresh_render_settings = true;
+        }
+
+        camera_settings(
+            ctx,
+            &mut self.ui_state.camera_settings_open,
+            &mut self.camera_state,
+        );
+        if self.ui_state.camera_settings_open {
+            self.should_refresh_camera_settings = true;
+        }
 
         log_window(ctx, &mut self.ui_state.log_window_open);
 
@@ -748,6 +761,11 @@ impl SsbhApp {
                     ui.close_menu();
                     self.ui_state.render_settings_open = true;
                 }
+
+                if ui.button("Camera Settings").clicked() {
+                    ui.close_menu();
+                    self.ui_state.camera_settings_open = true;
+                }
             });
 
             egui::menu::menu_button(ui, "Meshes", |ui| {
@@ -1032,3 +1050,42 @@ fn log_window(ctx: &Context, open: &mut bool) {
 // TODO: Animation Viewer
 // Users want to know what values are being effected, see the values, and toggle tracks on/off.
 // The display could be done using egui's plotting capabilities using Blender as a reference.
+
+pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut CameraInputState) {
+    egui::Window::new("Camera Settings")
+        .resizable(false)
+        .open(open)
+        .show(ctx, |ui| {
+            egui::Grid::new("camera_grid").show(ui, |ui| {
+                ui.label("Translation X");
+                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.x));
+                ui.end_row();
+
+                ui.label("Translation Y");
+                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.y));
+                ui.end_row();
+
+                ui.label("Translation Z");
+                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.z));
+                ui.end_row();
+
+                // TODO: This will need to use quaternions to work with camera anims.
+                // TODO: Add an option for radians or degrees?
+                ui.label("Rotation X");
+                ui.add(
+                    egui::DragValue::new(&mut camera_state.rotation_xyz.x)
+                        .speed(0.01)
+                        .clamp_range(-2.0 * PI..=2.0 * PI),
+                );
+                ui.end_row();
+
+                ui.label("Rotation Y");
+                ui.add(
+                    egui::DragValue::new(&mut camera_state.rotation_xyz.y)
+                        .speed(0.01)
+                        .clamp_range(-2.0 * PI..=2.0 * PI),
+                );
+                ui.end_row();
+            });
+        });
+}

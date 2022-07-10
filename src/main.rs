@@ -10,8 +10,8 @@ use ssbh_editor::material::load_material_presets;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, widgets_dark, AnimationIndex, AnimationState, RenderState,
-    TexturePainter,
+    generate_model_thumbnails, widgets_dark, AnimationIndex, AnimationState, CameraInputState,
+    RenderState, TexturePainter,
 };
 use ssbh_wgpu::{create_default_textures, CameraTransforms, SsbhRenderer};
 use std::iter;
@@ -20,14 +20,6 @@ use winit::{
     event::*,
     event_loop::ControlFlow,
 };
-
-struct CameraInputState {
-    previous_cursor_position: PhysicalPosition<f64>,
-    is_mouse_left_clicked: bool,
-    is_mouse_right_clicked: bool,
-    translation_xyz: glam::Vec3,
-    rotation_xyz: glam::Vec3,
-}
 
 // TODO: Separate project for camera + input handling?
 fn calculate_mvp(
@@ -224,7 +216,7 @@ fn main() {
     });
 
     // TODO: Camera framing?
-    let mut camera_state = CameraInputState {
+    let camera_state = CameraInputState {
         previous_cursor_position: PhysicalPosition { x: 0.0, y: 0.0 },
         is_mouse_left_clicked: false,
         is_mouse_right_clicked: false,
@@ -272,6 +264,7 @@ fn main() {
         should_show_update,
         new_release_tag,
         should_refresh_render_settings: false,
+        should_refresh_camera_settings: false,
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
@@ -283,6 +276,7 @@ fn main() {
         show_left_panel: true,
         show_right_panel: true,
         show_bottom_panel: true,
+        camera_state,
     };
 
     // TODO: Does the T in the the event type matter here?
@@ -351,6 +345,17 @@ fn main() {
                                 &app.render_state.render_settings,
                             );
                             app.should_refresh_render_settings = false;
+                        }
+
+                        if app.should_refresh_camera_settings {
+                            update_camera(
+                                &mut renderer,
+                                &app.render_state.queue,
+                                size,
+                                &app.camera_state,
+                                window.scale_factor(),
+                            );
+                            app.should_refresh_camera_settings = false;
                         }
 
                         // TODO: Only calculate validation on changes.
@@ -441,8 +446,8 @@ fn main() {
                         // TODO: Avoid calculating the MVP matrix every frame.
                         let (_, _, mvp) = calculate_mvp(
                             size,
-                            camera_state.translation_xyz,
-                            camera_state.rotation_xyz,
+                            app.camera_state.translation_xyz,
+                            app.camera_state.rotation_xyz,
                         );
 
                         // TODO: Make the font size configurable.
@@ -519,7 +524,7 @@ fn main() {
                                     window.scale_factor(),
                                     &surface,
                                     &app,
-                                    &camera_state,
+                                    &app.camera_state,
                                 );
                             }
                         }
@@ -538,16 +543,16 @@ fn main() {
                                 // It's possible to interact with the UI with the mouse over the viewport.
                                 // Disable tracking the mouse in this case to prevent unwanted camera rotations.
                                 // This mostly affects resizing the left and right side panels.
-                                camera_state.is_mouse_left_clicked = false;
-                                camera_state.is_mouse_right_clicked = false;
+                                app.camera_state.is_mouse_left_clicked = false;
+                                app.camera_state.is_mouse_right_clicked = false;
                             } else {
                                 // Only update the viewport camera if the user isn't interacting with the UI.
-                                if handle_input(&mut camera_state, &event, size) {
+                                if handle_input(&mut app.camera_state, &event, size) {
                                     update_camera(
                                         &mut renderer,
                                         &app.render_state.queue,
                                         size,
-                                        &camera_state,
+                                        &app.camera_state,
                                         window.scale_factor(),
                                     );
                                 }

@@ -8,6 +8,7 @@ use nutexb_wgpu::TextureRenderer;
 
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{ModelFolder, RenderSettings, SharedRenderData};
+use winit::dpi::PhysicalPosition;
 
 pub mod app;
 mod editors;
@@ -28,6 +29,14 @@ impl<'a> TexturePainter<'a> {
     pub fn paint<'rpass>(&'rpass self, render_pass: &mut wgpu::RenderPass<'rpass>) {
         self.renderer.render(render_pass);
     }
+}
+
+pub struct CameraInputState {
+    pub previous_cursor_position: PhysicalPosition<f64>,
+    pub is_mouse_left_clicked: bool,
+    pub is_mouse_right_clicked: bool,
+    pub translation_xyz: glam::Vec3,
+    pub rotation_xyz: glam::Vec3,
 }
 
 pub struct RenderState {
