@@ -615,7 +615,6 @@ fn edit_texture(
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
 ) {
-    // TODO: Should this check be case sensitive?
     // TODO: Create a texture for an invalid thumbnail or missing texture?
     // TODO: Should this functionality be part of ssbh_wgpu?
     ui.label(param_label(param.param_id));
@@ -635,7 +634,10 @@ fn edit_texture(
         .map(|t| t.1)
     {
         ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));
+    } else {
+        ui.allocate_space(egui::Vec2::new(24.0, 24.0));
     }
+
     if advanced_mode {
         // Let users enter names manually if texture files aren't present.
         ui.text_edit_singleline(&mut param.data);
