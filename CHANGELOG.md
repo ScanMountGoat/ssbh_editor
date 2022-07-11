@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Added
+* Added the ability to add the current material as a preset from the Matl Editor.
+* Added the Material Presets Editor to Menu > Material presets based on the Matl Editor UI.
+* Added adjb files to the files list.
+* Added the Adj Editor for editing model.adjb files.
+* Added validation errrors related to adjb files and RENORMAL materials.
+
+### Changed
+* Improved layout of validation error messages when hovering over a file.
+* Errors when loading or saving the presets.json file now show in the application log.
+* Adjusted the layout of the material editor to be more consistent.
+* Changed the material preset selector to not be resizable to avoid text wrapping.
+
 ## 0.4.1
 ### Added
 * Added vertex color, nor channels, and prm channels to render settings.
