@@ -225,13 +225,7 @@ fn main() {
     });
 
     // TODO: Camera framing?
-    let camera_state = CameraInputState {
-        previous_cursor_position: PhysicalPosition { x: 0.0, y: 0.0 },
-        is_mouse_left_clicked: false,
-        is_mouse_right_clicked: false,
-        translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
-        rotation_xyz: glam::Vec3::new(0.0, 0.0, 0.0),
-    };
+    let camera_state = CameraInputState::default();
 
     update_camera(
         &mut renderer,
