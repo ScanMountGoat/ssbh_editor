@@ -40,10 +40,10 @@ pub fn matl_editor(
             menu_bar(ui, matl, ui_state, material_presets);
 
             // TODO: Simplify logic for closing window.
-            let entry = matl.entries.get_mut(ui_state.selected_material_index);
+            let entry = matl.entries.get_mut(ui_state.matl_selected_material_index);
             let open = preset_window(ui_state, ctx, material_presets, entry);
             if !open {
-                ui_state.preset_window_open = false;
+                ui_state.matl_preset_window_open = false;
             }
 
             ui.add(egui::Separator::default().horizontal());
@@ -51,70 +51,162 @@ pub fn matl_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    // Only display a single material at a time.
-                    // This avoids cluttering the UI.
-                    let entry = matl.entries.get_mut(ui_state.selected_material_index);
-                    let mut modl_entries: Vec<_> = entry
-                        .and_then(|entry| {
-                            modl.map(|modl| {
-                                modl.entries
-                                    .iter_mut()
-                                    .filter(|e| e.material_label == entry.material_label)
-                                    .collect()
-                            })
-                        })
-                        .unwrap_or_default();
-
-                    ui.heading("Material");
-                    ui.horizontal(|ui| {
-                        ui.label("Material");
-                        let entry = matl.entries.get_mut(ui_state.selected_material_index);
-                        if ui_state.is_editing_material_label {
-                            edit_material_label(entry, ui_state, ui, &mut modl_entries);
-                        } else {
-                            material_combo_box(ui, ui_state, matl);
-                        }
-
-                        if ui.button("Rename").clicked() {
-                            // TODO: The material assignments don't always update in the viewport.
-                            ui_state.is_editing_material_label = true;
-                        }
-
-                        if ui_state.matl_editor_advanced_mode && ui.button("Delete").clicked() {
-                            // TODO: Potential panic?
-                            matl.entries.remove(ui_state.selected_material_index);
-                        }
-                    });
-                    horizontal_separator_empty(ui);
-
-                    // Advanced mode has more detailed information that most users won't want to edit.
-                    ui.checkbox(&mut ui_state.matl_editor_advanced_mode, "Advanced Settings");
-                    horizontal_separator_empty(ui);
-
-                    let entry = matl.entries.get_mut(ui_state.selected_material_index);
-
-                    if let Some(entry) = entry {
-                        // TODO: Avoid allocating here.
-                        let validation: Vec<_> = validation
-                            .iter()
-                            .filter(|e| e.entry_index() == ui_state.selected_material_index)
-                            .collect();
-                        matl_entry_editor(
-                            ui,
-                            entry,
-                            &validation,
-                            folder_thumbnails,
-                            default_thumbnails,
-                            ui_state.matl_editor_advanced_mode,
-                            shader_database,
-                            red_checkerboard,
-                            yellow_checkerboard,
-                        );
-                    }
+                    edit_matl_entries(
+                        ui,
+                        &mut matl.entries,
+                        modl,
+                        validation,
+                        folder_thumbnails,
+                        default_thumbnails,
+                        shader_database,
+                        red_checkerboard,
+                        yellow_checkerboard,
+                        &mut ui_state.matl_selected_material_index,
+                        &mut ui_state.matl_editor_advanced_mode,
+                        &mut ui_state.matl_is_editing_material_label,
+                    );
                 });
         });
 
     open
+}
+
+// TODO: Validate presets?
+pub fn preset_editor(
+    ctx: &egui::Context,
+    ui_state: &mut UiState,
+    presets: &mut Vec<MatlEntryData>,
+    default_thumbnails: &[(String, egui::TextureId)],
+    shader_database: &ShaderDatabase,
+    red_checkerboard: egui::TextureId,
+    yellow_checkerboard: egui::TextureId,
+) {
+    egui::Window::new("Material Preset Editor")
+        .open(&mut ui_state.preset_editor_open)
+        .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::menu::menu_button(ui, "File", |ui| {
+                    if ui.button("Save").clicked() {
+                        ui.close_menu();
+
+                        // TODO: Default to the loaded presets.json path?
+                        if let Some(file) =
+                            FileDialog::new().add_filter("JSON", &["json"]).save_file()
+                        {
+                            save_material_presets(presets, file);
+                        }
+                    }
+                });
+            });
+
+            // Use an empty model thumbnail list to encourage using default textures.
+            // These textures will be replaced by param specific defaults anyway.
+            edit_matl_entries(
+                ui,
+                presets,
+                None,
+                &[],
+                &[],
+                default_thumbnails,
+                shader_database,
+                red_checkerboard,
+                yellow_checkerboard,
+                &mut ui_state.preset_selected_material_index,
+                &mut ui_state.preset_editor_advanced_mode,
+                &mut ui_state.preset_is_editing_material_label,
+            );
+        });
+}
+
+fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {
+    match serde_json::to_string_pretty(&MatlData {
+        major_version: 1,
+        minor_version: 6,
+        entries: presets.to_vec(),
+    }) {
+        Ok(presets_json) => {
+            if let Err(e) = std::fs::write(file, presets_json) {
+                error!("Failed to save material presets JSON: {}", e);
+            }
+        }
+        Err(e) => error!("Failed to convert material presets to JSON: {}", e),
+    }
+}
+
+fn edit_matl_entries(
+    ui: &mut Ui,
+    entries: &mut Vec<MatlEntryData>,
+    modl: Option<&mut ModlData>,
+    validation: &[MatlValidationError],
+    folder_thumbnails: &[(String, egui::TextureId)],
+    default_thumbnails: &[(String, egui::TextureId)],
+    shader_database: &ShaderDatabase,
+    red_checkerboard: egui::TextureId,
+    yellow_checkerboard: egui::TextureId,
+    selected_material_index: &mut usize,
+    advanced_mode: &mut bool,
+    is_editing_material_label: &mut bool,
+) {
+    // Only display a single material at a time.
+    // This avoids cluttering the UI.
+    let entry = entries.get_mut(*selected_material_index);
+    let mut modl_entries: Vec<_> = entry
+        .and_then(|entry| {
+            modl.map(|modl| {
+                modl.entries
+                    .iter_mut()
+                    .filter(|e| e.material_label == entry.material_label)
+                    .collect()
+            })
+        })
+        .unwrap_or_default();
+
+    ui.heading("Material");
+    ui.horizontal(|ui| {
+        ui.label("Material");
+        let entry = entries.get_mut(*selected_material_index);
+        if *is_editing_material_label {
+            edit_material_label(entry, is_editing_material_label, ui, &mut modl_entries);
+        } else {
+            material_combo_box(ui, selected_material_index, entries);
+        }
+
+        if ui.button("Rename").clicked() {
+            // TODO: The material assignments don't always update in the viewport.
+            *is_editing_material_label = true;
+        }
+
+        if *advanced_mode && ui.button("Delete").clicked() {
+            // TODO: Potential panic?
+            entries.remove(*selected_material_index);
+        }
+    });
+    horizontal_separator_empty(ui);
+
+    // Advanced mode has more detailed information that most users won't want to edit.
+    ui.checkbox(advanced_mode, "Advanced Settings");
+    horizontal_separator_empty(ui);
+
+    let entry = entries.get_mut(*selected_material_index);
+    if let Some(entry) = entry {
+        // TODO: Avoid allocating here.
+        let validation: Vec<_> = validation
+            .iter()
+            .filter(|e| e.entry_index() == *selected_material_index)
+            .collect();
+
+        matl_entry_editor(
+            ui,
+            entry,
+            &validation,
+            folder_thumbnails,
+            default_thumbnails,
+            *advanced_mode,
+            shader_database,
+            red_checkerboard,
+            yellow_checkerboard,
+        );
+    }
 }
 
 fn preset_window(
@@ -123,9 +215,9 @@ fn preset_window(
     material_presets: &[MatlEntryData],
     entry: Option<&mut MatlEntryData>,
 ) -> bool {
-    let mut open = ui_state.preset_window_open;
+    let mut open = ui_state.matl_preset_window_open;
     Window::new("Select Material Preset")
-        .open(&mut ui_state.preset_window_open)
+        .open(&mut ui_state.matl_preset_window_open)
         .resizable(false)
         .show(ctx, |ui| {
             if material_presets.is_empty() {
@@ -184,20 +276,20 @@ fn menu_bar(
                 let new_entry = default_material();
                 matl.entries.push(new_entry);
 
-                ui_state.selected_material_index = matl.entries.len() - 1;
+                ui_state.matl_selected_material_index = matl.entries.len() - 1;
             }
 
             if ui.button("Add Material to Presets").clicked() {
                 ui.close_menu();
 
                 // TODO: Prompt for naming the preset?
-                if let Some(entry) = matl.entries.get(ui_state.selected_material_index) {
+                if let Some(entry) = matl.entries.get(ui_state.matl_selected_material_index) {
                     material_presets.push(entry.clone());
                 }
             }
 
             if ui.button("Apply Preset").clicked() {
-                ui_state.preset_window_open = true;
+                ui_state.matl_preset_window_open = true;
             }
         });
     });
@@ -205,7 +297,7 @@ fn menu_bar(
 
 fn edit_material_label(
     entry: Option<&mut MatlEntryData>,
-    ui_state: &mut UiState,
+    is_editing_material_label: &mut bool,
     ui: &mut Ui,
     modl_entries: &mut [&mut ModlEntryData],
 ) {
@@ -226,25 +318,20 @@ fn edit_material_label(
         }
 
         if response.lost_focus() {
-            ui_state.is_editing_material_label = false;
+            *is_editing_material_label = false;
         }
     }
 }
 
-fn material_combo_box(ui: &mut Ui, ui_state: &mut UiState, matl: &MatlData) {
+fn material_combo_box(ui: &mut Ui, selected_material_index: &mut usize, entries: &[MatlEntryData]) {
     ComboBox::from_id_source("MatlEditorMaterialLabel")
         .width(400.0)
-        .show_index(
-            ui,
-            &mut ui_state.selected_material_index,
-            matl.entries.len(),
-            |i| {
-                matl.entries
-                    .get(i)
-                    .map(|m| m.material_label.clone())
-                    .unwrap_or_default()
-            },
-        );
+        .show_index(ui, selected_material_index, entries.len(), |i| {
+            entries
+                .get(i)
+                .map(|m| m.material_label.clone())
+                .unwrap_or_default()
+        });
 }
 
 fn edit_shader_label(

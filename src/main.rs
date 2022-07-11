@@ -585,15 +585,6 @@ fn exit_application(app: &mut SsbhApp, update_check_time: DateTime<Utc>) {
     // TODO: Use json to support more settings.
     // TODO: Where to store this on mac/linux?
     std::fs::write("ssbh_editor_config.txt", update_check_time.to_string()).unwrap();
-
-    // TODO: Add this to a preset editor instead.
-    let presets_json = serde_json::to_string_pretty(&MatlData {
-        major_version: 1,
-        minor_version: 6,
-        entries: app.material_presets.clone(),
-    })
-    .unwrap();
-    std::fs::write("presets.json", presets_json).unwrap();
 }
 
 fn resize(

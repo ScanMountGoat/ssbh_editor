@@ -1,7 +1,12 @@
 use crate::{
     editors::{
-        adj::adj_editor, hlpb::hlpb_editor, matl::matl_editor, mesh::mesh_editor,
-        modl::modl_editor, nutexb::nutexb_viewer, skel::skel_editor,
+        adj::adj_editor,
+        hlpb::hlpb_editor,
+        matl::{matl_editor, preset_editor},
+        mesh::mesh_editor,
+        modl::modl_editor,
+        nutexb::nutexb_viewer,
+        skel::skel_editor,
     },
     load_model, load_models_recursive,
     render_settings::render_settings,
@@ -91,14 +96,11 @@ pub struct UiState {
     pub material_editor_open: bool,
     pub render_settings_open: bool,
     pub camera_settings_open: bool,
+    pub preset_editor_open: bool,
     pub right_panel_tab: PanelTab,
-    pub matl_editor_advanced_mode: bool,
     pub modl_editor_advanced_mode: bool,
     pub mesh_editor_advanced_mode: bool,
     pub log_window_open: bool,
-    pub preset_window_open: bool,
-    pub selected_material_preset_index: usize,
-    pub is_editing_material_label: bool,
     // TODO: Is there a better way to track this?
     // Clicking an item in the file list sets the selected index.
     // If the index is not None, the corresponding editor stays open.
@@ -111,7 +113,18 @@ pub struct UiState {
     pub selected_nutexb_index: Option<usize>,
     pub selected_adj_index: Option<usize>,
     pub selected_mesh_influences_index: Option<usize>,
-    pub selected_material_index: usize,
+
+    pub matl_preset_window_open: bool,
+    pub selected_material_preset_index: usize,
+
+    // TODO: Create a struct for this?
+    pub matl_editor_advanced_mode: bool,
+    pub matl_selected_material_index: usize,
+    pub matl_is_editing_material_label: bool,
+
+    pub preset_editor_advanced_mode: bool,
+    pub preset_selected_material_index: usize,
+    pub preset_is_editing_material_label: bool,
 }
 
 const ICON_SIZE: f32 = 18.0;
@@ -253,6 +266,16 @@ impl SsbhApp {
         }
 
         log_window(ctx, &mut self.ui_state.log_window_open);
+
+        preset_editor(
+            ctx,
+            &mut self.ui_state,
+            &mut self.material_presets,
+            &self.default_thumbnails,
+            &self.render_state.shared_data.database,
+            self.red_checkerboard,
+            self.yellow_checkerboard,
+        );
 
         // Don't reopen the window once closed.
         if self.should_show_update {
@@ -449,7 +472,16 @@ impl SsbhApp {
 
                 if let Some(adj_index) = self.ui_state.selected_adj_index {
                     if let Some((name, Ok(adj))) = model.adjs.get_mut(adj_index) {
-                        if !adj_editor(ctx, &display_name(&model.folder_name, name), adj) {
+                        if !adj_editor(
+                            ctx,
+                            &display_name(&model.folder_name, name),
+                            adj,
+                            model
+                                .meshes
+                                .iter()
+                                .find(|(f, _)| f == "model.numshb")
+                                .and_then(|(_, m)| m.as_ref().ok()),
+                        ) {
                             // Close the window.
                             self.ui_state.selected_adj_index = None;
                         }
@@ -775,6 +807,11 @@ impl SsbhApp {
                 if ui.button("Camera Settings").clicked() {
                     ui.close_menu();
                     self.ui_state.camera_settings_open = true;
+                }
+
+                if ui.button("Material Presets").clicked() {
+                    ui.close_menu();
+                    self.ui_state.preset_editor_open = true;
                 }
             });
 

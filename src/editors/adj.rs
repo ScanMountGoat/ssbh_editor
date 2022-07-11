@@ -3,7 +3,12 @@ use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
 
-pub fn adj_editor(ctx: &egui::Context, title: &str, adj: &mut AdjData) -> bool {
+pub fn adj_editor(
+    ctx: &egui::Context,
+    title: &str,
+    adj: &mut AdjData,
+    mesh: Option<&MeshData>,
+) -> bool {
     let mut open = true;
 
     egui::Window::new(format!("Adj Editor ({title})"))
@@ -32,13 +37,20 @@ pub fn adj_editor(ctx: &egui::Context, title: &str, adj: &mut AdjData) -> bool {
                 .show(ui, |ui| {
                     egui::Grid::new("adj_grid").show(ui, |ui| {
                         // TODO: How to best display adjacency data?
-                        // TODO: Show info from mesh if present?
                         ui.heading("Mesh Object Index");
                         ui.heading("Vertex Adjacency Count");
                         ui.end_row();
 
                         for entry in &adj.entries {
-                            ui.label(entry.mesh_object_index.to_string());
+                            // TODO: Make this a combobox or an index in advanced mode?
+                            // TODO: Fallback to indices if the mesh is missing?
+                            if let Some(o) =
+                                mesh.and_then(|mesh| mesh.objects.get(entry.mesh_object_index))
+                            {
+                                ui.label(format!("{} ({})", entry.mesh_object_index, o.name));
+                            } else {
+                                ui.label(entry.mesh_object_index.to_string());
+                            }
                             ui.label(entry.vertex_adjacency.len().to_string());
                             ui.end_row();
                         }
