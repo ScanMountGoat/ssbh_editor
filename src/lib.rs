@@ -39,6 +39,18 @@ pub struct CameraInputState {
     pub rotation_xyz: glam::Vec3,
 }
 
+impl Default for CameraInputState {
+    fn default() -> Self {
+        Self {
+            previous_cursor_position: PhysicalPosition { x: 0.0, y: 0.0 },
+            is_mouse_left_clicked: false,
+            is_mouse_right_clicked: false,
+            translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
+            rotation_xyz: glam::Vec3::new(0.0, 0.0, 0.0)
+        }
+    }
+}
+
 pub struct RenderState {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,

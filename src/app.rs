@@ -1136,6 +1136,10 @@ pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut 
                         .clamp_range(-2.0 * PI..=2.0 * PI),
                 );
                 ui.end_row();
+                
+                if ui.button("Reset").clicked() {
+                    *camera_state = CameraInputState::default();
+                }
             });
         });
 }
