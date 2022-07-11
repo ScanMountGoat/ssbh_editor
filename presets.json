@@ -160,15 +160,15 @@
       "textures": [
         {
           "param_id": "Texture0",
-          "data": "def_mario_001_col"
+          "data": "/common/shader/sfxpbs/default_white"
         },
         {
           "param_id": "Texture4",
-          "data": "def_mario_001_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture6",
-          "data": "def_mario_001_prm"
+          "data": "/common/shader/sfxpbs/fighter/default_params"
         },
         {
           "param_id": "Texture7",
@@ -383,19 +383,19 @@
       "textures": [
         {
           "param_id": "Texture0",
-          "data": "met_samus_002_col"
+          "data": "/common/shader/sfxpbs/default_white"
         },
         {
           "param_id": "Texture4",
-          "data": "met_samus_002_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture5",
-          "data": "met_samus_002_emi"
+          "data": "/common/shader/sfxpbs/default_black"
         },
         {
           "param_id": "Texture6",
-          "data": "met_samus_002_prm"
+          "data": "/common/shader/sfxpbs/fighter/default_params"
         },
         {
           "param_id": "Texture7",
@@ -569,15 +569,15 @@
       "textures": [
         {
           "param_id": "Texture0",
-          "data": "alp_pikmin_001_col"
+          "data": "/common/shader/sfxpbs/default_white"
         },
         {
           "param_id": "Texture4",
-          "data": "alp_pikmin_001_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture6",
-          "data": "alp_pikmin_001_prm"
+          "data": "/common/shader/sfxpbs/fighter/default_params"
         },
         {
           "param_id": "Texture7",
@@ -761,15 +761,15 @@
       "textures": [
         {
           "param_id": "Texture0",
-          "data": "skin_mario_001_col"
+          "data": "/common/shader/sfxpbs/default_white"
         },
         {
           "param_id": "Texture4",
-          "data": "skin_mario_001_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture6",
-          "data": "skin_mario_001_prm"
+          "data": "/common/shader/sfxpbs/fighter/default_params"
         },
         {
           "param_id": "Texture7",
@@ -845,7 +845,7 @@
       "textures": [
         {
           "param_id": "Texture5",
-          "data": "BNSMY_GrdInishie2GroundA_con"
+          "data": "/common/shader/sfxpbs/default_black"
         }
       ]
     },
@@ -993,11 +993,11 @@
       "textures": [
         {
           "param_id": "Texture0",
-          "data": "alp_dedede_001_col"
+          "data": "/common/shader/sfxpbs/default_white"
         },
         {
           "param_id": "Texture4",
-          "data": "alp_dedede_001_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture7",
@@ -1064,7 +1064,7 @@
       "textures": [
         {
           "param_id": "Texture8",
-          "data": "def_rosetta_002_col"
+          "data": "#replace_cubemap"
         }
       ]
     },
@@ -1230,15 +1230,15 @@
       "textures": [
         {
           "param_id": "Texture0",
-          "data": "alp_kamui_002_col"
+          "data": "/common/shader/sfxpbs/default_white"
         },
         {
           "param_id": "Texture4",
-          "data": "alp_kamui_002_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture6",
-          "data": "alp_kamui_002_prm"
+          "data": "/common/shader/sfxpbs/fighter/default_params"
         },
         {
           "param_id": "Texture7",
@@ -1385,11 +1385,11 @@
       "textures": [
         {
           "param_id": "Texture4",
-          "data": "body_yoshi_001_nor"
+          "data": "/common/shader/sfxpbs/fighter/default_normal"
         },
         {
           "param_id": "Texture5",
-          "data": "body_yoshi_001_col"
+          "data": "/common/shader/sfxpbs/default_black"
         },
         {
           "param_id": "Texture7",
