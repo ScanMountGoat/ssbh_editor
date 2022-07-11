@@ -43,13 +43,13 @@ pub fn hlpb_editor(
                             .default_open(true)
                             .show(ui, |ui| {
                                 egui::Grid::new("aim").striped(true).show(ui, |ui| {
-                                    ui.label(egui::RichText::new("name").heading());
-                                    ui.label(egui::RichText::new("aim 1").heading());
-                                    ui.label(egui::RichText::new("aim 2").heading());
-                                    ui.label(egui::RichText::new("type 1").heading());
-                                    ui.label(egui::RichText::new("type 2").heading());
-                                    ui.label(egui::RichText::new("target 1").heading());
-                                    ui.label(egui::RichText::new("target 2").heading());
+                                    ui.label(egui::RichText::new("Name").heading());
+                                    ui.label(egui::RichText::new("Aim 1").heading());
+                                    ui.label(egui::RichText::new("Aim 2").heading());
+                                    ui.label(egui::RichText::new("Type 1").heading());
+                                    ui.label(egui::RichText::new("Type 2").heading());
+                                    ui.label(egui::RichText::new("Target 1").heading());
+                                    ui.label(egui::RichText::new("Target 2").heading());
                                     ui.end_row();
 
                                     for (i, aim) in hlpb.aim_constraints.iter_mut().enumerate() {
@@ -107,11 +107,11 @@ pub fn hlpb_editor(
                             .default_open(true)
                             .show(ui, |ui| {
                                 egui::Grid::new("orient").striped(true).show(ui, |ui| {
-                                    ui.label(egui::RichText::new("name").heading());
-                                    ui.label(egui::RichText::new("bone").heading());
-                                    ui.label(egui::RichText::new("root").heading());
-                                    ui.label(egui::RichText::new("parent").heading());
-                                    ui.label(egui::RichText::new("driver").heading());
+                                    ui.label(egui::RichText::new("Name").heading());
+                                    ui.label(egui::RichText::new("Bone").heading());
+                                    ui.label(egui::RichText::new("Root").heading());
+                                    ui.label(egui::RichText::new("Parent").heading());
+                                    ui.label(egui::RichText::new("Driver").heading());
                                     ui.end_row();
 
                                     // TODO: Add unk type.
