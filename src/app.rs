@@ -513,6 +513,7 @@ impl SsbhApp {
         ui.spacing_mut().slider_width = (ui.available_width() - 520.0).max(0.0);
         if ui
             .add(
+                // TODO: Show ticks?
                 egui::Slider::new(
                     &mut self.animation_state.current_frame,
                     0.0..=final_frame_index,
@@ -764,6 +765,7 @@ impl SsbhApp {
                 RichText::new("Animations").heading(),
             );
         });
+
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| match self.ui_state.right_panel_tab {

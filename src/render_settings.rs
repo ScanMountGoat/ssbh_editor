@@ -85,10 +85,7 @@ pub fn render_settings(
                             ui.end_row();
 
                             ui.label("Transition Factor");
-                            ui.add(egui::Slider::new(
-                                &mut settings.transition_factor,
-                                0.0..=1.0,
-                            ));
+                            ui.add(DragSlider::new(&mut settings.transition_factor, 100.0));
                             ui.end_row();
                         }
                     });

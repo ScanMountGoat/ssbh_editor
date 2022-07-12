@@ -1,11 +1,12 @@
-use std::str::FromStr;
-
 use egui::{
     epaint, pos2, vec2, NumExt, Response, RichText, Sense, TextStyle, Ui, Widget, WidgetInfo,
     WidgetText, WidgetType,
 };
+use std::str::FromStr;
 
-#[must_use = "You should put this widget in an ui with `ui.add(widget);`"]
+mod dragslider;
+pub use dragslider::DragSlider;
+
 pub struct EyeCheckBox<'a> {
     checked: &'a mut bool,
     text: WidgetText,
