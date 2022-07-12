@@ -3,7 +3,7 @@ use crate::{
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
-        remove_parameters, unused_parameters,
+        remove_parameters, unused_parameters, vector4_labels_short, vector4_labels_long,
     },
     validation::MatlValidationError,
     widgets::*,
@@ -774,10 +774,12 @@ fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
         });
     };
 
-    edit_component(ui, "X", &mut param.data.x);
-    edit_component(ui, "Y", &mut param.data.y);
-    edit_component(ui, "Z", &mut param.data.z);
-    edit_component(ui, "W", &mut param.data.w);
+    // TODO: Fix spacing for unused labels.
+    let labels = vector4_labels_short(param.param_id);
+    edit_component(ui, labels[0], &mut param.data.x);
+    edit_component(ui, labels[1], &mut param.data.y);
+    edit_component(ui, labels[2], &mut param.data.z);
+    edit_component(ui, labels[3], &mut param.data.w);
 }
 
 fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) {
@@ -809,26 +811,27 @@ fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
         ui.label(param_label(param.param_id));
     });
     ui.indent("indent", |ui| {
+        let labels = vector4_labels_long(param.param_id);
         Grid::new(param.param_id.to_string()).show(ui, |ui| {
-            ui.label("X");
+            ui.label(labels[0]);
             ui.add(
                 DragSlider::new(format!("{:?}.x", param.param_id), &mut param.data.x).width(150.0),
             );
             ui.end_row();
 
-            ui.label("Y");
+            ui.label(labels[1]);
             ui.add(
                 DragSlider::new(format!("{:?}.y", param.param_id), &mut param.data.y).width(150.0),
             );
             ui.end_row();
 
-            ui.label("Z");
+            ui.label(labels[2]);
             ui.add(
                 DragSlider::new(format!("{:?}.z", param.param_id), &mut param.data.z).width(150.0),
             );
             ui.end_row();
 
-            ui.label("W");
+            ui.label(labels[3]);
             ui.add(
                 DragSlider::new(format!("{:?}.w", param.param_id), &mut param.data.w).width(150.0),
             );

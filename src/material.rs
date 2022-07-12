@@ -511,11 +511,84 @@ pub fn param_description(p: ParamId) -> &'static str {
         ParamId::Texture14 => "Emissive Layer 2",
         ParamId::CustomFloat1 => "Ambient Occlusion Map Intensity",
         ParamId::CustomFloat10 => "Anisotropy",
-        ParamId::CustomBoolean1 => "Use PRM Alpha",
+        ParamId::CustomBoolean1 => "PRM Alpha",
         ParamId::CustomBoolean2 => "Alpha Override",
         ParamId::CustomBoolean3 => "Direct Specular",
         ParamId::CustomBoolean4 => "Indirect Specular",
+        ParamId::CustomBoolean9 => "Sprite Sheet",
         _ => "",
+    }
+}
+
+// TODO: Add toggleable tooltips to preferences?
+pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
+    // TODO: Research which parameters are unused.
+    match p {
+        ParamId::CustomVector1
+        | ParamId::CustomVector2
+        | ParamId::CustomVector3
+        | ParamId::CustomVector5
+        | ParamId::CustomVector7
+        | ParamId::CustomVector8
+        | ParamId::CustomVector9
+        | ParamId::CustomVector10
+        | ParamId::CustomVector13
+        | ParamId::CustomVector14
+        | ParamId::CustomVector15
+        | ParamId::CustomVector19
+        | ParamId::CustomVector20
+        | ParamId::CustomVector21
+        | ParamId::CustomVector22
+        | ParamId::CustomVector23
+        | ParamId::CustomVector24
+        | ParamId::CustomVector35
+        | ParamId::CustomVector43
+        | ParamId::CustomVector44
+        | ParamId::CustomVector45 => ["R", "G", "B", "A"],
+        ParamId::CustomVector11 => ["R", "G", "B", ""],
+        ParamId::CustomVector30 => ["X", "Y", "", ""],
+        _ => ["X", "Y", "Z", "W"],
+    }
+}
+
+pub fn vector4_labels_long(p: ParamId) -> [&'static str; 4] {
+    // TODO: Research which parameters are unused.
+    match p {
+        ParamId::CustomVector1
+        | ParamId::CustomVector2
+        | ParamId::CustomVector3
+        | ParamId::CustomVector5
+        | ParamId::CustomVector7
+        | ParamId::CustomVector8
+        | ParamId::CustomVector9
+        | ParamId::CustomVector10
+        | ParamId::CustomVector13
+        | ParamId::CustomVector15
+        | ParamId::CustomVector19
+        | ParamId::CustomVector20
+        | ParamId::CustomVector21
+        | ParamId::CustomVector22
+        | ParamId::CustomVector23
+        | ParamId::CustomVector24
+        | ParamId::CustomVector35
+        | ParamId::CustomVector43
+        | ParamId::CustomVector44
+        | ParamId::CustomVector45 => ["Red", "Green", "Blue", "Alpha"],
+        ParamId::CustomVector0 => ["Min Texture Alpha", "Y", "Z", "W"],
+        ParamId::CustomVector6 | ParamId::CustomVector31 | ParamId::CustomVector32 => {
+            ["Scale U", "Scale V", "Translate U", "Translate V"]
+        }
+        ParamId::CustomVector11 => ["Red", "Green", "Blue", ""],
+        ParamId::CustomVector14 => ["Red", "Green", "Blue", "Blend Factor"],
+        ParamId::CustomVector18 => [
+            "Column Count",
+            "Row Count",
+            "Frames per Sprite",
+            "Sprite Count",
+        ],
+        ParamId::CustomVector30 => ["Blend Factor", "Smooth Factor", "", ""],
+        ParamId::CustomVector47 => ["Metalness", "Roughness", "Ambient Occlusion", "Specular"],
+        _ => ["X", "Y", "Z", "W"],
     }
 }
 
