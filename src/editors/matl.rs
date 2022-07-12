@@ -763,33 +763,21 @@ fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
         ui.label(param_label(param.param_id));
     });
 
-    ui.add_enabled_ui(enabled, |ui| {
-        ui.horizontal(|ui| {
-            ui.label("X");
-            ui.add(DragValue::new(&mut param.data.x).speed(0.01));
+    let edit_component = |ui: &mut Ui, label, value| {
+        ui.add_enabled_ui(enabled, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(label);
+                ui.add(
+                    DragSlider::new(format!("{:?}.{}", param.param_id, label), value).width(50.0),
+                );
+            });
         });
-    });
+    };
 
-    ui.add_enabled_ui(enabled, |ui| {
-        ui.horizontal(|ui| {
-            ui.label("Y");
-            ui.add(DragValue::new(&mut param.data.y).speed(0.01));
-        });
-    });
-
-    ui.add_enabled_ui(enabled, |ui| {
-        ui.horizontal(|ui| {
-            ui.label("Z");
-            ui.add(DragValue::new(&mut param.data.z).speed(0.01));
-        });
-    });
-
-    ui.add_enabled_ui(enabled, |ui| {
-        ui.horizontal(|ui| {
-            ui.label("W");
-            ui.add(DragValue::new(&mut param.data.w).speed(0.01));
-        });
-    });
+    edit_component(ui, "X", &mut param.data.x);
+    edit_component(ui, "Y", &mut param.data.y);
+    edit_component(ui, "Z", &mut param.data.z);
+    edit_component(ui, "W", &mut param.data.w);
 }
 
 fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) {
@@ -823,19 +811,27 @@ fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
     ui.indent("indent", |ui| {
         Grid::new(param.param_id.to_string()).show(ui, |ui| {
             ui.label("X");
-            ui.add(Slider::new(&mut param.data.x, 0.0..=1.0).clamp_to_range(false));
+            ui.add(
+                DragSlider::new(format!("{:?}.x", param.param_id), &mut param.data.x).width(150.0),
+            );
             ui.end_row();
 
             ui.label("Y");
-            ui.add(Slider::new(&mut param.data.y, 0.0..=1.0).clamp_to_range(false));
+            ui.add(
+                DragSlider::new(format!("{:?}.y", param.param_id), &mut param.data.y).width(150.0),
+            );
             ui.end_row();
 
             ui.label("Z");
-            ui.add(Slider::new(&mut param.data.z, 0.0..=1.0).clamp_to_range(false));
+            ui.add(
+                DragSlider::new(format!("{:?}.z", param.param_id), &mut param.data.z).width(150.0),
+            );
             ui.end_row();
 
             ui.label("W");
-            ui.add(Slider::new(&mut param.data.w, 0.0..=1.0).clamp_to_range(false));
+            ui.add(
+                DragSlider::new(format!("{:?}.w", param.param_id), &mut param.data.w).width(150.0),
+            );
             ui.end_row();
         });
     });
