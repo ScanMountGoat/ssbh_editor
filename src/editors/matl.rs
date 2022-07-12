@@ -14,6 +14,8 @@ use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::ShaderDatabase;
 use std::path::Path;
+use std::str::FromStr;
+use strum::VariantNames;
 
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
@@ -171,7 +173,7 @@ fn edit_matl_entries(
             material_combo_box(ui, selected_material_index, entries);
         }
 
-        if ui.button("Rename").clicked() {
+        if !*is_editing_material_label && ui.button("Rename").clicked() {
             // TODO: The material assignments don't always update in the viewport.
             *is_editing_material_label = true;
         }
@@ -709,6 +711,43 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
                 &mut param.data.mag_filter,
             );
             ui.end_row();
+
+            // TODO: What color space to use?
+            // TODO: Add tooltips to other labels?
+            // TODO: Only show tooltips after a delay?
+            ui.label("Border Color").on_hover_text(
+                "The color when sampling UVs outside the range 0.0 to 1.0. Only affects ClampToBorder.",
+            );
+            edit_color4f_rgba(ui, &mut param.data.border_color);
+            ui.end_row();
+
+            ui.label("Lod Bias");
+            ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1));
+            ui.end_row();
+
+            // TODO: Make a function for this and share with bone parent index?
+            // TODO: Format as 1x, 2x, etc?
+            ui.label("Max Anisotropy");
+            egui::ComboBox::from_id_source(format!("anis{:?}", param.param_id))
+                .selected_text(
+                    param
+                        .data
+                        .max_anisotropy
+                        .map(|a| a.to_string())
+                        .unwrap_or("None".to_string()),
+                )
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut param.data.max_anisotropy, None, "None");
+                    ui.separator();
+                    for variant in MaxAnisotropy::VARIANTS {
+                        ui.selectable_value(
+                            &mut param.data.max_anisotropy,
+                            Some(MaxAnisotropy::from_str(variant).unwrap()),
+                            variant.to_string(),
+                        );
+                    }
+                });
+            ui.end_row();
         });
     });
 }
@@ -716,13 +755,8 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
 fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
     // Disabling the entire row interferes with the grid columns.
     // Disable each item individually.
-    let mut color = [param.data.x, param.data.y, param.data.z];
     ui.add_enabled_ui(enabled, |ui| {
-        if ui.color_edit_button_rgb(&mut color).changed() {
-            param.data.x = color[0];
-            param.data.y = color[1];
-            param.data.z = color[2];
-        }
+        edit_vector4_rgba(ui, &mut param.data);
     });
 
     ui.add_enabled_ui(enabled, |ui| {
@@ -758,17 +792,32 @@ fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
     });
 }
 
+fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) {
+    // TODO: Edit alpha for params with alpha?
+    let mut color = [data.x, data.y, data.z];
+    if ui.color_edit_button_rgb(&mut color).changed() {
+        data.x = color[0];
+        data.y = color[1];
+        data.z = color[2];
+    }
+}
+
+fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) {
+    // TODO: Still show the color if the alpha is 0?
+    let mut color = [data.r, data.g, data.b, data.a];
+    if ui.color_edit_button_rgba_unmultiplied(&mut color).changed() {
+        data.r = color[0];
+        data.g = color[1];
+        data.b = color[2];
+        data.a = color[3];
+    }
+}
+
 fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
     // TODO: Set custom labels and ranges.
     // TODO: Add parameter descriptions.
     ui.horizontal(|ui| {
-        let mut color = [param.data.x, param.data.y, param.data.z];
-        if ui.color_edit_button_rgb(&mut color).changed() {
-            param.data.x = color[0];
-            param.data.y = color[1];
-            param.data.z = color[2];
-        }
-
+        edit_vector4_rgba(ui, &mut param.data);
         ui.label(param_label(param.param_id));
     });
     ui.indent("indent", |ui| {
