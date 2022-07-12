@@ -831,19 +831,19 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "Help", |ui| {
-                if ui.button("GitHub Repository").clicked() {
+                if ui.button("GitHub Wiki").clicked() {
                     ui.close_menu();
-                    let link = "https://github.com/ScanMountGoat/ssbh_editor";
-                    if let Err(open_err) = open::that(link) {
-                        log::error!("Failed to open link ({link}). {open_err}");
+                    let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";
+                    if let Err(e) = open::that(link) {
+                        log::error!("Failed to open {link}: {e}");
                     }
                 }
 
                 if ui.button("Report Issues").clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
-                    if let Err(open_err) = open::that(link) {
-                        log::error!("Failed to open link ({link}). {open_err}");
+                    if let Err(e) = open::that(link) {
+                        log::error!("Failed to open {link}: {e}");
                     }
                 }
 
@@ -851,8 +851,8 @@ impl SsbhApp {
                     ui.close_menu();
                     let link =
                         "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
-                    if let Err(open_err) = open::that(link) {
-                        log::error!("Failed to open link ({link}). {open_err}");
+                    if let Err(e) = open::that(link) {
+                        log::error!("Failed to open {link}: {e}");
                     }
                 }
             });
@@ -1138,7 +1138,7 @@ pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut 
                         .clamp_range(-2.0 * PI..=2.0 * PI),
                 );
                 ui.end_row();
-                
+
                 if ui.button("Reset").clicked() {
                     *camera_state = CameraInputState::default();
                 }
