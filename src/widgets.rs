@@ -91,7 +91,7 @@ pub fn enum_combo_box<V>(
     V: PartialEq + strum::VariantNames + ToString + FromStr,
     <V as FromStr>::Err: std::fmt::Debug,
 {
-    if label != "" {
+    if !label.is_empty() {
         ui.label(label);
     }
 

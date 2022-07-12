@@ -590,8 +590,7 @@ fn last_update_check_file() -> PathBuf {
     std::fs::create_dir_all(app_data_dir).unwrap();
 
     // TODO: Move this into a combined preferences file?
-    let last_update_check_file = app_data_dir.join("update_time.txt");
-    last_update_check_file
+    app_data_dir.join("update_time.txt")
 }
 
 fn exit_application(update_check_time: DateTime<Utc>) {

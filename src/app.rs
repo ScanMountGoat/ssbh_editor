@@ -394,7 +394,7 @@ impl SsbhApp {
                                 .iter_mut()
                                 .find(|(f, _)| f == "model.numdlb")
                                 .and_then(|(_, m)| m.as_mut().ok()),
-                            &validation_errors,
+                            validation_errors,
                             &self.thumbnails[folder_index],
                             &self.default_thumbnails,
                             &self.render_state.shared_data.database,

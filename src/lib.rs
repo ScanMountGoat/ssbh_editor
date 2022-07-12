@@ -46,7 +46,7 @@ impl Default for CameraInputState {
             is_mouse_left_clicked: false,
             is_mouse_right_clicked: false,
             translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
-            rotation_xyz: glam::Vec3::new(0.0, 0.0, 0.0)
+            rotation_xyz: glam::Vec3::new(0.0, 0.0, 0.0),
         }
     }
 }

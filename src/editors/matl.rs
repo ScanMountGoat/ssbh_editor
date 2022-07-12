@@ -3,7 +3,7 @@ use crate::{
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
-        remove_parameters, unused_parameters, vector4_labels_short, vector4_labels_long,
+        remove_parameters, unused_parameters, vector4_labels_long, vector4_labels_short,
     },
     validation::MatlValidationError,
     widgets::*,
@@ -427,19 +427,17 @@ fn matl_entry_editor(
             "Meshes with this material are missing these vertex attributes required by the shader.",
         );
         for error in validation_errors {
-            match error {
-                MatlValidationError::MissingRequiredVertexAttributes {
-                    mesh_name,
-                    missing_attributes,
-                    ..
-                } => {
-                    ui.horizontal(|ui| {
-                        ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
-                        ui.label(mesh_name);
-                        ui.label(missing_attributes.join(","));
-                    });
-                }
-                _ => (),
+            if let MatlValidationError::MissingRequiredVertexAttributes {
+                mesh_name,
+                missing_attributes,
+                ..
+            } = error
+            {
+                ui.horizontal(|ui| {
+                    ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
+                    ui.label(mesh_name);
+                    ui.label(missing_attributes.join(","));
+                });
             }
         }
 
@@ -734,7 +732,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
                         .data
                         .max_anisotropy
                         .map(|a| a.to_string())
-                        .unwrap_or("None".to_string()),
+                        .unwrap_or_else(|| "None".to_string()),
                 )
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut param.data.max_anisotropy, None, "None");

@@ -200,47 +200,40 @@ fn validate_required_attributes(
     shader_database: &ShaderDatabase,
 ) {
     // Both the modl and mesh should be present to determine material assignments.
-    match (modl, mesh) {
-        (Some(modl), Some(mesh)) => {
-            for (entry_index, entry) in matl.entries.iter().enumerate() {
-                // TODO: make this a method of the database?
-                if let Some(program) =
-                    shader_database.get(entry.shader_label.get(..24).unwrap_or(""))
-                {
-                    for o in mesh.objects.iter().filter(|o| {
-                        modl.entries
-                            .iter()
-                            .filter(|e| e.material_label == entry.material_label)
-                            .any(|e| {
-                                e.mesh_object_name == o.name
-                                    && e.mesh_object_sub_index == o.sub_index
-                            })
-                    }) {
-                        // Find attributes required by the shader not present in the mesh.
-                        let attribute_names: Vec<_> = o
-                            .texture_coordinates
-                            .iter()
-                            .map(|a| a.name.to_string())
-                            .chain(o.color_sets.iter().map(|a| a.name.to_string()))
-                            .collect();
+    if let (Some(modl), Some(mesh)) = (modl, mesh) {
+        for (entry_index, entry) in matl.entries.iter().enumerate() {
+            // TODO: make this a method of the database?
+            if let Some(program) = shader_database.get(entry.shader_label.get(..24).unwrap_or("")) {
+                for o in mesh.objects.iter().filter(|o| {
+                    modl.entries
+                        .iter()
+                        .filter(|e| e.material_label == entry.material_label)
+                        .any(|e| {
+                            e.mesh_object_name == o.name && e.mesh_object_sub_index == o.sub_index
+                        })
+                }) {
+                    // Find attributes required by the shader not present in the mesh.
+                    let attribute_names: Vec<_> = o
+                        .texture_coordinates
+                        .iter()
+                        .map(|a| a.name.to_string())
+                        .chain(o.color_sets.iter().map(|a| a.name.to_string()))
+                        .collect();
 
-                        let missing_attributes =
-                            program.missing_required_attributes(&attribute_names);
-                        if !missing_attributes.is_empty() {
-                            let error = MatlValidationError::MissingRequiredVertexAttributes {
-                                entry_index,
-                                material_label: entry.material_label.clone(),
-                                mesh_name: o.name.clone(),
-                                missing_attributes,
-                            };
+                    let missing_attributes = program.missing_required_attributes(&attribute_names);
+                    if !missing_attributes.is_empty() {
+                        let error = MatlValidationError::MissingRequiredVertexAttributes {
+                            entry_index,
+                            material_label: entry.material_label.clone(),
+                            mesh_name: o.name.clone(),
+                            missing_attributes,
+                        };
 
-                            validation.matl_errors.push(error);
-                        }
+                        validation.matl_errors.push(error);
                     }
                 }
             }
         }
-        _ => (),
     }
 }
 
@@ -333,18 +326,18 @@ fn validate_renormal_material_entries(
 
 fn expects_srgb(texture: ParamId) -> bool {
     // These formats will render inaccurately with sRGB.
-    return !matches!(
+    !matches!(
         texture,
         ParamId::Texture2
             | ParamId::Texture4
             | ParamId::Texture6
             | ParamId::Texture7
             | ParamId::Texture16
-    );
+    )
 }
 
 fn is_srgb(format: NutexbFormat) -> bool {
-    return matches!(
+    matches!(
         format,
         NutexbFormat::R8G8B8A8Srgb
             | NutexbFormat::B8G8R8A8Srgb
@@ -352,7 +345,7 @@ fn is_srgb(format: NutexbFormat) -> bool {
             | NutexbFormat::BC2Srgb
             | NutexbFormat::BC3Srgb
             | NutexbFormat::BC7Srgb
-    );
+    )
 }
 
 #[cfg(test)]

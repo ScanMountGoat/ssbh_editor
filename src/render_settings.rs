@@ -1,5 +1,4 @@
 use crate::{horizontal_separator_empty, widgets::*};
-use egui::ScrollArea;
 use ssbh_wgpu::{DebugMode, RenderSettings};
 
 pub fn render_settings(

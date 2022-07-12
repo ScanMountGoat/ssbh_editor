@@ -54,7 +54,7 @@ impl<'a> Widget for DragSlider<'a> {
                 .memory()
                 .data
                 .get_temp::<String>(edit_text_id)
-                .unwrap_or(self.value.to_string());
+                .unwrap_or_else(|| self.value.to_string());
             let response = ui.add(
                 TextEdit::singleline(&mut value_text)
                     .id(kb_edit_id)

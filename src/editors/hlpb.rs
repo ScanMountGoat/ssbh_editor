@@ -168,7 +168,6 @@ fn bone_combo_box(
 ) {
     egui::ComboBox::from_id_source(id)
         .selected_text(bone_name.clone())
-        // .width(400.0)
         .show_ui(ui, |ui| {
             // TODO: Just use text boxes if the skel is missing?
             for name in extra_names {
