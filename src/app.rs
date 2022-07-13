@@ -125,6 +125,8 @@ pub struct UiState {
     pub preset_editor_advanced_mode: bool,
     pub preset_selected_material_index: usize,
     pub preset_is_editing_material_label: bool,
+
+    pub light_mode: bool,
 }
 
 const ICON_SIZE: f32 = 18.0;
@@ -825,6 +827,8 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "View", |ui| {
+                ui.checkbox(&mut self.ui_state.light_mode, "Light Mode");
+                ui.separator();
                 ui.checkbox(&mut self.show_left_panel, "Left Panel");
                 ui.checkbox(&mut self.show_right_panel, "Right Panel");
                 ui.checkbox(&mut self.show_bottom_panel, "Bottom Panel");

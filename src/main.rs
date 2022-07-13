@@ -288,6 +288,8 @@ fn main() {
         camera_state,
     };
 
+    let mut prev_light_mode = false;
+
     // TODO: Does the T in the the event type matter here?
     event_loop.run(
         move |event: winit::event::Event<'_, usize>, _, control_flow| {
@@ -302,6 +304,23 @@ fn main() {
                         let current_frame_start = std::time::Instant::now();
 
                         let final_frame_index = app.max_final_frame_index();
+
+                        if prev_light_mode != app.ui_state.light_mode {
+                            if app.ui_state.light_mode {
+                                ctx.set_visuals(egui::style::Visuals::light());
+                            } else {
+                                ctx.set_style(egui::style::Style {
+                                    text_styles: default_text_styles(),
+                                    visuals: egui::style::Visuals {
+                                        widgets: widgets_dark(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                });
+                            }
+                        }
+
+                        prev_light_mode = app.ui_state.light_mode;
 
                         if app.animation_state.is_playing {
                             app.animation_state.current_frame = next_frame(
