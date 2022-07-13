@@ -781,22 +781,35 @@ impl SsbhApp {
             egui::menu::menu_button(ui, "File", |ui| {
                 let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
 
-                if button(ui, "Open Folder...    (Ctrl+O)").clicked() {
+                // TODO: Store keyboard shortcuts in a single place?
+                let ctrl = if cfg!(target_os = "macos") {
+                    "⌘"
+                } else {
+                    "Ctrl"
+                };
+
+                let ctrl_shift = if cfg!(target_os = "macos") {
+                    "⇧ ⌘"
+                } else {
+                    "Ctrl Shift"
+                };
+
+                if button(ui, format!("Open Folder...    {ctrl} O")).clicked() {
                     ui.close_menu();
                     self.open_folder();
                 }
 
-                if button(ui, "Add Folder to Workspace...    (Ctrl+Shift+O)").clicked() {
+                if button(ui, format!("Add Folder to Workspace...    {ctrl_shift} O")).clicked() {
                     ui.close_menu();
                     self.add_folder_to_workspace();
                 }
 
-                if button(ui, "Reload Workspace    (Ctrl+R)").clicked() {
+                if button(ui, format!("Reload Workspace    {ctrl} R")).clicked() {
                     ui.close_menu();
                     self.reload_workspace();
                 }
 
-                if button(ui, "Clear Workspace").clicked() {
+                if button(ui, format!("Clear Workspace")).clicked() {
                     ui.close_menu();
                     self.clear_workspace();
                 }
@@ -976,14 +989,17 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     for (i, folder) in app.models.iter().enumerate() {
         let name = format!("meshlist.{}", i);
 
+        let mut model_selected = false;
         let id = ui.make_persistent_id(&name);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 if let Some(render_model) = app.render_models.get_mut(i) {
-                    ui.add(EyeCheckBox::new(
-                        &mut render_model.is_visible,
-                        &folder_display_name(folder),
-                    ));
+                    model_selected = ui
+                        .add(EyeCheckBox::new(
+                            &mut render_model.is_visible,
+                            &folder_display_name(folder),
+                        ))
+                        .hovered();
                 }
             })
             .body(|ui| {
@@ -995,10 +1011,11 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         ui.spacing_mut().indent = 24.0;
                         ui.indent("indent", |ui| {
                             for mesh in &mut render_model.meshes {
-                                // TODO: Select entire render models?
                                 let response =
                                     ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
-                                mesh.is_selected = response.hovered();
+
+                                // Selecting a model should select every mesh.
+                                mesh.is_selected = response.hovered() || model_selected;
                             }
                         });
                     });

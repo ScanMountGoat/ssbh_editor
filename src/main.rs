@@ -741,6 +741,14 @@ fn request_adapter(
 }
 
 fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app: &mut SsbhApp) {
+    // Use command instead of ctrl on MacOS.
+    const CTRL: ModifiersState = if cfg!(target_os = "macos") {
+        ModifiersState::LOGO
+    } else {
+        ModifiersState::CTRL
+    };
+    const CTRL_SHIFT: ModifiersState = CTRL.union(ModifiersState::SHIFT);
+
     if let WindowEvent::KeyboardInput {
         input,
         is_synthetic,
@@ -751,13 +759,9 @@ fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app:
         if !is_synthetic {
             if let Some(key) = input.virtual_keycode {
                 match (modifiers, key) {
-                    (ModifiersState::CTRL, VirtualKeyCode::O) => app.open_folder(),
-                    (ctrl_shift, VirtualKeyCode::O)
-                        if ctrl_shift == ModifiersState::CTRL | ModifiersState::SHIFT =>
-                    {
-                        app.add_folder_to_workspace()
-                    }
-                    (ModifiersState::CTRL, VirtualKeyCode::R) => app.reload_workspace(),
+                    (CTRL, VirtualKeyCode::O) => app.open_folder(),
+                    (CTRL_SHIFT, VirtualKeyCode::O) => app.add_folder_to_workspace(),
+                    (CTRL, VirtualKeyCode::R) => app.reload_workspace(),
                     _ => (),
                 }
             }
