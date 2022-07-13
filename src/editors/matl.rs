@@ -8,7 +8,7 @@ use crate::{
     validation::MatlValidationError,
     widgets::*,
 };
-use egui::{ComboBox, DragValue, Grid, Label, ScrollArea, Slider, Ui, Window};
+use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, Slider, Ui, Window};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
@@ -294,6 +294,18 @@ fn menu_bar(
                 ui_state.matl_preset_window_open = true;
             }
         });
+    });
+
+    egui::menu::menu_button(ui, "Help", |ui| {
+        let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+
+        if button(ui, "Material Reference (GitHub)").clicked() {
+            ui.close_menu();
+            let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
+            if let Err(open_err) = open::that(link) {
+                log::error!("Failed to open link ({link}). {open_err}");
+            }
+        }
     });
 }
 
