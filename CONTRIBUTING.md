@@ -17,7 +17,7 @@ If the issue doesn't exist, make an issue first explaining what you would like c
 Make a comment on the issue if you are interested in attempting a PR to implement a fix. 
 I'll let you know if it looks doable to implement and try to give a brief overview of the necessary changes that need to be made.
 The codebases for ssbh_data and ssbh_wgpu are less beginner friendly than 
-ssbh_editor. If you're interested in submitting a PR for an issue affecting these projects, 
+ssbh_editor. If an issue on ssbh_editor requires a change to ssbh_data or ssbh_wgpu, 
 ask on the ssbh_editor issue first about the difficulty of the required code changes.    
 
 Once you've finished the implementation on your fork, open a PR for review. It's ok if the code isn't perfect or has a few bugs. 
