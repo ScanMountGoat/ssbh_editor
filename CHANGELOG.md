@@ -10,12 +10,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added adjb files to the files list.
 * Added the Adj Editor for editing model.adjb files.
 * Added validation errrors related to adjb files and RENORMAL materials.
+* Added a light mode theme.
+* Added the ability to duplicate materials in the Matl Editor.
+* Added a camera settings menu.
+* Added an application icon.
+* Added links to the Github wiki for editor menus.
+* Added missing parameters when editing samplers in the Matl Editor.
+* Added a link to the material parameter reference to the Matl Editor.
 
 ### Changed
 * Improved layout of validation error messages when hovering over a file.
 * Errors when loading or saving the presets.json file now show in the application log.
 * Adjusted the layout of the material editor to be more consistent.
 * Changed the material preset selector to not be resizable to avoid text wrapping.
+* Selected meshes and models in the mesh list now render an outline on hover.
+* Changed the widget for editing float values to more clearly indicate the value and be easier to use.
+* Adjusted the UI for improved layout consistency.
+* Changed the Vector4 labels in the Matl Editor to be more descriptive in normal and advanced mode.
+* Adjusted keyboard shortcuts on MacOS to use the command key instead of ctrl.
+* The Matl editor now always shows the render pass selector.
 
 ## 0.4.1
 ### Added
