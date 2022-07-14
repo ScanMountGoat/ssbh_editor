@@ -376,6 +376,46 @@ pub fn widgets_dark() -> Widgets {
     }
 }
 
+pub fn widgets_light() -> Widgets {
+    Widgets {
+        noninteractive: WidgetVisuals {
+            bg_fill: Color32::from_gray(248), // window background - should be distinct from TextEdit background
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(190)), // separators, indentation lines, windows outlines
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(80)),  // normal text color
+            rounding: Rounding::same(2.0),
+            expansion: 0.0,
+        },
+        inactive: WidgetVisuals {
+            bg_fill: Color32::from_gray(230), // button background
+            bg_stroke: Default::default(),
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(60)), // button text
+            rounding: Rounding::same(2.0),
+            expansion: 0.0,
+        },
+        hovered: WidgetVisuals {
+            bg_fill: Color32::from_gray(220),
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(105)), // e.g. hover over window edge or button
+            fg_stroke: Stroke::new(1.5, Color32::BLACK),
+            rounding: Rounding::same(3.0),
+            expansion: 1.0,
+        },
+        active: WidgetVisuals {
+            bg_fill: Color32::from_gray(165),
+            bg_stroke: Stroke::new(1.0, Color32::BLACK),
+            fg_stroke: Stroke::new(2.0, Color32::BLACK),
+            rounding: Rounding::same(2.0),
+            expansion: 1.0,
+        },
+        open: WidgetVisuals {
+            bg_fill: Color32::from_gray(220),
+            bg_stroke: Stroke::new(1.0, Color32::from_gray(160)),
+            fg_stroke: Stroke::new(1.0, Color32::BLACK),
+            rounding: Rounding::same(2.0),
+            expansion: 0.0,
+        },
+    }
+}
+
 fn horizontal_separator_empty(ui: &mut egui::Ui) {
     let available_space = ui.available_size_before_wrap();
     ui.allocate_space(egui::vec2(available_space.x, 6.0));

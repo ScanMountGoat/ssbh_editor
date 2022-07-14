@@ -10,8 +10,8 @@ use ssbh_editor::material::load_material_presets;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, widgets_dark, AnimationIndex, AnimationState, CameraInputState,
-    RenderState, TexturePainter,
+    generate_model_thumbnails, widgets_dark, widgets_light, AnimationIndex, AnimationState,
+    CameraInputState, RenderState, TexturePainter,
 };
 use ssbh_wgpu::{create_default_textures, CameraTransforms, SsbhRenderer};
 use std::iter;
@@ -207,14 +207,20 @@ fn main() {
     });
     ctx.set_fonts(default_fonts());
 
+    // Assume an sRGB framebuffer, so convert sRGB to linear.
+    let clear_dark = widgets_dark().noninteractive.bg_fill.r();
+    let clear_dark = [linear_f32_from_gamma_u8(clear_dark) as f64; 3];
+
+    let clear_light = widgets_light().noninteractive.bg_fill.r();
+    let clear_light = [linear_f32_from_gamma_u8(clear_light) as f64; 3];
+
     let mut renderer = SsbhRenderer::new(
         &device,
         &queue,
         size.width,
         size.height,
         window.scale_factor(),
-        // Assume an sRGB framebuffer, so convert sRGB to linear.
-        [linear_f32_from_gamma_u8(27) as f64; 3],
+        clear_dark,
         ssbh_editor::FONT_BYTES,
     );
 
@@ -307,16 +313,17 @@ fn main() {
 
                         if prev_light_mode != app.ui_state.light_mode {
                             if app.ui_state.light_mode {
-                                ctx.set_visuals(egui::style::Visuals::light());
-                            } else {
-                                ctx.set_style(egui::style::Style {
-                                    text_styles: default_text_styles(),
-                                    visuals: egui::style::Visuals {
-                                        widgets: widgets_dark(),
-                                        ..Default::default()
-                                    },
+                                ctx.set_visuals(egui::style::Visuals {
+                                    widgets: widgets_light(),
                                     ..Default::default()
                                 });
+                                renderer.set_clear_color(clear_light);
+                            } else {
+                                ctx.set_visuals(egui::style::Visuals {
+                                    widgets: widgets_dark(),
+                                    ..Default::default()
+                                });
+                                renderer.set_clear_color(clear_dark);
                             }
                         }
 
