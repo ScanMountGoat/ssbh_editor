@@ -380,8 +380,8 @@ fn matl_entry_editor(
     let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
 
     ui.heading("Shader");
+    // TODO: This doesn't always update properly in the viewport.
     ui.horizontal(|ui| {
-        // TODO: This doesn't update properly in the viewport.
         ui.label("Shader Label");
         edit_shader_label(
             ui,
@@ -390,29 +390,30 @@ fn matl_entry_editor(
             red_checkerboard,
         );
     });
-    if advanced_mode {
-        Grid::new("shader_grid").show(ui, |ui| {
-            // TODO: Should this be part of the basic mode.
-            ui.label("Render Pass");
-            let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
-            ComboBox::from_id_source("render pass")
-                .selected_text(entry.shader_label.get(25..).unwrap_or(""))
-                .show_ui(ui, |ui| {
-                    for pass in [
-                        shader.clone() + "_opaque",
-                        shader.clone() + "_far",
-                        shader.clone() + "_sort",
-                        shader.clone() + "_near",
-                    ] {
-                        ui.selectable_value(
-                            &mut entry.shader_label,
-                            pass.to_string(),
-                            pass.get(25..).unwrap_or(""),
-                        );
-                    }
-                });
-            ui.end_row();
 
+    Grid::new("shader_grid").show(ui, |ui| {
+        // TODO: Should this be part of the basic mode.
+        ui.label("Render Pass");
+        let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
+        ComboBox::from_id_source("render pass")
+            .selected_text(entry.shader_label.get(25..).unwrap_or(""))
+            .show_ui(ui, |ui| {
+                for pass in [
+                    shader.clone() + "_opaque",
+                    shader.clone() + "_far",
+                    shader.clone() + "_sort",
+                    shader.clone() + "_near",
+                ] {
+                    ui.selectable_value(
+                        &mut entry.shader_label,
+                        pass.to_string(),
+                        pass.get(25..).unwrap_or(""),
+                    );
+                }
+            });
+        ui.end_row();
+
+        if advanced_mode {
             if let Some(program) = program {
                 ui.label("Alpha Testing");
                 ui.label(program.discard.to_string());
@@ -422,8 +423,9 @@ fn matl_entry_editor(
                 ui.add(Label::new(program.vertex_attributes.join(",")).wrap(true));
                 ui.end_row();
             }
-        });
-    }
+        }
+    });
+
     horizontal_separator_empty(ui);
 
     // TODO: Show errors in the material selector.
