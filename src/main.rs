@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use directories::ProjectDirs;
 use egui::color::linear_f32_from_gamma_u8;
+use egui::Visuals;
 use log::error;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
@@ -313,13 +314,13 @@ fn main() {
 
                         if prev_light_mode != app.ui_state.light_mode {
                             if app.ui_state.light_mode {
-                                ctx.set_visuals(egui::style::Visuals {
+                                ctx.set_visuals(Visuals {
                                     widgets: widgets_light(),
-                                    ..Default::default()
+                                    ..Visuals::light()
                                 });
                                 renderer.set_clear_color(clear_light);
                             } else {
-                                ctx.set_visuals(egui::style::Visuals {
+                                ctx.set_visuals(Visuals {
                                     widgets: widgets_dark(),
                                     ..Default::default()
                                 });
