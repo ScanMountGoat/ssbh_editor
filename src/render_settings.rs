@@ -95,6 +95,17 @@ pub fn render_settings(
                     ui.checkbox(&mut settings.render_rgba[2], "B");
                     ui.checkbox(&mut settings.render_rgba[3], "A");
                 });
+
+                if matches!(
+                    settings.debug_mode,
+                    DebugMode::Map1
+                        | DebugMode::Bake1
+                        | DebugMode::UvSet
+                        | DebugMode::UvSet1
+                        | DebugMode::UvSet2
+                ) {
+                    ui.checkbox(&mut settings.use_uv_pattern, "UV Test Pattern");
+                }
             }
             horizontal_separator_empty(ui);
 
