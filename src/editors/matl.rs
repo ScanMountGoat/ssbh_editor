@@ -271,12 +271,25 @@ fn menu_bar(
         });
 
         egui::menu::menu_button(ui, "Material", |ui| {
+            let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
             if ui.button("Add New Material").clicked() {
                 ui.close_menu();
 
                 // TODO: Select options from presets?
                 let new_entry = default_material();
                 matl.entries.push(new_entry);
+
+                ui_state.matl_selected_material_index = matl.entries.len() - 1;
+            }
+
+            if button(ui, "Duplicate Current Material").clicked() {
+                ui.close_menu();
+
+                if let Some(old_entry) = matl.entries.get(ui_state.matl_selected_material_index) {
+                    let mut new_entry = old_entry.clone();
+                    new_entry.material_label.push_str("_copy");
+                    matl.entries.push(new_entry);
+                }
 
                 ui_state.matl_selected_material_index = matl.entries.len() - 1;
             }
@@ -294,18 +307,18 @@ fn menu_bar(
                 ui_state.matl_preset_window_open = true;
             }
         });
-    });
 
-    egui::menu::menu_button(ui, "Help", |ui| {
-        let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+        egui::menu::menu_button(ui, "Help", |ui| {
+            let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
 
-        if button(ui, "Material Reference (GitHub)").clicked() {
-            ui.close_menu();
-            let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
-            if let Err(open_err) = open::that(link) {
-                log::error!("Failed to open link ({link}). {open_err}");
+            if button(ui, "Material Reference (GitHub)").clicked() {
+                ui.close_menu();
+                let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
+                if let Err(open_err) = open::that(link) {
+                    log::error!("Failed to open link ({link}). {open_err}");
+                }
             }
-        }
+        });
     });
 }
 
