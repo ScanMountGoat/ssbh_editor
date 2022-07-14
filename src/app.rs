@@ -987,12 +987,11 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     for (i, folder) in app.models.iter().enumerate() {
         let name = format!("meshlist.{}", i);
 
-        let mut model_selected = false;
         let id = ui.make_persistent_id(&name);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 if let Some(render_model) = app.render_models.get_mut(i) {
-                    model_selected = ui
+                    render_model.is_selected = ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
                             &folder_display_name(folder),
@@ -1009,11 +1008,9 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         ui.spacing_mut().indent = 24.0;
                         ui.indent("indent", |ui| {
                             for mesh in &mut render_model.meshes {
-                                let response =
-                                    ui.add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name));
-
-                                // Selecting a model should select every mesh.
-                                mesh.is_selected = response.hovered() || model_selected;
+                                mesh.is_selected = ui
+                                    .add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name))
+                                    .hovered();
                             }
                         });
                     });
