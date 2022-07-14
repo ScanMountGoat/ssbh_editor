@@ -40,6 +40,7 @@ pub fn matl_editor(
         .resizable(true)
         .show(ctx, |ui| {
             menu_bar(ui, matl, ui_state, material_presets);
+            ui.separator();
 
             // TODO: Simplify logic for closing window.
             let entry = matl.entries.get_mut(ui_state.matl_selected_material_index);
@@ -47,8 +48,6 @@ pub fn matl_editor(
             if !open {
                 ui_state.matl_preset_window_open = false;
             }
-
-            ui.add(egui::Separator::default().horizontal());
 
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
@@ -99,6 +98,8 @@ pub fn preset_editor(
                         }
                     }
                 });
+
+                help_menu(ui);
             });
 
             // Use an empty model thumbnail list to encourage using default textures.
@@ -308,17 +309,30 @@ fn menu_bar(
             }
         });
 
-        egui::menu::menu_button(ui, "Help", |ui| {
-            let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+        help_menu(ui);
+    });
+}
 
-            if button(ui, "Material Reference (GitHub)").clicked() {
-                ui.close_menu();
-                let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
-                if let Err(open_err) = open::that(link) {
-                    log::error!("Failed to open link ({link}). {open_err}");
-                }
+fn help_menu(ui: &mut Ui) {
+    egui::menu::menu_button(ui, "Help", |ui| {
+        let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+
+        if button(ui, "Material Reference (GitHub)").clicked() {
+            ui.close_menu();
+            let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
+            if let Err(open_err) = open::that(link) {
+                log::error!("Failed to open link ({link}). {open_err}");
             }
-        });
+        }
+
+        if ui.button("Matl Editor Wiki").clicked() {
+            ui.close_menu();
+
+            let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Matl-Editor";
+            if let Err(e) = open::that(link) {
+                log::error!("Failed to open {link}: {e}");
+            }
+        }
     });
 }
 
@@ -438,7 +452,6 @@ fn matl_entry_editor(
             }
         }
     });
-
     horizontal_separator_empty(ui);
 
     // TODO: Show errors in the material selector.

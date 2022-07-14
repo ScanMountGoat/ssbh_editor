@@ -32,10 +32,19 @@ pub fn modl_editor(
                         }
                     }
                 });
-            });
 
-            // TODO: Add some sort of separator to make the menu easier to see.
-            ui.add(egui::Separator::default().horizontal());
+                egui::menu::menu_button(ui, "Help", |ui| {
+                    if ui.button("Modl Editor Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Modl-Editor";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
+                        }
+                    }
+                });
+            });
+            ui.separator();
 
             // Advanced mode has more detailed information that most users won't want to edit.
             ui.checkbox(advanced_mode, "Advanced Settings");

@@ -38,8 +38,21 @@ pub fn mesh_editor(
                             }
                         });
 
+                        egui::menu::menu_button(ui, "Help", |ui| {
+                            if ui.button("Mesh Editor Wiki").clicked() {
+                                ui.close_menu();
+
+                                let link =
+                                    "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";
+                                if let Err(e) = open::that(link) {
+                                    log::error!("Failed to open {link}: {e}");
+                                }
+                            }
+                        });
+
                         // TODO: Match the order from an existing mesh?
                     });
+                    ui.separator();
 
                     if let Some(mesh_object) = ui_state
                         .selected_mesh_influences_index
@@ -50,7 +63,6 @@ pub fn mesh_editor(
                             ui_state.selected_mesh_influences_index = None;
                         }
                     }
-                    ui.add(egui::Separator::default().horizontal());
 
                     ui.checkbox(advanced_mode, "Advanced Settings");
 

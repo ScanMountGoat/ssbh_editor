@@ -14,6 +14,21 @@ pub fn nutexb_viewer(
         .open(&mut open)
         .resizable(false)
         .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::menu::menu_button(ui, "Help", |ui| {
+                    if ui.button("Nutexb Editor Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link =
+                            "https://github.com/ScanMountGoat/ssbh_editor/wiki/Nutexb-Editor";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
+                        }
+                    }
+                });
+            });
+            ui.separator();
+
             ui.heading("Footer");
             egui::Grid::new("nutexb_grid").show(ui, |ui| {
                 ui.label("Name");

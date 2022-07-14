@@ -328,10 +328,8 @@ impl SsbhApp {
                     ui.label("Download the new version from here:");
                     let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
                     if ui.hyperlink(release_link).clicked() {
-                        if let Err(open_err) = open::that(release_link) {
-                            log::error!(
-                                "Failed to open link ({release_link}) to releases {open_err}"
-                            );
+                        if let Err(e) = open::that(release_link) {
+                            log::error!("Failed to open {release_link}: {e}");
                         }
                     }
                     // TODO: Show latest version and release notes.
@@ -848,7 +846,7 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "Help", |ui| {
-                if ui.button("GitHub Wiki").clicked() {
+                if ui.button("SSBH Editor Wiki").clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";
                     if let Err(e) = open::that(link) {

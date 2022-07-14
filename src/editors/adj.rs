@@ -29,8 +29,19 @@ pub fn adj_editor(
                         }
                     }
                 });
+
+                egui::menu::menu_button(ui, "Help", |ui| {
+                    if ui.button("Adj Editor Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Adj-Editor";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
+                        }
+                    }
+                });
             });
-            ui.add(egui::Separator::default().horizontal());
+            ui.separator();
 
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
