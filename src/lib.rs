@@ -81,7 +81,8 @@ pub struct AnimationState {
     pub is_playing: bool,
     pub animation_frame_was_changed: bool,
     pub selected_slot: usize,
-    pub animations: Vec<Option<AnimationIndex>>,
+    // TODO: Type for animation slots?
+    pub animations: Vec<Vec<Option<AnimationIndex>>>,
     pub previous_frame_start: std::time::Instant,
 }
 
@@ -98,6 +99,7 @@ impl AnimationState {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct AnimationIndex {
     pub folder_index: usize,
     pub anim_index: usize,
@@ -105,14 +107,12 @@ pub struct AnimationIndex {
 
 impl AnimationIndex {
     pub fn get_animation<'a>(
-        index: Option<&AnimationIndex>,
+        &self,
         models: &'a [ModelFolder],
     ) -> Option<&'a (String, Result<AnimData, Box<dyn Error>>)> {
-        index.and_then(|index| {
-            models
-                .get(index.folder_index)
-                .and_then(|m| m.anims.get(index.anim_index))
-        })
+        models
+            .get(self.folder_index)
+            .and_then(|m| m.anims.get(self.anim_index))
     }
 }
 

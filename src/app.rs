@@ -149,16 +149,16 @@ impl SsbhApp {
     pub fn open_folder(&mut self) {
         if let Some(folder) = FileDialog::new().pick_folder() {
             self.models = load_models_recursive(folder);
+            self.animation_state.animations = vec![Vec::new(); self.models.len()];
             self.should_refresh_meshes = true;
         }
     }
 
     pub fn add_folder_to_workspace(&mut self) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            // Load the folder manually to avoid skipping folders with just animations.
-            // TODO: Is there an easier way to allow loading animation folders?
             let new_model = load_model(&folder);
             self.models.push(new_model);
+            self.animation_state.animations.push(Vec::new());
             // TODO: Only update the model that was added?
             self.should_refresh_meshes = true;
         }
@@ -557,15 +557,17 @@ impl SsbhApp {
     pub fn max_final_frame_index(&mut self) -> f32 {
         // Find the minimum number of frames to cover all animations.
         let mut final_frame_index = 0.0;
-        for anim_index in &self.animation_state.animations {
-            if let Some((_, Ok(anim))) =
-                AnimationIndex::get_animation(anim_index.as_ref(), &self.models)
-            {
-                if anim.final_frame_index > final_frame_index {
-                    final_frame_index = anim.final_frame_index;
+        for model_animations in &self.animation_state.animations {
+            for anim_index in model_animations.iter().filter_map(|a| a.as_ref()) {
+                if let Some((_, Ok(anim))) = AnimationIndex::get_animation(anim_index, &self.models)
+                {
+                    if anim.final_frame_index > final_frame_index {
+                        final_frame_index = anim.final_frame_index;
+                    }
                 }
             }
         }
+
         final_frame_index
     }
 
@@ -585,10 +587,7 @@ impl SsbhApp {
                         .default_open(true)
                         .show(ui, |ui| {
                             // Avoid a confusing missing file error for animation or texture folders.
-                            let is_model = !model.meshes.is_empty()
-                                || !model.modls.is_empty()
-                                || !model.skels.is_empty()
-                                || !model.matls.is_empty();
+                            let is_model = is_model_folder(model);
                             let required_file = |name| if is_model { Some(name) } else { None };
 
                             // Clicking a file opens the corresponding editor.
@@ -658,24 +657,7 @@ impl SsbhApp {
                                 ui.horizontal(|ui| {
                                     empty_icon(ui);
                                     if ui.button(name).clicked() {
-                                        let animation = AnimationIndex {
-                                            folder_index,
-                                            anim_index: i,
-                                        };
-
-                                        // Create the first slot if it doesn't exist to save mouse clicks.
-                                        if self.animation_state.animations.is_empty() {
-                                            self.animation_state.animations.push(Some(animation));
-                                        } else if let Some(slot) = self
-                                            .animation_state
-                                            .animations
-                                            .get_mut(self.animation_state.selected_slot)
-                                        {
-                                            *slot = Some(animation);
-                                        }
-
-                                        // Preview the new animation as soon as it is clicked.
-                                        self.animation_state.animation_frame_was_changed = true;
+                                        // TODO: Add an anim editor/viewer instead.
                                     }
                                 });
                             }
@@ -875,6 +857,13 @@ impl SsbhApp {
     }
 }
 
+fn is_model_folder(model: &ModelFolder) -> bool {
+    !model.meshes.is_empty()
+        || !model.modls.is_empty()
+        || !model.skels.is_empty()
+        || !model.matls.is_empty()
+}
+
 fn folder_display_name(model: &ModelFolder) -> String {
     Path::new(&model.folder_name)
         .file_name()
@@ -983,11 +972,16 @@ pub fn error_icon(ui: &mut Ui) {
 }
 
 fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
-    // TODO: Display folders that only have animations differently?
-    for (i, folder) in app.models.iter().enumerate() {
+    // Don't show non model folders like animation or texture folders.
+    for (i, folder) in app
+        .models
+        .iter()
+        .enumerate()
+        .filter(|(_, folder)| is_model_folder(folder))
+    {
         let name = format!("meshlist.{}", i);
-
         let id = ui.make_persistent_id(&name);
+
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 if let Some(render_model) = app.render_models.get_mut(i) {
@@ -1020,69 +1014,127 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 }
 
 fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
-    // TODO: Will these IDs be unique?
-    if ui.button("Add Slot").clicked() {
-        app.animation_state.animations.push(None);
-    }
+    // Only assign animations to folders with model files.
+    for (model_index, model) in app
+        .models
+        .iter()
+        .enumerate()
+        .filter(|(_, model)| is_model_folder(model))
+    {
+        let mut slots_to_remove = Vec::new();
 
-    let mut slots_to_remove = Vec::new();
-    for (i, anim_index) in app.animation_state.animations.iter().enumerate().rev() {
-        // TODO: Unique IDs?
-        let id = ui.make_persistent_id(i);
+        let name = format!("animlist.{model_index}");
+        let id = ui.make_persistent_id(&name);
+
+        // TODO: Avoid unwrap.
+        let mut model_animations = &mut app.animation_state.animations[model_index];
+
         CollapsingState::load_with_default_open(ctx, id, false)
             .show_header(ui, |ui| {
-                let name = AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
-                    .map(|(name, _)| name.to_string())
-                    .unwrap_or_default();
-
-                ui.horizontal(|ui| {
-                    ui.selectable_value(
-                        &mut app.animation_state.selected_slot,
-                        i,
-                        format!("Slot {i} - {name}"),
-                    );
-                    if ui.button("Remove").clicked() {
-                        slots_to_remove.push(i);
-                    }
-                });
+                // TODO: Get the folder name of the animation folder?
+                ui.label(folder_display_name(model));
             })
             .body(|ui| {
-                if let Some((_, Ok(anim))) =
-                    AnimationIndex::get_animation(anim_index.as_ref(), &app.models)
-                {
-                    for group in &anim.groups {
-                        CollapsingHeader::new(group.group_type.to_string())
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                for node in &group.nodes {
-                                    match node.tracks.as_slice() {
-                                        [_] => {
-                                            // Don't use a collapsing header if there is only one track.
-                                            // This simplifies the layout for most boolean and transform tracks.
-                                            // TODO: How to toggle visibility for rendering?
-                                            ui.label(&node.name);
-                                        }
-                                        _ => {
-                                            CollapsingHeader::new(&node.name)
-                                                .default_open(true)
-                                                .show(ui, |ui| {
-                                                    for track in &node.tracks {
-                                                        // TODO: How to toggle visibility for rendering?
-                                                        ui.label(&track.name);
-                                                    }
-                                                });
-                                        }
+                if ui.button("Add Slot").clicked() {
+                    model_animations.push(None);
+                }
+
+                // TODO: Make a function for this.
+                for (slot, anim_index) in model_animations.iter_mut().enumerate().rev() {
+                    // TODO: Unique IDs?
+                    let id = ui.make_persistent_id(slot);
+                    CollapsingState::load_with_default_open(ctx, id, false)
+                        .show_header(ui, |ui| {
+                            let name = anim_index
+                                .as_ref()
+                                .and_then(|anim_index| anim_index.get_animation(&app.models))
+                                .map(|(name, _)| name.to_string())
+                                .unwrap_or_default();
+
+                            ui.horizontal(|ui| {
+                                // TODO: Allow hiding slots.
+                                ui.add(EyeCheckBox::new(&mut true, format!("Slot {slot}")));
+                                // TODO: Function for this combo box.
+                                // TODO: Show hint text if nothing is selected?
+                                egui::ComboBox::from_id_source(format!(
+                                    "slot{:?}.{:?}",
+                                    model_index, slot
+                                ))
+                                .selected_text(name)
+                                .show_ui(ui, |ui| {
+                                    // TODO: Add a list of available animations assigned to this folder.
+                                    // TODO: Find animation folders with the right name.
+                                    // TODO: Find animations from the folder itself.
+                                    let available_anims = app
+                                        .models
+                                        .iter()
+                                        .enumerate()
+                                        .filter(|(_, m)| m.folder_name.contains("c00"))
+                                        .flat_map(|(folder_index, m)| {
+                                            m.anims.iter().enumerate().map(
+                                                move |(anim_index, _)| AnimationIndex {
+                                                    folder_index,
+                                                    anim_index,
+                                                },
+                                            )
+                                        });
+
+                                    // TODO: Preview the animation when selected.
+                                    // TODO: Reset animations?
+                                    for available_anim in available_anims {
+                                        let name = available_anim
+                                            .get_animation(&app.models)
+                                            .map(|(name, _)| name.to_string())
+                                            .unwrap_or_default();
+
+                                        ui.selectable_value(anim_index, Some(available_anim), name);
                                     }
+                                });
+                                if ui.button("Remove").clicked() {
+                                    slots_to_remove.push(slot);
                                 }
                             });
-                    }
+                        })
+                        .body(|ui| {
+                            if let Some((_, Ok(anim))) = anim_index
+                                .as_ref()
+                                .and_then(|anim_index| anim_index.get_animation(&app.models))
+                            {
+                                for group in &anim.groups {
+                                    CollapsingHeader::new(group.group_type.to_string())
+                                        .default_open(false)
+                                        .show(ui, |ui| {
+                                            for node in &group.nodes {
+                                                match node.tracks.as_slice() {
+                                                    [_] => {
+                                                        // Don't use a collapsing header if there is only one track.
+                                                        // This simplifies the layout for most boolean and transform tracks.
+                                                        // TODO: How to toggle visibility for rendering?
+                                                        ui.label(&node.name);
+                                                    }
+                                                    _ => {
+                                                        CollapsingHeader::new(&node.name)
+                                                            .default_open(true)
+                                                            .show(ui, |ui| {
+                                                                for track in &node.tracks {
+                                                                    // TODO: How to toggle visibility for rendering?
+                                                                    ui.label(&track.name);
+                                                                }
+                                                            });
+                                                    }
+                                                }
+                                            }
+                                        });
+                                }
+                            }
+                        });
                 }
-            });
-    }
 
-    // TODO: Force only one slot to be removed?
-    for slot in slots_to_remove {
-        app.animation_state.animations.remove(slot);
+                // TODO: Force only one slot to be removed?
+                // for slot in slots_to_remove {
+                //     model_animations.remove(slot);
+                // }
+            });
     }
 }
 

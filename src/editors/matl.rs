@@ -367,11 +367,12 @@ fn edit_material_label(
 fn material_combo_box(ui: &mut Ui, selected_material_index: &mut usize, entries: &[MatlEntryData]) {
     ComboBox::from_id_source("MatlEditorMaterialLabel")
         .width(400.0)
-        .show_index(ui, selected_material_index, entries.len(), |i| {
-            entries
-                .get(i)
-                .map(|m| m.material_label.clone())
-                .unwrap_or_default()
+        .show_ui(ui, |ui| {
+            for (i, entry) in entries.iter().enumerate() {
+                // TODO: Select the material on hover.
+                // TODO: Temporarily select all effected meshes in the current model.
+                ui.selectable_value(selected_material_index, i, entry.material_label.clone());
+            }
         });
 }
 

@@ -11,8 +11,8 @@ use ssbh_editor::material::load_material_presets;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, widgets_dark, widgets_light, AnimationIndex, AnimationState,
-    CameraInputState, RenderState, TexturePainter,
+    generate_model_thumbnails, widgets_dark, widgets_light, AnimationState, CameraInputState,
+    RenderState, TexturePainter,
 };
 use ssbh_wgpu::{create_default_textures, CameraTransforms, SsbhRenderer};
 use std::iter;
@@ -408,18 +408,19 @@ fn main() {
                         if app.animation_state.is_playing
                             || app.animation_state.animation_frame_was_changed
                         {
-                            for (render_model, model) in
-                                app.render_models.iter_mut().zip(app.models.iter())
+                            for ((render_model, model), model_animations) in app
+                                .render_models
+                                .iter_mut()
+                                .zip(app.models.iter())
+                                .zip(app.animation_state.animations.iter())
                             {
-                                let animations = app.animation_state.animations.iter().filter_map(
-                                    |anim_index| {
-                                        AnimationIndex::get_animation(
-                                            anim_index.as_ref(),
-                                            &app.models,
-                                        )
+                                let animations = model_animations.iter().filter_map(|anim_index| {
+                                    anim_index
+                                        .and_then(|anim_index| {
+                                            anim_index.get_animation(&app.models)
+                                        })
                                         .and_then(|(_, a)| a.as_ref().ok())
-                                    },
-                                );
+                                });
 
                                 // TODO: Make frame timing logic in ssbh_wgpu public?
                                 render_model.apply_anim(
