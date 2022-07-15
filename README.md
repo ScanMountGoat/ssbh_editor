@@ -35,6 +35,9 @@ Cross Mod has been replaced by SSBH Editor. The material presets from Cross Mod 
 2. Drag the `MaterialPresets_out.numatb` file onto [ssbh_data_json.exe](https://github.com/ultimate-research/ssbh_lib/releases) to create a JSON file.
 3. Rename the JSON file to `presets.json` and place it in the folder containing SSBH Editor.
 
+If no JSON file appears in step 2, check that none of the entries have a value of `0` for the max anisotropy in `MaterialPresets.xml` and start over 
+from step 1. ssbh_data_json.exe is a command line program, so open a `cmd` window and run `ssbh_data_json.exe MaterialPresets_out.numatb` to print the error message to the console.
+
 ## Building
 Prebuilt binaries are only provided for Windows at this time. Users on Linux or MacOS will need to compile from source. With version 1.60 or later of the Rust toolchain installed, run `cargo build --release`. Include the provided `presets.json` with the compiled executable.
 
