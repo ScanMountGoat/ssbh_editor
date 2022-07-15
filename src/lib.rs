@@ -80,9 +80,9 @@ pub struct AnimationState {
     pub current_frame: f32,
     pub is_playing: bool,
     pub animation_frame_was_changed: bool,
+    pub selected_folder: usize,
     pub selected_slot: usize,
-    // TODO: Type for animation slots?
-    pub animations: Vec<Vec<Option<AnimationIndex>>>,
+    pub animations: Vec<Vec<AnimationSlot>>,
     pub previous_frame_start: std::time::Instant,
 }
 
@@ -94,7 +94,24 @@ impl AnimationState {
             current_frame: 0.0,
             previous_frame_start: std::time::Instant::now(),
             animation_frame_was_changed: false,
+            selected_folder: 0,
             selected_slot: 0,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct AnimationSlot {
+    pub is_enabled: bool,
+    pub animation: Option<AnimationIndex>,
+}
+
+impl AnimationSlot {
+    pub fn new() -> Self {
+        // Don't assign an animation to prompt the user to select one.
+        Self {
+            is_enabled: true,
+            animation: None,
         }
     }
 }

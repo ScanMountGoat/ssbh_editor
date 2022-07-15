@@ -365,7 +365,13 @@ fn edit_material_label(
 }
 
 fn material_combo_box(ui: &mut Ui, selected_material_index: &mut usize, entries: &[MatlEntryData]) {
+    let selected_text = entries
+        .get(*selected_material_index)
+        .map(|e| e.material_label.clone())
+        .unwrap_or_default();
+
     ComboBox::from_id_source("MatlEditorMaterialLabel")
+        .selected_text(selected_text)
         .width(400.0)
         .show_ui(ui, |ui| {
             for (i, entry) in entries.iter().enumerate() {

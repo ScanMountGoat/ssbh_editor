@@ -414,13 +414,20 @@ fn main() {
                                 .zip(app.models.iter())
                                 .zip(app.animation_state.animations.iter())
                             {
-                                let animations = model_animations.iter().filter_map(|anim_index| {
-                                    anim_index
-                                        .and_then(|anim_index| {
-                                            anim_index.get_animation(&app.models)
-                                        })
-                                        .and_then(|(_, a)| a.as_ref().ok())
-                                });
+                                // Only render enabled animations.
+                                let animations = model_animations
+                                    .iter()
+                                    .filter(|anim_slot| anim_slot.is_enabled)
+                                    .filter_map(|anim_slot| {
+                                        anim_slot
+                                            .animation
+                                            .and_then(|anim_index| {
+                                                anim_index.get_animation(&app.models)
+                                            })
+                                            .and_then(|(_, a)| a.as_ref().ok())
+                                    });
+
+                                // TODO: Should animations loop independently if some animations are longer than others?
 
                                 // TODO: Make frame timing logic in ssbh_wgpu public?
                                 render_model.apply_anim(

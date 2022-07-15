@@ -12,7 +12,7 @@ use crate::{
     render_settings::render_settings,
     validation::ModelValidationErrors,
     widgets::*,
-    AnimationIndex, AnimationState, CameraInputState, RenderState,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, RenderState,
 };
 use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, RichText, ScrollArea,
@@ -112,6 +112,8 @@ pub struct UiState {
     pub selected_mesh_index: Option<usize>,
     pub selected_nutexb_index: Option<usize>,
     pub selected_adj_index: Option<usize>,
+    pub selected_anim_index: Option<usize>,
+
     pub selected_mesh_influences_index: Option<usize>,
 
     pub matl_preset_window_open: bool,
@@ -147,19 +149,28 @@ impl Default for PanelTab {
 
 impl SsbhApp {
     pub fn open_folder(&mut self) {
+        // TODO: Express this as clear + add folder?
         if let Some(folder) = FileDialog::new().pick_folder() {
             self.models = load_models_recursive(folder);
-            self.animation_state.animations = vec![Vec::new(); self.models.len()];
+            self.animation_state.animations = vec![vec![AnimationSlot::new()]; self.models.len()];
             self.should_refresh_meshes = true;
         }
     }
 
     pub fn add_folder_to_workspace(&mut self) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            let new_model = load_model(&folder);
-            self.models.push(new_model);
-            self.animation_state.animations.push(Vec::new());
-            // TODO: Only update the model that was added?
+            // TODO: Should this not be recursive?
+            // Users may want to load multiple animation folders at once for stages.
+            let new_models = load_models_recursive(&folder);
+
+            // TODO: Automatically assign model.nuanmb.
+            // Add a dummy animation to prompt the user to select one.
+            self.animation_state
+                .animations
+                .extend(vec![vec![AnimationSlot::new()]; new_models.len()]);
+
+            self.models.extend(new_models);
+            // TODO: Only update the models that were added?
             self.should_refresh_meshes = true;
         }
     }
@@ -558,7 +569,7 @@ impl SsbhApp {
         // Find the minimum number of frames to cover all animations.
         let mut final_frame_index = 0.0;
         for model_animations in &self.animation_state.animations {
-            for anim_index in model_animations.iter().filter_map(|a| a.as_ref()) {
+            for anim_index in model_animations.iter().filter_map(|a| a.animation.as_ref()) {
                 if let Some((_, Ok(anim))) = AnimationIndex::get_animation(anim_index, &self.models)
                 {
                     if anim.final_frame_index > final_frame_index {
@@ -653,14 +664,15 @@ impl SsbhApp {
                                 &validation.adj_errors,
                             );
 
-                            for (i, (name, _)) in model.anims.iter().enumerate() {
-                                ui.horizontal(|ui| {
-                                    empty_icon(ui);
-                                    if ui.button(name).clicked() {
-                                        // TODO: Add an anim editor/viewer instead.
-                                    }
-                                });
-                            }
+                            list_files(
+                                ui,
+                                &model.anims,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_anim_index,
+                                None,
+                                &validation.anim_errors,
+                            );
 
                             // TODO: Show file errors.
                             for (i, (file, _)) in model.nutexbs.iter().enumerate() {
@@ -1027,76 +1039,64 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         let id = ui.make_persistent_id(&name);
 
         // TODO: Avoid unwrap.
-        let mut model_animations = &mut app.animation_state.animations[model_index];
+        let model_animations = &mut app.animation_state.animations[model_index];
 
-        CollapsingState::load_with_default_open(ctx, id, false)
+        CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
-                // TODO: Get the folder name of the animation folder?
+                // Assume the associated animation folder names matche the model folder.
                 ui.label(folder_display_name(model));
             })
             .body(|ui| {
                 if ui.button("Add Slot").clicked() {
-                    model_animations.push(None);
+                    model_animations.push(AnimationSlot::new());
                 }
 
                 // TODO: Make a function for this.
-                for (slot, anim_index) in model_animations.iter_mut().enumerate().rev() {
-                    // TODO: Unique IDs?
-                    let id = ui.make_persistent_id(slot);
+                for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
+                    let id = ui.make_persistent_id(format!("{model_index}.slot.{slot}"));
                     CollapsingState::load_with_default_open(ctx, id, false)
                         .show_header(ui, |ui| {
-                            let name = anim_index
+                            let name = anim_slot
+                                .animation
                                 .as_ref()
                                 .and_then(|anim_index| anim_index.get_animation(&app.models))
                                 .map(|(name, _)| name.to_string())
-                                .unwrap_or_default();
+                                .unwrap_or("Select an animation...".to_string());
 
                             ui.horizontal(|ui| {
-                                // TODO: Allow hiding slots.
-                                ui.add(EyeCheckBox::new(&mut true, format!("Slot {slot}")));
-                                // TODO: Function for this combo box.
-                                // TODO: Show hint text if nothing is selected?
-                                egui::ComboBox::from_id_source(format!(
-                                    "slot{:?}.{:?}",
-                                    model_index, slot
-                                ))
-                                .selected_text(name)
-                                .show_ui(ui, |ui| {
-                                    // TODO: Add a list of available animations assigned to this folder.
-                                    // TODO: Find animation folders with the right name.
-                                    // TODO: Find animations from the folder itself.
-                                    let available_anims = app
-                                        .models
-                                        .iter()
-                                        .enumerate()
-                                        .filter(|(_, m)| m.folder_name.contains("c00"))
-                                        .flat_map(|(folder_index, m)| {
-                                            m.anims.iter().enumerate().map(
-                                                move |(anim_index, _)| AnimationIndex {
-                                                    folder_index,
-                                                    anim_index,
-                                                },
-                                            )
-                                        });
+                                // TODO: Disabling anims with visibility tracks has confusing behavior.
+                                // Disabling a vis track currently only disables the effects on later frames.
+                                if ui
+                                    .add(EyeCheckBox::new(
+                                        &mut anim_slot.is_enabled,
+                                        format!("Slot {slot}"),
+                                    ))
+                                    .changed()
+                                {
+                                    app.animation_state.animation_frame_was_changed = true;
+                                }
 
-                                    // TODO: Preview the animation when selected.
-                                    // TODO: Reset animations?
-                                    for available_anim in available_anims {
-                                        let name = available_anim
-                                            .get_animation(&app.models)
-                                            .map(|(name, _)| name.to_string())
-                                            .unwrap_or_default();
+                                if anim_combo_box(
+                                    ui,
+                                    &app.models,
+                                    model_index,
+                                    slot,
+                                    name,
+                                    model,
+                                    anim_slot,
+                                ) {
+                                    // Reflect selecting a new animation in the viewport.
+                                    app.animation_state.animation_frame_was_changed = true;
+                                }
 
-                                        ui.selectable_value(anim_index, Some(available_anim), name);
-                                    }
-                                });
                                 if ui.button("Remove").clicked() {
                                     slots_to_remove.push(slot);
                                 }
                             });
                         })
                         .body(|ui| {
-                            if let Some((_, Ok(anim))) = anim_index
+                            if let Some((_, Ok(anim))) = anim_slot
+                                .animation
                                 .as_ref()
                                 .and_then(|anim_index| anim_index.get_animation(&app.models))
                             {
@@ -1131,11 +1131,71 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                 }
 
                 // TODO: Force only one slot to be removed?
-                // for slot in slots_to_remove {
-                //     model_animations.remove(slot);
-                // }
+                for slot in slots_to_remove {
+                    model_animations.remove(slot);
+                }
             });
     }
+}
+
+fn anim_combo_box(
+    ui: &mut Ui,
+    models: &[ModelFolder],
+    model_index: usize,
+    slot: usize,
+    name: String,
+    model: &ModelFolder,
+    anim_slot: &mut AnimationSlot,
+) -> bool {
+    // Associate animations with the model folder by name.
+    // Motion folders use the same name as model folders.
+    // TODO: Allow manually associating animations?
+    // TODO: Is is it worth precomputing this list?
+    // TODO: Handle unrelated folders with the same name like two c00 model folders?
+    let mut available_anims = models
+        .iter()
+        .enumerate()
+        .filter(|(_, m)| {
+            Path::new(&m.folder_name).file_name() == Path::new(&model.folder_name).file_name()
+        })
+        .flat_map(|(folder_index, m)| {
+            m.anims
+                .iter()
+                .enumerate()
+                .map(move |(anim_index, _)| AnimationIndex {
+                    folder_index,
+                    anim_index,
+                })
+        })
+        .peekable();
+
+    // TODO: Union the responses instead?
+    // TODO: How to cleanly implement change tracking for complex editors?
+    let mut changed = false;
+
+    if available_anims.peek().is_some() {
+        egui::ComboBox::from_id_source(format!("slot{:?}.{:?}", model_index, slot))
+            .width(200.0)
+            .selected_text(name)
+            .show_ui(ui, |ui| {
+                // TODO: Reset animations?
+                for available_anim in available_anims {
+                    let name = available_anim
+                        .get_animation(models)
+                        .map(|(name, _)| name.to_string())
+                        .unwrap_or_default();
+
+                    // Return true if any animation is selected.
+                    changed |= ui
+                        .selectable_value(&mut anim_slot.animation, Some(available_anim), name)
+                        .changed();
+                }
+            });
+    } else {
+        ui.label("No animations found.");
+    }
+
+    changed
 }
 
 fn log_window(ctx: &Context, open: &mut bool) {
