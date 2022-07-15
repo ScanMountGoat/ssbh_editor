@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added links to the Github wiki for editor menus.
 * Added missing parameters when editing samplers in the Matl Editor.
 * Added a link to the material parameter reference to the Matl Editor.
+* Added a UV test pattern option for UV debug modes to better show texture orientations.
 
 ### Changed
 * Improved layout of validation error messages when hovering over a file.
@@ -29,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the Vector4 labels in the Matl Editor to be more descriptive in normal and advanced mode.
 * Adjusted keyboard shortcuts on MacOS to use the command key instead of ctrl.
 * The Matl editor now always shows the render pass selector.
+* Wrap coordinate values outside the 0.0 to 1.0 range for UV debug modes similar to a repeat wrap mode.
 
 ## 0.4.1
 ### Added
