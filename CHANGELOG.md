@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Adjusted keyboard shortcuts on MacOS to use the command key instead of ctrl.
 * The Matl editor now always shows the render pass selector.
 * Wrap coordinate values outside the 0.0 to 1.0 range for UV debug modes similar to a repeat wrap mode.
+* Animations are automatically associated with individual model folders and assignable from the Animations tab instead of the Files list.
 
 ## 0.4.1
 ### Added

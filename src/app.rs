@@ -8,7 +8,7 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    load_model, load_models_recursive,
+    load_models_recursive,
     render_settings::render_settings,
     validation::ModelValidationErrors,
     widgets::*,
