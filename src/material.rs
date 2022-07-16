@@ -1,12 +1,39 @@
 // TODO: Share vectors between ssbh_data types?
+use crate::presets::default_presets;
+use log::error;
 use ssbh_data::{matl_data::*, meshex_data::Vector4};
 use ssbh_wgpu::ShaderProgram;
 
-pub fn load_material_presets<P: AsRef<std::path::Path>>(
-    path: P,
-) -> Result<Vec<MatlEntryData>, Box<dyn std::error::Error>> {
-    let matl: MatlData = serde_json::from_slice(&std::fs::read(path)?)?;
-    Ok(matl.entries)
+pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
+    let bytes = std::fs::read(path.as_ref());
+    if let Err(_) = &bytes {
+        // The application doesn't ship with a presets file to simplify installation.
+        // Write to the default location if the presets are missing.
+        let json = serde_json::to_string_pretty(&MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: default_presets(),
+        })
+        .unwrap();
+        if let Err(e) = std::fs::write(path.as_ref(), json) {
+            error!(
+                "Failed to write default presets to {:?}: {}",
+                path.as_ref(),
+                e
+            );
+        }
+    }
+
+    // Read again to avoid showing an error after writing default presets.
+    let bytes = std::fs::read(path.as_ref());
+    bytes
+        .and_then(|data| Ok(serde_json::from_slice(&data)?))
+        .map_err(|e| {
+            error!("Failed to load presets from {:?}: {}", path.as_ref(), e);
+            e
+        })
+        .map(|matl: MatlData| matl.entries)
+        .unwrap_or_else(|_| default_presets())
 }
 
 pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryData {
@@ -452,7 +479,7 @@ fn is_bool(p: ParamId) -> bool {
     )
 }
 
-fn default_texture(p: ParamId) -> &'static str {
+pub fn default_texture(p: ParamId) -> &'static str {
     // The default texture should have as close as possible to no effect.
     // This reduces the number of textures that need to be manually assigned.
     match p {

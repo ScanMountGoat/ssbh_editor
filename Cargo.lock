@@ -2750,7 +2750,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#18728d7ead9224e97de1d159420572ca993b4559"
+source = "git+https://github.com/ultimate-research/ssbh_lib#ffaac74389a00559f4b3696a955394aca32083e9"
 dependencies = [
  "ahash",
  "binrw",
@@ -2783,6 +2783,7 @@ dependencies = [
  "nutexb",
  "nutexb_wgpu",
  "octocrab",
+ "once_cell",
  "open",
  "pollster",
  "rfd",
@@ -2799,7 +2800,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#18728d7ead9224e97de1d159420572ca993b4559"
+source = "git+https://github.com/ultimate-research/ssbh_lib#ffaac74389a00559f4b3696a955394aca32083e9"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2834,7 +2835,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#18728d7ead9224e97de1d159420572ca993b4559"
+source = "git+https://github.com/ultimate-research/ssbh_lib#ffaac74389a00559f4b3696a955394aca32083e9"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2842,7 +2843,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#18728d7ead9224e97de1d159420572ca993b4559"
+source = "git+https://github.com/ultimate-research/ssbh_lib#ffaac74389a00559f4b3696a955394aca32083e9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3135,7 +3136,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "rand",
  "static_assertions",
 ]

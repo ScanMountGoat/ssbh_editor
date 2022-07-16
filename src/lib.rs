@@ -1,11 +1,17 @@
-use std::{collections::BTreeMap, error::Error, path::Path};
+use std::{
+    collections::BTreeMap,
+    error::Error,
+    path::{Path, PathBuf},
+};
 
+use directories::ProjectDirs;
 use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, Rounding, Stroke, TextStyle,
 };
 use nutexb_wgpu::TextureRenderer;
 
+use once_cell::sync::Lazy;
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{ModelFolder, RenderSettings, SharedRenderData};
 use winit::dpi::PhysicalPosition;
@@ -13,11 +19,17 @@ use winit::dpi::PhysicalPosition;
 pub mod app;
 mod editors;
 pub mod material;
+mod presets;
 mod render_settings;
 pub mod validation;
 pub mod widgets;
 
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
+
+pub static PROJECT_DIR: Lazy<ProjectDirs> = Lazy::new(|| {
+    // TODO: Avoid unwrap.
+    ProjectDirs::from("", "", "ssbh_editor").unwrap()
+});
 
 // TODO: Store the current nutexb to paint?
 pub struct TexturePainter<'a> {
@@ -437,4 +449,13 @@ pub fn widgets_light() -> Widgets {
 fn horizontal_separator_empty(ui: &mut egui::Ui) {
     let available_space = ui.available_size_before_wrap();
     ui.allocate_space(egui::vec2(available_space.x, 6.0));
+}
+
+// TODO: Separate module for application paths and preferences.
+pub fn last_update_check_file() -> PathBuf {
+    PROJECT_DIR.data_local_dir().join("update_time.txt")
+}
+
+pub fn presets_file() -> PathBuf {
+    PROJECT_DIR.data_local_dir().join("presets.json")
 }

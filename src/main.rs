@@ -1,8 +1,6 @@
 use chrono::{DateTime, Utc};
-use directories::ProjectDirs;
 use egui::color::linear_f32_from_gamma_u8;
 use egui::Visuals;
-use log::error;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
@@ -11,12 +9,11 @@ use ssbh_editor::material::load_material_presets;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, widgets_dark, widgets_light, AnimationState, CameraInputState,
-    RenderState, TexturePainter,
+    generate_model_thumbnails, last_update_check_file, presets_file, widgets_dark, widgets_light,
+    AnimationState, CameraInputState, RenderState, TexturePainter, PROJECT_DIR,
 };
 use ssbh_wgpu::{create_default_textures, CameraTransforms, SsbhRenderer};
 use std::iter;
-use std::path::PathBuf;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::*,
@@ -152,6 +149,10 @@ fn main() {
         .block_on()
         .unwrap();
 
+    // TODO: Avoid unwrap.
+    let app_data_dir = PROJECT_DIR.data_local_dir();
+    std::fs::create_dir_all(&app_data_dir).unwrap();
+
     let last_update_check_file = last_update_check_file();
 
     let previous_update_check_time: Option<DateTime<Utc>> =
@@ -256,12 +257,8 @@ fn main() {
     // TODO: Load from data directory.
     // TODO: Write to the data directory if missing.
     // TODO: Still allow Windows users to optionally load from the executable directory.
-    let material_presets = load_material_presets("presets.json")
-        .map_err(|e| {
-            error!("Failed to load presets.json: {}", e);
-            e
-        })
-        .unwrap_or_default();
+    let presets_file = presets_file();
+    let material_presets = load_material_presets(presets_file);
 
     let red_checkerboard = checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 0, 0, 255]);
     let yellow_checkerboard =
@@ -613,19 +610,6 @@ fn main() {
             }
         },
     );
-}
-
-// TODO: Separate module for application paths and preferences.
-fn last_update_check_file() -> PathBuf {
-    // TODO: Avoid unwrap.
-    let project = ProjectDirs::from("", "", "ssbh_editor").unwrap();
-    let app_data_dir = project.data_local_dir();
-
-    // TODO: Avoid calling this more than once.
-    std::fs::create_dir_all(app_data_dir).unwrap();
-
-    // TODO: Move this into a combined preferences file?
-    app_data_dir.join("update_time.txt")
 }
 
 fn exit_application(update_check_time: DateTime<Utc>) {

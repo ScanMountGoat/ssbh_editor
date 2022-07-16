@@ -5,6 +5,7 @@ use crate::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
         remove_parameters, unused_parameters, vector4_labels_long, vector4_labels_short,
     },
+    presets_file,
     validation::MatlValidationError,
     widgets::*,
 };
@@ -90,12 +91,8 @@ pub fn preset_editor(
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
-                        // TODO: Default to the loaded presets.json path?
-                        if let Some(file) =
-                            FileDialog::new().add_filter("JSON", &["json"]).save_file()
-                        {
-                            save_material_presets(presets, file);
-                        }
+                        let path = presets_file();
+                        save_material_presets(presets, path);
                     }
                 });
 
@@ -122,6 +119,7 @@ pub fn preset_editor(
 }
 
 fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {
+    // TODO: Give a visual indication that the file saved?
     match serde_json::to_string_pretty(&MatlData {
         major_version: 1,
         minor_version: 6,
