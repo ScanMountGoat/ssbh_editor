@@ -587,11 +587,13 @@ impl SsbhApp {
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| {
+                // TODO: Is it worth showing a folder heirarchy instead of hiding empty folders?
                 for (folder_index, (model, validation)) in self
                     .models
                     .iter_mut()
                     .zip(self.validation_errors.iter())
                     .enumerate()
+                    .filter(|(_, (model, _))| !model.is_empty())
                 {
                     CollapsingHeader::new(folder_display_name(model))
                         .id_source(format!("folder.{}", folder_index))
