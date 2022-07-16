@@ -6,6 +6,7 @@ use octocrab::models::repos::Release;
 use pollster::FutureExt; // TODO: is this redundant with tokio?
 use ssbh_editor::app::{SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
+use ssbh_editor::preferences::AppPreferences;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
@@ -199,6 +200,13 @@ fn main() {
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
     winit_state.set_pixels_per_point(window.scale_factor() as f32);
 
+    // Assume an sRGB framebuffer, so convert sRGB to linear.
+    let clear_dark = widgets_dark().noninteractive.bg_fill.r();
+    let clear_dark = [linear_f32_from_gamma_u8(clear_dark) as f64; 3];
+
+    let clear_light = widgets_light().noninteractive.bg_fill.r();
+    let clear_light = [linear_f32_from_gamma_u8(clear_light) as f64; 3];
+
     ctx.set_style(egui::style::Style {
         text_styles: default_text_styles(),
         visuals: egui::style::Visuals {
@@ -209,20 +217,13 @@ fn main() {
     });
     ctx.set_fonts(default_fonts());
 
-    // Assume an sRGB framebuffer, so convert sRGB to linear.
-    let clear_dark = widgets_dark().noninteractive.bg_fill.r();
-    let clear_dark = [linear_f32_from_gamma_u8(clear_dark) as f64; 3];
-
-    let clear_light = widgets_light().noninteractive.bg_fill.r();
-    let clear_light = [linear_f32_from_gamma_u8(clear_light) as f64; 3];
-
     let mut renderer = SsbhRenderer::new(
         &device,
         &queue,
         size.width,
         size.height,
         window.scale_factor(),
-        clear_dark,
+        [0.0; 3],
         ssbh_editor::FONT_BYTES,
     );
 
@@ -264,6 +265,8 @@ fn main() {
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
 
+    let preferences = AppPreferences::load_from_file();
+
     // Track if keys like ctrl or alt are being pressed.
     let mut modifiers = ModifiersState::default();
 
@@ -290,9 +293,13 @@ fn main() {
         show_right_panel: true,
         show_bottom_panel: true,
         camera_state,
+        preferences,
     };
 
-    let mut prev_light_mode = false;
+    // Make sure the theme updates if changed from preferences.
+    // TODO: This is redundant with the initialization above?
+    update_color_theme(&app, &ctx, &mut renderer, clear_dark, clear_light);
+    let mut previous_dark_mode = false;
 
     // TODO: Does the T in the the event type matter here?
     event_loop.run(
@@ -309,23 +316,11 @@ fn main() {
 
                         let final_frame_index = app.max_final_frame_index();
 
-                        if prev_light_mode != app.ui_state.light_mode {
-                            if app.ui_state.light_mode {
-                                ctx.set_visuals(Visuals {
-                                    widgets: widgets_light(),
-                                    ..Visuals::light()
-                                });
-                                renderer.set_clear_color(clear_light);
-                            } else {
-                                ctx.set_visuals(Visuals {
-                                    widgets: widgets_dark(),
-                                    ..Default::default()
-                                });
-                                renderer.set_clear_color(clear_dark);
-                            }
+                        if previous_dark_mode != app.preferences.dark_mode {
+                            update_color_theme(&app, &ctx, &mut renderer, clear_dark, clear_light);
                         }
 
-                        prev_light_mode = app.ui_state.light_mode;
+                        previous_dark_mode = app.preferences.dark_mode;
 
                         if app.animation_state.is_playing {
                             app.animation_state.current_frame = next_frame(
@@ -570,7 +565,7 @@ fn main() {
                             }
                         }
                         winit::event::WindowEvent::CloseRequested => {
-                            exit_application(update_check_time);
+                            app.write_state_to_disk(update_check_time);
                             *control_flow = ControlFlow::Exit;
                         }
                         winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
@@ -612,11 +607,26 @@ fn main() {
     );
 }
 
-fn exit_application(update_check_time: DateTime<Utc>) {
-    // TODO: Handle errors and write to log file?
-    // TODO: Use json to support more settings.
-    let path = last_update_check_file();
-    std::fs::write(path, update_check_time.to_string()).unwrap();
+fn update_color_theme(
+    app: &SsbhApp,
+    ctx: &egui::Context,
+    renderer: &mut SsbhRenderer,
+    clear_dark: [f64; 3],
+    clear_light: [f64; 3],
+) {
+    if app.preferences.dark_mode {
+        ctx.set_visuals(Visuals {
+            widgets: widgets_dark(),
+            ..Default::default()
+        });
+        renderer.set_clear_color(clear_dark);
+    } else {
+        ctx.set_visuals(Visuals {
+            widgets: widgets_light(),
+            ..Visuals::light()
+        });
+        renderer.set_clear_color(clear_light);
+    }
 }
 
 fn resize(

@@ -8,12 +8,14 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    load_models_recursive,
+    last_update_check_file, load_models_recursive,
+    preferences::{preferences_window, AppPreferences},
     render_settings::render_settings,
     validation::ModelValidationErrors,
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, RenderState,
 };
+use chrono::{DateTime, Utc};
 use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, RichText, ScrollArea,
     SidePanel, TopBottomPanel, Ui, Window,
@@ -86,6 +88,8 @@ pub struct SsbhApp {
     pub show_bottom_panel: bool,
 
     pub camera_state: CameraInputState,
+
+    pub preferences: AppPreferences,
 }
 
 #[derive(Default)]
@@ -101,6 +105,8 @@ pub struct UiState {
     pub modl_editor_advanced_mode: bool,
     pub mesh_editor_advanced_mode: bool,
     pub log_window_open: bool,
+    pub preferences_window_open: bool,
+
     // TODO: Is there a better way to track this?
     // Clicking an item in the file list sets the selected index.
     // If the index is not None, the corresponding editor stays open.
@@ -127,8 +133,6 @@ pub struct UiState {
     pub preset_editor_advanced_mode: bool,
     pub preset_selected_material_index: usize,
     pub preset_is_editing_material_label: bool,
-
-    pub light_mode: bool,
 }
 
 const ICON_SIZE: f32 = 18.0;
@@ -250,6 +254,15 @@ impl SsbhApp {
             }
         }
     }
+
+    pub fn write_state_to_disk(&self, update_check_time: DateTime<Utc>) {
+        // TODO: Handle errors and write to log file?
+        // TODO: Use json to support more settings.
+        let path = last_update_check_file();
+        std::fs::write(path, update_check_time.to_string()).unwrap();
+
+        self.preferences.write_to_file();
+    }
 }
 
 impl SsbhApp {
@@ -279,6 +292,12 @@ impl SsbhApp {
         }
 
         log_window(ctx, &mut self.ui_state.log_window_open);
+
+        preferences_window(
+            ctx,
+            &mut self.preferences,
+            &mut self.ui_state.preferences_window_open,
+        );
 
         preset_editor(
             ctx,
@@ -803,7 +822,7 @@ impl SsbhApp {
                     self.reload_workspace();
                 }
 
-                if button(ui, format!("Clear Workspace")).clicked() {
+                if button(ui, "Clear Workspace".to_string()).clicked() {
                     ui.close_menu();
                     self.clear_workspace();
                 }
@@ -824,6 +843,11 @@ impl SsbhApp {
                     ui.close_menu();
                     self.ui_state.preset_editor_open = true;
                 }
+
+                if ui.button("Preferences").clicked() {
+                    ui.close_menu();
+                    self.ui_state.preferences_window_open = true;
+                }
             });
 
             egui::menu::menu_button(ui, "Meshes", |ui| {
@@ -834,8 +858,6 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "View", |ui| {
-                ui.checkbox(&mut self.ui_state.light_mode, "Light Mode");
-                ui.separator();
                 ui.checkbox(&mut self.show_left_panel, "Left Panel");
                 ui.checkbox(&mut self.show_right_panel, "Right Panel");
                 ui.checkbox(&mut self.show_bottom_panel, "Bottom Panel");
@@ -1063,7 +1085,7 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                                 .as_ref()
                                 .and_then(|anim_index| anim_index.get_animation(&app.models))
                                 .map(|(name, _)| name.to_string())
-                                .unwrap_or("Select an animation...".to_string());
+                                .unwrap_or_else(|| "Select an animation...".to_string());
 
                             ui.horizontal(|ui| {
                                 // TODO: Disabling anims with visibility tracks has confusing behavior.

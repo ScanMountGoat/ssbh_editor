@@ -2787,6 +2787,7 @@ dependencies = [
  "open",
  "pollster",
  "rfd",
+ "serde",
  "serde_json",
  "ssbh_data",
  "ssbh_wgpu",

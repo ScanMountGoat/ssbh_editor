@@ -19,6 +19,7 @@ use winit::dpi::PhysicalPosition;
 pub mod app;
 mod editors;
 pub mod material;
+pub mod preferences;
 mod presets;
 mod render_settings;
 pub mod validation;
@@ -458,4 +459,8 @@ pub fn last_update_check_file() -> PathBuf {
 
 pub fn presets_file() -> PathBuf {
     PROJECT_DIR.data_local_dir().join("presets.json")
+}
+
+pub fn preferences_file() -> PathBuf {
+    PROJECT_DIR.data_local_dir().join("preferences.json")
 }

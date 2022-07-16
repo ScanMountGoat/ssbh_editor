@@ -5,8 +5,8 @@ use ssbh_data::{matl_data::*, meshex_data::Vector4};
 use ssbh_wgpu::ShaderProgram;
 
 pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
-    let bytes = std::fs::read(path.as_ref());
-    if let Err(_) = &bytes {
+    let mut bytes = std::fs::read(path.as_ref());
+    if bytes.is_err() {
         // The application doesn't ship with a presets file to simplify installation.
         // Write to the default location if the presets are missing.
         let json = serde_json::to_string_pretty(&MatlData {
@@ -22,10 +22,11 @@ pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntr
                 e
             );
         }
+
+        // Read again to avoid showing an error after writing default presets.
+        bytes = std::fs::read(path.as_ref());
     }
 
-    // Read again to avoid showing an error after writing default presets.
-    let bytes = std::fs::read(path.as_ref());
     bytes
         .and_then(|data| Ok(serde_json::from_slice(&data)?))
         .map_err(|e| {
