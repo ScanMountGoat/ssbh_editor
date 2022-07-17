@@ -123,6 +123,14 @@ pub fn preset_editor(
                         }
                     }
                 });
+
+                egui::menu::menu_button(ui, "Material", |ui| {
+                    if ui.button("Remove Duplicates").clicked() {
+                        ui.close_menu();
+
+                        remove_duplicates(presets);
+                    }
+                });
                 help_menu(ui);
             });
 
@@ -143,6 +151,20 @@ pub fn preset_editor(
                 &mut ui_state.preset_is_editing_material_label,
             );
         });
+}
+
+fn remove_duplicates(entries: &mut Vec<MatlEntryData>) {
+    // Remove duplicates using PartialEq while preserving ordering.
+    // TODO: Avoid clone?
+    let mut visited = Vec::with_capacity(entries.len());
+    entries.retain(|item| {
+        if visited.contains(item) {
+            false
+        } else {
+            visited.push(item.clone());
+            true
+        }
+    });
 }
 
 fn load_presets_from_file<F: Fn(&[u8]) -> anyhow::Result<Vec<MatlEntryData>>>(
@@ -347,7 +369,15 @@ fn menu_bar(
             }
 
             if ui.button("Apply Preset").clicked() {
+                ui.close_menu();
+
                 ui_state.matl_preset_window_open = true;
+            }
+
+            if ui.button("Remove Duplicates").clicked() {
+                ui.close_menu();
+
+                remove_duplicates(&mut matl.entries);
             }
         });
 

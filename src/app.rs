@@ -1137,7 +1137,6 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                                     model_index,
                                     slot,
                                     name,
-                                    model,
                                     anim_slot,
                                 ) {
                                     // Reflect selecting a new animation in the viewport.
@@ -1200,7 +1199,6 @@ fn anim_combo_box(
     model_index: usize,
     slot: usize,
     name: String,
-    model: &ModelFolder,
     anim_slot: &mut AnimationSlot,
 ) -> bool {
     // TODO: Union the responses instead?

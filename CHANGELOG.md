@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added a UV test pattern option for UV debug modes to better show texture orientations.
 * Added a preferences window for selecting light or dark mode.
 * Added the ability to import material presets exported from ssbh_data_json, Cross Mod, or MatLab.
+* Added an option to remove duplicate materials to the Matl Editor and Preset Editor.
 
 ### Changed
 * Improved layout of validation error messages when hovering over a file.
