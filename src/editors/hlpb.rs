@@ -1,4 +1,4 @@
-use egui::{CollapsingHeader, ScrollArea};
+use egui::{CollapsingHeader, DragValue, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
@@ -47,125 +47,119 @@ pub fn hlpb_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
+                    // TODO: Use a layout similar to the matl editor to support more fields.
+                    // TODO: Use the DragSliders for editing Vector4 and Vector3 values.
                     if !hlpb.aim_constraints.is_empty() {
-                        CollapsingHeader::new("Aim Constraints")
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                egui::Grid::new("aim").striped(true).show(ui, |ui| {
-                                    ui.label(egui::RichText::new("Name").heading());
-                                    ui.label(egui::RichText::new("Aim 1").heading());
-                                    ui.label(egui::RichText::new("Aim 2").heading());
-                                    ui.label(egui::RichText::new("Type 1").heading());
-                                    ui.label(egui::RichText::new("Type 2").heading());
-                                    ui.label(egui::RichText::new("Target 1").heading());
-                                    ui.label(egui::RichText::new("Target 2").heading());
-                                    ui.end_row();
-
-                                    for (i, aim) in hlpb.aim_constraints.iter_mut().enumerate() {
-                                        ui.label(&aim.name);
-                                        bone_combo_box(
-                                            ui,
-                                            &mut aim.aim_bone_name1,
-                                            format!("a{:?}0", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut aim.aim_bone_name2,
-                                            format!("a{:?}1", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut aim.aim_type1,
-                                            format!("a{:?}2", i),
-                                            skel,
-                                            &["DEFAULT"],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut aim.aim_type2,
-                                            format!("a{:?}3", i),
-                                            skel,
-                                            &["DEFAULT"],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut aim.target_bone_name1,
-                                            format!("a{:?}4", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut aim.target_bone_name2,
-                                            format!("a{:?}5", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        ui.end_row();
-                                    }
-                                });
-                            });
+                        aim_constraints(ui, hlpb, skel);
                     }
 
                     if !hlpb.orient_constraints.is_empty() {
-                        CollapsingHeader::new("Orient Constraints")
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                egui::Grid::new("orient").striped(true).show(ui, |ui| {
-                                    ui.label(egui::RichText::new("Name").heading());
-                                    ui.label(egui::RichText::new("Bone").heading());
-                                    ui.label(egui::RichText::new("Root").heading());
-                                    ui.label(egui::RichText::new("Parent").heading());
-                                    ui.label(egui::RichText::new("Driver").heading());
-                                    ui.end_row();
-
-                                    // TODO: Add unk type.
-
-                                    for (i, orient) in
-                                        hlpb.orient_constraints.iter_mut().enumerate()
-                                    {
-                                        ui.label(&orient.name);
-                                        bone_combo_box(
-                                            ui,
-                                            &mut orient.bone_name,
-                                            format!("o{:?}0", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut orient.root_bone_name,
-                                            format!("o{:?}1", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut orient.parent_bone_name,
-                                            format!("o{:?}2", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        bone_combo_box(
-                                            ui,
-                                            &mut orient.driver_bone_name,
-                                            format!("o{:?}3", i),
-                                            skel,
-                                            &[],
-                                        );
-                                        ui.end_row();
-                                    }
-                                });
-                            });
+                        orient_constraints(ui, hlpb, skel);
                     }
                 });
         });
 
     open
+}
+
+fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) {
+    CollapsingHeader::new("Orient Constraints")
+        .default_open(true)
+        .show(ui, |ui| {
+            egui::Grid::new("orient").striped(true).show(ui, |ui| {
+                ui.heading("Name");
+                ui.heading("Bone");
+                ui.heading("Root");
+                ui.heading("Parent");
+                ui.heading("Driver");
+                ui.heading("Unk Type");
+                ui.end_row();
+
+                for (i, orient) in hlpb.orient_constraints.iter_mut().enumerate() {
+                    ui.label(&orient.name);
+                    bone_combo_box(ui, &mut orient.bone_name, format!("o{:?}0", i), skel, &[]);
+                    bone_combo_box(
+                        ui,
+                        &mut orient.root_bone_name,
+                        format!("o{:?}1", i),
+                        skel,
+                        &[],
+                    );
+                    bone_combo_box(
+                        ui,
+                        &mut orient.parent_bone_name,
+                        format!("o{:?}2", i),
+                        skel,
+                        &[],
+                    );
+                    bone_combo_box(
+                        ui,
+                        &mut orient.driver_bone_name,
+                        format!("o{:?}3", i),
+                        skel,
+                        &[],
+                    );
+                    ui.add(DragValue::new(&mut orient.unk_type));
+                    ui.end_row();
+                }
+            });
+        });
+}
+
+fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) {
+    CollapsingHeader::new("Aim Constraints")
+        .default_open(true)
+        .show(ui, |ui| {
+            egui::Grid::new("aim").striped(true).show(ui, |ui| {
+                ui.heading("Name");
+                ui.heading("Aim 1");
+                ui.heading("Aim 2");
+                ui.heading("Type 1");
+                ui.heading("Type 2");
+                ui.heading("Target 1");
+                ui.heading("Target 2");
+                ui.heading("Unk1");
+                ui.heading("Unk2");
+                ui.end_row();
+
+                for (i, aim) in hlpb.aim_constraints.iter_mut().enumerate() {
+                    ui.label(&aim.name);
+                    bone_combo_box(ui, &mut aim.aim_bone_name1, format!("a{:?}0", i), skel, &[]);
+                    bone_combo_box(ui, &mut aim.aim_bone_name2, format!("a{:?}1", i), skel, &[]);
+                    bone_combo_box(
+                        ui,
+                        &mut aim.aim_type1,
+                        format!("a{:?}2", i),
+                        skel,
+                        &["DEFAULT"],
+                    );
+                    bone_combo_box(
+                        ui,
+                        &mut aim.aim_type2,
+                        format!("a{:?}3", i),
+                        skel,
+                        &["DEFAULT"],
+                    );
+                    bone_combo_box(
+                        ui,
+                        &mut aim.target_bone_name1,
+                        format!("a{:?}4", i),
+                        skel,
+                        &[],
+                    );
+                    bone_combo_box(
+                        ui,
+                        &mut aim.target_bone_name2,
+                        format!("a{:?}5", i),
+                        skel,
+                        &[],
+                    );
+                    ui.add(DragValue::new(&mut aim.unk1));
+                    ui.add(DragValue::new(&mut aim.unk2));
+                    ui.end_row();
+                }
+            });
+        });
 }
 
 fn bone_combo_box(
