@@ -1,6 +1,8 @@
 use egui::{
-    remap_clamp, CursorIcon, Id, Key, Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2,
-    Widget, WidgetText,
+    text::CCursor,
+    text_edit::{CCursorRange, TextEditState},
+    CursorIcon, Id, Key, Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2, Widget,
+    WidgetText,
 };
 
 /// A combined slider and text edit that fills up like an [egui::ProgressBar].
@@ -48,13 +50,14 @@ impl<'a> Widget for DragSlider<'a> {
         // Switch from a slider to a text edit on click.
         // Return to using a slider if the text edit loses focus.
         let response = if ui.memory().has_focus(kb_edit_id) {
-            // TODO: Do we need a separate ID for this?
-            // TODO: Display fewer digits here?
+            // TODO: Customize the precision.
+            // TODO: Does this preserve precision?
             let mut value_text = ui
                 .memory()
                 .data
                 .get_temp::<String>(edit_text_id)
-                .unwrap_or_else(|| self.value.to_string());
+                .unwrap_or_else(|| format!("{:.3}", self.value));
+
             let response = ui.add(
                 TextEdit::singleline(&mut value_text)
                     .id(kb_edit_id)
@@ -90,27 +93,23 @@ impl<'a> Widget for DragSlider<'a> {
                 ui.allocate_at_least(desired_size.max(text_size), Sense::click_and_drag());
 
             if response.clicked() {
-                // TODO: Select all in the text edit on initial focus?
-                // Add something to the memory to store if ccursor should select all.
                 ui.memory().request_focus(kb_edit_id);
+
                 // Remove stale values if present.
                 ui.memory().data.remove::<String>(edit_text_id);
+
+                // Select all when next showing the text edit.
+                select_all_text(ui, kb_edit_id);
             } else if response.dragged() {
                 ui.output().cursor_icon = CursorIcon::ResizeHorizontal;
-
-                // Fill the bar up to the cursor location similar to a slider.
-                if let Some(pointer_pos) = response.interact_pointer_pos() {
-                    // Don't update the value if the cursor doesn't move.
-                    // This prevents accidental value changes while clicking.
-                    if response.drag_delta().length_sq() > 0.0 {
-                        let delta_value = remap_clamp(
-                            pointer_pos.x,
-                            outer_rect.left()..=outer_rect.right(),
-                            self.slider_min..=self.slider_max,
-                        );
-                        // TODO: Set a speed based on the ranges.
-                        *self.value = delta_value.clamp(self.slider_min, self.slider_max);
-                    }
+                // Don't update the value if the cursor didn't move.
+                // This prevents accidental value changes while clicking.
+                let delta = response.drag_delta();
+                if delta.length_sq() > 0.0 {
+                    let delta_value = delta.x / (outer_rect.right() - outer_rect.left());
+                    // TODO: Set a speed based on the ranges?
+                    *self.value += delta_value;
+                    *self.value = self.value.clamp(self.slider_min, self.slider_max);
                 }
             }
 
@@ -151,4 +150,15 @@ impl<'a> Widget for DragSlider<'a> {
 
         response
     }
+}
+
+fn select_all_text(ui: &mut Ui, kb_edit_id: Id) {
+    // This mimics selecting text with the mouse or keyboard.
+    // Choose a large index to select all text.
+    let mut state = TextEditState::default();
+    state.set_ccursor_range(Some(CCursorRange {
+        primary: CCursor::new(1000),
+        secondary: CCursor::new(0),
+    }));
+    TextEdit::store_state(ui.ctx(), kb_edit_id, state);
 }
