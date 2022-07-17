@@ -145,9 +145,7 @@ pub fn preset_editor(
         });
 }
 
-fn load_presets_from_file<
-    F: Fn(&[u8]) -> Result<Vec<MatlEntryData>, Box<dyn std::error::Error>>,
->(
+fn load_presets_from_file<F: Fn(&[u8]) -> anyhow::Result<Vec<MatlEntryData>>>(
     presets: &mut Vec<MatlEntryData>,
     file: std::path::PathBuf,
     load_presets: F,

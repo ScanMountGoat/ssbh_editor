@@ -1,9 +1,9 @@
-use std::{error::Error, str::FromStr};
-
 use crate::material::{
     default_texture, is_blend, is_bool, is_float, is_rasterizer, is_sampler, is_texture, is_vector,
 };
+use anyhow::anyhow;
 use ssbh_data::matl_data::*;
+use std::str::FromStr;
 use xmltree::{Element, XMLNode};
 
 fn default_texture_param(param: ParamId) -> TextureParam {
@@ -323,18 +323,27 @@ pub fn default_presets() -> Vec<MatlEntryData> {
     ]
 }
 
-pub fn load_json_presets(json: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn Error>> {
+pub fn load_json_presets(json: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
     serde_json::from_slice(json)
         .map(|matl: MatlData| matl.entries)
         .map_err(Into::into)
 }
 
-// TODO: Simplify error handling with anyhow?
-fn first_child(node: &Element) -> &Element {
-    node.children.get(0).unwrap().as_element().unwrap()
+fn first_child(node: &Element) -> anyhow::Result<&Element> {
+    node.children
+        .get(0)
+        .and_then(XMLNode::as_element)
+        .ok_or(anyhow!("XML node {} has no children.", node.name))
 }
 
-pub fn load_xml_presets(xml_text: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn Error>> {
+fn attribute(node: &Element, name: &str) -> anyhow::Result<String> {
+    node.attributes
+        .get(name)
+        .ok_or(anyhow!("Node {} has no attribute {:?}.", node.name, name))
+        .cloned()
+}
+
+pub fn load_xml_presets(xml_text: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
     // TODO: Log errors?
     // TODO: Fail if any files fail to parse?
     // TODO: Avoid unwrap.
@@ -353,38 +362,36 @@ pub fn load_xml_presets(xml_text: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn E
             let mut textures = Vec::new();
 
             for param_node in node.children.iter().filter_map(XMLNode::as_element) {
-                let param_id =
-                    ParamId::from_str(param_node.attributes.get("name").unwrap()).unwrap();
+                let param_id = ParamId::from_str(&attribute(param_node, "name")?)?;
 
                 if is_blend(param_id) {
-                    let child_node = first_child(param_node);
+                    let child_node = first_child(param_node)?;
                     let data = BlendStateData {
-                        source_color: parse_xml_text(child_node, 0).unwrap(),
-                        destination_color: parse_xml_text(child_node, 2).unwrap(),
-                        alpha_sample_to_coverage: parse_xml_text::<usize>(child_node, 6).unwrap()
-                            != 0,
+                        source_color: parse_xml_text(child_node, 0)?,
+                        destination_color: parse_xml_text(child_node, 2)?,
+                        alpha_sample_to_coverage: parse_xml_text::<usize>(child_node, 6)? != 0,
                     };
                     blend_states.push(ParamData::new(param_id, data))
                 } else if is_bool(param_id) {
-                    let data = parse_xml_text(param_node, 0).unwrap();
+                    let data = parse_xml_text(param_node, 0)?;
                     booleans.push(ParamData::new(param_id, data));
                 } else if is_float(param_id) {
-                    let data = parse_xml_text(param_node, 0).unwrap();
+                    let data = parse_xml_text(param_node, 0)?;
                     floats.push(ParamData::new(param_id, data));
                 } else if is_vector(param_id) {
-                    let child_node = first_child(param_node);
-                    let x = parse_xml_text(child_node, 0).unwrap();
-                    let y = parse_xml_text(child_node, 1).unwrap();
-                    let z = parse_xml_text(child_node, 2).unwrap();
-                    let w = parse_xml_text(child_node, 3).unwrap();
+                    let child_node = first_child(param_node)?;
+                    let x = parse_xml_text(child_node, 0)?;
+                    let y = parse_xml_text(child_node, 1)?;
+                    let z = parse_xml_text(child_node, 2)?;
+                    let w = parse_xml_text(child_node, 3)?;
                     let data = Vector4::new(x, y, z, w);
                     vectors.push(ParamData::new(param_id, data));
                 } else if is_rasterizer(param_id) {
-                    let child_node = first_child(param_node);
+                    let child_node = first_child(param_node)?;
                     let data = RasterizerStateData {
-                        fill_mode: parse_xml_text(child_node, 0).unwrap(),
-                        cull_mode: parse_xml_text(child_node, 1).unwrap(),
-                        depth_bias: parse_xml_text(child_node, 2).unwrap(),
+                        fill_mode: parse_xml_text(child_node, 0)?,
+                        cull_mode: parse_xml_text(child_node, 1)?,
+                        depth_bias: parse_xml_text(child_node, 2)?,
                     };
                     rasterizer_states.push(ParamData::new(param_id, data));
                 } else if is_sampler(param_id) {
@@ -395,8 +402,8 @@ pub fn load_xml_presets(xml_text: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn E
             }
 
             Ok(MatlEntryData {
-                material_label: node.attributes.get("materialLabel").unwrap().to_string(),
-                shader_label: node.attributes.get("shaderLabel").unwrap().to_string(),
+                material_label: attribute(node, "materialLabel")?,
+                shader_label: attribute(node, "shaderLabel")?,
                 blend_states,
                 floats,
                 booleans,
@@ -409,13 +416,20 @@ pub fn load_xml_presets(xml_text: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn E
         .collect()
 }
 
-fn parse_xml_text<T: FromStr>(node: &Element, index: usize) -> Option<T> {
-    Some(
-        node.children
-            .get(index)?
-            .as_element()?
-            .get_text()?
-            .parse()
-            .ok()?,
-    )
+fn parse_xml_text<T: FromStr>(node: &Element, index: usize) -> anyhow::Result<T>
+where
+    <T as FromStr>::Err: std::error::Error + Send + Sync + 'static,
+{
+    node.children
+        .get(index)
+        .and_then(XMLNode::as_element)
+        .ok_or(anyhow!(
+            "Node {} is missing child at index {}",
+            node.name,
+            index
+        ))?
+        .get_text()
+        .ok_or(anyhow!("Node {} has no inner text.", node.name))?
+        .parse()
+        .map_err(Into::into)
 }
