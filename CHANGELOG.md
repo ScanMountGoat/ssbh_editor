@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added the Material Presets Editor to Menu > Material presets based on the Matl Editor UI.
 * Added adjb files to the files list.
 * Added the Adj Editor for editing model.adjb files.
-* Added validation errrors related to adjb files and RENORMAL materials.
+* Added validation errors related to adjb files and RENORMAL materials.
 * Added a light mode theme.
 * Added the ability to duplicate materials in the Matl Editor.
 * Added a camera settings menu.
