@@ -5,6 +5,7 @@ use crate::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
         remove_parameters, unused_parameters, vector4_labels_long, vector4_labels_short,
     },
+    presets::{load_json_presets, load_xml_presets},
     presets_file,
     validation::MatlValidationError,
     widgets::*,
@@ -96,6 +97,32 @@ pub fn preset_editor(
                     }
                 });
 
+                egui::menu::menu_button(ui, "Import", |ui| {
+                    // Import presets from external formats.
+                    // TODO: Remove duplicates after adding?
+                    // TODO: Add a remove duplicates option to the editor?
+                    if ui.button("JSON Presets (ssbh_data_json)").clicked() {
+                        ui.close_menu();
+
+                        if let Some(file) = FileDialog::new()
+                            .add_filter("Matl JSON", &["json"])
+                            .pick_file()
+                        {
+                            load_presets_from_file(presets, file, load_json_presets);
+                        }
+                    }
+
+                    if ui.button("XML Presets (Cross Mod)").clicked() {
+                        ui.close_menu();
+
+                        if let Some(file) = FileDialog::new()
+                            .add_filter("Matl XML", &["xml"])
+                            .pick_file()
+                        {
+                            load_presets_from_file(presets, file, load_xml_presets);
+                        }
+                    }
+                });
                 help_menu(ui);
             });
 
@@ -116,6 +143,25 @@ pub fn preset_editor(
                 &mut ui_state.preset_is_editing_material_label,
             );
         });
+}
+
+fn load_presets_from_file<
+    F: Fn(&[u8]) -> Result<Vec<MatlEntryData>, Box<dyn std::error::Error>>,
+>(
+    presets: &mut Vec<MatlEntryData>,
+    file: std::path::PathBuf,
+    load_presets: F,
+) {
+    match std::fs::read(&file)
+        .map_err(|e| {
+            error!("Error reading presets file {:?}: {}", file, e);
+            e.into()
+        })
+        .and_then(|bytes| load_presets(&bytes))
+    {
+        Ok(new_presets) => presets.extend(new_presets),
+        Err(e) => error!("Error importing presets: {}", e),
+    }
 }
 
 fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {

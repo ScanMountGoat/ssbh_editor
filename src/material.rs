@@ -272,7 +272,7 @@ pub fn remove_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
 }
 
 // TODO: Move this to ssbh_wgpu?
-fn is_vector(p: ParamId) -> bool {
+pub fn is_vector(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::CustomVector0
@@ -342,7 +342,7 @@ fn is_vector(p: ParamId) -> bool {
     )
 }
 
-fn is_rasterizer(p: ParamId) -> bool {
+pub fn is_rasterizer(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::RasterizerState0
@@ -359,7 +359,7 @@ fn is_rasterizer(p: ParamId) -> bool {
     )
 }
 
-fn is_blend(p: ParamId) -> bool {
+pub fn is_blend(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::BlendState0
@@ -376,7 +376,7 @@ fn is_blend(p: ParamId) -> bool {
     )
 }
 
-fn is_float(p: ParamId) -> bool {
+pub fn is_float(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::CustomFloat0
@@ -402,7 +402,7 @@ fn is_float(p: ParamId) -> bool {
     )
 }
 
-fn is_texture(p: ParamId) -> bool {
+pub fn is_texture(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::Texture0
@@ -428,7 +428,7 @@ fn is_texture(p: ParamId) -> bool {
     )
 }
 
-fn is_sampler(p: ParamId) -> bool {
+pub fn is_sampler(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::Sampler0
@@ -454,7 +454,7 @@ fn is_sampler(p: ParamId) -> bool {
     )
 }
 
-fn is_bool(p: ParamId) -> bool {
+pub fn is_bool(p: ParamId) -> bool {
     matches!(
         p,
         ParamId::CustomBoolean0

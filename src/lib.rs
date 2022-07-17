@@ -20,7 +20,7 @@ pub mod app;
 mod editors;
 pub mod material;
 pub mod preferences;
-mod presets;
+pub mod presets;
 mod render_settings;
 pub mod validation;
 pub mod widgets;

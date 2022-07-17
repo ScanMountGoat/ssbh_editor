@@ -1,5 +1,10 @@
-use crate::material::default_texture;
+use std::{error::Error, str::FromStr};
+
+use crate::material::{
+    default_texture, is_blend, is_bool, is_float, is_rasterizer, is_sampler, is_texture, is_vector,
+};
 use ssbh_data::matl_data::*;
+use xmltree::{Element, XMLNode};
 
 fn default_texture_param(param: ParamId) -> TextureParam {
     TextureParam::new(param, default_texture(param).to_string())
@@ -316,4 +321,101 @@ pub fn default_presets() -> Vec<MatlEntryData> {
             ],
         },
     ]
+}
+
+pub fn load_json_presets(json: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn Error>> {
+    serde_json::from_slice(json)
+        .map(|matl: MatlData| matl.entries)
+        .map_err(Into::into)
+}
+
+// TODO: Simplify error handling with anyhow?
+fn first_child(node: &Element) -> &Element {
+    node.children.get(0).unwrap().as_element().unwrap()
+}
+
+pub fn load_xml_presets(xml_text: &[u8]) -> Result<Vec<MatlEntryData>, Box<dyn Error>> {
+    // TODO: Log errors?
+    // TODO: Fail if any files fail to parse?
+    // TODO: Avoid unwrap.
+    let element = Element::parse(xml_text)?;
+    element
+        .children
+        .iter()
+        .filter_map(XMLNode::as_element)
+        .map(|node| {
+            let mut blend_states = Vec::new();
+            let mut floats = Vec::new();
+            let mut booleans = Vec::new();
+            let mut vectors = Vec::new();
+            let mut rasterizer_states = Vec::new();
+            let mut samplers = Vec::new();
+            let mut textures = Vec::new();
+
+            for param_node in node.children.iter().filter_map(XMLNode::as_element) {
+                let param_id =
+                    ParamId::from_str(param_node.attributes.get("name").unwrap()).unwrap();
+
+                if is_blend(param_id) {
+                    let child_node = first_child(param_node);
+                    let data = BlendStateData {
+                        source_color: parse_xml_text(child_node, 0).unwrap(),
+                        destination_color: parse_xml_text(child_node, 2).unwrap(),
+                        alpha_sample_to_coverage: parse_xml_text::<usize>(child_node, 6).unwrap()
+                            != 0,
+                    };
+                    blend_states.push(ParamData::new(param_id, data))
+                } else if is_bool(param_id) {
+                    let data = parse_xml_text(param_node, 0).unwrap();
+                    booleans.push(ParamData::new(param_id, data));
+                } else if is_float(param_id) {
+                    let data = parse_xml_text(param_node, 0).unwrap();
+                    floats.push(ParamData::new(param_id, data));
+                } else if is_vector(param_id) {
+                    let child_node = first_child(param_node);
+                    let x = parse_xml_text(child_node, 0).unwrap();
+                    let y = parse_xml_text(child_node, 1).unwrap();
+                    let z = parse_xml_text(child_node, 2).unwrap();
+                    let w = parse_xml_text(child_node, 3).unwrap();
+                    let data = Vector4::new(x, y, z, w);
+                    vectors.push(ParamData::new(param_id, data));
+                } else if is_rasterizer(param_id) {
+                    let child_node = first_child(param_node);
+                    let data = RasterizerStateData {
+                        fill_mode: parse_xml_text(child_node, 0).unwrap(),
+                        cull_mode: parse_xml_text(child_node, 1).unwrap(),
+                        depth_bias: parse_xml_text(child_node, 2).unwrap(),
+                    };
+                    rasterizer_states.push(ParamData::new(param_id, data));
+                } else if is_sampler(param_id) {
+                    samplers.push(ParamData::new(param_id, Default::default()));
+                } else if is_texture(param_id) {
+                    textures.push(default_texture_param(param_id));
+                }
+            }
+
+            Ok(MatlEntryData {
+                material_label: node.attributes.get("materialLabel").unwrap().to_string(),
+                shader_label: node.attributes.get("shaderLabel").unwrap().to_string(),
+                blend_states,
+                floats,
+                booleans,
+                vectors,
+                rasterizer_states,
+                samplers,
+                textures,
+            })
+        })
+        .collect()
+}
+
+fn parse_xml_text<T: FromStr>(node: &Element, index: usize) -> Option<T> {
+    Some(
+        node.children
+            .get(index)?
+            .as_element()?
+            .get_text()?
+            .parse()
+            .ok()?,
+    )
 }
