@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added missing parameters when editing samplers in the Matl Editor.
 * Added a link to the material parameter reference to the Matl Editor.
 * Added a UV test pattern option for UV debug modes to better show texture orientations.
+* Added a preferences window for selecting light or dark mode.
+* Added the ability to import material presets exported from ssbh_data_json, Cross Mod, or MatLab.
 
 ### Changed
 * Improved layout of validation error messages when hovering over a file.
@@ -33,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Wrap coordinate values outside the 0.0 to 1.0 range for UV debug modes similar to a repeat wrap mode.
 * Animations are automatically associated with individual model folders and assignable from the Animations tab instead of the Files list.
 * Models will show up in debug shading modes or selected outlines even if no material is properly assigned.
+* Material presets and application settings are now stored in an application data directory. See the README for details.
 
 ## 0.4.1
 ### Added
