@@ -91,6 +91,7 @@ impl<'a> Widget for DragSlider<'a> {
 
             if response.clicked() {
                 // TODO: Select all in the text edit on initial focus?
+                // Add something to the memory to store if ccursor should select all.
                 ui.memory().request_focus(kb_edit_id);
                 // Remove stale values if present.
                 ui.memory().data.remove::<String>(edit_text_id);
@@ -99,13 +100,17 @@ impl<'a> Widget for DragSlider<'a> {
 
                 // Fill the bar up to the cursor location similar to a slider.
                 if let Some(pointer_pos) = response.interact_pointer_pos() {
-                    let delta_value = remap_clamp(
-                        pointer_pos.x,
-                        outer_rect.left()..=outer_rect.right(),
-                        self.slider_min..=self.slider_max,
-                    );
-                    // TODO: Set a speed based on the ranges.
-                    *self.value = delta_value.clamp(self.slider_min, self.slider_max);
+                    // Don't update the value if the cursor doesn't move.
+                    // This prevents accidental value changes while clicking.
+                    if response.drag_delta().length_sq() > 0.0 {
+                        let delta_value = remap_clamp(
+                            pointer_pos.x,
+                            outer_rect.left()..=outer_rect.right(),
+                            self.slider_min..=self.slider_max,
+                        );
+                        // TODO: Set a speed based on the ranges.
+                        *self.value = delta_value.clamp(self.slider_min, self.slider_max);
+                    }
                 }
             }
 
