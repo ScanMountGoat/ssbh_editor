@@ -1071,6 +1071,36 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                 ui.label(folder_display_name(model));
             })
             .body(|ui| {
+                // Associate animations with the model folder by name.
+                // Motion folders use the same name as model folders.
+                // TODO: Allow manually associating animations?
+                // TODO: Is is it worth precomputing this list to avoid allocations?
+                // TODO: Handle unrelated folders with the same name like two c00 model folders?
+                let available_anims: Vec<_> = app
+                    .models
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, m)| {
+                        Path::new(&m.folder_name).file_name()
+                            == Path::new(&model.folder_name).file_name()
+                    })
+                    .flat_map(|(folder_index, m)| {
+                        m.anims
+                            .iter()
+                            .enumerate()
+                            .map(move |(anim_index, _)| AnimationIndex {
+                                folder_index,
+                                anim_index,
+                            })
+                    })
+                    .collect();
+
+                if available_anims.is_empty() {
+                    let message = "No matching animations found for this folder. \
+                        Add the matching animation folder(s) with File > Add Folder to Workspace.";
+                    ui.label(message);
+                }
+
                 if ui.button("Add Slot").clicked() {
                     model_animations.push(AnimationSlot::new());
                 }
@@ -1103,6 +1133,7 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                                 if anim_combo_box(
                                     ui,
                                     &app.models,
+                                    &available_anims,
                                     model_index,
                                     slot,
                                     name,
@@ -1165,59 +1196,34 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 fn anim_combo_box(
     ui: &mut Ui,
     models: &[ModelFolder],
+    available_anims: &[AnimationIndex],
     model_index: usize,
     slot: usize,
     name: String,
     model: &ModelFolder,
     anim_slot: &mut AnimationSlot,
 ) -> bool {
-    // Associate animations with the model folder by name.
-    // Motion folders use the same name as model folders.
-    // TODO: Allow manually associating animations?
-    // TODO: Is is it worth precomputing this list?
-    // TODO: Handle unrelated folders with the same name like two c00 model folders?
-    let mut available_anims = models
-        .iter()
-        .enumerate()
-        .filter(|(_, m)| {
-            Path::new(&m.folder_name).file_name() == Path::new(&model.folder_name).file_name()
-        })
-        .flat_map(|(folder_index, m)| {
-            m.anims
-                .iter()
-                .enumerate()
-                .map(move |(anim_index, _)| AnimationIndex {
-                    folder_index,
-                    anim_index,
-                })
-        })
-        .peekable();
-
     // TODO: Union the responses instead?
     // TODO: How to cleanly implement change tracking for complex editors?
     let mut changed = false;
 
-    if available_anims.peek().is_some() {
-        egui::ComboBox::from_id_source(format!("slot{:?}.{:?}", model_index, slot))
-            .width(200.0)
-            .selected_text(name)
-            .show_ui(ui, |ui| {
-                // TODO: Reset animations?
-                for available_anim in available_anims {
-                    let name = available_anim
-                        .get_animation(models)
-                        .map(|(name, _)| name.to_string())
-                        .unwrap_or_default();
+    egui::ComboBox::from_id_source(format!("slot{:?}.{:?}", model_index, slot))
+        .width(200.0)
+        .selected_text(name)
+        .show_ui(ui, |ui| {
+            // TODO: Reset animations?
+            for available_anim in available_anims {
+                let name = available_anim
+                    .get_animation(models)
+                    .map(|(name, _)| name.to_string())
+                    .unwrap_or_default();
 
-                    // Return true if any animation is selected.
-                    changed |= ui
-                        .selectable_value(&mut anim_slot.animation, Some(available_anim), name)
-                        .changed();
-                }
-            });
-    } else {
-        ui.label("No animations found.");
-    }
+                // Return true if any animation is selected.
+                changed |= ui
+                    .selectable_value(&mut anim_slot.animation, Some(*available_anim), name)
+                    .changed();
+            }
+        });
 
     changed
 }
