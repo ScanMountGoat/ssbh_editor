@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.5.0
 ### Added
 * Added the ability to add the current material as a preset from the Matl Editor.
 * Added the Material Presets Editor to Menu > Material presets based on the Matl Editor UI.
