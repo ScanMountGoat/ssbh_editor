@@ -106,8 +106,9 @@ impl<'a> Widget for DragSlider<'a> {
                 // This prevents accidental value changes while clicking.
                 let delta = response.drag_delta();
                 if delta.length_sq() > 0.0 {
-                    let delta_value = delta.x / (outer_rect.right() - outer_rect.left());
-                    // TODO: Set a speed based on the ranges?
+                    let delta_value =
+                        delta.x * (self.slider_max - self.slider_min) /
+                        (outer_rect.right() - outer_rect.left());
                     *self.value += delta_value;
                     *self.value = self.value.clamp(self.slider_min, self.slider_max);
                 }
