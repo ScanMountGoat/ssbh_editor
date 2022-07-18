@@ -35,3 +35,4 @@ anyhow = "1.0"
 
 [profile.release]
 strip = "debuginfo"
+lto = true
