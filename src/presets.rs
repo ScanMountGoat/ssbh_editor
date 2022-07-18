@@ -333,13 +333,13 @@ fn first_child(node: &Element) -> anyhow::Result<&Element> {
     node.children
         .get(0)
         .and_then(XMLNode::as_element)
-        .ok_or(anyhow!("XML node {} has no children.", node.name))
+        .ok_or_else(|| anyhow!("XML node {} has no children.", node.name))
 }
 
 fn attribute(node: &Element, name: &str) -> anyhow::Result<String> {
     node.attributes
         .get(name)
-        .ok_or(anyhow!("Node {} has no attribute {:?}.", node.name, name))
+        .ok_or_else(|| anyhow!("Node {} has no attribute {:?}.", node.name, name))
         .cloned()
 }
 
@@ -423,13 +423,9 @@ where
     node.children
         .get(index)
         .and_then(XMLNode::as_element)
-        .ok_or(anyhow!(
-            "Node {} is missing child at index {}",
-            node.name,
-            index
-        ))?
+        .ok_or_else(|| anyhow!("Node {} is missing child at index {}", node.name, index))?
         .get_text()
-        .ok_or(anyhow!("Node {} has no inner text.", node.name))?
+        .ok_or_else(|| anyhow!("Node {} has no inner text.", node.name))?
         .parse()
         .map_err(Into::into)
 }

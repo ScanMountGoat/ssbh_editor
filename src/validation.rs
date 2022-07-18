@@ -213,11 +213,12 @@ fn validate_required_attributes(
                         })
                 }) {
                     // Find attributes required by the shader not present in the mesh.
+                    // TODO: Avoid clone here?
                     let attribute_names: Vec<_> = o
                         .texture_coordinates
                         .iter()
-                        .map(|a| a.name.to_string())
-                        .chain(o.color_sets.iter().map(|a| a.name.to_string()))
+                        .map(|a| a.name.clone())
+                        .chain(o.color_sets.iter().map(|a| a.name.clone()))
                         .collect();
 
                     let missing_attributes = program.missing_required_attributes(&attribute_names);
@@ -257,7 +258,7 @@ fn validate_texture_format_usage(
                         entry_index,
                         material_label: entry.material_label.clone(),
                         param: texture.param_id,
-                        nutexb: f.to_string(),
+                        nutexb: f.clone(),
                         format: nutexb.footer.image_format,
                     };
 
@@ -387,8 +388,8 @@ mod tests {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "a".to_string(),
-                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
                 booleans: Vec::new(),
@@ -402,7 +403,7 @@ mod tests {
             major_version: 1,
             minor_version: 10,
             objects: vec![MeshObjectData {
-                name: "object1".to_string(),
+                name: "object1".to_owned(),
                 sub_index: 0,
                 ..Default::default()
             }],
@@ -418,7 +419,7 @@ mod tests {
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
                 mesh_object_sub_index: 0,
-                material_label: "a".to_string(),
+                material_label: "a".to_owned(),
             }],
         };
 
@@ -435,9 +436,9 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError::MissingRequiredVertexAttributes {
                 entry_index: 0,
-                material_label: "a".to_string(),
-                mesh_name: "object1".to_string(),
-                missing_attributes: vec!["map1".to_string(), "uvSet".to_string()]
+                material_label: "a".to_owned(),
+                mesh_name: "object1".to_owned(),
+                missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
             }],
             validation.matl_errors
         );
@@ -454,8 +455,8 @@ mod tests {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "a_RENORMAL".to_string(),
-                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                material_label: "a_RENORMAL".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
                 booleans: Vec::new(),
@@ -469,7 +470,7 @@ mod tests {
             major_version: 1,
             minor_version: 10,
             objects: vec![MeshObjectData {
-                name: "object1".to_string(),
+                name: "object1".to_owned(),
                 sub_index: 0,
                 ..Default::default()
             }],
@@ -485,7 +486,7 @@ mod tests {
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
                 mesh_object_sub_index: 0,
-                material_label: "a_RENORMAL".to_string(),
+                material_label: "a_RENORMAL".to_owned(),
             }],
         };
 
@@ -495,7 +496,7 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError::RenormalMaterialMissingAdj {
                 entry_index: 0,
-                material_label: "a_RENORMAL".to_string(),
+                material_label: "a_RENORMAL".to_owned(),
             }],
             validation.matl_errors
         );
@@ -512,8 +513,8 @@ mod tests {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "a_RENORMAL".to_string(),
-                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                material_label: "a_RENORMAL".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
                 booleans: Vec::new(),
@@ -527,7 +528,7 @@ mod tests {
             major_version: 1,
             minor_version: 10,
             objects: vec![MeshObjectData {
-                name: "object1".to_string(),
+                name: "object1".to_owned(),
                 sub_index: 0,
                 ..Default::default()
             }],
@@ -543,7 +544,7 @@ mod tests {
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
                 mesh_object_sub_index: 0,
-                material_label: "a_RENORMAL".to_string(),
+                material_label: "a_RENORMAL".to_owned(),
             }],
         };
         let adj = AdjData {
@@ -562,8 +563,8 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
                 entry_index: 0,
-                material_label: "a_RENORMAL".to_string(),
-                mesh_name: "object1".to_string()
+                material_label: "a_RENORMAL".to_owned(),
+                mesh_name: "object1".to_owned()
             }],
             validation.matl_errors
         );
@@ -580,8 +581,8 @@ mod tests {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "a".to_string(),
-                shader_label: "SFX_PBS_010002000800824f_opaque".to_string(),
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
                 booleans: Vec::new(),
@@ -591,19 +592,19 @@ mod tests {
                 textures: vec![
                     TextureParam {
                         param_id: ParamId::Texture0,
-                        data: "texture0".to_string(),
+                        data: "texture0".to_owned(),
                     },
                     TextureParam {
                         param_id: ParamId::Texture4,
-                        data: "texture4".to_string(),
+                        data: "texture4".to_owned(),
                     },
                 ],
             }],
         };
 
         let textures = vec![
-            ("texture0".to_string(), Ok(nutexb(NutexbFormat::BC1Unorm))),
-            ("texture4".to_string(), Ok(nutexb(NutexbFormat::BC2Srgb))),
+            ("texture0".to_owned(), Ok(nutexb(NutexbFormat::BC1Unorm))),
+            ("texture4".to_owned(), Ok(nutexb(NutexbFormat::BC2Srgb))),
         ];
 
         let mut validation = ModelValidationErrors::default();
@@ -614,16 +615,16 @@ mod tests {
             vec![
                 MatlValidationError::InvalidTextureFormat {
                     entry_index: 0,
-                    material_label: "a".to_string(),
+                    material_label: "a".to_owned(),
                     param: ParamId::Texture0,
-                    nutexb: "texture0".to_string(),
+                    nutexb: "texture0".to_owned(),
                     format: NutexbFormat::BC1Unorm
                 },
                 MatlValidationError::InvalidTextureFormat {
                     entry_index: 0,
-                    material_label: "a".to_string(),
+                    material_label: "a".to_owned(),
                     param: ParamId::Texture4,
-                    nutexb: "texture4".to_string(),
+                    nutexb: "texture4".to_owned(),
                     format: NutexbFormat::BC2Srgb
                 }
             ],

@@ -53,7 +53,7 @@ pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryD
                     .iter()
                     .find(|t| t.param_id == preset_texture.param_id)
                     .map(|t| t.data.clone())
-                    .unwrap_or_else(|| default_texture(preset_texture.param_id).to_string()),
+                    .unwrap_or_else(|| default_texture(preset_texture.param_id).to_owned()),
             })
             .collect(),
         ..preset.clone()
@@ -64,8 +64,8 @@ pub fn default_material() -> MatlEntryData {
     // TODO: Make sure the name is unique?
     // TODO: Add defaults for other parameters?
     MatlEntryData {
-        material_label: "NEW_MATERIAL".to_string(),
-        shader_label: "SFX_PBS_0100000008008269_opaque".to_string(),
+        material_label: "NEW_MATERIAL".to_owned(),
+        shader_label: "SFX_PBS_0100000008008269_opaque".to_owned(),
         blend_states: vec![BlendStateParam {
             param_id: ParamId::BlendState0,
             data: Default::default(),
@@ -132,19 +132,19 @@ pub fn default_material() -> MatlEntryData {
         textures: vec![
             TextureParam {
                 param_id: ParamId::Texture0,
-                data: default_texture(ParamId::Texture0).to_string(),
+                data: default_texture(ParamId::Texture0).to_owned(),
             },
             TextureParam {
                 param_id: ParamId::Texture4,
-                data: default_texture(ParamId::Texture4).to_string(),
+                data: default_texture(ParamId::Texture4).to_owned(),
             },
             TextureParam {
                 param_id: ParamId::Texture6,
-                data: default_texture(ParamId::Texture6).to_string(),
+                data: default_texture(ParamId::Texture6).to_owned(),
             },
             TextureParam {
                 param_id: ParamId::Texture7,
-                data: default_texture(ParamId::Texture7).to_string(),
+                data: default_texture(ParamId::Texture7).to_owned(),
             },
         ],
     }
@@ -222,7 +222,7 @@ pub fn add_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
         } else if is_texture(param_id) {
             entry.textures.push(TextureParam {
                 param_id,
-                data: default_texture(param_id).to_string(),
+                data: default_texture(param_id).to_owned(),
             });
         }
     }
@@ -687,7 +687,7 @@ mod tests {
                 }],
                 textures: vec![TextureParam {
                     param_id: ParamId::Texture0,
-                    data: "/common/shader/sfxpbs/default_white".to_string(),
+                    data: "/common/shader/sfxpbs/default_white".to_owned(),
                 }],
             },
             entry
@@ -751,8 +751,8 @@ mod tests {
     #[test]
     fn apply_preset_empty_material() {
         let mut entry = MatlEntryData {
-            material_label: "material".to_string(),
-            shader_label: "123".to_string(),
+            material_label: "material".to_owned(),
+            shader_label: "123".to_owned(),
             blend_states: Vec::new(),
             floats: Vec::new(),
             booleans: Vec::new(),
@@ -761,13 +761,13 @@ mod tests {
             samplers: Vec::new(),
             textures: vec![TextureParam {
                 param_id: ParamId::Texture0,
-                data: "a".to_string(),
+                data: "a".to_owned(),
             }],
         };
 
         let preset = MatlEntryData {
-            material_label: "preset".to_string(),
-            shader_label: "456".to_string(),
+            material_label: "preset".to_owned(),
+            shader_label: "456".to_owned(),
             blend_states: vec![BlendStateParam {
                 param_id: ParamId::BlendState0,
                 data: Default::default(),
@@ -801,11 +801,11 @@ mod tests {
             textures: vec![
                 TextureParam {
                     param_id: ParamId::Texture0,
-                    data: "d".to_string(),
+                    data: "d".to_owned(),
                 },
                 TextureParam {
                     param_id: ParamId::Texture1,
-                    data: "c".to_string(),
+                    data: "c".to_owned(),
                 },
             ],
         };
@@ -814,8 +814,8 @@ mod tests {
 
         assert_eq!(
             MatlEntryData {
-                material_label: "material".to_string(),
-                shader_label: "456".to_string(),
+                material_label: "material".to_owned(),
+                shader_label: "456".to_owned(),
                 blend_states: vec![BlendStateParam {
                     param_id: ParamId::BlendState0,
                     data: Default::default(),
@@ -849,11 +849,11 @@ mod tests {
                 textures: vec![
                     TextureParam {
                         param_id: ParamId::Texture0,
-                        data: "a".to_string(),
+                        data: "a".to_owned(),
                     },
                     TextureParam {
                         param_id: ParamId::Texture1,
-                        data: "/common/shader/sfxpbs/default_white".to_string(),
+                        data: "/common/shader/sfxpbs/default_white".to_owned(),
                     }
                 ],
             },

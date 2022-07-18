@@ -512,7 +512,7 @@ fn matl_entry_editor(
                 ] {
                     ui.selectable_value(
                         &mut entry.shader_label,
-                        pass.to_string(),
+                        pass.clone(),
                         pass.get(25..).unwrap_or(""),
                     );
                 }
@@ -575,7 +575,7 @@ fn matl_entry_editor(
 
     if !missing_parameters.is_empty() {
         let text = if missing_parameters.len() == 1 {
-            "Add 1 Missing Parameter".to_string()
+            "Add 1 Missing Parameter".to_owned()
         } else {
             format!("Add {} Missing Parameters", missing_parameters.len())
         };
@@ -586,7 +586,7 @@ fn matl_entry_editor(
 
     if !unused_parameters.is_empty() {
         let text = if unused_parameters.len() == 1 {
-            "Remove 1 Unused Parameter".to_string()
+            "Remove 1 Unused Parameter".to_owned()
         } else {
             format!("Remove {} Unused Parameters", unused_parameters.len())
         };
@@ -778,7 +778,7 @@ fn edit_texture(
                     // TODO: Show a texture as selected even if the case doesn't match?
                     ui.horizontal(|ui| {
                         ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
-                        ui.selectable_value(&mut param.data, text.to_string(), text);
+                        ui.selectable_value(&mut param.data, text.clone(), text);
                     });
                 }
             });
@@ -851,7 +851,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
                         .data
                         .max_anisotropy
                         .map(|a| a.to_string())
-                        .unwrap_or_else(|| "None".to_string()),
+                        .unwrap_or_else(|| "None".to_owned()),
                 )
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut param.data.max_anisotropy, None, "None");

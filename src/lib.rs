@@ -148,7 +148,7 @@ impl AnimationIndex {
 
 pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
     let mut models = ssbh_wgpu::load_model_folders(root);
-    models.sort_by_key(|m| m.folder_name.to_string());
+    models.sort_by_key(|m| m.folder_name.clone());
     for model in &mut models {
         sort_files(model);
     }
@@ -301,7 +301,7 @@ pub fn generate_default_thumbnails(
         .collect();
     // TODO: Add proper cube map thumbnails to nutexb_wgpu.
     thumbnails.push((
-        "#replace_cubemap".to_string(),
+        "#replace_cubemap".to_owned(),
         thumbnails
             .iter()
             .find(|(n, _)| n == "/common/shader/sfxpbs/default_black")

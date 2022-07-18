@@ -174,7 +174,7 @@ fn bone_combo_box(
         .show_ui(ui, |ui| {
             // TODO: Just use text boxes if the skel is missing?
             for name in extra_names {
-                ui.selectable_value(bone_name, name.to_string(), name.to_string());
+                ui.selectable_value(bone_name, name.to_string(), *name);
             }
 
             if let Some(skel) = skel {

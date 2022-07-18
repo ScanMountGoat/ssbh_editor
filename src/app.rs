@@ -25,7 +25,7 @@ use log::Log;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
-use std::{error::Error, f32::consts::PI, path::Path, sync::Mutex};
+use std::{borrow::Cow, error::Error, f32::consts::PI, path::Path, sync::Mutex};
 
 lazy_static! {
     pub static ref LOGGER: AppLogger = AppLogger {
@@ -374,7 +374,7 @@ impl SsbhApp {
                 "{}/{}",
                 Path::new(folder)
                     .file_name()
-                    .map(|f| f.to_string_lossy().to_string())
+                    .map(|f| f.to_string_lossy())
                     .unwrap_or_default(),
                 name
             )
@@ -822,7 +822,7 @@ impl SsbhApp {
                     self.reload_workspace();
                 }
 
-                if button(ui, "Clear Workspace".to_string()).clicked() {
+                if button(ui, "Clear Workspace".to_owned()).clicked() {
                     ui.close_menu();
                     self.clear_workspace();
                 }
@@ -900,10 +900,10 @@ fn is_model_folder(model: &ModelFolder) -> bool {
         || !model.matls.is_empty()
 }
 
-fn folder_display_name(model: &ModelFolder) -> String {
+fn folder_display_name(model: &ModelFolder) -> Cow<str> {
     Path::new(&model.folder_name)
         .file_name()
-        .map(|f| f.to_string_lossy().to_string())
+        .map(|f| f.to_string_lossy())
         .unwrap_or_default()
 }
 
@@ -1024,7 +1024,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     render_model.is_selected = ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
-                            &folder_display_name(folder),
+                            folder_display_name(folder),
                         ))
                         .hovered();
                 }
@@ -1114,8 +1114,8 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                                 .animation
                                 .as_ref()
                                 .and_then(|anim_index| anim_index.get_animation(&app.models))
-                                .map(|(name, _)| name.to_string())
-                                .unwrap_or_else(|| "Select an animation...".to_string());
+                                .map(|(name, _)| name.as_str())
+                                .unwrap_or_else(|| "Select an animation...");
 
                             ui.horizontal(|ui| {
                                 // TODO: Disabling anims with visibility tracks has confusing behavior.
@@ -1198,7 +1198,7 @@ fn anim_combo_box(
     available_anims: &[AnimationIndex],
     model_index: usize,
     slot: usize,
-    name: String,
+    name: &str,
     anim_slot: &mut AnimationSlot,
 ) -> bool {
     // TODO: Union the responses instead?
@@ -1213,8 +1213,8 @@ fn anim_combo_box(
             for available_anim in available_anims {
                 let name = available_anim
                     .get_animation(models)
-                    .map(|(name, _)| name.to_string())
-                    .unwrap_or_default();
+                    .map(|(name, _)| name.as_str())
+                    .unwrap_or("");
 
                 // Return true if any animation is selected.
                 changed |= ui
@@ -1244,7 +1244,7 @@ fn log_window(ctx: &Context, open: &mut bool) {
                                 log::Level::Trace => (),
                             }
                             // binrw formats backtraces, which isn't supported by egui font rendering.
-                            // ui.label(message);
+                            // TODO: Avoid clone?
                             let clean_message = strip_ansi_escapes::strip(message)
                                 .map(|m| String::from_utf8_lossy(&m).to_string())
                                 .unwrap_or_else(|_| message.clone());
