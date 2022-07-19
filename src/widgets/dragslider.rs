@@ -50,13 +50,12 @@ impl<'a> Widget for DragSlider<'a> {
         // Switch from a slider to a text edit on click.
         // Return to using a slider if the text edit loses focus.
         let response = if ui.memory().has_focus(kb_edit_id) {
-            // TODO: Customize the precision.
-            // TODO: Does this preserve precision?
+            // Show the full precision while editing the text.
             let mut value_text = ui
                 .memory()
                 .data
                 .get_temp::<String>(edit_text_id)
-                .unwrap_or_else(|| format!("{:.3}", self.value));
+                .unwrap_or_else(|| self.value.to_string());
 
             let response = ui.add(
                 TextEdit::singleline(&mut value_text)
@@ -80,6 +79,7 @@ impl<'a> Widget for DragSlider<'a> {
             response
         } else {
             // Limit the displayed digits while still preserving precision.
+            // TODO: Customize the displayed precision.
             let text = WidgetText::from(format!("{:.3}", self.value)).into_galley(
                 ui,
                 None,
