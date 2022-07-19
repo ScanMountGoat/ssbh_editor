@@ -125,14 +125,15 @@ pub struct UiState {
     pub matl_preset_window_open: bool,
     pub selected_material_preset_index: usize,
 
-    // TODO: Create a struct for this?
-    pub matl_editor_advanced_mode: bool,
-    pub matl_selected_material_index: usize,
-    pub matl_is_editing_material_label: bool,
+    pub matl_editor: MatlEditorState,
+    pub preset_editor: MatlEditorState,
+}
 
-    pub preset_editor_advanced_mode: bool,
-    pub preset_selected_material_index: usize,
-    pub preset_is_editing_material_label: bool,
+#[derive(Default)]
+pub struct MatlEditorState {
+    pub advanced_mode: bool,
+    pub selected_material_index: usize,
+    pub is_editing_material_label: bool,
 }
 
 const ICON_SIZE: f32 = 18.0;
@@ -153,12 +154,8 @@ impl Default for PanelTab {
 
 impl SsbhApp {
     pub fn open_folder(&mut self) {
-        // TODO: Express this as clear + add folder?
-        if let Some(folder) = FileDialog::new().pick_folder() {
-            self.models = load_models_recursive(folder);
-            self.animation_state.animations = vec![vec![AnimationSlot::new()]; self.models.len()];
-            self.should_refresh_meshes = true;
-        }
+        self.clear_workspace();
+        self.add_folder_to_workspace();
     }
 
     pub fn add_folder_to_workspace(&mut self) {
@@ -411,8 +408,11 @@ impl SsbhApp {
                     if let Some((name, Ok(matl))) = model.matls.get_mut(matl_index) {
                         // TODO: Fix potential crash if thumbnails aren't present.
                         // TODO: Make this a method to simplify arguments.
-                        // TODO: Potential index panic.
-                        let validation_errors = &self.validation_errors[folder_index].matl_errors;
+                        let validation_errors = self
+                            .validation_errors
+                            .get(folder_index)
+                            .map(|v| v.matl_errors.as_slice())
+                            .unwrap_or_default();
 
                         if !matl_editor(
                             ctx,
@@ -1130,7 +1130,7 @@ fn show_anim_slot(
     anim_slot: &mut AnimationSlot,
     models: &[ModelFolder],
     update_animations: &mut bool,
-    available_anims: &Vec<AnimationIndex>,
+    available_anims: &[AnimationIndex],
     model_index: usize,
     slot: usize,
     slots_to_remove: &mut Vec<usize>,

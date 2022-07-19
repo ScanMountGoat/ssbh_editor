@@ -113,6 +113,12 @@ impl AnimationState {
     }
 }
 
+impl Default for AnimationState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone)]
 pub struct AnimationSlot {
     pub is_enabled: bool,
@@ -126,6 +132,12 @@ impl AnimationSlot {
             is_enabled: true,
             animation: None,
         }
+    }
+}
+
+impl Default for AnimationSlot {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

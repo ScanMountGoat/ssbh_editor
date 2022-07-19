@@ -1,5 +1,5 @@
 use crate::{
-    app::UiState,
+    app::{MatlEditorState, UiState},
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
@@ -45,7 +45,9 @@ pub fn matl_editor(
             ui.separator();
 
             // TODO: Simplify logic for closing window.
-            let entry = matl.entries.get_mut(ui_state.matl_selected_material_index);
+            let entry = matl
+                .entries
+                .get_mut(ui_state.matl_editor.selected_material_index);
             let open = preset_window(ui_state, ctx, material_presets, entry);
             if !open {
                 ui_state.matl_preset_window_open = false;
@@ -64,9 +66,7 @@ pub fn matl_editor(
                         shader_database,
                         red_checkerboard,
                         yellow_checkerboard,
-                        &mut ui_state.matl_selected_material_index,
-                        &mut ui_state.matl_editor_advanced_mode,
-                        &mut ui_state.matl_is_editing_material_label,
+                        &mut ui_state.matl_editor,
                     );
                 });
         });
@@ -146,9 +146,7 @@ pub fn preset_editor(
                 shader_database,
                 red_checkerboard,
                 yellow_checkerboard,
-                &mut ui_state.preset_selected_material_index,
-                &mut ui_state.preset_editor_advanced_mode,
-                &mut ui_state.preset_is_editing_material_label,
+                &mut ui_state.preset_editor,
             );
         });
 }
@@ -210,13 +208,11 @@ fn edit_matl_entries(
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
-    selected_material_index: &mut usize,
-    advanced_mode: &mut bool,
-    is_editing_material_label: &mut bool,
+    editor_state: &mut MatlEditorState,
 ) {
     // Only display a single material at a time.
     // This avoids cluttering the UI.
-    let entry = entries.get_mut(*selected_material_index);
+    let entry = entries.get_mut(editor_state.selected_material_index);
     let mut modl_entries: Vec<_> = entry
         .and_then(|entry| {
             modl.map(|modl| {
@@ -231,35 +227,40 @@ fn edit_matl_entries(
     ui.heading("Material");
     ui.horizontal(|ui| {
         ui.label("Material");
-        let entry = entries.get_mut(*selected_material_index);
-        if *is_editing_material_label {
-            edit_material_label(entry, is_editing_material_label, ui, &mut modl_entries);
+        let entry = entries.get_mut(editor_state.selected_material_index);
+        if editor_state.is_editing_material_label {
+            edit_material_label(
+                entry,
+                &mut editor_state.is_editing_material_label,
+                ui,
+                &mut modl_entries,
+            );
         } else {
-            material_combo_box(ui, selected_material_index, entries);
+            material_combo_box(ui, &mut editor_state.selected_material_index, entries);
         }
 
-        if !*is_editing_material_label && ui.button("Rename").clicked() {
+        if !editor_state.is_editing_material_label && ui.button("Rename").clicked() {
             // TODO: The material assignments don't always update in the viewport.
-            *is_editing_material_label = true;
+            editor_state.is_editing_material_label = true;
         }
 
-        if *advanced_mode && ui.button("Delete").clicked() {
+        if editor_state.advanced_mode && ui.button("Delete").clicked() {
             // TODO: Potential panic?
-            entries.remove(*selected_material_index);
+            entries.remove(editor_state.selected_material_index);
         }
     });
     horizontal_separator_empty(ui);
 
     // Advanced mode has more detailed information that most users won't want to edit.
-    ui.checkbox(advanced_mode, "Advanced Settings");
+    ui.checkbox(&mut editor_state.advanced_mode, "Advanced Settings");
     horizontal_separator_empty(ui);
 
-    let entry = entries.get_mut(*selected_material_index);
+    let entry = entries.get_mut(editor_state.selected_material_index);
     if let Some(entry) = entry {
         // TODO: Avoid allocating here.
         let validation: Vec<_> = validation
             .iter()
-            .filter(|e| e.entry_index() == *selected_material_index)
+            .filter(|e| e.entry_index() == editor_state.selected_material_index)
             .collect();
 
         matl_entry_editor(
@@ -268,7 +269,7 @@ fn edit_matl_entries(
             &validation,
             folder_thumbnails,
             default_thumbnails,
-            *advanced_mode,
+            editor_state.advanced_mode,
             shader_database,
             red_checkerboard,
             yellow_checkerboard,
@@ -344,26 +345,32 @@ fn menu_bar(
                 let new_entry = default_material();
                 matl.entries.push(new_entry);
 
-                ui_state.matl_selected_material_index = matl.entries.len() - 1;
+                ui_state.matl_editor.selected_material_index = matl.entries.len() - 1;
             }
 
             if button(ui, "Duplicate Current Material").clicked() {
                 ui.close_menu();
 
-                if let Some(old_entry) = matl.entries.get(ui_state.matl_selected_material_index) {
+                if let Some(old_entry) = matl
+                    .entries
+                    .get(ui_state.matl_editor.selected_material_index)
+                {
                     let mut new_entry = old_entry.clone();
                     new_entry.material_label.push_str("_copy");
                     matl.entries.push(new_entry);
                 }
 
-                ui_state.matl_selected_material_index = matl.entries.len() - 1;
+                ui_state.matl_editor.selected_material_index = matl.entries.len() - 1;
             }
 
             if ui.button("Add Material to Presets").clicked() {
                 ui.close_menu();
 
                 // TODO: Prompt for naming the preset?
-                if let Some(entry) = matl.entries.get(ui_state.matl_selected_material_index) {
+                if let Some(entry) = matl
+                    .entries
+                    .get(ui_state.matl_editor.selected_material_index)
+                {
                     material_presets.push(entry.clone());
                 }
             }

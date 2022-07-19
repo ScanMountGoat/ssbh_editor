@@ -13,7 +13,7 @@ use ssbh_editor::{
     generate_model_thumbnails, last_update_check_file, presets_file, widgets_dark, widgets_light,
     AnimationState, CameraInputState, RenderState, TexturePainter, PROJECT_DIR,
 };
-use ssbh_wgpu::{create_default_textures, CameraTransforms, SsbhRenderer};
+use ssbh_wgpu::{CameraTransforms, SsbhRenderer};
 use std::iter;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -82,12 +82,8 @@ fn should_check_for_release(
     }
 }
 
-// TODO: Only check once per day.
 // TODO: Display a changelog from the repository.
-// TODO: Display update information once in the UI.
 fn get_latest_release() -> Option<Release> {
-    // TODO: Compare versions using the current version and tag.
-    // TODO: Assume the tags use identical versioning to cargo.
     let octocrab = octocrab::instance();
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -227,6 +223,7 @@ fn main() {
         ssbh_editor::FONT_BYTES,
     );
 
+    // TODO: Use this to generate thumbnails for cube maps and 3d textures.
     let texture_renderer = TextureRenderer::new(&device, &queue, surface_format);
     // Make sure the texture preview is ready for accessed by the app.
     // State is stored in a type map because of lifetime requirements.
@@ -247,23 +244,19 @@ fn main() {
         window.scale_factor(),
     );
 
-    // TODO: Avoid loading these twice?
-    let default_textures = create_default_textures(&device, &queue);
-
-    // TODO: How to ensure this cache remains up to date?
-    // TODO: Should RenderModel expose its wgpu textures?
-    let default_thumbnails =
-        generate_default_thumbnails(&mut egui_rpass, &default_textures, &device);
-
-    // TODO: Load from data directory.
-    // TODO: Write to the data directory if missing.
-    // TODO: Still allow Windows users to optionally load from the executable directory.
     let presets_file = presets_file();
     let material_presets = load_material_presets(presets_file);
 
     let red_checkerboard = checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 0, 0, 255]);
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
+
+    let render_state = RenderState::new(device, queue, surface_format);
+    let default_thumbnails = generate_default_thumbnails(
+        &mut egui_rpass,
+        &render_state.shared_data.default_textures,
+        &render_state.device,
+    );
 
     let preferences = AppPreferences::load_from_file();
 
@@ -287,7 +280,7 @@ fn main() {
         draw_skeletons: false,
         draw_bone_names: false,
         ui_state: UiState::default(),
-        render_state: RenderState::new(device, queue, surface_format),
+        render_state,
         animation_state: AnimationState::new(),
         show_left_panel: true,
         show_right_panel: true,
