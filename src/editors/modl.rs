@@ -107,6 +107,8 @@ pub fn modl_editor(
 
                         let mut entries_to_remove = Vec::new();
                         for (i, entry) in modl.entries.iter_mut().enumerate() {
+                            let id = egui::Id::new("modl").with(i);
+
                             // TODO: If a user renames a material, both the modl and matl need to update.
                             // TODO: How to handle the case where the user enters a duplicate name?
                             // TODO: module of useful functions from ModelFolder -> ui?
@@ -114,7 +116,7 @@ pub fn modl_editor(
                                 mesh_name_combo_box(
                                     ui,
                                     &mut entry.mesh_object_name,
-                                    format!("mesh{:?}", i),
+                                    id.with("mesh"),
                                     mesh,
                                 );
                             } else {
@@ -126,7 +128,7 @@ pub fn modl_editor(
                             material_label_combo_box(
                                 ui,
                                 &mut entry.material_label,
-                                format!("matl{:?}", i),
+                                id.with("matl"),
                                 matl,
                             );
 

@@ -76,29 +76,13 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                 ui.end_row();
 
                 for (i, orient) in hlpb.orient_constraints.iter_mut().enumerate() {
+                    let id = egui::Id::new("orient").with(i);
+
                     ui.label(&orient.name);
-                    bone_combo_box(ui, &mut orient.bone_name, format!("o{:?}0", i), skel, &[]);
-                    bone_combo_box(
-                        ui,
-                        &mut orient.root_bone_name,
-                        format!("o{:?}1", i),
-                        skel,
-                        &[],
-                    );
-                    bone_combo_box(
-                        ui,
-                        &mut orient.parent_bone_name,
-                        format!("o{:?}2", i),
-                        skel,
-                        &[],
-                    );
-                    bone_combo_box(
-                        ui,
-                        &mut orient.driver_bone_name,
-                        format!("o{:?}3", i),
-                        skel,
-                        &[],
-                    );
+                    bone_combo_box(ui, &mut orient.bone_name, id.with(0), skel, &[]);
+                    bone_combo_box(ui, &mut orient.root_bone_name, id.with(1), skel, &[]);
+                    bone_combo_box(ui, &mut orient.parent_bone_name, id.with(2), skel, &[]);
+                    bone_combo_box(ui, &mut orient.driver_bone_name, id.with(3), skel, &[]);
                     ui.add(DragValue::new(&mut orient.unk_type));
                     ui.end_row();
                 }
@@ -123,37 +107,15 @@ fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelDat
                 ui.end_row();
 
                 for (i, aim) in hlpb.aim_constraints.iter_mut().enumerate() {
+                    let id = egui::Id::new("aim").with(i);
+
                     ui.label(&aim.name);
-                    bone_combo_box(ui, &mut aim.aim_bone_name1, format!("a{:?}0", i), skel, &[]);
-                    bone_combo_box(ui, &mut aim.aim_bone_name2, format!("a{:?}1", i), skel, &[]);
-                    bone_combo_box(
-                        ui,
-                        &mut aim.aim_type1,
-                        format!("a{:?}2", i),
-                        skel,
-                        &["DEFAULT"],
-                    );
-                    bone_combo_box(
-                        ui,
-                        &mut aim.aim_type2,
-                        format!("a{:?}3", i),
-                        skel,
-                        &["DEFAULT"],
-                    );
-                    bone_combo_box(
-                        ui,
-                        &mut aim.target_bone_name1,
-                        format!("a{:?}4", i),
-                        skel,
-                        &[],
-                    );
-                    bone_combo_box(
-                        ui,
-                        &mut aim.target_bone_name2,
-                        format!("a{:?}5", i),
-                        skel,
-                        &[],
-                    );
+                    bone_combo_box(ui, &mut aim.aim_bone_name1, id.with(0), skel, &[]);
+                    bone_combo_box(ui, &mut aim.aim_bone_name2, id.with(1), skel, &[]);
+                    bone_combo_box(ui, &mut aim.aim_type1, id.with(2), skel, &["DEFAULT"]);
+                    bone_combo_box(ui, &mut aim.aim_type2, id.with(3), skel, &["DEFAULT"]);
+                    bone_combo_box(ui, &mut aim.target_bone_name1, id.with(4), skel, &[]);
+                    bone_combo_box(ui, &mut aim.target_bone_name2, id.with(5), skel, &[]);
                     ui.add(DragValue::new(&mut aim.unk1));
                     ui.add(DragValue::new(&mut aim.unk2));
                     ui.end_row();

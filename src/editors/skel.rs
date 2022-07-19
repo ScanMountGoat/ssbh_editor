@@ -56,6 +56,8 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                         let other_bones = skel.bones.clone();
 
                         for (i, bone) in skel.bones.iter_mut().enumerate() {
+                            let id = egui::Id::new("bone").with(i);
+
                             ui.label(&bone.name);
                             let parent_bone_name = bone
                                 .parent_index
@@ -63,7 +65,7 @@ pub fn skel_editor(ctx: &egui::Context, title: &str, skel: &mut SkelData) -> boo
                                 .map(|p| p.name.as_str())
                                 .unwrap_or("None");
 
-                            egui::ComboBox::from_id_source(i)
+                            egui::ComboBox::from_id_source(id)
                                 .selected_text(parent_bone_name)
                                 .show_ui(ui, |ui| {
                                     ui.selectable_value(&mut bone.parent_index, None, "None");

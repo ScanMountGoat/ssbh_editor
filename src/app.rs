@@ -1015,8 +1015,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         .enumerate()
         .filter(|(_, folder)| is_model_folder(folder))
     {
-        let name = format!("meshlist.{}", i);
-        let id = ui.make_persistent_id(&name);
+        let id = ui.make_persistent_id("meshlist").with(i);
 
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
@@ -1059,12 +1058,7 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     {
         let mut slots_to_remove = Vec::new();
 
-        let name = format!("animlist.{model_index}");
-        let id = ui.make_persistent_id(&name);
-
-        // TODO: Avoid unwrap.
-        let model_animations = &mut app.animation_state.animations[model_index];
-
+        let id = ui.make_persistent_id("meshlist").with(model_index);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 // Assume the associated animation folder names matche the model folder.
@@ -1101,95 +1095,122 @@ fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     ui.label(message);
                 }
 
-                if ui.button("Add Slot").clicked() {
-                    model_animations.push(AnimationSlot::new());
+                let model_animations = app.animation_state.animations.get_mut(model_index);
+                if let Some(model_animations) = model_animations {
+                    if ui.button("Add Slot").clicked() {
+                        model_animations.push(AnimationSlot::new());
+                    }
+
+                    for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
+                        show_anim_slot(
+                            ui,
+                            ctx,
+                            anim_slot,
+                            &app.models,
+                            &mut app.animation_state.animation_frame_was_changed,
+                            &available_anims,
+                            model_index,
+                            slot,
+                            &mut slots_to_remove,
+                        );
+                    }
+
+                    // TODO: Force only one slot to be removed?
+                    for slot in slots_to_remove {
+                        model_animations.remove(slot);
+                    }
+                }
+            });
+    }
+}
+
+fn show_anim_slot(
+    ui: &mut Ui,
+    ctx: &Context,
+    anim_slot: &mut AnimationSlot,
+    models: &[ModelFolder],
+    update_animations: &mut bool,
+    available_anims: &Vec<AnimationIndex>,
+    model_index: usize,
+    slot: usize,
+    slots_to_remove: &mut Vec<usize>,
+) {
+    let id = ui.make_persistent_id(format!("{model_index}.slot.{slot}"));
+    CollapsingState::load_with_default_open(ctx, id, false)
+        .show_header(ui, |ui| {
+            let name = anim_slot
+                .animation
+                .as_ref()
+                .and_then(|anim_index| anim_index.get_animation(models))
+                .map(|(name, _)| name.as_str())
+                .unwrap_or_else(|| "Select an animation...");
+
+            ui.horizontal(|ui| {
+                // TODO: Disabling anims with visibility tracks has confusing behavior.
+                // Disabling a vis track currently only disables the effects on later frames.
+                if ui
+                    .add(EyeCheckBox::new(
+                        &mut anim_slot.is_enabled,
+                        format!("Slot {slot}"),
+                    ))
+                    .changed()
+                {
+                    *update_animations = true;
                 }
 
-                // TODO: Make a function for this.
-                for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
-                    let id = ui.make_persistent_id(format!("{model_index}.slot.{slot}"));
-                    CollapsingState::load_with_default_open(ctx, id, false)
-                        .show_header(ui, |ui| {
-                            let name = anim_slot
-                                .animation
-                                .as_ref()
-                                .and_then(|anim_index| anim_index.get_animation(&app.models))
-                                .map(|(name, _)| name.as_str())
-                                .unwrap_or_else(|| "Select an animation...");
+                if anim_combo_box(
+                    ui,
+                    models,
+                    available_anims,
+                    model_index,
+                    slot,
+                    name,
+                    anim_slot,
+                ) {
+                    // Reflect selecting a new animation in the viewport.
+                    *update_animations = true;
+                }
 
-                            ui.horizontal(|ui| {
-                                // TODO: Disabling anims with visibility tracks has confusing behavior.
-                                // Disabling a vis track currently only disables the effects on later frames.
-                                if ui
-                                    .add(EyeCheckBox::new(
-                                        &mut anim_slot.is_enabled,
-                                        format!("Slot {slot}"),
-                                    ))
-                                    .changed()
-                                {
-                                    app.animation_state.animation_frame_was_changed = true;
-                                }
-
-                                if anim_combo_box(
-                                    ui,
-                                    &app.models,
-                                    &available_anims,
-                                    model_index,
-                                    slot,
-                                    name,
-                                    anim_slot,
-                                ) {
-                                    // Reflect selecting a new animation in the viewport.
-                                    app.animation_state.animation_frame_was_changed = true;
-                                }
-
-                                if ui.button("Remove").clicked() {
-                                    slots_to_remove.push(slot);
-                                }
-                            });
-                        })
-                        .body(|ui| {
-                            if let Some((_, Ok(anim))) = anim_slot
-                                .animation
-                                .as_ref()
-                                .and_then(|anim_index| anim_index.get_animation(&app.models))
-                            {
-                                for group in &anim.groups {
-                                    CollapsingHeader::new(group.group_type.to_string())
-                                        .default_open(false)
-                                        .show(ui, |ui| {
-                                            for node in &group.nodes {
-                                                match node.tracks.as_slice() {
-                                                    [_] => {
-                                                        // Don't use a collapsing header if there is only one track.
-                                                        // This simplifies the layout for most boolean and transform tracks.
-                                                        // TODO: How to toggle visibility for rendering?
-                                                        ui.label(&node.name);
-                                                    }
-                                                    _ => {
-                                                        CollapsingHeader::new(&node.name)
-                                                            .default_open(true)
-                                                            .show(ui, |ui| {
-                                                                for track in &node.tracks {
-                                                                    // TODO: How to toggle visibility for rendering?
-                                                                    ui.label(&track.name);
-                                                                }
-                                                            });
-                                                    }
+                if ui.button("Remove").clicked() {
+                    slots_to_remove.push(slot);
+                }
+            });
+        })
+        .body(|ui| {
+            if let Some((_, Ok(anim))) = anim_slot
+                .animation
+                .as_ref()
+                .and_then(|anim_index| anim_index.get_animation(models))
+            {
+                for group in &anim.groups {
+                    CollapsingHeader::new(group.group_type.to_string())
+                        .default_open(false)
+                        .show(ui, |ui| {
+                            for node in &group.nodes {
+                                match node.tracks.as_slice() {
+                                    [_] => {
+                                        // Don't use a collapsing header if there is only one track.
+                                        // This simplifies the layout for most boolean and transform tracks.
+                                        // TODO: How to toggle visibility for rendering?
+                                        ui.label(&node.name);
+                                    }
+                                    _ => {
+                                        CollapsingHeader::new(&node.name).default_open(true).show(
+                                            ui,
+                                            |ui| {
+                                                for track in &node.tracks {
+                                                    // TODO: How to toggle visibility for rendering?
+                                                    ui.label(&track.name);
                                                 }
-                                            }
-                                        });
+                                            },
+                                        );
+                                    }
                                 }
                             }
                         });
                 }
-
-                // TODO: Force only one slot to be removed?
-                for slot in slots_to_remove {
-                    model_animations.remove(slot);
-                }
-            });
-    }
+            }
+        });
 }
 
 fn anim_combo_box(

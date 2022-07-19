@@ -676,11 +676,13 @@ fn matl_entry_editor(
 fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) {
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
-        Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        let id = egui::Id::new(param.param_id.to_string());
+
+        Grid::new(id).show(ui, |ui| {
             enum_combo_box(
                 ui,
                 "Source Color",
-                format!("srccolor{:?}", param.param_id.to_string()),
+                id.with("srccolor"),
                 &mut param.data.source_color,
             );
             ui.end_row();
@@ -688,7 +690,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) {
             enum_combo_box(
                 ui,
                 "Destination Color",
-                format!("dstcolor{:?}", param.param_id.to_string()),
+                id.with("dstcolor"),
                 &mut param.data.destination_color,
             );
             ui.end_row();
@@ -708,20 +710,17 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) {
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
         // TODO: These param IDs might not be unique?
-        Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        let id = egui::Id::new(param.param_id.to_string());
+
+        Grid::new(id).show(ui, |ui| {
             enum_combo_box(
                 ui,
                 "Polygon Fill",
-                format!("fill{:?}", param.param_id.to_string()),
+                id.with("fill"),
                 &mut param.data.fill_mode,
             );
             ui.end_row();
-            enum_combo_box(
-                ui,
-                "Cull Mode",
-                format!("cull{:?}", param.param_id.to_string()),
-                &mut param.data.cull_mode,
-            );
+            enum_combo_box(ui, "Cull Mode", id.with("cull"), &mut param.data.cull_mode);
             ui.end_row();
         });
     });
@@ -788,11 +787,13 @@ fn edit_texture(
 fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
-        Grid::new(param.param_id.to_string()).show(ui, |ui| {
+        let id = egui::Id::new(param.param_id.to_string());
+
+        Grid::new(id).show(ui, |ui| {
             enum_combo_box(
                 ui,
                 "Wrap S",
-                format!("wraps{:?}", param.param_id),
+                id.with("wraps{:?}"),
                 &mut param.data.wraps,
             );
             ui.end_row();
@@ -800,7 +801,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             enum_combo_box(
                 ui,
                 "Wrap T",
-                format!("wrapt{:?}", param.param_id),
+                id.with("wrapt{:?}"),
                 &mut param.data.wrapt,
             );
             ui.end_row();
@@ -808,7 +809,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             enum_combo_box(
                 ui,
                 "Wrap R",
-                format!("wrapr{:?}", param.param_id),
+                id.with("wrapr{:?}"),
                 &mut param.data.wrapr,
             );
             ui.end_row();
@@ -816,7 +817,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             enum_combo_box(
                 ui,
                 "Min Filter",
-                format!("minfilter{:?}", param.param_id),
+                id.with("minfilter{:?}"),
                 &mut param.data.min_filter,
             );
             ui.end_row();
@@ -824,7 +825,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             enum_combo_box(
                 ui,
                 "Mag Filter",
-                format!("magfilter{:?}", param.param_id),
+                id.with("magfilter{:?}"),
                 &mut param.data.mag_filter,
             );
             ui.end_row();
@@ -845,7 +846,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             // TODO: Make a function for this and share with bone parent index?
             // TODO: Format as 1x, 2x, etc?
             ui.label("Max Anisotropy");
-            egui::ComboBox::from_id_source(format!("anis{:?}", param.param_id))
+            egui::ComboBox::from_id_source(id.with("anis{:?}"))
                 .selected_text(
                     param
                         .data
@@ -880,13 +881,13 @@ fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
         ui.label(param_label(param.param_id));
     });
 
+    let id = egui::Id::new(param.param_id.to_string());
+
     let edit_component = |ui: &mut Ui, label, value| {
         ui.add_enabled_ui(enabled, |ui| {
             ui.horizontal(|ui| {
                 ui.label(label);
-                ui.add(
-                    DragSlider::new(format!("{:?}.{}", param.param_id, label), value).width(50.0),
-                );
+                ui.add(DragSlider::new(id.with(label), value).width(50.0));
             });
         });
     };
@@ -927,31 +928,26 @@ fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
         edit_vector4_rgba(ui, &mut param.data);
         ui.label(param_label(param.param_id));
     });
+
+    let id = egui::Id::new(param.param_id.to_string());
+
     ui.indent("indent", |ui| {
         let labels = vector4_labels_long(param.param_id);
         Grid::new(param.param_id.to_string()).show(ui, |ui| {
             ui.label(labels[0]);
-            ui.add(
-                DragSlider::new(format!("{:?}.x", param.param_id), &mut param.data.x).width(150.0),
-            );
+            ui.add(DragSlider::new(id.with("x"), &mut param.data.x).width(150.0));
             ui.end_row();
 
             ui.label(labels[1]);
-            ui.add(
-                DragSlider::new(format!("{:?}.y", param.param_id), &mut param.data.y).width(150.0),
-            );
+            ui.add(DragSlider::new(id.with("y"), &mut param.data.y).width(150.0));
             ui.end_row();
 
             ui.label(labels[2]);
-            ui.add(
-                DragSlider::new(format!("{:?}.z", param.param_id), &mut param.data.z).width(150.0),
-            );
+            ui.add(DragSlider::new(id.with("z"), &mut param.data.z).width(150.0));
             ui.end_row();
 
             ui.label(labels[3]);
-            ui.add(
-                DragSlider::new(format!("{:?}.w", param.param_id), &mut param.data.w).width(150.0),
-            );
+            ui.add(DragSlider::new(id.with("w"), &mut param.data.w).width(150.0));
             ui.end_row();
         });
     });
