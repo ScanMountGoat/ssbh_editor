@@ -27,28 +27,8 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
             })
             .body(|ui| {
                 // Associate animations with the model folder by name.
-                // Motion folders use the same name as model folders.
-                // TODO: Allow manually associating animations?
-                // TODO: Is is it worth precomputing this list to avoid allocations?
-                // TODO: Handle unrelated folders with the same name like two c00 model folders?
-                let available_anims: Vec<_> = app
-                    .models
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, m)| {
-                        Path::new(&m.folder_name).file_name()
-                            == Path::new(&model.folder_name).file_name()
-                    })
-                    .flat_map(|(folder_index, m)| {
-                        m.anims
-                            .iter()
-                            .enumerate()
-                            .map(move |(anim_index, _)| AnimationIndex {
-                                folder_index,
-                                anim_index,
-                            })
-                    })
-                    .collect();
+                // TODO: Is is it worth precomputing this list for performance?
+                let available_anims = find_anim_folders(model, &app.models);
 
                 if available_anims.is_empty() {
                     let message = "No matching animations found for this folder. \
@@ -91,7 +71,7 @@ fn show_anim_slot(
     anim_slot: &mut AnimationSlot,
     models: &[ModelFolder],
     update_animations: &mut bool,
-    available_anims: &[AnimationIndex],
+    available_anims: &[(usize, &ModelFolder)],
     model_index: usize,
     slot: usize,
     slots_to_remove: &mut Vec<usize>,
@@ -119,15 +99,7 @@ fn show_anim_slot(
                     *update_animations = true;
                 }
 
-                if anim_combo_box(
-                    ui,
-                    models,
-                    available_anims,
-                    model_index,
-                    slot,
-                    name,
-                    anim_slot,
-                ) {
+                if anim_combo_box(ui, available_anims, model_index, slot, name, anim_slot) {
                     // Reflect selecting a new animation in the viewport.
                     *update_animations = true;
                 }
@@ -176,8 +148,7 @@ fn show_anim_slot(
 
 fn anim_combo_box(
     ui: &mut Ui,
-    models: &[ModelFolder],
-    available_anims: &[AnimationIndex],
+    anim_folders: &[(usize, &ModelFolder)],
     model_index: usize,
     slot: usize,
     name: &str,
@@ -187,23 +158,123 @@ fn anim_combo_box(
     // TODO: How to cleanly implement change tracking for complex editors?
     let mut changed = false;
 
+    // TODO: Reset animations?
     egui::ComboBox::from_id_source(format!("slot{:?}.{:?}", model_index, slot))
         .width(200.0)
         .selected_text(name)
         .show_ui(ui, |ui| {
-            // TODO: Reset animations?
-            for available_anim in available_anims {
-                let name = available_anim
-                    .get_animation(models)
-                    .map(|(name, _)| name.as_str())
-                    .unwrap_or("");
+            // Iterate in decreasing order of affinity with the model folder.
+            for (folder_index, folder) in anim_folders.iter().rev() {
+                // TODO: Show the full folder name to avoid duplicates?
+                ui.heading(folder_display_name(folder));
+                for (anim_index, (name, _)) in folder.anims.iter().enumerate() {
+                    let available_anim = AnimationIndex {
+                        folder_index: *folder_index,
+                        anim_index,
+                    };
 
-                // Return true if any animation is selected.
-                changed |= ui
-                    .selectable_value(&mut anim_slot.animation, Some(*available_anim), name)
-                    .changed();
+                    // Return true if any animation is selected.
+                    changed |= ui
+                        .selectable_value(&mut anim_slot.animation, Some(available_anim), name)
+                        .changed();
+                }
             }
         });
 
     changed
+}
+
+fn find_anim_folders<'a>(
+    model: &ModelFolder,
+    anim_folders: &'a [ModelFolder],
+) -> Vec<(usize, &'a ModelFolder)> {
+    let mut folders: Vec<_> = anim_folders
+        .iter()
+        .enumerate()
+        .filter(|(_, m)| !m.anims.is_empty())
+        .collect();
+
+    // Sort in increasing order of affinity with the model folder.
+    folders.sort_by_key(|(_, a)| {
+        // The animation folder affinity is the number of matching path components.
+        // Consider the model folder "/mario/model/body/c00".
+        // The folder "/mario/motion/body/c00" scores higher than "/mario/motion/pump/c00".
+        Path::new(&model.folder_name)
+            .components()
+            .rev()
+            .zip(Path::new(&a.folder_name).components().rev())
+            .take_while(|(a, b)| a == b)
+            .count()
+    });
+    folders
+}
+
+#[cfg(test)]
+mod tests {
+    use ssbh_data::anim_data::AnimData;
+
+    use super::*;
+
+    fn model_folder(name: &str) -> ModelFolder {
+        ModelFolder {
+            folder_name: name.to_owned(),
+            meshes: Vec::new(),
+            skels: Vec::new(),
+            matls: Vec::new(),
+            modls: Vec::new(),
+            adjs: Vec::new(),
+            anims: Vec::new(),
+            hlpbs: Vec::new(),
+            nutexbs: Vec::new(),
+        }
+    }
+
+    fn anim_folder(name: &str) -> ModelFolder {
+        ModelFolder {
+            folder_name: name.to_owned(),
+            meshes: Vec::new(),
+            skels: Vec::new(),
+            matls: Vec::new(),
+            modls: Vec::new(),
+            adjs: Vec::new(),
+            anims: vec![(
+                String::new(),
+                Ok(AnimData {
+                    major_version: 2,
+                    minor_version: 0,
+                    final_frame_index: 0.0,
+                    groups: Vec::new(),
+                }),
+            )],
+            hlpbs: Vec::new(),
+            nutexbs: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn find_anim_folders_no_folders() {
+        assert!(find_anim_folders(&model_folder("/model/body/c00"), &[]).is_empty());
+    }
+
+    #[test]
+    fn find_anim_folders_empty_folders() {
+        // Folders without animations should be excluded.
+        assert!(find_anim_folders(
+            &model_folder("/model/body/c00"),
+            &[model_folder("/motion/body/c00")]
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn find_anim_folders_compare_matches() {
+        // The second folder is the best match.
+        let anim_folders = vec![
+            anim_folder("/motion/pump/c00"),
+            anim_folder("/motion/body/c00"),
+            anim_folder("/motion/body/c01"),
+        ];
+        let folders = find_anim_folders(&model_folder("/model/body/c00"), &anim_folders);
+        assert!(matches!(folders.as_slice(), [(2, _), (0, _), (1, _)]));
+    }
 }
