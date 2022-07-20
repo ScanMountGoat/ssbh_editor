@@ -2,6 +2,10 @@
 SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download Windows releases in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
 
 ## Features
+The goal of SSBH Editor is to provide a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data. 
+SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is especially 
+helpful for custom model imports that may have errors in the generated model files like corrupted files or invalid vertex skin weights.
+
 - View models, textures, skeletons, and animations from Smash Ultimate
 - View the effects of transition materials like the metal box or ditto materials
 - View bloom, shadows, and post processing
@@ -17,6 +21,9 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 - Preview stage rendering and lighting data
 - Settings to adjust UI scaling for better readability
 - Improved spacing and consistency for UI
+
+## Limitations
+SSBH Editor provides a recreation of key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for thousands of models is not a goal of this application. Some values in a file may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience. SSBH Editor can't detect all errors that can occur with a model. Many of these issues are related to issues installing and loading modded files, so always test in game.
 
 ## Getting Started
 Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
