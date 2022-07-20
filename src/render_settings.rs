@@ -96,6 +96,8 @@ pub fn render_settings(
                     ui.checkbox(&mut settings.render_rgba[3], "A");
                 });
 
+                ui.checkbox(&mut settings.wireframe, "Wireframe");
+
                 if matches!(
                     settings.debug_mode,
                     DebugMode::Map1
