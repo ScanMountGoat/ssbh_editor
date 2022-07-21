@@ -279,6 +279,7 @@ fn main() {
         yellow_checkerboard,
         draw_skeletons: false,
         draw_bone_names: false,
+        draw_bone_axes: false,
         ui_state: UiState::default(),
         render_state,
         animation_state: AnimationState::new(),
@@ -497,6 +498,7 @@ fn main() {
                                 } else {
                                     None
                                 },
+                                app.draw_bone_axes,
                             )
                         } else {
                             None

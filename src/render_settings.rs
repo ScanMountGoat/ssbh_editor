@@ -7,6 +7,7 @@ pub fn render_settings(
     open: &mut bool,
     draw_skeletons: &mut bool,
     draw_bone_names: &mut bool,
+    draw_bone_axes: &mut bool,
 ) {
     egui::Window::new("Render Settings")
         .open(open)
@@ -143,6 +144,7 @@ pub fn render_settings(
 
             ui.heading("Skeleton");
             ui.checkbox(draw_skeletons, "Draw Bones");
+            ui.checkbox(draw_bone_axes, "Draw Bone Axes");
             ui.checkbox(draw_bone_names, "Draw Bone Names");
         });
 }
