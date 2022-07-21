@@ -476,6 +476,19 @@ fn main() {
                             &app.render_state.shared_data.database,
                         );
 
+                        // TODO: Support opening editors from more than one folder?
+                        if let Some(folder_index) = app.ui_state.selected_folder_index {
+                            if let Some(label) = get_hovered_material_label(&app, folder_index) {
+                                renderer.render_material_mask(
+                                    &mut encoder,
+                                    &output_view,
+                                    &app.render_models,
+                                    folder_index,
+                                    label,
+                                );
+                            }
+                        }
+
                         // TODO: Avoid calculating the MVP matrix every frame.
                         let (_, _, mvp) = calculate_mvp(
                             size,
@@ -603,6 +616,18 @@ fn main() {
             }
         },
     );
+}
+
+fn get_hovered_material_label(app: &SsbhApp, folder_index: usize) -> Option<&str> {
+    Some(
+        app.models
+            .get(folder_index)?
+            .find_matl()?
+            .entries
+            .get(app.ui_state.matl_editor.hovered_material_index?)?
+            .material_label
+            .as_str(),
+    )
 }
 
 fn update_color_theme(

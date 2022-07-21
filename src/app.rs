@@ -138,6 +138,7 @@ pub struct MatlEditorState {
     pub advanced_mode: bool,
     pub selected_material_index: usize,
     pub is_editing_material_label: bool,
+    pub hovered_material_index: Option<usize>,
 }
 
 const ICON_SIZE: f32 = 18.0;

@@ -238,7 +238,12 @@ fn edit_matl_entries(
                 &mut modl_entries,
             );
         } else {
-            material_combo_box(ui, &mut editor_state.selected_material_index, entries);
+            material_combo_box(
+                ui,
+                &mut editor_state.selected_material_index,
+                &mut editor_state.hovered_material_index,
+                entries,
+            );
         }
 
         if !editor_state.is_editing_material_label && ui.button("Rename").clicked() {
@@ -456,22 +461,34 @@ fn edit_material_label(
     }
 }
 
-fn material_combo_box(ui: &mut Ui, selected_material_index: &mut usize, entries: &[MatlEntryData]) {
+fn material_combo_box(
+    ui: &mut Ui,
+    selected_index: &mut usize,
+    hovered_index: &mut Option<usize>,
+    entries: &[MatlEntryData],
+) {
     let selected_text = entries
-        .get(*selected_material_index)
+        .get(*selected_index)
         .map(|e| e.material_label.clone())
         .unwrap_or_default();
 
-    ComboBox::from_id_source("MatlEditorMaterialLabel")
+    let response = ComboBox::from_id_source("MatlEditorMaterialLabel")
         .selected_text(selected_text)
         .width(400.0)
         .show_ui(ui, |ui| {
             for (i, entry) in entries.iter().enumerate() {
-                // TODO: Select the material on hover.
-                // TODO: Temporarily select all effected meshes in the current model.
-                ui.selectable_value(selected_material_index, i, entry.material_label.clone());
+                let response = ui.selectable_value(selected_index, i, entry.material_label.clone());
+                if response.hovered() {
+                    // Used for material mask rendering.
+                    *hovered_index = Some(i);
+                }
             }
         });
+
+    if response.inner.is_none() {
+        // The menu was closed, so disable the material mask.
+        *hovered_index = None;
+    }
 }
 
 fn edit_shader_label(
