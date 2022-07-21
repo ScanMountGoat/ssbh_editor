@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use chrono::{DateTime, Utc};
 use egui::color::linear_f32_from_gamma_u8;
 use egui::Visuals;
