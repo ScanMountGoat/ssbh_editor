@@ -70,8 +70,8 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                 ui.heading("Name");
                 ui.heading("Bone");
                 ui.heading("Root");
-                ui.heading("Parent");
-                ui.heading("Driver");
+                ui.heading("Source");
+                ui.heading("Target");
                 ui.heading("Unk Type");
                 ui.end_row();
 
@@ -81,8 +81,8 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                     ui.label(&orient.name);
                     bone_combo_box(ui, &mut orient.bone_name, id.with(0), skel, &[]);
                     bone_combo_box(ui, &mut orient.root_bone_name, id.with(1), skel, &[]);
-                    bone_combo_box(ui, &mut orient.parent_bone_name, id.with(2), skel, &[]);
-                    bone_combo_box(ui, &mut orient.driver_bone_name, id.with(3), skel, &[]);
+                    bone_combo_box(ui, &mut orient.source_bone_name, id.with(2), skel, &[]);
+                    bone_combo_box(ui, &mut orient.target_bone_name, id.with(3), skel, &[]);
                     ui.add(DragValue::new(&mut orient.unk_type));
                     ui.end_row();
                 }
