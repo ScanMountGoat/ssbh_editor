@@ -203,45 +203,67 @@ pub fn generate_model_thumbnails(
                     // TODO: Will this correctly handle missing thumbnails?
                     let (texture, dimension) = render_model.get_texture(file_name)?;
 
-                    // Assume the textures have the appropriate usage to work with egui.
-                    // TODO: How to handle cube maps?
-                    // egui is expecting a 2D RGBA texture.
-                    let egui_texture = match dimension {
-                        wgpu::TextureViewDimension::D2 => egui_rpass.register_native_texture(
-                            device,
-                            &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                            wgpu::FilterMode::Nearest,
-                        ),
-                        _ => {
-                            let painter: &TexturePainter =
-                                egui_rpass.paint_callback_resources.get().unwrap();
-
-                            // Convert cube maps and 3d textures to 2D.
-                            let new_texture = painter.renderer.render_to_texture_2d_rgba(
-                                device,
-                                queue,
-                                texture,
-                                *dimension,
-                                (n.footer.width, n.footer.height, n.footer.depth),
-                                64,
-                                64,
-                                &nutexb_wgpu::RenderSettings::default(),
-                            );
-
-                            // We forced 2D above, so we don't need to set the descriptor dimensions.
-                            egui_rpass.register_native_texture(
-                                device,
-                                &new_texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                                wgpu::FilterMode::Nearest,
-                            )
-                        }
-                    };
+                    let egui_texture = create_egui_texture(
+                        egui_rpass,
+                        device,
+                        queue,
+                        texture,
+                        dimension,
+                        n.footer.width,
+                        n.footer.height,
+                        n.footer.depth,
+                    );
 
                     Some((file_name.clone(), egui_texture))
                 })
                 .collect()
         })
         .collect()
+}
+
+fn create_egui_texture(
+    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    dimension: &wgpu::TextureViewDimension,
+    width: u32,
+    height: u32,
+    depth: u32,
+) -> egui::TextureId {
+    // Assume the textures have the appropriate usage to work with egui.
+    // TODO: How to handle cube maps?
+    // egui is expecting a 2D RGBA texture.
+    let egui_texture = match dimension {
+        wgpu::TextureViewDimension::D2 => egui_rpass.register_native_texture(
+            device,
+            &texture.create_view(&wgpu::TextureViewDescriptor::default()),
+            wgpu::FilterMode::Nearest,
+        ),
+        _ => {
+            let painter: &TexturePainter = egui_rpass.paint_callback_resources.get().unwrap();
+
+            // Convert cube maps and 3d textures to 2D.
+            let new_texture = painter.renderer.render_to_texture_2d_rgba(
+                device,
+                queue,
+                texture,
+                *dimension,
+                (width, height, depth),
+                64,
+                64,
+                &nutexb_wgpu::RenderSettings::default(),
+            );
+
+            // We forced 2D above, so we don't need to set the descriptor dimensions.
+            egui_rpass.register_native_texture(
+                device,
+                &new_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                wgpu::FilterMode::Nearest,
+            )
+        }
+    };
+    egui_texture
 }
 
 pub fn checkerboard_texture(
@@ -296,31 +318,35 @@ pub fn generate_default_thumbnails(
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
     default_textures: &[(String, wgpu::Texture, wgpu::TextureViewDimension)],
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
 ) -> Vec<(String, egui::TextureId)> {
-    let mut thumbnails: Vec<_> = default_textures
+    default_textures
         .iter()
         .map(|(name, texture, _)| {
             // Assume the textures have the appropriate usage to work with egui.
-            // TODO: How to handle cube maps?
-            let egui_texture = egui_rpass.register_native_texture(
-                device,
-                &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                wgpu::FilterMode::Nearest,
-            );
+            // TODO: Are there other default cube textures?
+            let egui_texture = if name == "#replace_cubemap" {
+                create_egui_texture(
+                    egui_rpass,
+                    device,
+                    queue,
+                    texture,
+                    &wgpu::TextureViewDimension::Cube,
+                    64,
+                    64,
+                    1,
+                )
+            } else {
+                egui_rpass.register_native_texture(
+                    device,
+                    &texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                    wgpu::FilterMode::Nearest,
+                )
+            };
 
             (name.clone(), egui_texture)
         })
-        .collect();
-    // TODO: Add proper cube map thumbnails to nutexb_wgpu.
-    thumbnails.push((
-        "#replace_cubemap".to_owned(),
-        thumbnails
-            .iter()
-            .find(|(n, _)| n == "/common/shader/sfxpbs/default_black")
-            .unwrap()
-            .1,
-    ));
-    thumbnails
+        .collect()
 }
 
 pub fn default_fonts() -> egui::FontDefinitions {

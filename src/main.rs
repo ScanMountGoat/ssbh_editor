@@ -256,6 +256,7 @@ fn main() {
         &mut egui_rpass,
         &render_state.shared_data.default_textures,
         &render_state.device,
+        &render_state.queue,
     );
 
     let preferences = AppPreferences::load_from_file();
