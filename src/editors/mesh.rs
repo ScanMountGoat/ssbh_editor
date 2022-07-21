@@ -5,7 +5,7 @@ use log::error;
 use rfd::FileDialog;
 use ssbh_data::{mesh_data::MeshObjectData, prelude::*};
 
-use crate::app::UiState;
+use crate::{app::UiState, widgets::bone_combo_box};
 
 pub fn mesh_editor(
     ctx: &egui::Context,
@@ -13,6 +13,7 @@ pub fn mesh_editor(
     folder_name: &str,
     file_name: &str,
     mesh: &mut MeshData,
+    skel: Option<&SkelData>,
     ui_state: &mut UiState,
 ) -> bool {
     let mut open = true;
@@ -95,6 +96,8 @@ pub fn mesh_editor(
                         ui.end_row();
 
                         for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
+                            let id = egui::Id::new("mesh").with(i);
+
                             // TODO: Reorder mesh objects?
                             // TODO: Unique names?
                             if *advanced_mode {
@@ -105,9 +108,15 @@ pub fn mesh_editor(
                                 ui.label(&mesh_object.name);
                             }
 
-                            // TODO: use a combobox instead?
                             // TODO: Are parent bones and influences mutually exclusive?
-                            ui.text_edit_singleline(&mut mesh_object.parent_bone_name);
+                            // TODO: Is there a better way to indicate no parent than ""?
+                            bone_combo_box(
+                                ui,
+                                &mut mesh_object.parent_bone_name,
+                                id.with("parent_bone"),
+                                skel,
+                                &[""],
+                            );
 
                             // Open influences in a separate window since they won't fit in the grid.
                             if !mesh_object.bone_influences.is_empty() {

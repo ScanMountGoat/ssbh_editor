@@ -2,6 +2,7 @@ use egui::{
     epaint, pos2, vec2, NumExt, Response, RichText, Sense, TextStyle, Ui, Widget, WidgetInfo,
     WidgetText, WidgetType,
 };
+use ssbh_data::skel_data::SkelData;
 use std::str::FromStr;
 
 mod dragslider;
@@ -102,6 +103,30 @@ pub fn enum_combo_box<V>(
             // TODO: Does the performance cost here matter?
             for v in V::VARIANTS {
                 ui.selectable_value(value, V::from_str(v).unwrap(), v.to_string());
+            }
+        });
+}
+
+pub fn bone_combo_box(
+    ui: &mut egui::Ui,
+    bone_name: &mut String,
+    id: impl std::hash::Hash,
+    skel: Option<&SkelData>,
+    extra_names: &[&str],
+) {
+    egui::ComboBox::from_id_source(id)
+        .selected_text(bone_name.clone())
+        .show_ui(ui, |ui| {
+            for name in extra_names {
+                ui.selectable_value(bone_name, name.to_string(), *name);
+            }
+
+            if let Some(skel) = skel {
+                for bone in &skel.bones {
+                    ui.selectable_value(bone_name, bone.name.clone(), &bone.name);
+                }
+            } else {
+                ui.text_edit_singleline(bone_name);
             }
         });
 }

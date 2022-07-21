@@ -5,6 +5,8 @@ use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
 
+use crate::widgets::bone_combo_box;
+
 pub fn hlpb_editor(
     ctx: &egui::Context,
     title: &str,
@@ -134,28 +136,5 @@ fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelDat
                     ui.end_row();
                 }
             });
-        });
-}
-
-fn bone_combo_box(
-    ui: &mut egui::Ui,
-    bone_name: &mut String,
-    id: impl std::hash::Hash,
-    skel: Option<&SkelData>,
-    extra_names: &[&str],
-) {
-    egui::ComboBox::from_id_source(id)
-        .selected_text(bone_name.clone())
-        .show_ui(ui, |ui| {
-            // TODO: Just use text boxes if the skel is missing?
-            for name in extra_names {
-                ui.selectable_value(bone_name, name.to_string(), *name);
-            }
-
-            if let Some(skel) = skel {
-                for bone in &skel.bones {
-                    ui.selectable_value(bone_name, bone.name.clone(), &bone.name);
-                }
-            }
         });
 }

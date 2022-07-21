@@ -410,6 +410,11 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             mesh,
+                            model
+                                .skels
+                                .iter()
+                                .find(|(f, _)| f == "model.nusktb")
+                                .and_then(|(_, m)| m.as_ref().ok()),
                             &mut self.ui_state,
                         ) {
                             // Close the window.
