@@ -23,6 +23,8 @@ use strum::VariantNames;
 pub fn matl_editor(
     ctx: &egui::Context,
     title: &str,
+    folder_name: &str,
+    file_name: &str,
     ui_state: &mut UiState,
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
@@ -41,7 +43,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            menu_bar(ui, matl, ui_state, material_presets);
+            menu_bar(ui, matl, ui_state, material_presets, folder_name, file_name);
             ui.separator();
 
             // TODO: Simplify logic for closing window.
@@ -319,18 +321,29 @@ fn menu_bar(
     matl: &mut MatlData,
     ui_state: &mut UiState,
     material_presets: &mut Vec<MatlEntryData>,
+    folder_name: &str,
+    file_name: &str,
 ) {
     egui::menu::bar(ui, |ui| {
         egui::menu::menu_button(ui, "File", |ui| {
             if ui.button("Save").clicked() {
                 ui.close_menu();
 
+                let file = Path::new(folder_name).join(file_name);
+                if let Err(e) = matl.write_to_file(&file) {
+                    error!("Failed to save {:?}: {}", file, e);
+                }
+            }
+
+            if ui.button("Save As...").clicked() {
+                ui.close_menu();
+
                 if let Some(file) = FileDialog::new()
                     .add_filter("Matl", &["numatb"])
                     .save_file()
                 {
-                    if let Err(e) = matl.write_to_file(file) {
-                        error!("Failed to save Matl (.numatb): {}", e);
+                    if let Err(e) = matl.write_to_file(&file) {
+                        error!("Failed to save {:?}: {}", file, e);
                     }
                 }
             }

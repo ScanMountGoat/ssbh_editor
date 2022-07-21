@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
@@ -8,6 +10,8 @@ use crate::app::UiState;
 pub fn mesh_editor(
     ctx: &egui::Context,
     title: &str,
+    folder_name: &str,
+    file_name: &str,
     mesh: &mut MeshData,
     ui_state: &mut UiState,
 ) -> bool {
@@ -27,12 +31,21 @@ pub fn mesh_editor(
                             if ui.button("Save").clicked() {
                                 ui.close_menu();
 
+                                let file = Path::new(folder_name).join(file_name);
+                                if let Err(e) = mesh.write_to_file(&file) {
+                                    error!("Failed to save {:?}: {}", file, e);
+                                }
+                            }
+
+                            if ui.button("Save As...").clicked() {
+                                ui.close_menu();
+
                                 if let Some(file) = FileDialog::new()
                                     .add_filter("Mesh", &["numshb"])
                                     .save_file()
                                 {
-                                    if let Err(e) = mesh.write_to_file(file) {
-                                        error!("Failed to save Mesh (.numshb): {}", e);
+                                    if let Err(e) = mesh.write_to_file(&file) {
+                                        error!("Failed to save {:?}: {}", file, e);
                                     }
                                 }
                             }

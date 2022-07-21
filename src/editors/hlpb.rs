@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use egui::{CollapsingHeader, DragValue, ScrollArea};
 use log::error;
 use rfd::FileDialog;
@@ -6,6 +8,8 @@ use ssbh_data::prelude::*;
 pub fn hlpb_editor(
     ctx: &egui::Context,
     title: &str,
+    folder_name: &str,
+    file_name: &str,
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
 ) -> bool {
@@ -20,12 +24,21 @@ pub fn hlpb_editor(
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
+                        let file = Path::new(folder_name).join(file_name);
+                        if let Err(e) = hlpb.write_to_file(&file) {
+                            error!("Failed to save {:?}: {}", file, e);
+                        }
+                    }
+
+                    if ui.button("Save As...").clicked() {
+                        ui.close_menu();
+
                         if let Some(file) = FileDialog::new()
                             .add_filter("Hlpb", &["nuhlpb"])
                             .save_file()
                         {
-                            if let Err(e) = hlpb.write_to_file(file) {
-                                error!("Failed to save Hlpb (.nuhlpb): {}", e);
+                            if let Err(e) = hlpb.write_to_file(&file) {
+                                error!("Failed to save {:?}: {}", file, e);
                             }
                         }
                     }

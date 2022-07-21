@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
@@ -6,6 +8,8 @@ use ssbh_data::prelude::*;
 pub fn adj_editor(
     ctx: &egui::Context,
     title: &str,
+    folder_name: &str,
+    file_name: &str,
     adj: &mut AdjData,
     mesh: Option<&MeshData>,
 ) -> bool {
@@ -20,11 +24,20 @@ pub fn adj_editor(
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
+                        let file = Path::new(folder_name).join(file_name);
+                        if let Err(e) = adj.write_to_file(&file) {
+                            error!("Failed to save {:?}: {}", file, e);
+                        }
+                    }
+
+                    if ui.button("Save As...").clicked() {
+                        ui.close_menu();
+
                         if let Some(file) =
                             FileDialog::new().add_filter("Adj", &["adjb"]).save_file()
                         {
-                            if let Err(e) = adj.write_to_file(file) {
-                                error!("Failed to save Adj (.adjb): {}", e);
+                            if let Err(e) = adj.write_to_file(&file) {
+                                error!("Failed to save {:?}: {}", file, e);
                             }
                         }
                     }

@@ -382,12 +382,20 @@ impl SsbhApp {
             )
         };
         // TODO: Refactor this so they can also be "docked" in side panel tabs.
-        // The functions should take an additional ui parameter.
+        // The functions would take an additional ui parameter.
+        // TODO: Use some sort of trait to clean up repetitive code?
+        // TODO: Passing display_name is redundant?
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, Ok(skel))) = model.skels.get_mut(skel_index) {
-                        if !skel_editor(ctx, &display_name(&model.folder_name, name), skel) {
+                        if !skel_editor(
+                            ctx,
+                            &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
+                            skel,
+                        ) {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
                         }
@@ -399,6 +407,8 @@ impl SsbhApp {
                         if !mesh_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
                             mesh,
                             &mut self.ui_state,
                         ) {
@@ -422,6 +432,8 @@ impl SsbhApp {
                         if !matl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
                             &mut self.ui_state,
                             matl,
                             model
@@ -464,9 +476,12 @@ impl SsbhApp {
                             .iter()
                             .find(|(f, _)| f == "model.numatb")
                             .and_then(|(_, m)| m.as_ref().ok());
+
                         if !modl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
                             modl,
                             model
                                 .meshes
@@ -492,6 +507,8 @@ impl SsbhApp {
                         if !hlpb_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
                             hlpb,
                             model
                                 .skels
@@ -510,6 +527,8 @@ impl SsbhApp {
                         if !adj_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
                             adj,
                             model
                                 .meshes
