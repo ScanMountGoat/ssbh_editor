@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.5.1
 ### Added
 * Added wireframe rendering to debug shading.
 * Added bone axes rendering for showing accumulated bone world orientations.
