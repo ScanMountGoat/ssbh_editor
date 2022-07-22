@@ -5,7 +5,7 @@ use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
 
-use crate::widgets::bone_combo_box;
+use crate::widgets::{bone_combo_box, DragSlider};
 
 pub fn hlpb_editor(
     ctx: &egui::Context,
@@ -88,6 +88,7 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                 ui.heading("Source");
                 ui.heading("Target");
                 ui.heading("Unk Type");
+                ui.heading("Constraint Axes");
                 ui.end_row();
 
                 for (i, orient) in hlpb.orient_constraints.iter_mut().enumerate() {
@@ -98,7 +99,26 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                     bone_combo_box(ui, &mut orient.root_bone_name, id.with(1), skel, &[]);
                     bone_combo_box(ui, &mut orient.source_bone_name, id.with(2), skel, &[]);
                     bone_combo_box(ui, &mut orient.target_bone_name, id.with(3), skel, &[]);
-                    ui.add(DragValue::new(&mut orient.unk_type));
+
+                    egui::ComboBox::from_id_source(id.with(4))
+                        .selected_text(orient.unk_type.to_string())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut orient.unk_type, 1, "1");
+                            ui.selectable_value(&mut orient.unk_type, 1, "2");
+                        });
+
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            DragSlider::new(id.with(5), &mut orient.constraint_axes.x).width(40.0),
+                        );
+                        ui.add(
+                            DragSlider::new(id.with(6), &mut orient.constraint_axes.y).width(40.0),
+                        );
+                        ui.add(
+                            DragSlider::new(id.with(7), &mut orient.constraint_axes.z).width(40.0),
+                        );
+                    });
+
                     ui.end_row();
                 }
             });
