@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Added
+* Added wireframe rendering to debug shading.
+* Added bone axes rendering for showing accumulated bone world orientations.
+* Hovering over a material in the material selector now shows the effected meshes in the viewport.
+
+### Changed
+* Available animations are grouped by folder in decreasing order of affinity with the model folder. This allows assigning animations from any folder.
+* File > Save in editors overwrites the original file. Use File > Save As to save to a new location.
+* Improved accuracy of nuhlpb rendering for orient constraints.
+
+### Fixed
+* Fixed various issues with the slider control such as clicking updating the value.
+* Fixed the #replace_cubemap texture having no thumbnail in the material editor.
+
+### Removed
+* Removed the system console on Windows.
+
 ## 0.5.0
 ### Added
 * Added the ability to add the current material as a preset from the Matl Editor.
