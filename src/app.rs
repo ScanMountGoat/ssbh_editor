@@ -26,7 +26,12 @@ use log::Log;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
-use std::{borrow::Cow, error::Error, f32::consts::PI, path::Path, sync::Mutex};
+use std::{
+    error::Error,
+    f32::consts::PI,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 mod anim_list;
 
@@ -334,7 +339,7 @@ impl SsbhApp {
 
         if self.show_right_panel {
             let _viewport_right = SidePanel::right("right panel")
-                .min_width(350.0)
+                .min_width(375.0)
                 .show(ctx, |ui| self.right_panel(ctx, ui))
                 .response
                 .rect
@@ -644,7 +649,7 @@ impl SsbhApp {
                     .enumerate()
                     .filter(|(_, (model, _))| !model.is_empty())
                 {
-                    CollapsingHeader::new(folder_display_name(model))
+                    CollapsingHeader::new(folder_display_name(model).to_string_lossy())
                         .id_source(format!("folder.{}", folder_index))
                         .default_open(true)
                         .show(ui, |ui| {
@@ -930,11 +935,14 @@ fn is_model_folder(model: &ModelFolder) -> bool {
         || !model.matls.is_empty()
 }
 
-fn folder_display_name(model: &ModelFolder) -> Cow<str> {
+fn folder_display_name(model: &ModelFolder) -> PathBuf {
+    // Get enough components to differentiate folder paths.
+    // fighter/mario/motion/body/c00 -> motion/body/c00
     Path::new(&model.folder_name)
-        .file_name()
-        .map(|f| f.to_string_lossy())
-        .unwrap_or_default()
+        .components()
+        .rev()
+        .take(3)
+        .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc))
 }
 
 fn list_files<T, E: std::fmt::Display>(
@@ -1053,7 +1061,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     render_model.is_selected = ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
-                            folder_display_name(folder),
+                            folder_display_name(folder).to_string_lossy(),
                         ))
                         .hovered();
                 }

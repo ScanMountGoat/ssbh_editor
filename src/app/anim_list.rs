@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Ui};
+use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
 use ssbh_wgpu::ModelFolder;
 
 use crate::{
@@ -19,11 +19,11 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     {
         let mut slots_to_remove = Vec::new();
 
-        let id = ui.make_persistent_id("meshlist").with(model_index);
+        let id = ui.make_persistent_id("animlist").with(model_index);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 // Assume the associated animation folder names matche the model folder.
-                ui.label(folder_display_name(model));
+                ui.label(folder_display_name(model).to_string_lossy());
             })
             .body(|ui| {
                 // Associate animations with the model folder by name.
@@ -159,14 +159,19 @@ fn anim_combo_box(
     let mut changed = false;
 
     // TODO: Reset animations?
-    egui::ComboBox::from_id_source(format!("slot{:?}.{:?}", model_index, slot))
+    egui::ComboBox::from_id_source(egui::Id::new("slot").with(model_index).with(slot))
         .width(200.0)
         .selected_text(name)
         .show_ui(ui, |ui| {
             // Iterate in decreasing order of affinity with the model folder.
             for (folder_index, folder) in anim_folders.iter().rev() {
-                // TODO: Show the full folder name to avoid duplicates?
-                ui.heading(folder_display_name(folder));
+                ui.add(
+                    Label::new(
+                        RichText::new(folder_display_name(folder).to_string_lossy()).heading(),
+                    )
+                    .wrap(false),
+                );
+
                 for (anim_index, (name, _)) in folder.anims.iter().enumerate() {
                     let available_anim = AnimationIndex {
                         folder_index: *folder_index,
