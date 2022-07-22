@@ -3,6 +3,7 @@ name = "ssbh_editor"
 version = "0.5.1"
 authors = ["SMG"]
 edition = "2021"
+description = "View, edit, and validate models for Smash Ultimate"
 
 [dependencies]
 chrono = "0.4"
@@ -36,3 +37,6 @@ anyhow = "1.0"
 [profile.release]
 strip = "debuginfo"
 lto = true
+
+[package.metadata.bundle]
+icon = ["src/icons/SsbhEditor512_mac.png"]
