@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added wireframe rendering to debug shading.
 * Added bone axes rendering for showing accumulated bone world orientations.
 * Hovering over a material in the material selector now shows the effected meshes in the viewport.
+* Added additional fields to Hlpb Editor
 
 ### Changed
 * Available animations are grouped by folder in decreasing order of affinity with the model folder. This allows assigning animations from any folder.
