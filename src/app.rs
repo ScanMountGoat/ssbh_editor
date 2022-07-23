@@ -759,13 +759,13 @@ impl SsbhApp {
 
     fn animation_and_log(&mut self, ui: &mut Ui) {
         ui.with_layout(
-            egui::Layout::left_to_right().with_cross_align(egui::Align::Center),
+            egui::Layout::left_to_right(egui::Align::Center),
             |ui| {
                 self.animation_bar(ui);
 
                 // The next layout needs to be min since it's nested inside a centered layout.
                 ui.with_layout(
-                    egui::Layout::right_to_left().with_cross_align(egui::Align::Min),
+                    egui::Layout::right_to_left(egui::Align::Min),
                     |ui| {
                         ui.horizontal(|ui| {
                             if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
