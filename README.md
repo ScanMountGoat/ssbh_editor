@@ -52,7 +52,7 @@ SSBH Editor stores its configuration files and material presets in a dedicated d
 The exact location depends on the operating system. For Windows, this is typically `C:\Users\username\AppData\Local\ssbh_editor\data` where `username` is your user name. A quick way to find the directory on Windows is to type `%localappdata%` into the path in File Explorer, hit enter, and search for the `ssbh_editor` folder.
 
 ## Building
-Prebuilt binaries are only provided for Windows at this time. Users on Linux or MacOS will need to compile from source. With version 1.60 or later of the Rust toolchain installed, run `cargo build --release`.
+Prebuilt binaries are only provided for Windows and MacOS at this time. Users on Linux will need to compile from source. With version 1.60 or later of the Rust toolchain installed, run `cargo build --release`.
 
 ## Useful Tools
 SSBH Editor is designed for editing existing models from imports or in game. For other steps of the mod creation process, see the tools linked below.
