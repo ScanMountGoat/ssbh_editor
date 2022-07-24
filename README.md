@@ -1,5 +1,5 @@
 # ssbh_editor
-SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download Windows releases in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
+SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
 
 ## Features
 The goal of SSBH Editor is to provide a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data. 
