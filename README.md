@@ -22,18 +22,18 @@ helpful for custom model imports that may have errors in the generated model fil
 - Settings to adjust UI scaling for better readability
 - Improved spacing and consistency for UI
 
-## System Requirements
-SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
-
-## Limitations
-SSBH Editor provides a recreation of key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for thousands of models is not a goal of this application. Some values in a file may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience. SSBH Editor can't detect all errors that can occur with a model. Many of these issues are related to issues installing and loading modded files. Not all game files that impact the appearance of a model are used by SSBH Editor. Always perform final testing with an emulator or in game.
-
 ## Getting Started
 Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
 
 For previewing animations, make sure the animation folder is loaded. Most animations are stored separately from the model folder and should be added with File > Add Folder to Workspace. This also works for adding additional models to the scene. 
 
 Animations are assigned to each folder from the animation tab. Each model folder like `mario/model/body/c00` has a set of animation slots. Select a nuanmb file from the drop down to assign the animation to that slot. Animations files are grouped by folder in the drop down. Adding slots allows for playing multiple animations. Each animation slot is rendered in order starting from Slot 0. For example, assign `a00defaulteyelid.nuanmb` to Slot 0 and `a00wait1.nuanmb` to Slot 1 to play the wait animation with blinking expression. The `model.nuanmb` file should usually be selected for Slot 0.
+
+## System Requirements
+SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
+
+## Limitations
+SSBH Editor provides a recreation of key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for thousands of models is not a goal of this application. Some values in a file may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience. SSBH Editor can't detect all errors that can occur with a model. Many of these issues are related to issues installing and loading modded files. Not all game files that impact the appearance of a model are used by SSBH Editor. Always perform final testing with an emulator or in game.
 
 ## Importing Material Presets
 Cross Mod has been replaced by SSBH Editor. The material presets from Cross Mod will not work directly with SSBH Editor but can easily be converted to the right format following the steps below. 
