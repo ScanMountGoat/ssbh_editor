@@ -136,20 +136,24 @@ pub fn preset_editor(
                 help_menu(ui);
             });
 
-            // Use an empty model thumbnail list to encourage using default textures.
-            // These textures will be replaced by param specific defaults anyway.
-            edit_matl_entries(
-                ui,
-                presets,
-                None,
-                &[],
-                &[],
-                default_thumbnails,
-                shader_database,
-                red_checkerboard,
-                yellow_checkerboard,
-                &mut ui_state.preset_editor,
-            );
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    // Use an empty model thumbnail list to encourage using default textures.
+                    // These textures will be replaced by param specific defaults anyway.
+                    edit_matl_entries(
+                        ui,
+                        presets,
+                        None,
+                        &[],
+                        &[],
+                        default_thumbnails,
+                        shader_database,
+                        red_checkerboard,
+                        yellow_checkerboard,
+                        &mut ui_state.preset_editor,
+                    );
+                });
         });
 }
 
