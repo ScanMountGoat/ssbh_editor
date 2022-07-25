@@ -101,7 +101,7 @@ fn get_latest_release() -> Option<Release> {
 }
 
 fn main() {
-    // Initialize logging.
+    // Initialize logging first in case app startup has warnings.
     log::set_logger(&*ssbh_editor::app::LOGGER)
         .map(|()| log::set_max_level(log::LevelFilter::Info))
         .unwrap();
@@ -266,13 +266,14 @@ fn main() {
     // Track if keys like ctrl or alt are being pressed.
     let mut modifiers = ModifiersState::default();
 
+    // TODO: Move this to a function.
     let mut app = SsbhApp {
         models: Vec::new(),
         render_models: Vec::new(),
         thumbnails: Vec::new(),
         validation_errors: Vec::new(),
         default_thumbnails,
-        should_refresh_meshes: false,
+        should_reload_models: false,
         should_show_update,
         new_release_tag,
         should_refresh_render_settings: false,
@@ -341,27 +342,9 @@ fn main() {
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
                         // TODO: Load models on a separate thread to avoid freezing the UI.
-                        if app.should_refresh_meshes {
-                            app.render_models = ssbh_wgpu::load_render_models(
-                                &app.render_state.device,
-                                &app.render_state.queue,
-                                &app.models,
-                                &app.render_state.shared_data,
-                            );
-                            app.validation_errors = app
-                                .models
-                                .iter()
-                                .map(|_| ModelValidationErrors::default())
-                                .collect();
-
-                            app.thumbnails = generate_model_thumbnails(
-                                &mut egui_rpass,
-                                &app.models,
-                                &app.render_models,
-                                &app.render_state.device,
-                                &app.render_state.queue,
-                            );
-                            app.should_refresh_meshes = false;
+                        if app.should_reload_models {
+                            reload_models(&mut app, &mut egui_rpass);
+                            app.should_reload_models = false;
                         }
 
                         if app.should_refresh_render_settings {
@@ -395,55 +378,10 @@ fn main() {
 
                         // TODO: How to handle model.nuanmb?
                         if app.animation_state.is_playing
-                            || app.animation_state.animation_frame_was_changed
+                            || app.animation_state.should_update_animations
                         {
-                            for ((render_model, model), model_animations) in app
-                                .render_models
-                                .iter_mut()
-                                .zip(app.models.iter())
-                                .zip(app.animation_state.animations.iter())
-                            {
-                                // Only render enabled animations.
-                                let animations = model_animations
-                                    .iter()
-                                    .filter(|anim_slot| anim_slot.is_enabled)
-                                    .filter_map(|anim_slot| {
-                                        anim_slot
-                                            .animation
-                                            .and_then(|anim_index| {
-                                                anim_index.get_animation(&app.models)
-                                            })
-                                            .and_then(|(_, a)| a.as_ref().ok())
-                                    });
-
-                                // TODO: Should animations loop independently if some animations are longer than others?
-
-                                // TODO: Make frame timing logic in ssbh_wgpu public?
-                                render_model.apply_anim(
-                                    &app.render_state.device,
-                                    &app.render_state.queue,
-                                    animations,
-                                    model
-                                        .skels
-                                        .iter()
-                                        .find(|(f, _)| f == "model.nusktb")
-                                        .and_then(|(_, m)| m.as_ref().ok()),
-                                    model
-                                        .matls
-                                        .iter()
-                                        .find(|(f, _)| f == "model.numatb")
-                                        .and_then(|(_, m)| m.as_ref().ok()),
-                                    model
-                                        .hlpbs
-                                        .iter()
-                                        .find(|(f, _)| f == "model.nuhlpb")
-                                        .and_then(|(_, m)| m.as_ref().ok()),
-                                    app.animation_state.current_frame,
-                                    &app.render_state.shared_data,
-                                );
-                            }
-
-                            app.animation_state.animation_frame_was_changed = false;
+                            animate_models(&mut app);
+                            app.animation_state.should_update_animations = false;
                         }
 
                         // Prepare the nutexb for rendering.
@@ -618,6 +556,73 @@ fn main() {
     );
 }
 
+fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::RenderPass) {
+    app.render_models = ssbh_wgpu::load_render_models(
+        &app.render_state.device,
+        &app.render_state.queue,
+        &app.models,
+        &app.render_state.shared_data,
+    );
+    app.validation_errors = app
+        .models
+        .iter()
+        .map(|_| ModelValidationErrors::default())
+        .collect();
+    app.thumbnails = generate_model_thumbnails(
+        egui_rpass,
+        &app.models,
+        &app.render_models,
+        &app.render_state.device,
+        &app.render_state.queue,
+    );
+}
+
+fn animate_models(app: &mut SsbhApp) {
+    for ((render_model, model), model_animations) in app
+        .render_models
+        .iter_mut()
+        .zip(app.models.iter())
+        .zip(app.animation_state.animations.iter())
+    {
+        // Only render enabled animations.
+        let animations = model_animations
+            .iter()
+            .filter(|anim_slot| anim_slot.is_enabled)
+            .filter_map(|anim_slot| {
+                anim_slot
+                    .animation
+                    .and_then(|anim_index| anim_index.get_animation(&app.models))
+                    .and_then(|(_, a)| a.as_ref().ok())
+            });
+
+        // TODO: Should animations loop independently if some animations are longer than others?
+
+        // TODO: Make frame timing logic in ssbh_wgpu public?
+        render_model.apply_anim(
+            &app.render_state.device,
+            &app.render_state.queue,
+            animations,
+            model
+                .skels
+                .iter()
+                .find(|(f, _)| f == "model.nusktb")
+                .and_then(|(_, m)| m.as_ref().ok()),
+            model
+                .matls
+                .iter()
+                .find(|(f, _)| f == "model.numatb")
+                .and_then(|(_, m)| m.as_ref().ok()),
+            model
+                .hlpbs
+                .iter()
+                .find(|(f, _)| f == "model.nuhlpb")
+                .and_then(|(_, m)| m.as_ref().ok()),
+            app.animation_state.current_frame,
+            &app.render_state.shared_data,
+        );
+    }
+}
+
 fn get_hovered_material_label(app: &SsbhApp, folder_index: usize) -> Option<&str> {
     Some(
         app.models
@@ -693,10 +698,10 @@ fn get_nutexb_to_render(
     let (name, nutexb) = model.nutexbs.get(app.ui_state.selected_nutexb_index?)?;
     let nutexb = nutexb.as_ref().ok()?;
 
-    render_model.get_texture(name).map(|(t, d)| {
+    render_model.get_texture(name).map(|(texture, dim)| {
         (
-            t,
-            d,
+            texture,
+            dim,
             (
                 nutexb.footer.width,
                 nutexb.footer.height,
@@ -754,7 +759,6 @@ fn egui_render_pass(
     for id in &full_output.textures_delta.free {
         egui_rpass.free_texture(id);
     }
-    // end egui
 }
 
 fn request_adapter(
@@ -835,24 +839,16 @@ fn handle_input(
     size: PhysicalSize<u32>,
 ) -> bool {
     // Return true if this function handled the event.
-    // TODO: Input handling can be it's own module with proper tests.
-    // Just test if the WindowEvent object is handled correctly.
-    // Test that some_fn(event, state) returns new state?
+    // TODO: Input handling can be it's own module.
     match event {
         WindowEvent::MouseInput { button, state, .. } => {
             // Track mouse clicks to only rotate when dragging while clicked.
-            match (button, state) {
-                (MouseButton::Left, ElementState::Pressed) => {
-                    input_state.is_mouse_left_clicked = true
+            match button {
+                MouseButton::Left => {
+                    input_state.is_mouse_left_clicked = *state == ElementState::Pressed;
                 }
-                (MouseButton::Left, ElementState::Released) => {
-                    input_state.is_mouse_left_clicked = false
-                }
-                (MouseButton::Right, ElementState::Pressed) => {
-                    input_state.is_mouse_right_clicked = true
-                }
-                (MouseButton::Right, ElementState::Released) => {
-                    input_state.is_mouse_right_clicked = false
+                MouseButton::Right => {
+                    input_state.is_mouse_right_clicked = *state == ElementState::Pressed;
                 }
                 _ => (),
             }
@@ -886,7 +882,6 @@ fn handle_input(
             true
         }
         WindowEvent::MouseWheel { delta, .. } => {
-            // TODO: Add tests for handling scroll events properly?
             // Scale zoom speed with distance to make it easier to zoom out large scenes.
             let delta_z = match delta {
                 MouseScrollDelta::LineDelta(_x, y) => {

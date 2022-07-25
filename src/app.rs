@@ -65,7 +65,7 @@ impl Log for AppLogger {
 }
 
 pub struct SsbhApp {
-    pub should_refresh_meshes: bool,
+    pub should_reload_models: bool,
     pub should_refresh_render_settings: bool,
     pub should_refresh_camera_settings: bool,
 
@@ -182,7 +182,7 @@ impl SsbhApp {
 
             self.models.extend(new_models);
             // TODO: Only update the models that were added?
-            self.should_refresh_meshes = true;
+            self.should_reload_models = true;
         }
     }
 
@@ -191,7 +191,7 @@ impl SsbhApp {
         for model in &mut self.models {
             *model = ModelFolder::load_folder(&model.folder_name);
         }
-        self.should_refresh_meshes = true;
+        self.should_reload_models = true;
     }
 
     pub fn clear_workspace(&mut self) {
@@ -589,7 +589,7 @@ impl SsbhApp {
             .changed()
         {
             // Manually trigger an update in case the playback is paused.
-            self.animation_state.animation_frame_was_changed = true;
+            self.animation_state.should_update_animations = true;
         }
 
         // Use a separate widget from the slider value to force the size.
@@ -602,7 +602,7 @@ impl SsbhApp {
             .changed()
         {
             // Manually trigger an update in case the playback is paused.
-            self.animation_state.animation_frame_was_changed = true;
+            self.animation_state.should_update_animations = true;
         }
 
         // Nest these conditions to avoid displaying both "Pause" and "Play" at once.

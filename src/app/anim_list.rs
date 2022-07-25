@@ -48,7 +48,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                             ctx,
                             anim_slot,
                             &app.models,
-                            &mut app.animation_state.animation_frame_was_changed,
+                            &mut app.animation_state.should_update_animations,
                             &available_anims,
                             model_index,
                             slot,

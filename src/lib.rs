@@ -92,7 +92,7 @@ impl RenderState {
 pub struct AnimationState {
     pub current_frame: f32,
     pub is_playing: bool,
-    pub animation_frame_was_changed: bool,
+    pub should_update_animations: bool,
     pub selected_folder: usize,
     pub selected_slot: usize,
     pub animations: Vec<Vec<AnimationSlot>>,
@@ -106,7 +106,7 @@ impl AnimationState {
             is_playing: false,
             current_frame: 0.0,
             previous_frame_start: std::time::Instant::now(),
-            animation_frame_was_changed: false,
+            should_update_animations: false,
             selected_folder: 0,
             selected_slot: 0,
         }
