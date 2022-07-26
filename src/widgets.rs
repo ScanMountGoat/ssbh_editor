@@ -88,7 +88,8 @@ pub fn enum_combo_box<V>(
     label: &str,
     id_source: impl std::hash::Hash,
     value: &mut V,
-) where
+) -> bool
+where
     V: PartialEq + strum::VariantNames + ToString + FromStr,
     <V as FromStr>::Err: std::fmt::Debug,
 {
@@ -96,15 +97,21 @@ pub fn enum_combo_box<V>(
         ui.label(label);
     }
 
+    // TODO: Return response and union instead?
+    let mut changed = false;
     egui::ComboBox::from_id_source(id_source)
         .width(200.0)
         .selected_text(value.to_string())
         .show_ui(ui, |ui| {
             // TODO: Does the performance cost here matter?
             for v in V::VARIANTS {
-                ui.selectable_value(value, V::from_str(v).unwrap(), v.to_string());
+                changed |= ui
+                    .selectable_value(value, V::from_str(v).unwrap(), v.to_string())
+                    .changed();
             }
         });
+
+    changed
 }
 
 pub fn bone_combo_box(

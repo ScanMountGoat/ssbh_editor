@@ -42,6 +42,8 @@ impl ModelValidationErrors {
                 model.find_modl(),
                 model.find_mesh(),
             );
+
+            // TODO: Validate mismatches with cube maps and 2D textures.
         }
         validation
     }

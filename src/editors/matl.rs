@@ -10,7 +10,7 @@ use crate::{
     validation::MatlValidationError,
     widgets::*,
 };
-use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, Slider, Ui, Window};
+use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, Ui, Window};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
@@ -35,8 +35,9 @@ pub fn matl_editor(
     material_presets: &mut Vec<MatlEntryData>,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
-) -> bool {
+) -> (bool, bool) {
     let mut open = true;
+    let mut changed = false;
 
     Window::new(format!("Matl Editor ({title})"))
         .open(&mut open)
@@ -58,7 +59,7 @@ pub fn matl_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    edit_matl_entries(
+                    changed |= edit_matl_entries(
                         ui,
                         &mut matl.entries,
                         modl,
@@ -73,7 +74,7 @@ pub fn matl_editor(
                 });
         });
 
-    open
+    (open, changed)
 }
 
 // TODO: Validate presets?
@@ -215,7 +216,7 @@ fn edit_matl_entries(
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
     editor_state: &mut MatlEditorState,
-) {
+) -> bool {
     // Only display a single material at a time.
     // This avoids cluttering the UI.
     let entry = entries.get_mut(editor_state.selected_material_index);
@@ -230,19 +231,21 @@ fn edit_matl_entries(
         })
         .unwrap_or_default();
 
+    let mut changed = false;
+
     ui.heading("Material");
     ui.horizontal(|ui| {
         ui.label("Material");
         let entry = entries.get_mut(editor_state.selected_material_index);
         if editor_state.is_editing_material_label {
-            edit_material_label(
+            changed |= edit_material_label(
                 entry,
                 &mut editor_state.is_editing_material_label,
                 ui,
                 &mut modl_entries,
             );
         } else {
-            material_combo_box(
+            changed |= material_combo_box(
                 ui,
                 &mut editor_state.selected_material_index,
                 &mut editor_state.hovered_material_index,
@@ -274,7 +277,7 @@ fn edit_matl_entries(
             .filter(|e| e.entry_index() == editor_state.selected_material_index)
             .collect();
 
-        matl_entry_editor(
+        changed |= matl_entry_editor(
             ui,
             entry,
             &validation,
@@ -286,6 +289,8 @@ fn edit_matl_entries(
             yellow_checkerboard,
         );
     }
+
+    changed
 }
 
 fn preset_window(
@@ -442,16 +447,18 @@ fn edit_material_label(
     is_editing_material_label: &mut bool,
     ui: &mut Ui,
     modl_entries: &mut [&mut ModlEntryData],
-) {
+) -> bool {
     // TODO: Get this to work with lost_focus for efficiency.
     // TODO: Show errors if these checks fail?
+    let mut changed = false;
     if let Some(entry) = entry {
         let response = ui.add_sized(
             egui::Vec2::new(400.0, 20.0),
             egui::TextEdit::singleline(&mut entry.material_label),
         );
 
-        if response.changed() {
+        changed = response.changed();
+        if changed {
             // Rename any effected modl entries if the material label changes.
             // Keep track of modl entries since materials may be renamed.
             for modl_entry in modl_entries {
@@ -463,6 +470,8 @@ fn edit_material_label(
             *is_editing_material_label = false;
         }
     }
+
+    changed
 }
 
 fn material_combo_box(
@@ -470,7 +479,7 @@ fn material_combo_box(
     selected_index: &mut usize,
     hovered_index: &mut Option<usize>,
     entries: &[MatlEntryData],
-) {
+) -> bool {
     let selected_text = entries
         .get(*selected_index)
         .map(|e| e.material_label.clone())
@@ -493,6 +502,8 @@ fn material_combo_box(
         // The menu was closed, so disable the material mask.
         *hovered_index = None;
     }
+
+    response.response.changed()
 }
 
 fn edit_shader_label(
@@ -523,7 +534,9 @@ fn matl_entry_editor(
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
-) {
+) -> bool {
+    let mut changed = false;
+
     let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
 
     ui.heading("Shader");
@@ -622,6 +635,7 @@ fn matl_entry_editor(
         };
         if ui.button(text).clicked() {
             add_parameters(entry, &missing_parameters);
+            changed = true;
         }
     }
 
@@ -633,6 +647,7 @@ fn matl_entry_editor(
         };
         if ui.button(text).clicked() {
             remove_parameters(entry, &unused_parameters);
+            changed = true;
         }
     }
 
@@ -642,18 +657,20 @@ fn matl_entry_editor(
 
     for param in entry.booleans.iter_mut() {
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-            ui.checkbox(&mut param.data, param_label(param.param_id))
+            changed |= ui
+                .checkbox(&mut param.data, param_label(param.param_id))
+                .changed();
         });
     }
     horizontal_separator_empty(ui);
 
     // TODO: Find a consistent way to disable ui if unused and show a tooltip.
     for param in entry.floats.iter_mut() {
+        let id = egui::Id::new(param.param_id.to_string());
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
             ui.horizontal(|ui| {
-                // TODO: Store this size somewhere to ensure labels align?
                 ui.label(param_label(param.param_id));
-                ui.add(Slider::new(&mut param.data, 0.0..=1.0));
+                changed |= ui.add(DragSlider::new(id, &mut param.data)).changed();
             })
         });
     }
@@ -662,13 +679,13 @@ fn matl_entry_editor(
     if advanced_mode {
         for param in entry.vectors.iter_mut() {
             ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                edit_vector_advanced(ui, param);
+                changed |= edit_vector_advanced(ui, param);
             });
         }
     } else {
         Grid::new("vectors").show(ui, |ui| {
             for param in entry.vectors.iter_mut() {
-                edit_vector(ui, param, !unused_parameters.contains(&param.param_id));
+                changed |= edit_vector(ui, param, !unused_parameters.contains(&param.param_id));
                 ui.end_row();
             }
         });
@@ -679,7 +696,7 @@ fn matl_entry_editor(
     if advanced_mode {
         for param in &mut entry.samplers {
             ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                edit_sampler(ui, param);
+                changed |= edit_sampler(ui, param);
             });
         }
         horizontal_separator_empty(ui);
@@ -688,7 +705,7 @@ fn matl_entry_editor(
     Grid::new("matl textures").show(ui, |ui| {
         for param in &mut entry.textures {
             // TODO: Get disabled UI working with the texture grid.
-            edit_texture(
+            changed |= edit_texture(
                 ui,
                 param,
                 texture_thumbnails,
@@ -704,23 +721,27 @@ fn matl_entry_editor(
     if advanced_mode {
         // Edits to RasterizerState0 are rare, so restrict it to advanced mode.
         for param in &mut entry.rasterizer_states {
-            edit_rasterizer(ui, param);
+            changed |= edit_rasterizer(ui, param);
         }
         horizontal_separator_empty(ui);
     }
 
     for param in &mut entry.blend_states {
-        edit_blend(ui, param);
+        changed |= edit_blend(ui, param);
     }
+
+    changed
 }
 
-fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) {
+fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
+    let mut changed = false;
+
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Source Color",
                 id.with("srccolor"),
@@ -728,7 +749,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) {
             );
             ui.end_row();
 
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Destination Color",
                 id.with("dstcolor"),
@@ -736,35 +757,44 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) {
             );
             ui.end_row();
 
-            ui.checkbox(
-                &mut param.data.alpha_sample_to_coverage,
-                "Alpha Sample to Coverage",
-            );
+            changed |= ui
+                .checkbox(
+                    &mut param.data.alpha_sample_to_coverage,
+                    "Alpha Sample to Coverage",
+                )
+                .changed();
             ui.end_row();
             // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
             // TODO: Research in game examples for these presets (premultiplied alpha?)
         });
     });
+
+    changed
 }
 
-fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) {
+fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
+    let mut changed = false;
+
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
         // TODO: These param IDs might not be unique?
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Polygon Fill",
                 id.with("fill"),
                 &mut param.data.fill_mode,
             );
             ui.end_row();
-            enum_combo_box(ui, "Cull Mode", id.with("cull"), &mut param.data.cull_mode);
+
+            changed |= enum_combo_box(ui, "Cull Mode", id.with("cull"), &mut param.data.cull_mode);
             ui.end_row();
         });
     });
+
+    changed
 }
 
 fn edit_texture(
@@ -773,7 +803,7 @@ fn edit_texture(
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
-) {
+) -> bool {
     // TODO: Create a texture for an invalid thumbnail or missing texture?
     // TODO: Should this functionality be part of ssbh_wgpu?
     ui.label(param_label(param.param_id));
@@ -797,9 +827,11 @@ fn edit_texture(
         ui.allocate_space(egui::Vec2::new(24.0, 24.0));
     }
 
+    let mut changed = false;
+
     if advanced_mode {
         // Let users enter names manually if texture files aren't present.
-        ui.text_edit_singleline(&mut param.data);
+        changed |= ui.text_edit_singleline(&mut param.data).changed();
     } else {
         // Texture files should be present in the folder, which allows for image previews.
         ComboBox::from_id_source(param.param_id.to_string())
@@ -818,20 +850,26 @@ fn edit_texture(
                     // TODO: Show a texture as selected even if the case doesn't match?
                     ui.horizontal(|ui| {
                         ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
-                        ui.selectable_value(&mut param.data, text.clone(), text);
+                        changed |= ui
+                            .selectable_value(&mut param.data, text.clone(), text)
+                            .changed();
                     });
                 }
             });
     }
+
+    changed
 }
 
-fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
+fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
+    let mut changed = false;
+
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Wrap S",
                 id.with("wraps{:?}"),
@@ -839,7 +877,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             );
             ui.end_row();
 
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Wrap T",
                 id.with("wrapt{:?}"),
@@ -847,7 +885,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             );
             ui.end_row();
 
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Wrap R",
                 id.with("wrapr{:?}"),
@@ -855,7 +893,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             );
             ui.end_row();
 
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Min Filter",
                 id.with("minfilter{:?}"),
@@ -863,7 +901,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             );
             ui.end_row();
 
-            enum_combo_box(
+            changed |= enum_combo_box(
                 ui,
                 "Mag Filter",
                 id.with("magfilter{:?}"),
@@ -877,11 +915,11 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
             ui.label("Border Color").on_hover_text(
                 "The color when sampling UVs outside the range 0.0 to 1.0. Only affects ClampToBorder.",
             );
-            edit_color4f_rgba(ui, &mut param.data.border_color);
+            changed |= edit_color4f_rgba(ui, &mut param.data.border_color);
             ui.end_row();
 
             ui.label("Lod Bias");
-            ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1));
+            changed |= ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1)).changed();
             ui.end_row();
 
             // TODO: Make a function for this and share with bone parent index?
@@ -896,26 +934,30 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) {
                         .unwrap_or_else(|| "None".to_owned()),
                 )
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut param.data.max_anisotropy, None, "None");
+                    changed |= ui.selectable_value(&mut param.data.max_anisotropy, None, "None").changed();
                     ui.separator();
                     for variant in MaxAnisotropy::VARIANTS {
-                        ui.selectable_value(
+                        changed |= ui.selectable_value(
                             &mut param.data.max_anisotropy,
                             Some(MaxAnisotropy::from_str(variant).unwrap()),
                             variant.to_string(),
-                        );
+                        ).changed();
                     }
                 });
             ui.end_row();
         });
     });
+
+    changed
 }
 
-fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
+fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) -> bool {
+    let mut changed = false;
+
     // Disabling the entire row interferes with the grid columns.
     // Disable each item individually.
     ui.add_enabled_ui(enabled, |ui| {
-        edit_vector4_rgba(ui, &mut param.data);
+        changed |= edit_vector4_rgba(ui, &mut param.data);
     });
 
     ui.add_enabled_ui(enabled, |ui| {
@@ -924,34 +966,41 @@ fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) {
 
     let id = egui::Id::new(param.param_id.to_string());
 
-    let edit_component = |ui: &mut Ui, label, value| {
+    let edit_component = |ui: &mut Ui, changed: &mut bool, label, value| {
         ui.add_enabled_ui(enabled, |ui| {
             ui.horizontal(|ui| {
                 ui.label(label);
-                ui.add(DragSlider::new(id.with(label), value).width(50.0));
+                *changed |= ui
+                    .add(DragSlider::new(id.with(label), value).width(50.0))
+                    .changed();
             });
         });
     };
 
     // TODO: Fix spacing for unused labels.
     let labels = vector4_labels_short(param.param_id);
-    edit_component(ui, labels[0], &mut param.data.x);
-    edit_component(ui, labels[1], &mut param.data.y);
-    edit_component(ui, labels[2], &mut param.data.z);
-    edit_component(ui, labels[3], &mut param.data.w);
+    edit_component(ui, &mut changed, labels[0], &mut param.data.x);
+    edit_component(ui, &mut changed, labels[1], &mut param.data.y);
+    edit_component(ui, &mut changed, labels[2], &mut param.data.z);
+    edit_component(ui, &mut changed, labels[3], &mut param.data.w);
+
+    changed
 }
 
-fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) {
+fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) -> bool {
     // TODO: Edit alpha for params with alpha?
     let mut color = [data.x, data.y, data.z];
     if ui.color_edit_button_rgb(&mut color).changed() {
         data.x = color[0];
         data.y = color[1];
         data.z = color[2];
+        true
+    } else {
+        false
     }
 }
 
-fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) {
+fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
     // TODO: Still show the color if the alpha is 0?
     let mut color = [data.r, data.g, data.b, data.a];
     if ui.color_edit_button_rgba_unmultiplied(&mut color).changed() {
@@ -959,14 +1008,19 @@ fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) {
         data.g = color[1];
         data.b = color[2];
         data.a = color[3];
+        true
+    } else {
+        false
     }
 }
 
-fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
+fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) -> bool {
+    let mut changed = false;
+
     // TODO: Set custom labels and ranges.
     // TODO: Add parameter descriptions.
     ui.horizontal(|ui| {
-        edit_vector4_rgba(ui, &mut param.data);
+        changed |= edit_vector4_rgba(ui, &mut param.data);
         ui.label(param_label(param.param_id));
     });
 
@@ -976,22 +1030,32 @@ fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) {
         let labels = vector4_labels_long(param.param_id);
         Grid::new(param.param_id.to_string()).show(ui, |ui| {
             ui.label(labels[0]);
-            ui.add(DragSlider::new(id.with("x"), &mut param.data.x).width(150.0));
+            changed |= ui
+                .add(DragSlider::new(id.with("x"), &mut param.data.x).width(150.0))
+                .changed();
             ui.end_row();
 
             ui.label(labels[1]);
-            ui.add(DragSlider::new(id.with("y"), &mut param.data.y).width(150.0));
+            changed |= ui
+                .add(DragSlider::new(id.with("y"), &mut param.data.y).width(150.0))
+                .changed();
             ui.end_row();
 
             ui.label(labels[2]);
-            ui.add(DragSlider::new(id.with("z"), &mut param.data.z).width(150.0));
+            changed |= ui
+                .add(DragSlider::new(id.with("z"), &mut param.data.z).width(150.0))
+                .changed();
             ui.end_row();
 
             ui.label(labels[3]);
-            ui.add(DragSlider::new(id.with("w"), &mut param.data.w).width(150.0));
+            changed |= ui
+                .add(DragSlider::new(id.with("w"), &mut param.data.w).width(150.0))
+                .changed();
             ui.end_row();
         });
     });
+
+    changed
 }
 
 fn param_label(p: ParamId) -> String {

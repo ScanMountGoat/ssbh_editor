@@ -89,7 +89,7 @@ impl<'a> Widget for DragSlider<'a> {
 
             // Expand the widget as needed to fit the text.
             let text_size = text.size() + 2.0 * ui.spacing().button_padding;
-            let (outer_rect, response) =
+            let (outer_rect, mut response) =
                 ui.allocate_at_least(desired_size.max(text_size), Sense::click_and_drag());
 
             if response.clicked() {
@@ -110,6 +110,7 @@ impl<'a> Widget for DragSlider<'a> {
                     // TODO: Set a speed based on the ranges?
                     *self.value += delta_value;
                     *self.value = self.value.clamp(self.slider_min, self.slider_max);
+                    response.mark_changed();
                 }
             }
 

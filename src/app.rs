@@ -440,7 +440,7 @@ impl SsbhApp {
                             .map(|v| v.matl_errors.as_slice())
                             .unwrap_or_default();
 
-                        if !matl_editor(
+                        let (open, changed) = matl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
@@ -459,22 +459,27 @@ impl SsbhApp {
                             &mut self.material_presets,
                             self.red_checkerboard,
                             self.yellow_checkerboard,
-                        ) {
+                        );
+
+                        if !open {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
-                        } else if let Some(render_model) = self.render_models.get_mut(folder_index)
-                        {
-                            // TODO: Add change tracking using .changed() to improve performance.
-                            // TODO: Is it worth optimizing this to only effect certain materials?
-                            // Only the model.numatb is rendered in the viewport for now.
-                            if name == "model.numatb" {
-                                // TODO: How to efficiently handle renaming materials in ssbh_wgpu?
-                                render_model.update_materials(
-                                    &self.render_state.device,
-                                    &self.render_state.queue,
-                                    &matl.entries,
-                                    &self.render_state.shared_data,
-                                );
+                        }
+
+                        // Update on change to avoid costly state changes every frame.
+                        if changed {
+                            if let Some(render_model) = self.render_models.get_mut(folder_index) {
+                                // TODO: Is it worth optimizing this to only effect certain materials?
+                                // Only the model.numatb is rendered in the viewport for now.
+                                if name == "model.numatb" {
+                                    render_model.update_materials(
+                                        &self.render_state.device,
+                                        &self.render_state.queue,
+                                        &matl.entries,
+                                        &self.render_state.shared_data,
+                                    );
+                                    // TODO: Also reassign materials?
+                                }
                             }
                         }
                     }
@@ -758,47 +763,38 @@ impl SsbhApp {
     }
 
     fn animation_and_log(&mut self, ui: &mut Ui) {
-        ui.with_layout(
-            egui::Layout::left_to_right(egui::Align::Center),
-            |ui| {
-                self.animation_bar(ui);
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+            self.animation_bar(ui);
 
-                // The next layout needs to be min since it's nested inside a centered layout.
-                ui.with_layout(
-                    egui::Layout::right_to_left(egui::Align::Min),
-                    |ui| {
-                        ui.horizontal(|ui| {
-                            if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
-                                if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
-                                    self.ui_state.log_window_open = true;
-                                }
+            // The next layout needs to be min since it's nested inside a centered layout.
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                ui.horizontal(|ui| {
+                    if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
+                        if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
+                            self.ui_state.log_window_open = true;
+                        }
 
-                                // Clicking the message also opens the log window.
-                                let abbreviated_message =
-                                    message.get(..40).unwrap_or_default().to_string() + "...";
-                                if ui
-                                    .add(
-                                        egui::Label::new(abbreviated_message)
-                                            .sense(egui::Sense::click()),
-                                    )
-                                    .clicked()
-                                {
-                                    self.ui_state.log_window_open = true;
-                                }
+                        // Clicking the message also opens the log window.
+                        let abbreviated_message =
+                            message.get(..40).unwrap_or_default().to_string() + "...";
+                        if ui
+                            .add(egui::Label::new(abbreviated_message).sense(egui::Sense::click()))
+                            .clicked()
+                        {
+                            self.ui_state.log_window_open = true;
+                        }
 
-                                match level {
-                                    log::Level::Error => error_icon(ui),
-                                    log::Level::Warn => warning_icon(ui),
-                                    log::Level::Info => (),
-                                    log::Level::Debug => (),
-                                    log::Level::Trace => (),
-                                }
-                            }
-                        });
-                    },
-                );
-            },
-        );
+                        match level {
+                            log::Level::Error => error_icon(ui),
+                            log::Level::Warn => warning_icon(ui),
+                            log::Level::Info => (),
+                            log::Level::Debug => (),
+                            log::Level::Trace => (),
+                        }
+                    }
+                });
+            });
+        });
     }
 
     fn right_panel(&mut self, ctx: &Context, ui: &mut Ui) {
