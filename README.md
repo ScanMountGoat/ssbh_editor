@@ -1,10 +1,20 @@
 # ssbh_editor
-SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
+SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases). Make sure your system meets the [system requirements](#system-requirements).
 
 ## Features
-The goal of SSBH Editor is to provide a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data. 
-SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is especially 
-helpful for custom model imports that may have errors in the generated model files like corrupted files or invalid vertex skin weights.
+SSBH Editor supports a number of model file types. Some files will render in the viewport if present but need to be edited with external applications like nutexb files.
+
+| File | Edit | Viewport Rendering |
+| --- | --- | --- |
+| Adj (adjb) | :x: | :heavy_check_mark: |
+| Anim (nuanmb) | :x: | :heavy_check_mark: |
+| Hlpb (nuhlpb) | :heavy_check_mark: | :heavy_check_mark: |
+| Matl (numatb) | :heavy_check_mark: | :heavy_check_mark: |
+| Mesh (numshb) | :heavy_check_mark: | :heavy_check_mark: |
+| MeshEx (numshexb) | :heavy_check_mark: | :heavy_check_mark: |
+| Modl (numdlb) | :heavy_check_mark: | :heavy_check_mark: |
+| Skel (nusktb) | :heavy_check_mark: | :heavy_check_mark: |
+| Nutexb | :x: | :heavy_check_mark: |
 
 - View models, textures, skeletons, and animations from Smash Ultimate
 - View the effects of transition materials like the metal box or ditto materials
@@ -13,7 +23,10 @@ helpful for custom model imports that may have errors in the generated model fil
 - More accurate normals when animating meshes with RENORMAL materials
 - Edit formats supported by ssbh_data like numdlb, nusktb, numatb, nuhlpb, and numshb files using a more intuitive interface
 
-## Planned Features
+### Validation
+SSBH Editor provides a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data_json. SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is helpful for custom model imports that may have errors like incorrect material names or invalid vertex skin weights.
+
+### Planned Features
 - Additional render settings
 - View camera animations
 - Improvements to performance and accuracy of ssbh_wgpu
