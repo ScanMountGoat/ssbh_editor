@@ -4,17 +4,17 @@ SSBH Editor is an application for viewing, editing, and validating models for Sm
 ## Features
 SSBH Editor supports a number of model file types. Some files will render in the viewport if present but need to be edited with external applications like nutexb files.
 
-| File | Edit | Viewport Rendering |
-| --- | --- | --- |
-| Adj (adjb) | :x: | :heavy_check_mark: |
-| Anim (nuanmb) | :x: | :heavy_check_mark: |
-| Hlpb (nuhlpb) | :heavy_check_mark: | :heavy_check_mark: |
-| Matl (numatb) | :heavy_check_mark: | :heavy_check_mark: |
-| Mesh (numshb) | :heavy_check_mark: | :heavy_check_mark: |
-| MeshEx (numshexb) | :heavy_check_mark: | :heavy_check_mark: |
-| Modl (numdlb) | :heavy_check_mark: | :heavy_check_mark: |
-| Skel (nusktb) | :heavy_check_mark: | :heavy_check_mark: |
-| Nutexb | :x: | :heavy_check_mark: |
+| File | Description | Edit | Viewport Rendering |
+| --- | --- | --- | --- |
+| Adj (adjb) | Renormal mesh adjacency | :x: | :heavy_check_mark: |
+| Anim (nuanmb) | Animations | :x: | :heavy_check_mark: |
+| Hlpb (nuhlpb) | Helper bone constraints | :heavy_check_mark: | :heavy_check_mark: |
+| Matl (numatb) | Materials | :heavy_check_mark: | :heavy_check_mark: |
+| Mesh (numshb) | Mesh vertex data | :heavy_check_mark: | :heavy_check_mark: |
+| MeshEx (numshexb) | Mesh bounding and flags | :x: | :x: |
+| Modl (numdlb) | Mesh material assignments | :heavy_check_mark: | :heavy_check_mark: |
+| Skel (nusktb) | Skeleton | :heavy_check_mark: | :heavy_check_mark: |
+| Nutexb | Textures | :x: | :heavy_check_mark: |
 
 - View models, textures, skeletons, and animations from Smash Ultimate
 - View the effects of transition materials like the metal box or ditto materials
