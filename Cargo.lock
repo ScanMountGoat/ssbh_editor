@@ -1894,7 +1894,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#43fcf14323b7d88fbbf420bcf584d3cecc2f5389"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#dfeedd8653f78ea9fcb69015c66a9ca655f4fb62"
 dependencies = [
  "bytemuck",
  "log",
@@ -2747,7 +2747,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#fa9844d06cf29401c8e88238263064c31761351e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
 dependencies = [
  "ahash",
  "binrw",
@@ -2800,7 +2800,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#fa9844d06cf29401c8e88238263064c31761351e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2814,7 +2814,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#43fcf14323b7d88fbbf420bcf584d3cecc2f5389"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#dfeedd8653f78ea9fcb69015c66a9ca655f4fb62"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2835,7 +2835,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#fa9844d06cf29401c8e88238263064c31761351e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2843,7 +2843,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#fa9844d06cf29401c8e88238263064c31761351e"
+source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3136,7 +3136,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "rand",
  "static_assertions",
 ]
@@ -3488,7 +3488,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "raw-window-handle",
  "smallvec",
  "wasm-bindgen",
@@ -3514,7 +3514,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle",
  "smallvec",
@@ -3551,7 +3551,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle",

@@ -472,9 +472,8 @@ impl SsbhApp {
                                 // TODO: Is it worth optimizing this to only effect certain materials?
                                 // Only the model.numatb is rendered in the viewport for now.
                                 if name == "model.numatb" {
-                                    render_model.update_materials(
+                                    render_model.recreate_materials(
                                         &self.render_state.device,
-                                        &self.render_state.queue,
                                         &matl.entries,
                                         &self.render_state.shared_data,
                                     );

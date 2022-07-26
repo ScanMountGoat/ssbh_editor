@@ -599,7 +599,6 @@ fn animate_models(app: &mut SsbhApp) {
 
         // TODO: Make frame timing logic in ssbh_wgpu public?
         render_model.apply_anim(
-            &app.render_state.device,
             &app.render_state.queue,
             animations,
             model
