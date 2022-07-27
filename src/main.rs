@@ -419,14 +419,27 @@ fn main() {
                             },
                         );
 
-                        // First we draw the 3D viewport and main background color.
-                        // TODO: Customizeable background color for the renderer?
-                        renderer.render_ssbh_passes(
+                        // First we draw the 3D viewport.
+                        let mut final_pass = renderer.render_models(
                             &mut encoder,
                             &output_view,
                             &app.render_models,
                             &app.render_state.shared_data.database,
                         );
+
+                        // Overlay egui on the final pass to avoid a costly LoadOp::Load.
+                        // This improves performance on weak integrated graphics.
+                        egui_render_pass(
+                            &ctx,
+                            full_output,
+                            &mut winit_state,
+                            &window,
+                            &surface_config,
+                            &mut egui_rpass,
+                            &app,
+                            &mut final_pass,
+                        );
+                        drop(final_pass);
 
                         // TODO: Support opening editors from more than one folder?
                         if let Some(folder_index) = app.ui_state.selected_folder_index {
@@ -441,6 +454,8 @@ fn main() {
                             }
                         }
 
+                        // TODO: Avoid drawing bones over the UI with scissor?
+                        // TODO: Don't take &mut self to put this before egui?
                         // TODO: Avoid calculating the MVP matrix every frame.
                         let (_, _, mvp) = calculate_mvp(
                             size,
@@ -472,36 +487,15 @@ fn main() {
                             None
                         };
 
-                        // TODO: Find a better way to avoid drawing bone names over the UI.
-                        let mut egui_encoder = app.render_state.device.create_command_encoder(
-                            &wgpu::CommandEncoderDescriptor {
-                                label: Some("egui Render Encoder"),
-                            },
-                        );
-
-                        egui_render_pass(
-                            &ctx,
-                            full_output,
-                            &mut winit_state,
-                            &window,
-                            &surface_config,
-                            &mut egui_rpass,
-                            &mut app,
-                            &mut egui_encoder,
-                            output_view,
-                        );
-
                         // Submit the commands.
-                        app.render_state.queue.submit(iter::once(encoder.finish()));
+                        app.render_state
+                            .queue
+                            .submit(std::iter::once(encoder.finish()));
                         if let Some(bone_text_commands) = bone_text_commands {
                             app.render_state
                                 .queue
                                 .submit(iter::once(bone_text_commands));
                         }
-                        app.render_state
-                            .queue
-                            .submit(iter::once(egui_encoder.finish()));
-
                         // Present the final rendered image.
                         output_frame.present();
                     }
@@ -726,16 +720,15 @@ fn get_nutexb_to_render(
     })
 }
 
-fn egui_render_pass(
+fn egui_render_pass<'a>(
     ctx: &egui::Context,
     full_output: egui::FullOutput,
     winit_state: &mut egui_winit::State,
     window: &winit::window::Window,
     surface_config: &wgpu::SurfaceConfiguration,
-    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
-    app: &mut SsbhApp,
-    encoder: &mut wgpu::CommandEncoder,
-    output_view: wgpu::TextureView,
+    egui_rpass: &'a mut egui_wgpu::renderer::RenderPass,
+    app: &SsbhApp,
+    rpass: &mut wgpu::RenderPass<'a>,
 ) {
     // The UI is layered on top.
     // Based on the egui_wgpu source found here:
@@ -761,16 +754,10 @@ fn egui_render_pass(
         &screen_descriptor,
     );
     // Record all render passes.
-    egui_rpass.execute(
-        encoder,
-        &output_view,
-        &clipped_primitives,
-        &screen_descriptor,
-        None,
-    );
-    for id in &full_output.textures_delta.free {
-        egui_rpass.free_texture(id);
-    }
+    egui_rpass.execute_with_renderpass(rpass, &clipped_primitives, &screen_descriptor);
+    // for id in &full_output.textures_delta.free {
+    //     egui_rpass.free_texture(id);
+    // }
 }
 
 fn request_adapter(
