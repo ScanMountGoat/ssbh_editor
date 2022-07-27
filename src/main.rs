@@ -347,7 +347,12 @@ fn main() {
                             app.update(ctx);
                         });
 
-                        let scissor_rect = app.viewport_rect(size.width, size.height);
+                        // TODO: Only update scale factor variable when changed?
+                        let scissor_rect = app.viewport_rect(
+                            size.width,
+                            size.height,
+                            window.scale_factor() as f32,
+                        );
                         renderer.set_scissor_rect(scissor_rect);
 
                         // TODO: Load models on a separate thread to avoid freezing the UI.
@@ -678,7 +683,7 @@ fn resize(
     surface_config.height = size.height;
     surface.configure(&app.render_state.device, surface_config);
 
-    let scissor_rect = app.viewport_rect(size.width, size.height);
+    let scissor_rect = app.viewport_rect(size.width, size.height, scale_factor as f32);
     renderer.resize(
         &app.render_state.device,
         &app.render_state.queue,

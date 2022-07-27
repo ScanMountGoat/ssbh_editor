@@ -271,14 +271,17 @@ impl SsbhApp {
         self.preferences.write_to_file();
     }
 
-    pub fn viewport_rect(&self, width: u32, height: u32) -> [u32; 4] {
+    pub fn viewport_rect(&self, width: u32, height: u32, scale_factor: f32) -> [u32; 4] {
         // TODO: Validate the value ranges?
         // Calculate [origin x, origin y, width, height]
         // TODO: Add checks to ssbh_wgpu.
-        let left = self.render_state.viewport_left.unwrap_or(0);
-        let right = self.render_state.viewport_right.unwrap_or(width);
-        let top = self.render_state.viewport_top.unwrap_or(0);
-        let bottom = self.render_state.viewport_bottom.unwrap_or(height);
+        // ssbh_wgpu expects physical instead of logical pixels.
+        let f = |x| (x * scale_factor) as u32;
+
+        let left = self.render_state.viewport_left.map(f).unwrap_or(0);
+        let right = self.render_state.viewport_right.map(f).unwrap_or(width);
+        let top = self.render_state.viewport_top.map(f).unwrap_or(0);
+        let bottom = self.render_state.viewport_bottom.map(f).unwrap_or(height);
         [left, top, right - left, bottom - top]
     }
 }
@@ -337,7 +340,6 @@ impl SsbhApp {
 
         self.file_editors(ctx);
 
-        // TODO: Will this work properly with dpi scaling?
         self.render_state.viewport_left = if self.show_left_panel {
             Some(
                 SidePanel::left("left_panel")
@@ -345,7 +347,7 @@ impl SsbhApp {
                     .show(ctx, |ui| self.files_list(ui))
                     .response
                     .rect
-                    .right() as u32,
+                    .right(),
             )
         } else {
             None
@@ -362,7 +364,7 @@ impl SsbhApp {
                     .show(ctx, |ui| self.right_panel(ctx, ui))
                     .response
                     .rect
-                    .left() as u32,
+                    .left(),
             )
         } else {
             None
