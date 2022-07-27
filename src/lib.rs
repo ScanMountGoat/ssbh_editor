@@ -70,6 +70,10 @@ pub struct RenderState {
     pub render_settings: RenderSettings,
     pub texture_render_settings: nutexb_wgpu::RenderSettings,
     pub shared_data: SharedRenderData,
+    pub viewport_left: Option<u32>,
+    pub viewport_right: Option<u32>,
+    pub viewport_top: Option<u32>,
+    pub viewport_bottom: Option<u32>,
 }
 
 impl RenderState {
@@ -85,6 +89,10 @@ impl RenderState {
             render_settings: RenderSettings::default(),
             texture_render_settings: nutexb_wgpu::RenderSettings::default(),
             shared_data,
+            viewport_left: None,
+            viewport_right: None,
+            viewport_top: None,
+            viewport_bottom: None,
         }
     }
 }

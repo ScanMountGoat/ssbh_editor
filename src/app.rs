@@ -270,10 +270,23 @@ impl SsbhApp {
 
         self.preferences.write_to_file();
     }
+
+    pub fn viewport_rect(&self, width: u32, height: u32) -> [u32; 4] {
+        // TODO: Validate the value ranges?
+        // Calculate [origin x, origin y, width, height]
+        // TODO: Add checks to ssbh_wgpu.
+        let left = self.render_state.viewport_left.unwrap_or(0);
+        let right = self.render_state.viewport_right.unwrap_or(width);
+        let top = self.render_state.viewport_top.unwrap_or(0);
+        let bottom = self.render_state.viewport_bottom.unwrap_or(height);
+        [left, top, right - left, bottom - top]
+    }
 }
 
 impl SsbhApp {
     pub fn update(&mut self, ctx: &Context) {
+        // Set the region for the 3D viewport to reduce overdraw.
+        // TODO: Set top and bottom?
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| self.menu_bar(ui));
 
         // Add windows here so they can overlap everything except the top panel.
@@ -324,29 +337,36 @@ impl SsbhApp {
 
         self.file_editors(ctx);
 
-        if self.show_left_panel {
-            let _viewport_left = SidePanel::left("left_panel")
-                .min_width(200.0)
-                .show(ctx, |ui| self.files_list(ui))
-                .response
-                .rect
-                .right();
-        }
+        // TODO: Will this work properly with dpi scaling?
+        self.render_state.viewport_left = if self.show_left_panel {
+            Some(
+                SidePanel::left("left_panel")
+                    .min_width(200.0)
+                    .show(ctx, |ui| self.files_list(ui))
+                    .response
+                    .rect
+                    .right() as u32,
+            )
+        } else {
+            None
+        };
 
         if self.show_bottom_panel {
             TopBottomPanel::bottom("bottom panel").show(ctx, |ui| self.animation_and_log(ui));
         }
 
-        if self.show_right_panel {
-            let _viewport_right = SidePanel::right("right panel")
-                .min_width(375.0)
-                .show(ctx, |ui| self.right_panel(ctx, ui))
-                .response
-                .rect
-                .left();
-        }
-
-        // TODO: Reduce overdraw when the UI overlaps the viewport.
+        self.render_state.viewport_right = if self.show_right_panel {
+            Some(
+                SidePanel::right("right panel")
+                    .min_width(375.0)
+                    .show(ctx, |ui| self.right_panel(ctx, ui))
+                    .response
+                    .rect
+                    .left() as u32,
+            )
+        } else {
+            None
+        };
     }
 
     fn new_release_window(&mut self, ctx: &Context) {

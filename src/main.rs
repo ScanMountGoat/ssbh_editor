@@ -341,6 +341,15 @@ fn main() {
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
+                        // Update the app to set the viewport rect before setting the scissor rect.
+                        // This prevents black bars when resizing the window.
+                        let full_output = ctx.run(raw_input, |ctx| {
+                            app.update(ctx);
+                        });
+
+                        let scissor_rect = app.viewport_rect(size.width, size.height);
+                        renderer.set_scissor_rect(scissor_rect);
+
                         // TODO: Load models on a separate thread to avoid freezing the UI.
                         if app.should_reload_models {
                             reload_models(&mut app, &mut egui_rpass);
@@ -467,7 +476,7 @@ fn main() {
 
                         egui_render_pass(
                             &ctx,
-                            raw_input,
+                            full_output,
                             &mut winit_state,
                             &window,
                             &surface_config,
@@ -669,12 +678,14 @@ fn resize(
     surface_config.height = size.height;
     surface.configure(&app.render_state.device, surface_config);
 
+    let scissor_rect = app.viewport_rect(size.width, size.height);
     renderer.resize(
         &app.render_state.device,
         &app.render_state.queue,
         size.width,
         size.height,
         scale_factor,
+        scissor_rect,
     );
 
     update_camera(
@@ -712,7 +723,7 @@ fn get_nutexb_to_render(
 
 fn egui_render_pass(
     ctx: &egui::Context,
-    raw_input: egui::RawInput,
+    full_output: egui::FullOutput,
     winit_state: &mut egui_winit::State,
     window: &winit::window::Window,
     surface_config: &wgpu::SurfaceConfiguration,
@@ -724,9 +735,6 @@ fn egui_render_pass(
     // The UI is layered on top.
     // Based on the egui_wgpu source found here:
     // https://github.com/emilk/egui/blob/master/egui-wgpu/src/winit.rs
-    let full_output = ctx.run(raw_input, |ctx| {
-        app.update(ctx);
-    });
     winit_state.handle_platform_output(window, ctx, full_output.platform_output);
     let clipped_primitives = ctx.tessellate(full_output.shapes);
     let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
