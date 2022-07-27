@@ -457,6 +457,17 @@ fn main() {
                         // TODO: Avoid drawing bones over the UI with scissor?
                         // TODO: Don't take &mut self to put this before egui?
                         // TODO: Avoid calculating the MVP matrix every frame.
+                        let skels: Vec<_> = app.models.iter().map(|m| m.find_skel()).collect();
+                        if app.draw_skeletons {
+                            renderer.render_skeleton(
+                                &mut encoder,
+                                &output_view,
+                                &app.render_models,
+                                &skels,
+                                app.draw_bone_axes,
+                            );
+                        }
+
                         let (_, _, mvp) = calculate_mvp(
                             size,
                             app.camera_state.translation_xyz,
@@ -464,24 +475,17 @@ fn main() {
                         );
 
                         // TODO: Make the font size configurable.
-                        let skels: Vec<_> = app.models.iter().map(|m| m.find_skel()).collect();
-                        let bone_text_commands = if app.draw_skeletons {
-                            renderer.render_skeleton(
+                        let bone_text_commands = if app.draw_skeletons && app.draw_bone_names {
+                            renderer.render_skeleton_names(
                                 &app.render_state.device,
                                 &app.render_state.queue,
-                                &mut encoder,
                                 &output_view,
                                 &app.render_models,
                                 &skels,
                                 size.width,
                                 size.height,
                                 mvp,
-                                if app.draw_bone_names {
-                                    Some(18.0 * window.scale_factor() as f32)
-                                } else {
-                                    None
-                                },
-                                app.draw_bone_axes,
+                                18.0 * window.scale_factor() as f32,
                             )
                         } else {
                             None
