@@ -424,9 +424,19 @@ fn main() {
                             &mut encoder,
                             &output_view,
                             &app.render_models,
+                            app.models.iter().map(|m| {
+                                // TODO: Find a cleaner way to disable bone rendering.
+                                if app.draw_skeletons {
+                                    m.find_skel()
+                                } else {
+                                    None
+                                }
+                            }),
                             &app.render_state.shared_data.database,
+                            app.draw_bone_axes,
                         );
 
+                        // TODO: Avoid calculating the MVP matrix every frame.
                         // Overlay egui on the final pass to avoid a costly LoadOp::Load.
                         // This improves performance on weak integrated graphics.
                         egui_render_pass(
@@ -454,20 +464,6 @@ fn main() {
                             }
                         }
 
-                        // TODO: Avoid drawing bones over the UI with scissor?
-                        // TODO: Don't take &mut self to put this before egui?
-                        // TODO: Avoid calculating the MVP matrix every frame.
-                        let skels: Vec<_> = app.models.iter().map(|m| m.find_skel()).collect();
-                        if app.draw_skeletons {
-                            renderer.render_skeleton(
-                                &mut encoder,
-                                &output_view,
-                                &app.render_models,
-                                &skels,
-                                app.draw_bone_axes,
-                            );
-                        }
-
                         let (_, _, mvp) = calculate_mvp(
                             size,
                             app.camera_state.translation_xyz,
@@ -475,13 +471,14 @@ fn main() {
                         );
 
                         // TODO: Make the font size configurable.
+                        // TODO: Fix bone names appearing on top of the UI.
                         let bone_text_commands = if app.draw_skeletons && app.draw_bone_names {
                             renderer.render_skeleton_names(
                                 &app.render_state.device,
                                 &app.render_state.queue,
                                 &output_view,
                                 &app.render_models,
-                                &skels,
+                                app.models.iter().map(|m| m.find_skel()),
                                 size.width,
                                 size.height,
                                 mvp,

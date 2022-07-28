@@ -290,7 +290,13 @@ impl SsbhApp {
     pub fn update(&mut self, ctx: &Context) {
         // Set the region for the 3D viewport to reduce overdraw.
         // TODO: Set top and bottom?
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| self.menu_bar(ui));
+        self.render_state.viewport_top = Some(
+            egui::TopBottomPanel::top("top_panel")
+                .show(ctx, |ui| self.menu_bar(ui))
+                .response
+                .rect
+                .bottom(),
+        );
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
@@ -354,7 +360,13 @@ impl SsbhApp {
         };
 
         if self.show_bottom_panel {
-            TopBottomPanel::bottom("bottom panel").show(ctx, |ui| self.animation_and_log(ui));
+            self.render_state.viewport_bottom = Some(
+                TopBottomPanel::bottom("bottom panel")
+                    .show(ctx, |ui| self.animation_and_log(ui))
+                    .response
+                    .rect
+                    .top(),
+            );
         }
 
         self.render_state.viewport_right = if self.show_right_panel {
