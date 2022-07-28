@@ -420,6 +420,9 @@ fn main() {
                         );
 
                         // First we draw the 3D viewport.
+                        // TODO: Simplify these parameters.
+                        // TODO: Support opening editors from more than one folder?
+                        let mask_model_index = app.ui_state.selected_folder_index.unwrap_or(0);
                         let mut final_pass = renderer.render_models(
                             &mut encoder,
                             &output_view,
@@ -434,6 +437,8 @@ fn main() {
                             }),
                             &app.render_state.shared_data.database,
                             app.draw_bone_axes,
+                            mask_model_index,
+                            get_hovered_material_label(&app, mask_model_index).unwrap_or(""),
                         );
 
                         // TODO: Avoid calculating the MVP matrix every frame.
@@ -450,19 +455,6 @@ fn main() {
                             &mut final_pass,
                         );
                         drop(final_pass);
-
-                        // TODO: Support opening editors from more than one folder?
-                        if let Some(folder_index) = app.ui_state.selected_folder_index {
-                            if let Some(label) = get_hovered_material_label(&app, folder_index) {
-                                renderer.render_material_mask(
-                                    &mut encoder,
-                                    &output_view,
-                                    &app.render_models,
-                                    folder_index,
-                                    label,
-                                );
-                            }
-                        }
 
                         let (_, _, mvp) = calculate_mvp(
                             size,
