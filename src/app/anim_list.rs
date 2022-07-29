@@ -231,6 +231,7 @@ mod tests {
             anims: Vec::new(),
             hlpbs: Vec::new(),
             nutexbs: Vec::new(),
+            meshexes: Vec::new(),
         }
     }
 
@@ -253,6 +254,7 @@ mod tests {
             )],
             hlpbs: Vec::new(),
             nutexbs: Vec::new(),
+            meshexes: Vec::new(),
         }
     }
 
