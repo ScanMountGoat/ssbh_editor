@@ -811,8 +811,8 @@ fn update_camera(
         camera_state.rotation_xyz,
     );
     let transforms = CameraTransforms {
-        model_view_matrix,
-        mvp_matrix,
+        model_view_matrix: model_view_matrix.to_cols_array_2d(),
+        mvp_matrix: mvp_matrix.to_cols_array_2d(),
         camera_pos: camera_pos.to_array(),
         screen_dimensions: [
             size.width as f32,
