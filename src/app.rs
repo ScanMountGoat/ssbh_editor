@@ -466,7 +466,6 @@ impl SsbhApp {
                 // TODO: Make all this code a function?
                 if let Some(matl_index) = self.ui_state.selected_matl_index {
                     if let Some((name, Ok(matl))) = model.matls.get_mut(matl_index) {
-                        // TODO: Fix potential crash if thumbnails aren't present.
                         // TODO: Make this a method to simplify arguments.
                         let validation_errors = self
                             .validation_errors
@@ -487,7 +486,7 @@ impl SsbhApp {
                                 .find(|(f, _)| f == "model.numdlb")
                                 .and_then(|(_, m)| m.as_mut().ok()),
                             validation_errors,
-                            &self.thumbnails[folder_index],
+                            self.thumbnails.get(folder_index).unwrap_or(&Vec::new()),
                             &self.default_thumbnails,
                             &self.render_state.shared_data.database,
                             &mut self.material_presets,
