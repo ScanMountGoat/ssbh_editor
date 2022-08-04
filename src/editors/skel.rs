@@ -12,8 +12,9 @@ pub fn skel_editor(
     folder_name: &str,
     file_name: &str,
     skel: &mut SkelData,
-) -> bool {
+) -> (bool, bool) {
     let mut open = true;
+    let mut changed = false;
 
     egui::Window::new(format!("Skel Editor ({title})"))
         .resizable(true)
@@ -85,19 +86,28 @@ pub fn skel_editor(
                             egui::ComboBox::from_id_source(id)
                                 .selected_text(parent_bone_name)
                                 .show_ui(ui, |ui| {
-                                    ui.selectable_value(&mut bone.parent_index, None, "None");
+                                    changed |= ui
+                                        .selectable_value(&mut bone.parent_index, None, "None")
+                                        .changed();
                                     ui.separator();
                                     // TODO: Is there a way to make this not O(N^2)?
                                     for (other_i, other_bone) in other_bones.iter().enumerate() {
-                                        ui.selectable_value(
-                                            &mut bone.parent_index,
-                                            Some(other_i),
-                                            &other_bone.name,
-                                        );
+                                        changed |= ui
+                                            .selectable_value(
+                                                &mut bone.parent_index,
+                                                Some(other_i),
+                                                &other_bone.name,
+                                            )
+                                            .changed();
                                     }
                                 });
 
-                            enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
+                            changed |= enum_combo_box(
+                                ui,
+                                "",
+                                i + other_bones.len(),
+                                &mut bone.billboard_type,
+                            );
 
                             ui.end_row();
                         }
@@ -105,5 +115,5 @@ pub fn skel_editor(
                 });
         });
 
-    open
+    (open, changed)
 }

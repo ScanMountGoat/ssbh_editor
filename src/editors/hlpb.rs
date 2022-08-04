@@ -14,8 +14,9 @@ pub fn hlpb_editor(
     file_name: &str,
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
-) -> bool {
+) -> (bool, bool) {
     let mut open = true;
+    let mut changed = true;
 
     egui::Window::new(format!("Hlpb Editor ({title})"))
         .open(&mut open)
@@ -65,19 +66,20 @@ pub fn hlpb_editor(
                     // TODO: Use a layout similar to the matl editor to support more fields.
                     // TODO: Use the DragSliders for editing Vector4 and Vector3 values.
                     if !hlpb.aim_constraints.is_empty() {
-                        aim_constraints(ui, hlpb, skel);
+                        changed |= aim_constraints(ui, hlpb, skel);
                     }
 
                     if !hlpb.orient_constraints.is_empty() {
-                        orient_constraints(ui, hlpb, skel);
+                        changed |= orient_constraints(ui, hlpb, skel);
                     }
                 });
         });
 
-    open
+    (open, changed)
 }
 
-fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) {
+fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) -> bool {
+    let mut changed = false;
     CollapsingHeader::new("Orient Constraints")
         .default_open(true)
         .show(ui, |ui| {
@@ -95,37 +97,51 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                     let id = egui::Id::new("orient").with(i);
 
                     ui.label(&orient.name);
-                    bone_combo_box(ui, &mut orient.bone_name, id.with(0), skel, &[]);
-                    bone_combo_box(ui, &mut orient.root_bone_name, id.with(1), skel, &[]);
-                    bone_combo_box(ui, &mut orient.source_bone_name, id.with(2), skel, &[]);
-                    bone_combo_box(ui, &mut orient.target_bone_name, id.with(3), skel, &[]);
+                    changed |= bone_combo_box(ui, &mut orient.bone_name, id.with(0), skel, &[]);
+                    changed |=
+                        bone_combo_box(ui, &mut orient.root_bone_name, id.with(1), skel, &[]);
+                    changed |=
+                        bone_combo_box(ui, &mut orient.source_bone_name, id.with(2), skel, &[]);
+                    changed |=
+                        bone_combo_box(ui, &mut orient.target_bone_name, id.with(3), skel, &[]);
 
                     egui::ComboBox::from_id_source(id.with(4))
                         .selected_text(orient.unk_type.to_string())
                         .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut orient.unk_type, 1, "1");
-                            ui.selectable_value(&mut orient.unk_type, 1, "2");
+                            changed |= ui.selectable_value(&mut orient.unk_type, 1, "1").changed();
+                            changed |= ui.selectable_value(&mut orient.unk_type, 1, "2").changed();
                         });
 
                     ui.horizontal(|ui| {
-                        ui.add(
-                            DragSlider::new(id.with(5), &mut orient.constraint_axes.x).width(40.0),
-                        );
-                        ui.add(
-                            DragSlider::new(id.with(6), &mut orient.constraint_axes.y).width(40.0),
-                        );
-                        ui.add(
-                            DragSlider::new(id.with(7), &mut orient.constraint_axes.z).width(40.0),
-                        );
+                        changed |= ui
+                            .add(
+                                DragSlider::new(id.with(5), &mut orient.constraint_axes.x)
+                                    .width(40.0),
+                            )
+                            .changed();
+                        changed |= ui
+                            .add(
+                                DragSlider::new(id.with(6), &mut orient.constraint_axes.y)
+                                    .width(40.0),
+                            )
+                            .changed();
+                        changed |= ui
+                            .add(
+                                DragSlider::new(id.with(7), &mut orient.constraint_axes.z)
+                                    .width(40.0),
+                            )
+                            .changed();
                     });
 
                     ui.end_row();
                 }
             });
         });
+    changed
 }
 
-fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) {
+fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) -> bool {
+    let mut changed = false;
     CollapsingHeader::new("Aim Constraints")
         .default_open(true)
         .show(ui, |ui| {
@@ -145,16 +161,21 @@ fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelDat
                     let id = egui::Id::new("aim").with(i);
 
                     ui.label(&aim.name);
-                    bone_combo_box(ui, &mut aim.aim_bone_name1, id.with(0), skel, &[]);
-                    bone_combo_box(ui, &mut aim.aim_bone_name2, id.with(1), skel, &[]);
-                    bone_combo_box(ui, &mut aim.aim_type1, id.with(2), skel, &["DEFAULT"]);
-                    bone_combo_box(ui, &mut aim.aim_type2, id.with(3), skel, &["DEFAULT"]);
-                    bone_combo_box(ui, &mut aim.target_bone_name1, id.with(4), skel, &[]);
-                    bone_combo_box(ui, &mut aim.target_bone_name2, id.with(5), skel, &[]);
-                    ui.add(DragValue::new(&mut aim.unk1));
-                    ui.add(DragValue::new(&mut aim.unk2));
+                    changed |= bone_combo_box(ui, &mut aim.aim_bone_name1, id.with(0), skel, &[]);
+                    changed |= bone_combo_box(ui, &mut aim.aim_bone_name2, id.with(1), skel, &[]);
+                    changed |=
+                        bone_combo_box(ui, &mut aim.aim_type1, id.with(2), skel, &["DEFAULT"]);
+                    changed |=
+                        bone_combo_box(ui, &mut aim.aim_type2, id.with(3), skel, &["DEFAULT"]);
+                    changed |=
+                        bone_combo_box(ui, &mut aim.target_bone_name1, id.with(4), skel, &[]);
+                    changed |=
+                        bone_combo_box(ui, &mut aim.target_bone_name2, id.with(5), skel, &[]);
+                    changed |= ui.add(DragValue::new(&mut aim.unk1)).changed();
+                    changed |= ui.add(DragValue::new(&mut aim.unk2)).changed();
                     ui.end_row();
                 }
             });
         });
+    changed
 }

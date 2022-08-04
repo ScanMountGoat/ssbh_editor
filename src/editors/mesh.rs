@@ -15,8 +15,9 @@ pub fn mesh_editor(
     mesh: &mut MeshData,
     skel: Option<&SkelData>,
     ui_state: &mut UiState,
-) -> bool {
+) -> (bool, bool) {
     let mut open = true;
+    let mut changed = false;
 
     let advanced_mode = &mut ui_state.mesh_editor_advanced_mode;
 
@@ -103,14 +104,14 @@ pub fn mesh_editor(
                             if *advanced_mode {
                                 // TODO: Link name edits with the numdlb and numshexb.
                                 // This will need to check for duplicate names.
-                                ui.text_edit_singleline(&mut mesh_object.name);
+                                changed |= ui.text_edit_singleline(&mut mesh_object.name).changed();
                             } else {
                                 ui.label(&mesh_object.name);
                             }
 
                             // TODO: Are parent bones and influences mutually exclusive?
                             // TODO: Is there a better way to indicate no parent than ""?
-                            bone_combo_box(
+                            changed |= bone_combo_box(
                                 ui,
                                 &mut mesh_object.parent_bone_name,
                                 id.with("parent_bone"),
@@ -129,20 +130,29 @@ pub fn mesh_editor(
                             }
 
                             if *advanced_mode {
-                                ui.add(egui::DragValue::new(&mut mesh_object.sub_index));
-                                ui.add(egui::DragValue::new(&mut mesh_object.sort_bias));
+                                changed |= ui
+                                    .add(egui::DragValue::new(&mut mesh_object.sub_index))
+                                    .changed();
+                                changed |= ui
+                                    .add(egui::DragValue::new(&mut mesh_object.sort_bias))
+                                    .changed();
 
                                 // TODO: Center these in the cell and omit the labels?
-                                ui.checkbox(
-                                    &mut mesh_object.disable_depth_write,
-                                    "Disable Depth Write",
-                                );
-                                ui.checkbox(
-                                    &mut mesh_object.disable_depth_test,
-                                    "Disable Depth Test",
-                                );
+                                changed |= ui
+                                    .checkbox(
+                                        &mut mesh_object.disable_depth_write,
+                                        "Disable Depth Write",
+                                    )
+                                    .changed();
+                                changed |= ui
+                                    .checkbox(
+                                        &mut mesh_object.disable_depth_test,
+                                        "Disable Depth Test",
+                                    )
+                                    .changed();
 
                                 if ui.button("Delete").clicked() {
+                                    changed = true;
                                     meshes_to_remove.push(i);
                                 }
                             }
@@ -158,7 +168,7 @@ pub fn mesh_editor(
                 });
         });
 
-    open
+    (open, changed)
 }
 
 fn influences_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool {

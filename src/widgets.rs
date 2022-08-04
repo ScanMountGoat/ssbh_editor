@@ -120,20 +120,26 @@ pub fn bone_combo_box(
     id: impl std::hash::Hash,
     skel: Option<&SkelData>,
     extra_names: &[&str],
-) {
+) -> bool {
+    let mut changed = false;
     egui::ComboBox::from_id_source(id)
         .selected_text(bone_name.clone())
         .show_ui(ui, |ui| {
             for name in extra_names {
-                ui.selectable_value(bone_name, name.to_string(), *name);
+                changed |= ui
+                    .selectable_value(bone_name, name.to_string(), *name)
+                    .changed();
             }
 
             if let Some(skel) = skel {
                 for bone in &skel.bones {
-                    ui.selectable_value(bone_name, bone.name.clone(), &bone.name);
+                    changed |= ui
+                        .selectable_value(bone_name, bone.name.clone(), &bone.name)
+                        .changed();
                 }
             } else {
-                ui.text_edit_singleline(bone_name);
+                changed |= ui.text_edit_singleline(bone_name).changed();
             }
         });
+    changed
 }

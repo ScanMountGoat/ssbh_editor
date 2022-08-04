@@ -2776,7 +2776,6 @@ dependencies = [
  "egui-winit",
  "glam",
  "image",
- "lazy_static",
  "log",
  "nutexb",
  "nutexb_wgpu",

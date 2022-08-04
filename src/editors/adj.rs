@@ -12,8 +12,9 @@ pub fn adj_editor(
     file_name: &str,
     adj: &mut AdjData,
     mesh: Option<&MeshData>,
-) -> bool {
+) -> (bool, bool) {
     let mut open = true;
+    let changed = false;
 
     egui::Window::new(format!("Adj Editor ({title})"))
         .open(&mut open)
@@ -56,6 +57,7 @@ pub fn adj_editor(
             });
             ui.separator();
 
+            // TODO: Add buttons to add missing entries and remove unused entries.
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
@@ -82,5 +84,5 @@ pub fn adj_editor(
                 });
         });
 
-    open
+    (open, changed)
 }

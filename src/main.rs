@@ -278,6 +278,7 @@ fn main() {
         new_release_tag,
         should_refresh_render_settings: false,
         should_refresh_camera_settings: false,
+        should_validate_models: false,
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
@@ -380,14 +381,16 @@ fn main() {
                             app.should_refresh_camera_settings = false;
                         }
 
-                        // TODO: Only calculate validation on changes.
-                        for (model, validation) in
-                            app.models.iter().zip(app.validation_errors.iter_mut())
-                        {
-                            *validation = ModelValidationErrors::from_model(
-                                model,
-                                &app.render_state.shared_data.database,
-                            );
+                        if app.should_validate_models {
+                            for (model, validation) in
+                                app.models.iter().zip(app.validation_errors.iter_mut())
+                            {
+                                *validation = ModelValidationErrors::from_model(
+                                    model,
+                                    &app.render_state.shared_data.database,
+                                );
+                            }
+                            app.should_validate_models = false;
                         }
 
                         // TODO: How to handle model.nuanmb?

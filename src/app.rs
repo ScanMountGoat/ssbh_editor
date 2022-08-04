@@ -21,8 +21,8 @@ use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, RichText, ScrollArea,
     SidePanel, TopBottomPanel, Ui, Window,
 };
-use lazy_static::lazy_static;
 use log::Log;
+use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
@@ -35,11 +35,9 @@ use std::{
 
 mod anim_list;
 
-lazy_static! {
-    pub static ref LOGGER: AppLogger = AppLogger {
-        messages: Mutex::new(Vec::new())
-    };
-}
+pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
+    messages: Mutex::new(Vec::new()),
+});
 
 pub struct AppLogger {
     messages: Mutex<Vec<(log::Level, String)>>,
@@ -68,6 +66,8 @@ pub struct SsbhApp {
     pub should_reload_models: bool,
     pub should_refresh_render_settings: bool,
     pub should_refresh_camera_settings: bool,
+    // TODO: Track what files changed in each folder?
+    pub should_validate_models: bool,
 
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
@@ -344,7 +344,7 @@ impl SsbhApp {
             self.new_release_window(ctx);
         }
 
-        self.file_editors(ctx);
+        self.should_validate_models |= self.file_editors(ctx);
 
         self.render_state.viewport_left = if self.show_left_panel {
             Some(
@@ -410,7 +410,7 @@ impl SsbhApp {
         }
     }
 
-    fn file_editors(&mut self, ctx: &Context) {
+    fn file_editors(&mut self, ctx: &Context) -> bool {
         let display_name = |folder: &str, name: &str| {
             format!(
                 "{}/{}",
@@ -421,6 +421,9 @@ impl SsbhApp {
                 name
             )
         };
+
+        let mut file_changed = false;
+
         // TODO: Refactor this so they can also be "docked" in side panel tabs.
         // The functions would take an additional ui parameter.
         // TODO: Use some sort of trait to clean up repetitive code?
@@ -429,13 +432,16 @@ impl SsbhApp {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, Ok(skel))) = model.skels.get_mut(skel_index) {
-                        if !skel_editor(
+                        let (open, changed) = skel_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             skel,
-                        ) {
+                        );
+                        file_changed |= changed;
+
+                        if !open {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
                         }
@@ -444,7 +450,7 @@ impl SsbhApp {
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
                     if let Some((name, Ok(mesh))) = model.meshes.get_mut(mesh_index) {
-                        if !mesh_editor(
+                        let (open, changed) = mesh_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
@@ -456,10 +462,15 @@ impl SsbhApp {
                                 .find(|(f, _)| f == "model.nusktb")
                                 .and_then(|(_, m)| m.as_ref().ok()),
                             &mut self.ui_state,
-                        ) {
+                        );
+                        file_changed |= changed;
+
+                        if !open {
                             // Close the window.
                             self.ui_state.selected_mesh_index = None;
                         }
+
+                        // TODO: Update pipeline depth settings on change.
                     }
                 }
 
@@ -493,6 +504,7 @@ impl SsbhApp {
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         );
+                        file_changed |= changed;
 
                         if !open {
                             // Close the window.
@@ -540,6 +552,7 @@ impl SsbhApp {
                             matl,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         );
+                        file_changed |= changed;
 
                         if !open {
                             // Close the window.
@@ -556,7 +569,7 @@ impl SsbhApp {
 
                 if let Some(hlpb_index) = self.ui_state.selected_hlpb_index {
                     if let Some((name, Ok(hlpb))) = model.hlpbs.get_mut(hlpb_index) {
-                        if !hlpb_editor(
+                        let (open, changed) = hlpb_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
@@ -567,7 +580,10 @@ impl SsbhApp {
                                 .iter()
                                 .find(|(f, _)| f == "model.nusktb")
                                 .and_then(|(_, m)| m.as_ref().ok()),
-                        ) {
+                        );
+                        file_changed |= changed;
+
+                        if !open {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
                         }
@@ -576,7 +592,7 @@ impl SsbhApp {
 
                 if let Some(adj_index) = self.ui_state.selected_adj_index {
                     if let Some((name, Ok(adj))) = model.adjs.get_mut(adj_index) {
-                        if !adj_editor(
+                        let (open, changed) = adj_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
@@ -587,7 +603,10 @@ impl SsbhApp {
                                 .iter()
                                 .find(|(f, _)| f == "model.numshb")
                                 .and_then(|(_, m)| m.as_ref().ok()),
-                        ) {
+                        );
+                        file_changed |= changed;
+
+                        if !open {
                             // Close the window.
                             self.ui_state.selected_adj_index = None;
                         }
@@ -609,6 +628,8 @@ impl SsbhApp {
                 }
             }
         }
+
+        file_changed
     }
 
     fn animation_bar(&mut self, ui: &mut Ui) {
