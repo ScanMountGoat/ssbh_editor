@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Changed
+* Improved application framerate and responsiveness. These changes mostly benefit devices with integrated graphics.
+
+### Fixed
+* Fixed the scrollbar not appearing in the Preset Editor window
+* Fixed default stage lighting values causing rim lighting to be disabled.
+* Fixed a potential crash when opening a new folder with the Matl Editor open.
+
 ## 0.5.1
 ### Added
 * Added wireframe rendering to debug shading.
