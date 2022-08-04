@@ -525,7 +525,8 @@ impl SsbhApp {
                             .find(|(f, _)| f == "model.numatb")
                             .and_then(|(_, m)| m.as_ref().ok());
 
-                        if !modl_editor(
+                        // TODO: Make a WindowResponse struct?
+                        let (open, changed) = modl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
@@ -538,14 +539,17 @@ impl SsbhApp {
                                 .and_then(|(_, m)| m.as_ref().ok()),
                             matl,
                             &mut self.ui_state.modl_editor_advanced_mode,
-                        ) {
+                        );
+
+                        if !open {
                             // Close the window.
                             self.ui_state.selected_modl_index = None;
-                        } else if let Some(render_model) = self.render_models.get_mut(folder_index)
-                        {
-                            // Update material previews in the viewport if the window remains open.
-                            // TODO: Is it worth only doing this when changes actually occur?
-                            render_model.reassign_materials(modl, matl);
+                        }
+
+                        if changed {
+                            if let Some(render_model) = self.render_models.get_mut(folder_index) {
+                                render_model.reassign_materials(modl, matl);
+                            }
                         }
                     }
                 }

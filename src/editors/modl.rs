@@ -14,8 +14,9 @@ pub fn modl_editor(
     mesh: Option<&MeshData>,
     matl: Option<&MatlData>,
     advanced_mode: &mut bool,
-) -> bool {
+) -> (bool, bool) {
     let mut open = true;
+    let mut changed = false;
 
     egui::Window::new(format!("Modl Editor ({title})"))
         .open(&mut open)
@@ -64,6 +65,8 @@ pub fn modl_editor(
 
             // Manually adding entries is error prone, so check for advanced mode.
             if *advanced_mode && ui.button("Add Entry").clicked() {
+                changed = true;
+
                 // Pick an arbitrary material to make the mesh visible in the viewport.
                 let default_material = matl
                     .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
@@ -95,6 +98,8 @@ pub fn modl_editor(
                     .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
                 if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
+                    changed = true;
+
                     for mesh in missing_entries {
                         modl.entries.push(ModlEntryData {
                             mesh_object_name: mesh.name.clone(),
@@ -126,7 +131,7 @@ pub fn modl_editor(
                             // TODO: How to handle the case where the user enters a duplicate name?
                             // TODO: module of useful functions from ModelFolder -> ui?
                             if *advanced_mode {
-                                mesh_name_combo_box(
+                                changed |= mesh_name_combo_box(
                                     ui,
                                     &mut entry.mesh_object_name,
                                     id.with("mesh"),
@@ -138,7 +143,7 @@ pub fn modl_editor(
 
                             // TODO: How to handle sub indices?
                             // TODO: Show an indication if the matl is missing the current material.
-                            material_label_combo_box(
+                            changed |= material_label_combo_box(
                                 ui,
                                 &mut entry.material_label,
                                 id.with("matl"),
@@ -146,6 +151,7 @@ pub fn modl_editor(
                             );
 
                             if *advanced_mode && ui.button("Delete").clicked() {
+                                changed = true;
                                 entries_to_remove.push(i);
                             }
                             ui.end_row();
@@ -159,7 +165,7 @@ pub fn modl_editor(
                 });
         });
 
-    open
+    (open, changed)
 }
 
 fn mesh_name_combo_box(
@@ -167,7 +173,8 @@ fn mesh_name_combo_box(
     mesh_name: &mut String,
     id: impl std::hash::Hash,
     mesh: Option<&MeshData>,
-) {
+) -> bool {
+    let mut changed = false;
     egui::ComboBox::from_id_source(id)
         .selected_text(mesh_name.clone())
         .width(300.0)
@@ -175,10 +182,13 @@ fn mesh_name_combo_box(
             // TODO: Just use text boxes if the mesh is missing?
             if let Some(mesh) = mesh {
                 for mesh in &mesh.objects {
-                    ui.selectable_value(mesh_name, mesh.name.to_string(), &mesh.name);
+                    changed |= ui
+                        .selectable_value(mesh_name, mesh.name.to_string(), &mesh.name)
+                        .changed();
                 }
             }
         });
+    changed
 }
 
 fn material_label_combo_box(
@@ -186,7 +196,8 @@ fn material_label_combo_box(
     material_label: &mut String,
     id: impl std::hash::Hash,
     matl: Option<&MatlData>,
-) {
+) -> bool {
+    let mut changed = false;
     egui::ComboBox::from_id_source(id)
         .selected_text(material_label.clone())
         .width(400.0)
@@ -194,8 +205,11 @@ fn material_label_combo_box(
             // TODO: Just use text boxes if the matl is missing?
             if let Some(matl) = matl {
                 for label in matl.entries.iter().map(|e| &e.material_label) {
-                    ui.selectable_value(material_label, label.to_string(), label);
+                    changed |= ui
+                        .selectable_value(material_label, label.to_string(), label)
+                        .changed();
                 }
             }
         });
+    changed
 }
