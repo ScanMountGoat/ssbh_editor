@@ -1894,7 +1894,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#2afd76ccd4435fc4002bf4558b380705e9fc82b0"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#f9d2ba325a66c67310a21a0e5f807ba55d7297ff"
 dependencies = [
  "bytemuck",
  "log",
@@ -2747,7 +2747,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
+source = "git+https://github.com/ultimate-research/ssbh_lib#e14166d78bcf4cd1b61ca76b916d8b0caadd5869"
 dependencies = [
  "ahash",
  "binrw",
@@ -2799,7 +2799,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
+source = "git+https://github.com/ultimate-research/ssbh_lib#e14166d78bcf4cd1b61ca76b916d8b0caadd5869"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2813,7 +2813,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#2afd76ccd4435fc4002bf4558b380705e9fc82b0"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#f9d2ba325a66c67310a21a0e5f807ba55d7297ff"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2834,7 +2834,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
+source = "git+https://github.com/ultimate-research/ssbh_lib#e14166d78bcf4cd1b61ca76b916d8b0caadd5869"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2842,7 +2842,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#089da7d8df14de7cdbcc083310b62d1af40fee20"
+source = "git+https://github.com/ultimate-research/ssbh_lib#e14166d78bcf4cd1b61ca76b916d8b0caadd5869"
 dependencies = [
  "proc-macro2",
  "quote",

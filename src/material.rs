@@ -2,7 +2,8 @@
 use crate::presets::default_presets;
 use log::error;
 use ssbh_data::{matl_data::*, meshex_data::Vector4};
-use ssbh_wgpu::ShaderProgram;
+use ssbh_wgpu::{split_param, ShaderProgram};
+use std::str::FromStr;
 
 pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
     let mut bytes = std::fs::read(path.as_ref());
@@ -154,7 +155,7 @@ pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec
     program
         .material_parameters
         .iter()
-        .copied()
+        .map(|param| split_param(param).0)
         .filter(|param| {
             !entry
                 .booleans
@@ -166,8 +167,9 @@ pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec
                 .chain(entry.samplers.iter().map(|p| p.param_id))
                 .chain(entry.blend_states.iter().map(|p| p.param_id))
                 .chain(entry.rasterizer_states.iter().map(|p| p.param_id))
-                .any(|p| &p == param)
+                .any(|p| &p.to_string() == param)
         })
+        .map(|p| ParamId::from_str(p).unwrap())
         .collect()
 }
 
@@ -182,7 +184,12 @@ pub fn unused_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec<
         .chain(entry.samplers.iter().map(|p| p.param_id))
         .chain(entry.blend_states.iter().map(|p| p.param_id))
         .chain(entry.rasterizer_states.iter().map(|p| p.param_id))
-        .filter(|param| !program.material_parameters.contains(param))
+        .filter(|param| {
+            !program
+                .material_parameters
+                .iter()
+                .any(|p| split_param(p).0 == param.to_string())
+        })
         .collect()
 }
 
@@ -573,8 +580,8 @@ pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
         | ParamId::CustomVector43
         | ParamId::CustomVector44
         | ParamId::CustomVector45 => ["R", "G", "B", "A"],
-        ParamId::CustomVector11 => ["R", "G", "B", ""],
-        ParamId::CustomVector30 => ["X", "Y", "", ""],
+        ParamId::CustomVector11 => ["R", "G", "B", "A"],
+        ParamId::CustomVector30 => ["X", "Y", "Z", "W"],
         _ => ["X", "Y", "Z", "W"],
     }
 }
@@ -644,13 +651,13 @@ mod tests {
                 discard: false,
                 vertex_attributes: Vec::new(),
                 material_parameters: vec![
-                    ParamId::BlendState0,
-                    ParamId::CustomFloat0,
-                    ParamId::CustomBoolean0,
-                    ParamId::CustomVector0,
-                    ParamId::RasterizerState0,
-                    ParamId::Sampler0,
-                    ParamId::Texture0,
+                    "BlendState0".to_owned(),
+                    "CustomFloat0".to_owned(),
+                    "CustomBoolean0".to_owned(),
+                    "CustomVector0".to_owned(),
+                    "RasterizerState0".to_owned(),
+                    "Sampler0".to_owned(),
+                    "Texture0".to_owned(),
                 ],
             },
         );

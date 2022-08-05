@@ -14,7 +14,7 @@ use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, Ui, Window};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
-use ssbh_wgpu::ShaderDatabase;
+use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
 use std::path::Path;
 use std::str::FromStr;
 use strum::VariantNames;
@@ -102,8 +102,6 @@ pub fn preset_editor(
 
                 egui::menu::menu_button(ui, "Import", |ui| {
                     // Import presets from external formats.
-                    // TODO: Remove duplicates after adding?
-                    // TODO: Add a remove duplicates option to the editor?
                     if ui.button("JSON Presets (ssbh_data_json)").clicked() {
                         ui.close_menu();
 
@@ -664,7 +662,7 @@ fn matl_entry_editor(
     }
     horizontal_separator_empty(ui);
 
-    // TODO: Find a consistent way to disable ui if unused and show a tooltip.
+    // TODO: Show a tooltip to explain why entries are disabled?
     for param in entry.floats.iter_mut() {
         let id = egui::Id::new(param.param_id.to_string());
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
@@ -679,13 +677,18 @@ fn matl_entry_editor(
     if advanced_mode {
         for param in entry.vectors.iter_mut() {
             ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                changed |= edit_vector_advanced(ui, param);
+                changed |= edit_vector_advanced(ui, param, program);
             });
         }
     } else {
         Grid::new("vectors").show(ui, |ui| {
             for param in entry.vectors.iter_mut() {
-                changed |= edit_vector(ui, param, !unused_parameters.contains(&param.param_id));
+                changed |= edit_vector(
+                    ui,
+                    param,
+                    !unused_parameters.contains(&param.param_id),
+                    program,
+                );
                 ui.end_row();
             }
         });
@@ -777,7 +780,6 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
 
     ui.label(param_label(param.param_id));
     ui.indent("indent", |ui| {
-        // TODO: These param IDs might not be unique?
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
@@ -805,12 +807,12 @@ fn edit_texture(
     advanced_mode: bool,
 ) -> bool {
     // TODO: Create a texture for an invalid thumbnail or missing texture?
-    // TODO: Should this functionality be part of ssbh_wgpu?
     ui.label(param_label(param.param_id));
     // Texture parameters don't include the file extension since it's implied.
     // Texture names aren't case sensitive.
     // TODO: Avoid allocating here.
     // TODO: Don't store the extension with the thumbnail at all?
+    // TODO: Should this functionality be part of ssbh_wgpu?
     if let Some(thumbnail) = texture_thumbnails
         .iter()
         .chain(default_thumbnails.iter())
@@ -951,7 +953,12 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
     changed
 }
 
-fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) -> bool {
+fn edit_vector(
+    ui: &mut Ui,
+    param: &mut Vector4Param,
+    enabled: bool,
+    program: Option<&ShaderProgram>,
+) -> bool {
     let mut changed = false;
 
     // Disabling the entire row interferes with the grid columns.
@@ -964,25 +971,29 @@ fn edit_vector(ui: &mut Ui, param: &mut Vector4Param, enabled: bool) -> bool {
         ui.label(param_label(param.param_id));
     });
 
-    let id = egui::Id::new(param.param_id.to_string());
+    // TODO: Is it less annoying to enable all parameters if the shader label is invalid?
+    let channels = program
+        .map(|p| p.accessed_channels(&param.param_id.to_string()))
+        .unwrap_or_default();
+    let labels = vector4_labels_short(param.param_id);
 
-    let edit_component = |ui: &mut Ui, changed: &mut bool, label, value| {
-        ui.add_enabled_ui(enabled, |ui| {
+    // Don't allow editing components that are never accessed in game.
+    let id = egui::Id::new(param.param_id.to_string());
+    let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
+        ui.add_enabled_ui(enabled && channels[i], |ui| {
             ui.horizontal(|ui| {
-                ui.label(label);
+                ui.label(labels[i]);
                 *changed |= ui
-                    .add(DragSlider::new(id.with(label), value).width(50.0))
+                    .add(DragSlider::new(id.with(labels[i]), value).width(50.0))
                     .changed();
             });
         });
     };
 
-    // TODO: Fix spacing for unused labels.
-    let labels = vector4_labels_short(param.param_id);
-    edit_component(ui, &mut changed, labels[0], &mut param.data.x);
-    edit_component(ui, &mut changed, labels[1], &mut param.data.y);
-    edit_component(ui, &mut changed, labels[2], &mut param.data.z);
-    edit_component(ui, &mut changed, labels[3], &mut param.data.w);
+    edit_component(ui, &mut changed, 0, &mut param.data.x);
+    edit_component(ui, &mut changed, 1, &mut param.data.y);
+    edit_component(ui, &mut changed, 2, &mut param.data.z);
+    edit_component(ui, &mut changed, 3, &mut param.data.w);
 
     changed
 }
@@ -1014,43 +1025,47 @@ fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
     }
 }
 
-fn edit_vector_advanced(ui: &mut Ui, param: &mut Vector4Param) -> bool {
+fn edit_vector_advanced(
+    ui: &mut Ui,
+    param: &mut Vector4Param,
+    program: Option<&ShaderProgram>,
+) -> bool {
     let mut changed = false;
 
-    // TODO: Set custom labels and ranges.
-    // TODO: Add parameter descriptions.
+    // TODO: Set custom ranges.
     ui.horizontal(|ui| {
         changed |= edit_vector4_rgba(ui, &mut param.data);
         ui.label(param_label(param.param_id));
     });
 
+    let labels = vector4_labels_long(param.param_id);
+
+    // TODO: Is it less annoying to enable all parameters if the shader label is invalid?
+    let channels = program
+        .map(|p| p.accessed_channels(&param.param_id.to_string()))
+        .unwrap_or_default();
+
     let id = egui::Id::new(param.param_id.to_string());
 
+    // Don't allow editing components that are never accessed in game.
+    let edit_component = |ui: &mut Ui, i, value| {
+        ui.add_enabled(channels[i], Label::new(labels[i]));
+        ui.add_enabled(channels[i], DragSlider::new(id.with(i), value).width(150.0))
+            .changed()
+    };
+
     ui.indent("indent", |ui| {
-        let labels = vector4_labels_long(param.param_id);
         Grid::new(param.param_id.to_string()).show(ui, |ui| {
-            ui.label(labels[0]);
-            changed |= ui
-                .add(DragSlider::new(id.with("x"), &mut param.data.x).width(150.0))
-                .changed();
+            changed |= edit_component(ui, 0, &mut param.data.x);
             ui.end_row();
 
-            ui.label(labels[1]);
-            changed |= ui
-                .add(DragSlider::new(id.with("y"), &mut param.data.y).width(150.0))
-                .changed();
+            changed |= edit_component(ui, 1, &mut param.data.y);
             ui.end_row();
 
-            ui.label(labels[2]);
-            changed |= ui
-                .add(DragSlider::new(id.with("z"), &mut param.data.z).width(150.0))
-                .changed();
+            changed |= edit_component(ui, 2, &mut param.data.z);
             ui.end_row();
 
-            ui.label(labels[3]);
-            changed |= ui
-                .add(DragSlider::new(id.with("w"), &mut param.data.w).width(150.0))
-                .changed();
+            changed |= edit_component(ui, 3, &mut param.data.w);
             ui.end_row();
         });
     });
