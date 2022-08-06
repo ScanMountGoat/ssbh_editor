@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed default stage lighting values causing rim lighting to be disabled.
 * Fixed a crash when opening a new folder with the Matl Editor open.
 * Fixed a crash when resizing the window to be as small as possible.
+* Fixed rendering of the effect of CustomBoolean4 on indirect specular.
 
 ## 0.5.1
 ### Added
