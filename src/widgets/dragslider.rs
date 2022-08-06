@@ -57,19 +57,20 @@ impl<'a> Widget for DragSlider<'a> {
                 .get_temp::<String>(edit_text_id)
                 .unwrap_or_else(|| self.value.to_string());
 
-            let response = ui.add(
+            let mut response = ui.add(
                 TextEdit::singleline(&mut value_text)
                     .id(kb_edit_id)
                     .desired_width(desired_size.x),
             );
 
+            // Confirm the value on enter or if the user clicks away.
+            // TODO: Also update value on lost focus.
             if ui.input().key_pressed(Key::Enter) {
-                // TODO: Also update value on lost focus.
                 if let Ok(new_value) = value_text.parse() {
                     *self.value = new_value;
+                    response.mark_changed();
                 }
-
-                ui.memory().surrender_focus(edit_text_id);
+                response.surrender_focus();
                 ui.memory().data.remove::<String>(edit_text_id);
             } else {
                 ui.memory()
