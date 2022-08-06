@@ -272,24 +272,42 @@ impl SsbhApp {
     }
 
     pub fn viewport_rect(&self, width: u32, height: u32, scale_factor: f32) -> [u32; 4] {
-        // TODO: Validate the value ranges?
         // Calculate [origin x, origin y, width, height]
-        // TODO: Add checks to ssbh_wgpu.
         // ssbh_wgpu expects physical instead of logical pixels.
         let f = |x| (x * scale_factor) as u32;
-
-        let left = self.render_state.viewport_left.map(f).unwrap_or(0);
-        let right = self.render_state.viewport_right.map(f).unwrap_or(width);
-        let top = self.render_state.viewport_top.map(f).unwrap_or(0);
-        let bottom = self.render_state.viewport_bottom.map(f).unwrap_or(height);
-        [left, top, right - left, bottom - top]
+        let left = self
+            .render_state
+            .viewport_left
+            .map(f)
+            .unwrap_or(0)
+            .clamp(0, width.saturating_sub(1));
+        let right = self
+            .render_state
+            .viewport_right
+            .map(f)
+            .unwrap_or(width)
+            .clamp(0, width.saturating_sub(1));
+        let top = self
+            .render_state
+            .viewport_top
+            .map(f)
+            .unwrap_or(0)
+            .clamp(0, height.saturating_sub(1));
+        let bottom = self
+            .render_state
+            .viewport_bottom
+            .map(f)
+            .unwrap_or(height)
+            .clamp(0, height.saturating_sub(1));
+        let width = right.saturating_sub(left).clamp(1, width - left);
+        let height = bottom.saturating_sub(top).clamp(1, height - top);
+        [left, top, width, height]
     }
 }
 
 impl SsbhApp {
     pub fn update(&mut self, ctx: &Context) {
         // Set the region for the 3D viewport to reduce overdraw.
-        // TODO: Set top and bottom?
         self.render_state.viewport_top = Some(
             egui::TopBottomPanel::top("top_panel")
                 .show(ctx, |ui| self.menu_bar(ui))
@@ -359,15 +377,17 @@ impl SsbhApp {
             None
         };
 
-        if self.show_bottom_panel {
-            self.render_state.viewport_bottom = Some(
+        self.render_state.viewport_bottom = if self.show_bottom_panel {
+            Some(
                 TopBottomPanel::bottom("bottom panel")
                     .show(ctx, |ui| self.animation_and_log(ui))
                     .response
                     .rect
                     .top(),
-            );
-        }
+            )
+        } else {
+            None
+        };
 
         self.render_state.viewport_right = if self.show_right_panel {
             Some(

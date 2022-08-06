@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed the scrollbar not appearing in the Preset Editor window
 * Fixed default stage lighting values causing rim lighting to be disabled.
-* Fixed a potential crash when opening a new folder with the Matl Editor open.
+* Fixed a crash when opening a new folder with the Matl Editor open.
+* Fixed a crash when resizing the window to be as small as possible.
 
 ## 0.5.1
 ### Added
