@@ -607,6 +607,11 @@ impl SsbhApp {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
                         }
+
+                        if changed {
+                            // Reapply the animation constraints in the viewport.
+                            self.animation_state.should_update_animations = true;
+                        }
                     }
                 }
 
