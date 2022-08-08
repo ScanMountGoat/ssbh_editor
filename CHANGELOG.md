@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Improved application framerate and responsiveness. These changes mostly benefit devices with integrated graphics.
 * Disabled editing Vector4 components in the Matl Editor unused by the shader.
+* Improved rendering accuracy for specular and anisotropic specular.
 
 ### Fixed
 * Fixed the scrollbar not appearing in the Preset Editor window
