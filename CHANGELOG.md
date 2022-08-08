@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Improved application framerate and responsiveness. These changes mostly benefit devices with integrated graphics.
-* Disabled editing Vector4 components in the Matl Editor unused by the shader.
+* Disabled editing Vector4 components in the Matl Editor that are not used by the shader.
 * Improved rendering accuracy for specular and anisotropic specular.
 
 ### Fixed
@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed default stage lighting values causing rim lighting to be disabled.
 * Fixed a crash when opening a new folder with the Matl Editor open.
 * Fixed a crash when resizing the window to be as small as possible.
-* Fixed rendering of the effect of CustomBoolean4 on indirect specular.
+* Fixed a rendering issue where CustomBoolean4 failed to toggle indirect specular in the viewport.
 * Fixed an issue where some materials would incorrectly render as having specular lighting.
 
 ## 0.5.1
