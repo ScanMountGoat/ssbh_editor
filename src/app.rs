@@ -684,7 +684,8 @@ impl SsbhApp {
         if ui
             .add_sized(
                 [60.0, 20.0],
-                egui::DragValue::new(&mut self.animation_state.current_frame),
+                egui::DragValue::new(&mut self.animation_state.current_frame)
+                    .clamp_range(0.0..=final_frame_index),
             )
             .changed()
         {
@@ -692,12 +693,11 @@ impl SsbhApp {
             self.animation_state.should_update_animations = true;
         }
 
-        // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
-        let size = [60.0, 30.0];
-
         // TODO: Checkbox for looping?
         // TODO: Playback speed?
+        let size = [60.0, 30.0];
         if self.animation_state.is_playing {
+            // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
             if ui.add_sized(size, Button::new("Pause")).clicked() {
                 self.animation_state.is_playing = false;
             }
