@@ -2,6 +2,7 @@ use crate::{
     app::anim_list::anim_list,
     editors::{
         adj::adj_editor,
+        anim::anim_editor,
         hlpb::hlpb_editor,
         matl::{matl_editor, preset_editor},
         mesh::mesh_editor,
@@ -634,6 +635,29 @@ impl SsbhApp {
                         if !open {
                             // Close the window.
                             self.ui_state.selected_adj_index = None;
+                        }
+                    }
+                }
+
+                if let Some(anim_index) = self.ui_state.selected_anim_index {
+                    if let Some((name, Ok(anim))) = model.anims.get_mut(anim_index) {
+                        let (open, changed) = anim_editor(
+                            ctx,
+                            &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
+                            anim,
+                        );
+                        file_changed |= changed;
+
+                        if !open {
+                            // Close the window.
+                            self.ui_state.selected_anim_index = None;
+                        }
+
+                        if changed {
+                            // Reapply the animations in the viewport.
+                            self.animation_state.should_update_animations = true;
                         }
                     }
                 }

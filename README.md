@@ -47,7 +47,13 @@ Animations are assigned to each folder from the animation tab. Each model folder
 SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
 
 ## Limitations
-SSBH Editor provides a recreation of key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for thousands of models is not a goal of this application. Some values in a file may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience. SSBH Editor can't detect all errors that can occur with a model. Many of these issues are related to issues installing and loading modded files. Not all game files that impact the appearance of a model are used by SSBH Editor. Always perform final testing with an emulator or in game.
+SSBH Editor provides a recreation of key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for thousands of models is not a goal of this application. Not all game files that impact the appearance of a model are loaded or simulated by SSBH Editor.
+
+Some values in a file may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience. 
+
+SSBH Editor can't detect all errors that can occur with a model. Many of these issues are related to issues installing and loading modded files.  Always perform final testing with an emulator or in game.
+
+SSBH Editor uses ssbh_data internally for loading and saving files. Resaving certain files without changes such as .nuanmb or .numshb files may result in a slightly different file than the original. In practice, these errors are typically small rounding errors. See the [ssbh_data docs](https://docs.rs/ssbh_data/latest/ssbh_data/) for details. If you choose to use these edited files online, you do so entirely at your own risk.
 
 ## Importing Material Presets
 Cross Mod has been replaced by SSBH Editor. The material presets from Cross Mod will not work directly with SSBH Editor but can easily be converted to the right format following the steps below. 

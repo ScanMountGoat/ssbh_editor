@@ -1,9 +1,8 @@
-use std::path::Path;
-
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
+use std::path::Path;
 
 pub fn modl_editor(
     ctx: &egui::Context,

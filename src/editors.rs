@@ -1,4 +1,5 @@
 pub mod adj;
+pub mod anim;
 pub mod hlpb;
 pub mod matl;
 pub mod mesh;

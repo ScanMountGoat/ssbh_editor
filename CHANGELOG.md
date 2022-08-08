@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## unreleased
+### Added
+* Added an Anim Editor for editing track flags.
+
 ### Changed
 * Improved application framerate and responsiveness. These changes mostly benefit devices with integrated graphics.
 * Disabled editing Vector4 components in the Matl Editor unused by the shader.
