@@ -91,10 +91,10 @@ pub fn render_settings(
             });
             if settings.debug_mode != DebugMode::Shaded {
                 ui.horizontal(|ui| {
-                    ui.checkbox(&mut settings.render_rgba[0], "R");
-                    ui.checkbox(&mut settings.render_rgba[1], "G");
-                    ui.checkbox(&mut settings.render_rgba[2], "B");
-                    ui.checkbox(&mut settings.render_rgba[3], "A");
+                    ui.toggle_value(&mut settings.render_rgba[0], "R");
+                    ui.toggle_value(&mut settings.render_rgba[1], "G");
+                    ui.toggle_value(&mut settings.render_rgba[2], "B");
+                    ui.toggle_value(&mut settings.render_rgba[3], "A");
                 });
 
                 ui.checkbox(&mut settings.wireframe, "Wireframe");
@@ -128,17 +128,17 @@ pub fn render_settings(
             ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color");
             ui.horizontal(|ui| {
                 ui.label("Enable Nor Channels");
-                ui.checkbox(&mut settings.render_nor[0], "R");
-                ui.checkbox(&mut settings.render_nor[1], "G");
-                ui.checkbox(&mut settings.render_nor[2], "B");
-                ui.checkbox(&mut settings.render_nor[3], "A");
+                ui.toggle_value(&mut settings.render_nor[0], "R");
+                ui.toggle_value(&mut settings.render_nor[1], "G");
+                ui.toggle_value(&mut settings.render_nor[2], "B");
+                ui.toggle_value(&mut settings.render_nor[3], "A");
             });
             ui.horizontal(|ui| {
                 ui.label("Enable Prm Channels");
-                ui.checkbox(&mut settings.render_prm[0], "R");
-                ui.checkbox(&mut settings.render_prm[1], "G");
-                ui.checkbox(&mut settings.render_prm[2], "B");
-                ui.checkbox(&mut settings.render_prm[3], "A");
+                ui.toggle_value(&mut settings.render_prm[0], "R");
+                ui.toggle_value(&mut settings.render_prm[1], "G");
+                ui.toggle_value(&mut settings.render_prm[2], "B");
+                ui.toggle_value(&mut settings.render_prm[3], "A");
             });
             horizontal_separator_empty(ui);
 
