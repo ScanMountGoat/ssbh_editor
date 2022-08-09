@@ -555,6 +555,15 @@ pub fn param_description(p: ParamId) -> &'static str {
     }
 }
 
+pub fn param_label(p: ParamId) -> String {
+    let description = param_description(p);
+    if !description.is_empty() {
+        format!("{} ({})", p, description)
+    } else {
+        p.to_string()
+    }
+}
+
 // TODO: Add toggleable tooltips to preferences?
 pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
     // TODO: Research which parameters are unused.

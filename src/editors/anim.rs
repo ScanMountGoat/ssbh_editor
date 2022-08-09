@@ -86,6 +86,8 @@ fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) ->
     let mut changed = false;
 
     ui.label(&track.name);
+    //TODO: use crate::material::param_label for material track names
+
     ui.indent("indent", |ui| {
         changed |= ui
             .checkbox(

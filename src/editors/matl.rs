@@ -2,7 +2,7 @@ use crate::{
     app::{MatlEditorState, UiState},
     horizontal_separator_empty,
     material::{
-        add_parameters, apply_preset, default_material, missing_parameters, param_description,
+        add_parameters, apply_preset, default_material, missing_parameters, param_label,
         remove_parameters, unused_parameters, vector4_labels_long, vector4_labels_short,
     },
     presets::{load_json_presets, load_xml_presets},
@@ -1071,13 +1071,4 @@ fn edit_vector_advanced(
     });
 
     changed
-}
-
-fn param_label(p: ParamId) -> String {
-    let description = param_description(p);
-    if !description.is_empty() {
-        format!("{} ({})", p, description)
-    } else {
-        p.to_string()
-    }
 }
