@@ -27,13 +27,14 @@ use winit::{
 fn calculate_mvp(
     size: winit::dpi::PhysicalSize<u32>,
     translation_xyz: glam::Vec3,
-    rotation_xyz: glam::Vec3,
+    rotation_xyz_radians: glam::Vec3,
+    fov_y_radians: f32
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
     let aspect = size.width as f32 / size.height as f32;
     let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
-        * glam::Mat4::from_rotation_x(rotation_xyz.x)
-        * glam::Mat4::from_rotation_y(rotation_xyz.y);
-    let perspective_matrix = glam::Mat4::perspective_rh(0.5, aspect, 1.0, 400000.0);
+        * glam::Mat4::from_rotation_x(rotation_xyz_radians.x)
+        * glam::Mat4::from_rotation_y(rotation_xyz_radians.y);
+    let perspective_matrix = glam::Mat4::perspective_rh(fov_y_radians, aspect, 1.0, 400000.0);
 
     let camera_pos = model_view_matrix.inverse().col(3);
 
@@ -462,7 +463,8 @@ fn main() {
                         let (_, _, mvp) = calculate_mvp(
                             size,
                             app.camera_state.translation_xyz,
-                            app.camera_state.rotation_xyz,
+                            app.camera_state.rotation_xyz_radians,
+                            app.camera_state.fov_y_radians
                         );
 
                         // TODO: Make the font size configurable.
@@ -811,7 +813,8 @@ fn update_camera(
     let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
         size,
         camera_state.translation_xyz,
-        camera_state.rotation_xyz,
+        camera_state.rotation_xyz_radians,
+        camera_state.fov_y_radians
     );
     let transforms = CameraTransforms {
         model_view_matrix: model_view_matrix.to_cols_array_2d(),
@@ -855,8 +858,8 @@ fn handle_input(
                 let delta_y = position.y - input_state.previous_cursor_position.y;
 
                 // Swap XY so that dragging left right rotates left right.
-                input_state.rotation_xyz.x += (delta_y * 0.01) as f32;
-                input_state.rotation_xyz.y += (delta_x * 0.01) as f32;
+                input_state.rotation_xyz_radians.x += (delta_y * 0.01) as f32;
+                input_state.rotation_xyz_radians.y += (delta_x * 0.01) as f32;
             } else if input_state.is_mouse_right_clicked {
                 let (current_x_world, current_y_world) =
                     screen_to_world(input_state, *position, size);
@@ -930,7 +933,8 @@ fn screen_to_world(
     let (_, _, mvp) = calculate_mvp(
         size,
         input_state.translation_xyz,
-        input_state.rotation_xyz * 0.0,
+        input_state.rotation_xyz_radians * 0.0,
+        input_state.fov_y_radians
     );
     let world = mvp.inverse() * glam::Vec4::new(x_clip as f32, y_clip as f32, 0.0, 1.0);
 

@@ -1243,7 +1243,7 @@ pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut 
                 // TODO: Add an option for radians or degrees?
                 ui.label("Rotation X");
                 ui.add(
-                    egui::DragValue::new(&mut camera_state.rotation_xyz.x)
+                    egui::DragValue::new(&mut camera_state.rotation_xyz_radians.x)
                         .speed(0.01)
                         .clamp_range(-2.0 * PI..=2.0 * PI),
                 );
@@ -1251,9 +1251,17 @@ pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut 
 
                 ui.label("Rotation Y");
                 ui.add(
-                    egui::DragValue::new(&mut camera_state.rotation_xyz.y)
+                    egui::DragValue::new(&mut camera_state.rotation_xyz_radians.y)
                         .speed(0.01)
                         .clamp_range(-2.0 * PI..=2.0 * PI),
+                );
+                ui.end_row();
+
+                ui.label("FOV");
+                ui.add(
+                    egui::DragValue::new(&mut camera_state.fov_y_radians)
+                        .speed(0.01)
+                        .clamp_range(0.0..=2.0 * PI),
                 );
                 ui.end_row();
 
