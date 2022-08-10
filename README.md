@@ -24,18 +24,6 @@ SSBH Editor supports a number of model file types. Some files will render in the
 - More accurate normals when animating meshes with RENORMAL materials
 - Edit formats supported by ssbh_data like numdlb, nusktb, numatb, nuhlpb, and numshb files using a more intuitive interface
 
-### Validation
-SSBH Editor provides a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data_json. SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is helpful for custom model imports that may have errors like incorrect material names or invalid vertex skin weights.
-
-### Planned Features
-- Additional render settings
-- View camera animations
-- Improvements to performance and accuracy of ssbh_wgpu
-- Improved validation for errors with models, textures, and animations
-- Preview stage rendering and lighting data
-- Settings to adjust UI scaling for better readability
-- Improved spacing and consistency for UI
-
 ## Getting Started
 Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
 
@@ -43,13 +31,26 @@ For previewing animations, make sure the animation folder is loaded. Most animat
 
 Animations are assigned to each folder from the animation tab. Each model folder like `mario/model/body/c00` has a set of animation slots. Select a nuanmb file from the drop down to assign the animation to that slot. Animations files are grouped by folder in the drop down. Adding slots allows for playing multiple animations. Each animation slot is rendered in order starting from Slot 0. For example, assign `a00defaulteyelid.nuanmb` to Slot 0 and `a00wait1.nuanmb` to Slot 1 to play the wait animation with blinking expression. The `model.nuanmb` file should usually be selected for Slot 0.
 
+## Validation
+SSBH Editor provides a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data_json. SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is helpful for custom model imports that may have errors like incorrect material names or invalid vertex skin weights.
+
+## Planned Features
+- Additional render settings
+- View camera animations
+- Improvements to performance and accuracy of ssbh_wgpu
+- Improved validation for errors with models, textures, and animations
+- Preview stage rendering and lighting data
+- Settings to adjust UI scaling for better readability
+- Improved spacing and consistency for UI
+- Improved editor for animations
+
 ## System Requirements
 SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
 
 ## Limitations
-SSBH Editor provides a recreation of key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for thousands of models is not a goal of this application. Not all game files that impact the appearance of a model are loaded or simulated by SSBH Editor.
+SSBH Editor simulates key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for every model is not a goal of this application. Not all game files that impact the appearance of a model are loaded or simulated by SSBH Editor.
 
-Some values in a file may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience. 
+Some data in files like .nuanmb or .nutexb may not be editable in SSBH Editor if external applications like Blender or Photoshop can provide a better editing experience.
 
 SSBH Editor can't detect all errors that can occur with a model. Many of these issues are related to issues installing and loading modded files.  Always perform final testing with an emulator or in game.
 
