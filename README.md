@@ -1,4 +1,6 @@
 # ssbh_editor
+[![wiki](https://img.shields.io/badge/wiki-guide-success)](https://github.com/ScanMountGoat/ssbh_editor/wiki)
+
 SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases). Make sure your system meets the [system requirements](#system-requirements).
 
 ## Features
@@ -32,7 +34,7 @@ For previewing animations, make sure the animation folder is loaded. Most animat
 Animations are assigned to each folder from the animation tab. Each model folder like `mario/model/body/c00` has a set of animation slots. Select a nuanmb file from the drop down to assign the animation to that slot. Animations files are grouped by folder in the drop down. Adding slots allows for playing multiple animations. Each animation slot is rendered in order starting from Slot 0. For example, assign `a00defaulteyelid.nuanmb` to Slot 0 and `a00wait1.nuanmb` to Slot 1 to play the wait animation with blinking expression. The `model.nuanmb` file should usually be selected for Slot 0.
 
 ## Validation
-SSBH Editor provides a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data_json. SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is helpful for custom model imports that may have errors like incorrect material names or invalid vertex skin weights.
+SSBH Editor provides a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data_json. SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is helpful for custom model imports that may have errors like incorrect material names or invalid vertex skin weights. See [validation errors](https://github.com/ScanMountGoat/ssbh_editor/wiki/Validation-Errors) for details.
 
 ## Planned Features
 - Additional render settings
