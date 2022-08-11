@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Added
+* Added a graph viewer tab to the anim editor for graphing animated values over time
+* Added a field of view (fov) option to the Camera Settings window.
+
+### Changed
+* Changed RGBA channel toggles to use toggle buttons to be more compact than checkboxes.
+
+### Fixed
+* Fixed an issue where hiding a model folder had no effect when using debug shading.
+
 ## 0.5.2
 ### Added
 * Added an Anim Editor for editing track flags.
