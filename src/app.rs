@@ -137,6 +137,7 @@ pub struct UiState {
 
     pub matl_editor: MatlEditorState,
     pub preset_editor: MatlEditorState,
+    pub anim_editor: AnimEditorState,
 }
 
 #[derive(Default)]
@@ -145,6 +146,26 @@ pub struct MatlEditorState {
     pub selected_material_index: usize,
     pub is_editing_material_label: bool,
     pub hovered_material_index: Option<usize>,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum AnimEditorTab {
+    Editor,
+    Graph,
+}
+
+impl Default for AnimEditorTab {
+    fn default() -> Self {
+        Self::Editor
+    }
+}
+
+#[derive(Default)]
+pub struct AnimEditorState {
+    pub editor_tab: AnimEditorTab,
+    pub selected_group_index: Option<usize>,
+    pub selected_node_index: Option<usize>,
+    pub selected_track_index: Option<usize>,
 }
 
 const ICON_SIZE: f32 = 18.0;
@@ -647,6 +668,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             anim,
+                            &mut self.ui_state.anim_editor,
                         );
                         file_changed |= changed;
 
