@@ -1,6 +1,7 @@
+use crate::app::{AnimEditorState, AnimEditorTab};
 use egui::{
-    plot::{Legend, Line, Plot, Points},
-    CentralPanel, CollapsingHeader, Grid, RichText, ScrollArea, SidePanel,
+    plot::{Legend, Line, Plot},
+    CentralPanel, CollapsingHeader, RichText, ScrollArea, SidePanel,
 };
 use log::error;
 use rfd::FileDialog;
@@ -9,11 +10,6 @@ use ssbh_data::{
     prelude::*,
 };
 use std::path::Path;
-
-use crate::{
-    app::{AnimEditorState, AnimEditorTab},
-    widgets::EyeCheckBox,
-};
 
 pub fn anim_editor(
     ctx: &egui::Context,
@@ -245,7 +241,13 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                     }
                     shapes.push(Line::new(points));
                 }
-                TrackValues::PatternIndex(values) => (),
+                TrackValues::PatternIndex(values) => {
+                    let mut points = Vec::new();
+                    for (i, v) in values.iter().enumerate() {
+                        points.push([i as f64, *v as f64]);
+                    }
+                    shapes.push(Line::new(points));
+                }
                 TrackValues::Boolean(values) => {
                     let mut points = Vec::new();
                     for (i, v) in values.iter().enumerate() {

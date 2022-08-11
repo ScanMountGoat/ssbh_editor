@@ -28,7 +28,7 @@ fn calculate_mvp(
     size: winit::dpi::PhysicalSize<u32>,
     translation_xyz: glam::Vec3,
     rotation_xyz_radians: glam::Vec3,
-    fov_y_radians: f32
+    fov_y_radians: f32,
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
     let aspect = size.width as f32 / size.height as f32;
     let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
@@ -464,7 +464,7 @@ fn main() {
                             size,
                             app.camera_state.translation_xyz,
                             app.camera_state.rotation_xyz_radians,
-                            app.camera_state.fov_y_radians
+                            app.camera_state.fov_y_radians,
                         );
 
                         // TODO: Make the font size configurable.
@@ -814,7 +814,7 @@ fn update_camera(
         size,
         camera_state.translation_xyz,
         camera_state.rotation_xyz_radians,
-        camera_state.fov_y_radians
+        camera_state.fov_y_radians,
     );
     let transforms = CameraTransforms {
         model_view_matrix: model_view_matrix.to_cols_array_2d(),
@@ -934,7 +934,7 @@ fn screen_to_world(
         size,
         input_state.translation_xyz,
         input_state.rotation_xyz_radians * 0.0,
-        input_state.fov_y_radians
+        input_state.fov_y_radians,
     );
     let world = mvp.inverse() * glam::Vec4::new(x_clip as f32, y_clip as f32, 0.0, 1.0);
 
