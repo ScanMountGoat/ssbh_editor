@@ -500,11 +500,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             mesh,
-                            model
-                                .skels
-                                .iter()
-                                .find(|(f, _)| f == "model.nusktb")
-                                .and_then(|(_, m)| m.as_ref().ok()),
+                            find_file(&model.skels, "model.nusktb"),
                             &mut self.ui_state,
                         );
                         file_changed |= changed;
@@ -535,11 +531,7 @@ impl SsbhApp {
                             name,
                             &mut self.ui_state,
                             matl,
-                            model
-                                .modls
-                                .iter_mut()
-                                .find(|(f, _)| f == "model.numdlb")
-                                .and_then(|(_, m)| m.as_mut().ok()),
+                            find_file_mut(&mut model.modls, "model.numdlb"),
                             validation_errors,
                             self.thumbnails.get(folder_index).unwrap_or(&Vec::new()),
                             &self.default_thumbnails,
@@ -575,24 +567,15 @@ impl SsbhApp {
 
                 if let Some(modl_index) = self.ui_state.selected_modl_index {
                     if let Some((name, Ok(modl))) = model.modls.get_mut(modl_index) {
-                        let matl = model
-                            .matls
-                            .iter()
-                            .find(|(f, _)| f == "model.numatb")
-                            .and_then(|(_, m)| m.as_ref().ok());
-
                         // TODO: Make a WindowResponse struct?
+                        let matl = find_file(&model.matls, "model.numatb");
                         let (open, changed) = modl_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             modl,
-                            model
-                                .meshes
-                                .iter()
-                                .find(|(f, _)| f == "model.numshb")
-                                .and_then(|(_, m)| m.as_ref().ok()),
+                            find_file(&model.meshes, "model.numshb"),
                             matl,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         );
@@ -619,11 +602,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             hlpb,
-                            model
-                                .skels
-                                .iter()
-                                .find(|(f, _)| f == "model.nusktb")
-                                .and_then(|(_, m)| m.as_ref().ok()),
+                            find_file(&model.skels, "model.nusktb"),
                         );
                         file_changed |= changed;
 
@@ -647,11 +626,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             adj,
-                            model
-                                .meshes
-                                .iter()
-                                .find(|(f, _)| f == "model.numshb")
-                                .and_then(|(_, m)| m.as_ref().ok()),
+                            find_file(&model.meshes, "model.numshb"),
                         );
                         file_changed |= changed;
 
@@ -1098,6 +1073,23 @@ fn folder_display_name(model: &ModelFolder) -> PathBuf {
         .rev()
         .take(3)
         .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc))
+}
+
+fn find_file<'a, T>(files: &'a [(String, Result<T, Box<dyn Error>>)], name: &str) -> Option<&'a T> {
+    files
+        .iter()
+        .find(|(f, _)| f == name)
+        .and_then(|(_, m)| m.as_ref().ok())
+}
+
+fn find_file_mut<'a, T>(
+    files: &'a mut [(String, Result<T, Box<dyn Error>>)],
+    name: &str,
+) -> Option<&'a mut T> {
+    files
+        .iter_mut()
+        .find(|(f, _)| f == name)
+        .and_then(|(_, m)| m.as_mut().ok())
 }
 
 fn list_files<T, E: std::fmt::Display>(
