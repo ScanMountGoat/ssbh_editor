@@ -6,3 +6,4 @@ pub mod mesh;
 pub mod modl;
 pub mod nutexb;
 pub mod skel;
+pub mod meshex;

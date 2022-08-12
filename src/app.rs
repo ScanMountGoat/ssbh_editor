@@ -6,6 +6,7 @@ use crate::{
         hlpb::hlpb_editor,
         matl::{matl_editor, preset_editor},
         mesh::mesh_editor,
+        meshex::meshex_editor,
         modl::modl_editor,
         nutexb::nutexb_viewer,
         skel::skel_editor,
@@ -129,6 +130,7 @@ pub struct UiState {
     pub selected_nutexb_index: Option<usize>,
     pub selected_adj_index: Option<usize>,
     pub selected_anim_index: Option<usize>,
+    pub selected_meshex_index: Option<usize>,
 
     pub selected_mesh_influences_index: Option<usize>,
 
@@ -684,6 +686,24 @@ impl SsbhApp {
                     }
                 }
 
+                if let Some(meshex_index) = self.ui_state.selected_meshex_index {
+                    if let Some((name, Ok(meshex))) = model.meshexes.get_mut(meshex_index) {
+                        let (open, changed) = meshex_editor(
+                            ctx,
+                            &display_name(&model.folder_name, name),
+                            &model.folder_name,
+                            name,
+                            meshex,
+                        );
+                        file_changed |= changed;
+
+                        if !open {
+                            // Close the window.
+                            self.ui_state.selected_meshex_index = None;
+                        }
+                    }
+                }
+
                 if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
                     if let Some((name, Ok(nutexb))) = model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(
@@ -861,6 +881,17 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_anim_index,
                                 None,
                                 &validation.anim_errors,
+                            );
+
+                            // TODO: Is the model.numshexb required?
+                            list_files(
+                                ui,
+                                &model.meshexes,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_meshex_index,
+                                None,
+                                &validation.mesh_errors,
                             );
 
                             // TODO: Show file errors.
