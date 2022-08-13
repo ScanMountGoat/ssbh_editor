@@ -1262,10 +1262,6 @@ fn log_window(ctx: &Context, open: &mut bool) {
         });
 }
 
-// TODO: Animation Viewer
-// Users want to know what values are being effected, see the values, and toggle tracks on/off.
-// The display could be done using egui's plotting capabilities using Blender as a reference.
-
 pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut CameraInputState) {
     egui::Window::new("Camera Settings")
         .resizable(false)

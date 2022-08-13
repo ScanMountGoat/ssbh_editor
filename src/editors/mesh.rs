@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::ScrollArea;
+use egui::{Button, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{mesh_data::MeshObjectData, prelude::*};
@@ -53,6 +53,25 @@ pub fn mesh_editor(
                             }
                         });
 
+                        egui::menu::menu_button(ui, "Mesh", |ui| {
+                            if ui
+                                .add(Button::new("Match reference mesh order...").wrap(false))
+                                .clicked()
+                            {
+                                ui.close_menu();
+
+                                if let Some(file) = FileDialog::new()
+                                    .add_filter("Mesh", &["numshb"])
+                                    .pick_file()
+                                {
+                                    match MeshData::from_file(&file) {
+                                        Ok(reference) => match_mesh_order(mesh, &reference),
+                                        Err(e) => error!("Failed to read {:?}: {}", file, e),
+                                    }
+                                }
+                            }
+                        });
+
                         egui::menu::menu_button(ui, "Help", |ui| {
                             if ui.button("Mesh Editor Wiki").clicked() {
                                 ui.close_menu();
@@ -64,8 +83,6 @@ pub fn mesh_editor(
                                 }
                             }
                         });
-
-                        // TODO: Match the order from an existing mesh?
                     });
                     ui.separator();
 
@@ -171,6 +188,17 @@ pub fn mesh_editor(
     (open, changed)
 }
 
+fn match_mesh_order(mesh: &mut MeshData, reference: &MeshData) {
+    mesh.objects.sort_by_key(|o| {
+        // The sort is stable, so unmatched objects will be placed at the end in the same order.
+        reference
+            .objects
+            .iter()
+            .position(|r| r.name == o.name)
+            .unwrap_or(reference.objects.len())
+    })
+}
+
 fn influences_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool {
     let mut open = true;
     egui::Window::new(format!("Bone Influences ({})", mesh_object.name))
@@ -191,4 +219,97 @@ fn influences_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool 
             })
         });
     open
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mesh_order_empty_reference() {
+        let mut mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    sub_index: 0,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    sub_index: 1,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "b".to_owned(),
+                    sub_index: 0,
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let reference = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: Vec::new(),
+        };
+
+        match_mesh_order(&mut mesh, &reference);
+
+        assert_eq!("a", mesh.objects[0].name);
+        assert_eq!(0, mesh.objects[0].sub_index);
+
+        assert_eq!("a", mesh.objects[1].name);
+        assert_eq!(1, mesh.objects[1].sub_index);
+
+        assert_eq!("b", mesh.objects[2].name);
+        assert_eq!(0, mesh.objects[2].sub_index);
+    }
+
+    #[test]
+    fn mesh_order_added_meshes() {
+        let mut mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    sub_index: 1,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    sub_index: 0,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "b".to_owned(),
+                    sub_index: 0,
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let reference = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![MeshObjectData {
+                name: "b".to_owned(),
+                sub_index: 0,
+                ..Default::default()
+            }],
+        };
+
+        match_mesh_order(&mut mesh, &reference);
+
+        assert_eq!("b", mesh.objects[0].name);
+        assert_eq!(0, mesh.objects[0].sub_index);
+
+        assert_eq!("a", mesh.objects[1].name);
+        assert_eq!(1, mesh.objects[1].sub_index);
+
+        assert_eq!("a", mesh.objects[2].name);
+        assert_eq!(0, mesh.objects[2].sub_index);
+    }
 }
