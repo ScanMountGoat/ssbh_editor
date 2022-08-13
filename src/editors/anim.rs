@@ -181,7 +181,14 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
 
     CentralPanel::default().show_inside(ui, |ui| {
         // Add a legend for labels and visibility toggles
-        let plot = Plot::new("lines_demo").legend(Legend::default());
+        let plot = Plot::new("anim_plot")
+            .allow_drag(false)
+            .allow_zoom(false)
+            .allow_scroll(false)
+            .legend(Legend::default())
+            .show_x(false)
+            .show_y(false);
+
         let mut shapes = Vec::new();
 
         if let Some(track) = selected_track(&anim.groups, state) {
