@@ -102,6 +102,8 @@ impl RenderState {
 pub struct AnimationState {
     pub current_frame: f32,
     pub is_playing: bool,
+    pub should_loop: bool,
+    pub playback_speed: f32,
     pub should_update_animations: bool,
     pub selected_folder: usize,
     pub selected_slot: usize,
@@ -119,6 +121,8 @@ impl AnimationState {
             should_update_animations: false,
             selected_folder: 0,
             selected_slot: 0,
+            should_loop: true,
+            playback_speed: 1.0,
         }
     }
 }

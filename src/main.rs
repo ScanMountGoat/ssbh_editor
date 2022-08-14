@@ -51,6 +51,8 @@ pub fn next_frame(
     previous: std::time::Instant,
     current: std::time::Instant,
     final_frame_index: f32,
+    playback_speed: f32,
+    should_loop: bool,
 ) -> f32 {
     // Animate at 60 fps regardless of the rendering framerate.
     // This relies on interpolation or frame skipping.
@@ -60,12 +62,11 @@ pub fn next_frame(
 
     let millis_per_frame = 1000.0f64 / 60.0f64;
     let delta_t_frames = delta_t.as_millis() as f64 / millis_per_frame;
-    let playback_speed = 1.0;
 
-    let mut next_frame = current_frame + (delta_t_frames * playback_speed) as f32;
+    let mut next_frame = current_frame + (delta_t_frames as f32 * playback_speed);
 
-    // TODO: Add behaviors other than looping.
-    if next_frame > final_frame_index {
+    // TODO: Each animation should loop individually.
+    if next_frame > final_frame_index && should_loop {
         next_frame = 0.0;
     }
 
@@ -328,6 +329,8 @@ fn main() {
                                 app.animation_state.previous_frame_start,
                                 current_frame_start,
                                 final_frame_index,
+                                app.animation_state.playback_speed,
+                                app.animation_state.should_loop,
                             );
                         }
                         app.animation_state.previous_frame_start = current_frame_start;
