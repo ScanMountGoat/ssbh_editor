@@ -109,7 +109,7 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                         .selected_text(orient.unk_type.to_string())
                         .show_ui(ui, |ui| {
                             changed |= ui.selectable_value(&mut orient.unk_type, 1, "1").changed();
-                            changed |= ui.selectable_value(&mut orient.unk_type, 1, "2").changed();
+                            changed |= ui.selectable_value(&mut orient.unk_type, 2, "2").changed();
                         });
 
                     ui.horizontal(|ui| {
