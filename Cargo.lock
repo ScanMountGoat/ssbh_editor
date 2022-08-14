@@ -1895,7 +1895,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#13cdcc525dda3d1278aac5f0c00927ca249655d9"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#40a07432fb4e96351281487c800180c64f3a369f"
 dependencies = [
  "bytemuck",
  "log",
@@ -2749,7 +2749,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#3abf028524b8c1d9a8016384fa4a365eab78951b"
+source = "git+https://github.com/ultimate-research/ssbh_lib#f9106d19668d49eff53e710a6edd907e62f72ef5"
 dependencies = [
  "ahash",
  "binrw",
@@ -2801,7 +2801,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#3abf028524b8c1d9a8016384fa4a365eab78951b"
+source = "git+https://github.com/ultimate-research/ssbh_lib#f9106d19668d49eff53e710a6edd907e62f72ef5"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2815,7 +2815,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#13cdcc525dda3d1278aac5f0c00927ca249655d9"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#40a07432fb4e96351281487c800180c64f3a369f"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2836,7 +2836,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#3abf028524b8c1d9a8016384fa4a365eab78951b"
+source = "git+https://github.com/ultimate-research/ssbh_lib#f9106d19668d49eff53e710a6edd907e62f72ef5"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2844,7 +2844,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#3abf028524b8c1d9a8016384fa4a365eab78951b"
+source = "git+https://github.com/ultimate-research/ssbh_lib#f9106d19668d49eff53e710a6edd907e62f72ef5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3490,7 +3490,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "raw-window-handle",
  "smallvec",
  "wasm-bindgen",
@@ -3516,7 +3516,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle",
  "smallvec",
@@ -3553,7 +3553,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "range-alloc",
  "raw-window-handle",

@@ -376,7 +376,7 @@ impl SsbhApp {
             &mut self.ui_state,
             &mut self.material_presets,
             &self.default_thumbnails,
-            &self.render_state.shared_data.database,
+            self.render_state.shared_data.database(),
             self.red_checkerboard,
             self.yellow_checkerboard,
         );
@@ -535,7 +535,7 @@ impl SsbhApp {
                             validation_errors,
                             self.thumbnails.get(folder_index).unwrap_or(&Vec::new()),
                             &self.default_thumbnails,
-                            &self.render_state.shared_data.database,
+                            self.render_state.shared_data.database(),
                             &mut self.material_presets,
                             self.red_checkerboard,
                             self.yellow_checkerboard,

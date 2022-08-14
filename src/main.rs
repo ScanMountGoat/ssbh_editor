@@ -258,7 +258,7 @@ fn main() {
     let render_state = RenderState::new(device, queue, surface_format);
     let default_thumbnails = generate_default_thumbnails(
         &mut egui_rpass,
-        &render_state.shared_data.default_textures,
+        render_state.shared_data.default_textures(),
         &render_state.device,
         &render_state.queue,
     );
@@ -391,7 +391,7 @@ fn main() {
                             {
                                 *validation = ModelValidationErrors::from_model(
                                     model,
-                                    &app.render_state.shared_data.database,
+                                    app.render_state.shared_data.database(),
                                 );
                             }
                             app.should_validate_models = false;
@@ -442,7 +442,7 @@ fn main() {
                                     None
                                 }
                             }),
-                            &app.render_state.shared_data.database,
+                            app.render_state.shared_data.database(),
                             app.draw_bone_axes,
                             mask_model_index,
                             get_hovered_material_label(&app, mask_model_index).unwrap_or(""),

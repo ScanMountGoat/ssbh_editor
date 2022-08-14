@@ -64,7 +64,7 @@ pub fn hlpb_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     // TODO: Use a layout similar to the matl editor to support more fields.
-                    // TODO: Use the DragSliders for editing Vector4 and Vector3 values.
+                    // TODO: Add and delete entries.
                     if !hlpb.aim_constraints.is_empty() {
                         changed |= aim_constraints(ui, hlpb, skel);
                     }
@@ -85,8 +85,8 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
         .show(ui, |ui| {
             egui::Grid::new("orient").striped(true).show(ui, |ui| {
                 ui.heading("Name");
-                ui.heading("Bone");
-                ui.heading("Root");
+                ui.heading("Parent 1");
+                ui.heading("Parent 2");
                 ui.heading("Source");
                 ui.heading("Target");
                 ui.heading("Unk Type");
@@ -97,9 +97,10 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                     let id = egui::Id::new("orient").with(i);
 
                     ui.label(&orient.name);
-                    changed |= bone_combo_box(ui, &mut orient.bone_name, id.with(0), skel, &[]);
                     changed |=
-                        bone_combo_box(ui, &mut orient.root_bone_name, id.with(1), skel, &[]);
+                        bone_combo_box(ui, &mut orient.parent_bone1_name, id.with(0), skel, &[]);
+                    changed |=
+                        bone_combo_box(ui, &mut orient.parent_bone2_name, id.with(1), skel, &[]);
                     changed |=
                         bone_combo_box(ui, &mut orient.source_bone_name, id.with(2), skel, &[]);
                     changed |=
