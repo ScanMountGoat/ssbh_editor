@@ -2,7 +2,7 @@ use crate::material::{
     default_texture, is_blend, is_bool, is_float, is_rasterizer, is_sampler, is_texture, is_vector,
 };
 use anyhow::anyhow;
-use ssbh_data::matl_data::*;
+use ssbh_data::{matl_data::*, Vector4};
 use std::str::FromStr;
 use xmltree::{Element, XMLNode};
 

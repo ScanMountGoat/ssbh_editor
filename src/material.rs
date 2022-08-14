@@ -1,7 +1,7 @@
 // TODO: Share vectors between ssbh_data types?
 use crate::presets::default_presets;
 use log::error;
-use ssbh_data::{matl_data::*, meshex_data::Vector4};
+use ssbh_data::{matl_data::*, Vector4};
 use ssbh_wgpu::{split_param, ShaderProgram};
 use std::str::FromStr;
 

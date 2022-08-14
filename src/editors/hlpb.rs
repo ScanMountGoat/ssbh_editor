@@ -3,7 +3,7 @@ use std::path::Path;
 use egui::{CollapsingHeader, DragValue, ScrollArea};
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::prelude::*;
+use ssbh_data::{prelude::*, Vector3, Vector4};
 
 use crate::widgets::{bone_combo_box, DragSlider};
 
@@ -79,6 +79,7 @@ pub fn hlpb_editor(
 }
 
 fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) -> bool {
+    // TODO: Rework this layout to be more compact.
     let mut changed = false;
     CollapsingHeader::new("Orient Constraints")
         .default_open(true)
@@ -91,6 +92,10 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                 ui.heading("Target");
                 ui.heading("Unk Type");
                 ui.heading("Constraint Axes");
+                ui.heading("Quat 1");
+                ui.heading("Quat 2");
+                ui.heading("Range Min");
+                ui.heading("Range Max");
                 ui.end_row();
 
                 for (i, orient) in hlpb.orient_constraints.iter_mut().enumerate() {
@@ -113,26 +118,11 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
                             changed |= ui.selectable_value(&mut orient.unk_type, 2, "2").changed();
                         });
 
-                    ui.horizontal(|ui| {
-                        changed |= ui
-                            .add(
-                                DragSlider::new(id.with(5), &mut orient.constraint_axes.x)
-                                    .width(40.0),
-                            )
-                            .changed();
-                        changed |= ui
-                            .add(
-                                DragSlider::new(id.with(6), &mut orient.constraint_axes.y)
-                                    .width(40.0),
-                            )
-                            .changed();
-                        changed |= ui
-                            .add(
-                                DragSlider::new(id.with(7), &mut orient.constraint_axes.z)
-                                    .width(40.0),
-                            )
-                            .changed();
-                    });
+                    changed |= edit_vector3(ui, id.with(5), &mut orient.constraint_axes);
+                    changed |= edit_vector4(ui, id.with(6), &mut orient.quat1);
+                    changed |= edit_vector4(ui, id.with(7), &mut orient.quat2);
+                    changed |= edit_vector3(ui, id.with(8), &mut orient.range_min);
+                    changed |= edit_vector3(ui, id.with(9), &mut orient.range_max);
 
                     ui.end_row();
                 }
@@ -141,7 +131,43 @@ fn orient_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&Skel
     changed
 }
 
+fn edit_vector3(ui: &mut egui::Ui, id: egui::Id, value: &mut Vector3) -> bool {
+    let mut changed = false;
+    ui.horizontal(|ui| {
+        changed |= ui
+            .add(DragSlider::new(id.with("x"), &mut value.x).width(40.0))
+            .changed();
+        changed |= ui
+            .add(DragSlider::new(id.with("y"), &mut value.y).width(40.0))
+            .changed();
+        changed |= ui
+            .add(DragSlider::new(id.with("z"), &mut value.z).width(40.0))
+            .changed();
+    });
+    changed
+}
+
+fn edit_vector4(ui: &mut egui::Ui, id: egui::Id, value: &mut Vector4) -> bool {
+    let mut changed = false;
+    ui.horizontal(|ui| {
+        changed |= ui
+            .add(DragSlider::new(id.with("x"), &mut value.x).width(40.0))
+            .changed();
+        changed |= ui
+            .add(DragSlider::new(id.with("y"), &mut value.y).width(40.0))
+            .changed();
+        changed |= ui
+            .add(DragSlider::new(id.with("z"), &mut value.z).width(40.0))
+            .changed();
+        changed |= ui
+            .add(DragSlider::new(id.with("w"), &mut value.z).width(40.0))
+            .changed();
+    });
+    changed
+}
+
 fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) -> bool {
+    // TODO: Add missing fields.
     let mut changed = false;
     CollapsingHeader::new("Aim Constraints")
         .default_open(true)
@@ -156,6 +182,8 @@ fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelDat
                 ui.heading("Target 2");
                 ui.heading("Unk1");
                 ui.heading("Unk2");
+                ui.heading("Quat 1");
+                ui.heading("Quat 2");
                 ui.end_row();
 
                 for (i, aim) in hlpb.aim_constraints.iter_mut().enumerate() {
@@ -174,6 +202,8 @@ fn aim_constraints(ui: &mut egui::Ui, hlpb: &mut HlpbData, skel: Option<&SkelDat
                         bone_combo_box(ui, &mut aim.target_bone_name2, id.with(5), skel, &[]);
                     changed |= ui.add(DragValue::new(&mut aim.unk1)).changed();
                     changed |= ui.add(DragValue::new(&mut aim.unk2)).changed();
+                    changed |= edit_vector4(ui, id.with(6), &mut aim.quat1);
+                    changed |= edit_vector4(ui, id.with(7), &mut aim.quat2);
                     ui.end_row();
                 }
             });

@@ -13,7 +13,7 @@ use crate::{
 use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, Ui, Window};
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
+use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*, Color4f, Vector4};
 use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
 use std::path::Path;
 use std::str::FromStr;
