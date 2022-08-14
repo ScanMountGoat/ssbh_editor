@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::widgets::enum_combo_box;
-use egui::ScrollArea;
+use egui::{Button, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
@@ -43,6 +43,25 @@ pub fn skel_editor(
                                 {
                                     if let Err(e) = skel.write_to_file(&file) {
                                         error!("Failed to save {:?}: {}", file, e);
+                                    }
+                                }
+                            }
+                        });
+
+                        egui::menu::menu_button(ui, "Skeleton", |ui| {
+                            if ui
+                                .add(Button::new("Match reference bone order...").wrap(false))
+                                .clicked()
+                            {
+                                ui.close_menu();
+
+                                if let Some(file) = FileDialog::new()
+                                    .add_filter("Skel", &["nusktb"])
+                                    .pick_file()
+                                {
+                                    match SkelData::from_file(&file) {
+                                        Ok(reference) => match_skel_order(skel, &reference),
+                                        Err(e) => error!("Failed to read {:?}: {}", file, e),
                                     }
                                 }
                             }
@@ -116,4 +135,108 @@ pub fn skel_editor(
         });
 
     (open, changed)
+}
+
+fn match_skel_order(skel: &mut SkelData, reference: &SkelData) {
+    // TODO: Sort by helper bones, swing bones, etc for added bones?
+    skel.bones.sort_by_key(|o| {
+        // The sort is stable, so unmatched bones will be placed at the end in the same order.
+        reference
+            .bones
+            .iter()
+            .position(|r| r.name == o.name)
+            .unwrap_or(reference.bones.len())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use ssbh_data::skel_data::{BillboardType, BoneData};
+
+    use super::*;
+
+    #[test]
+    fn skel_order_empty_reference() {
+        let mut skel = SkelData {
+            major_version: 1,
+            minor_version: 0,
+            bones: vec![
+                BoneData {
+                    name: "a".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "b".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "c".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+            ],
+        };
+
+        let reference = SkelData {
+            major_version: 1,
+            minor_version: 0,
+            bones: Vec::new(),
+        };
+
+        match_skel_order(&mut skel, &reference);
+
+        assert_eq!("a", skel.bones[0].name);
+        assert_eq!("b", skel.bones[1].name);
+        assert_eq!("c", skel.bones[2].name);
+    }
+
+    #[test]
+    fn skel_order_added_bonees() {
+        let mut skel = SkelData {
+            major_version: 1,
+            minor_version: 0,
+            bones: vec![
+                BoneData {
+                    name: "a".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "b".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "c".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+            ],
+        };
+
+        let reference = SkelData {
+            major_version: 1,
+            minor_version: 0,
+            bones: vec![BoneData {
+                name: "c".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: None,
+                billboard_type: BillboardType::Disabled,
+            }],
+        };
+
+        match_skel_order(&mut skel, &reference);
+
+        assert_eq!("c", skel.bones[0].name);
+        assert_eq!("a", skel.bones[1].name);
+        assert_eq!("b", skel.bones[2].name);
+    }
 }
