@@ -21,7 +21,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Grid,
-    RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
+    Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
 use log::Log;
 use once_cell::sync::Lazy;
@@ -499,10 +499,10 @@ impl SsbhApp {
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
                     if let Some((name, Ok(mesh))) = model.meshes.get_mut(mesh_index) {
                         let validation_errors = self
-                        .validation_errors
-                        .get(folder_index)
-                        .map(|v| v.mesh_errors.as_slice())
-                        .unwrap_or_default();
+                            .validation_errors
+                            .get(folder_index)
+                            .map(|v| v.mesh_errors.as_slice())
+                            .unwrap_or_default();
 
                         let (open, changed) = mesh_editor(
                             ctx,
@@ -921,31 +921,24 @@ impl SsbhApp {
 
             // The next layout needs to be min since it's nested inside a centered layout.
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                ui.horizontal(|ui| {
-                    if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
-                        if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
-                            self.ui_state.log_window_open = true;
-                        }
-
-                        // Clicking the message also opens the log window.
-                        let abbreviated_message =
-                            message.get(..40).unwrap_or_default().to_string() + "...";
-                        if ui
-                            .add(egui::Label::new(abbreviated_message).sense(egui::Sense::click()))
-                            .clicked()
-                        {
-                            self.ui_state.log_window_open = true;
-                        }
-
-                        match level {
-                            log::Level::Error => error_icon(ui),
-                            log::Level::Warn => warning_icon(ui),
-                            log::Level::Info => (),
-                            log::Level::Debug => (),
-                            log::Level::Trace => (),
-                        }
+                // The layout is right to left, so add in reverse order.
+                if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
+                    if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
+                        self.ui_state.log_window_open = true;
                     }
-                });
+
+                    // Clicking the message also opens the log window.
+                    let abbreviated_message =
+                        message.get(..40).unwrap_or_default().to_string() + "...";
+                    if ui
+                        .add(egui::Label::new(abbreviated_message).sense(egui::Sense::click()))
+                        .clicked()
+                    {
+                        self.ui_state.log_window_open = true;
+                    }
+
+                    log_level_icon(ui, level);
+                }
             });
         });
     }
@@ -1133,9 +1126,9 @@ fn list_files<T, E: std::fmt::Display>(
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
                     if !validation_errors.is_empty() && Some(name.as_str()) == required_file {
-                        let messages: Vec<_> =
-                            validation_errors.iter().map(|e| format!("{}", e)).collect();
-                        warning_icon_with_messages(ui, &messages);
+                        warning_icon(ui).on_hover_ui(|ui| {
+                            display_validation_errors(ui, validation_errors);
+                        });
                     } else {
                         // TODO: This doesn't have the same size as the others?
                         empty_icon(ui);
@@ -1181,39 +1174,32 @@ pub fn missing_icon(ui: &mut Ui) {
     ui.label(RichText::new("⚠").size(ICON_SIZE));
 }
 
-pub fn warning_icon(ui: &mut Ui) {
-    ui.label(
-        RichText::new("⚠")
-            .strong()
-            .color(egui::Color32::from_rgb(255, 210, 0))
-            .size(ICON_SIZE),
-    );
-}
-
-pub fn warning_icon_with_messages(ui: &mut Ui, messages: &[String]) {
+pub fn warning_icon(ui: &mut Ui) -> Response {
     ui.label(
         RichText::new("⚠")
             .strong()
             .color(egui::Color32::from_rgb(255, 210, 0))
             .size(ICON_SIZE),
     )
-    .on_hover_ui(|ui| {
-        for message in messages {
-            ui.horizontal(|ui| {
-                warning_icon(ui);
-                ui.label(message);
-            });
-        }
-    });
 }
 
-pub fn error_icon(ui: &mut Ui) {
+pub fn display_validation_errors<E: std::fmt::Display>(ui: &mut Ui, errors: &[E]) {
+    for error in errors {
+        ui.horizontal(|ui| {
+            // TODO: Add severity levels?
+            warning_icon(ui);
+            ui.label(format!("{}", error));
+        });
+    }
+}
+
+pub fn error_icon(ui: &mut Ui) -> Response {
     ui.label(
         RichText::new("⚠")
             .strong()
             .color(ERROR_COLOR)
             .size(ICON_SIZE),
-    );
+    )
 }
 
 fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
@@ -1267,13 +1253,7 @@ fn log_window(ctx: &Context, open: &mut bool) {
                 .show(ui, |ui| {
                     for (level, message) in LOGGER.messages.lock().unwrap().iter() {
                         ui.horizontal(|ui| {
-                            match level {
-                                log::Level::Error => error_icon(ui),
-                                log::Level::Warn => warning_icon(ui),
-                                log::Level::Info => (),
-                                log::Level::Debug => (),
-                                log::Level::Trace => (),
-                            }
+                            log_level_icon(ui, level);
                             // binrw formats backtraces, which isn't supported by egui font rendering.
                             // TODO: Avoid clone?
                             let clean_message = strip_ansi_escapes::strip(message)
@@ -1284,6 +1264,20 @@ fn log_window(ctx: &Context, open: &mut bool) {
                     }
                 });
         });
+}
+
+fn log_level_icon(ui: &mut Ui, level: &log::Level) {
+    match level {
+        log::Level::Error => {
+            error_icon(ui);
+        }
+        log::Level::Warn => {
+            warning_icon(ui);
+        }
+        log::Level::Info => (),
+        log::Level::Debug => (),
+        log::Level::Trace => (),
+    }
 }
 
 pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut CameraInputState) {

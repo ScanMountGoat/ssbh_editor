@@ -6,7 +6,7 @@ use rfd::FileDialog;
 use ssbh_data::{mesh_data::MeshObjectData, prelude::*};
 
 use crate::{
-    app::{warning_icon, UiState},
+    app::{display_validation_errors, warning_icon, UiState},
     validation::MeshValidationError,
     widgets::bone_combo_box,
 };
@@ -132,15 +132,21 @@ pub fn mesh_editor(
 
                             // TODO: Reorder mesh objects?
                             ui.horizontal(|ui| {
-                                // TODO: Show error details on hover.
-                                // TODO: Add convenient methods to simplify this?
-                                if let Some(_) = validation_errors.iter().find(|e| match e {
-                                    MeshValidationError::MissingRequiredVertexAttributes {
-                                        mesh_object_index,
-                                        ..
-                                    } => *mesh_object_index == i,
-                                }) {
-                                    warning_icon(ui);
+                                // TODO: Avoid allocating here.
+                                let errors: Vec<_> = validation_errors
+                                    .iter()
+                                    .filter(|e| match e {
+                                        MeshValidationError::MissingRequiredVertexAttributes {
+                                            mesh_object_index,
+                                            ..
+                                        } => *mesh_object_index == i,
+                                    })
+                                    .collect();
+
+                                if !errors.is_empty() {
+                                    warning_icon(ui).on_hover_ui(|ui| {
+                                        display_validation_errors(ui, &errors);
+                                    });
                                 }
 
                                 changed |= edit_name(ui, mesh_object, *advanced_mode);
