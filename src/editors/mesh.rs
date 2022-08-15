@@ -25,67 +25,66 @@ pub fn mesh_editor(
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::menu::menu_button(ui, "File", |ui| {
+                    if ui.button("Save").clicked() {
+                        ui.close_menu();
+
+                        let file = Path::new(folder_name).join(file_name);
+                        if let Err(e) = mesh.write_to_file(&file) {
+                            error!("Failed to save {:?}: {}", file, e);
+                        }
+                    }
+
+                    if ui.button("Save As...").clicked() {
+                        ui.close_menu();
+
+                        if let Some(file) = FileDialog::new()
+                            .add_filter("Mesh", &["numshb"])
+                            .save_file()
+                        {
+                            if let Err(e) = mesh.write_to_file(&file) {
+                                error!("Failed to save {:?}: {}", file, e);
+                            }
+                        }
+                    }
+                });
+
+                egui::menu::menu_button(ui, "Mesh", |ui| {
+                    if ui
+                        .add(Button::new("Match reference mesh order...").wrap(false))
+                        .clicked()
+                    {
+                        ui.close_menu();
+
+                        if let Some(file) = FileDialog::new()
+                            .add_filter("Mesh", &["numshb"])
+                            .pick_file()
+                        {
+                            match MeshData::from_file(&file) {
+                                Ok(reference) => match_mesh_order(mesh, &reference),
+                                Err(e) => error!("Failed to read {:?}: {}", file, e),
+                            }
+                        }
+                    }
+                });
+
+                egui::menu::menu_button(ui, "Help", |ui| {
+                    if ui.button("Mesh Editor Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
+                        }
+                    }
+                });
+            });
+            ui.separator();
+
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    egui::menu::bar(ui, |ui| {
-                        egui::menu::menu_button(ui, "File", |ui| {
-                            if ui.button("Save").clicked() {
-                                ui.close_menu();
-
-                                let file = Path::new(folder_name).join(file_name);
-                                if let Err(e) = mesh.write_to_file(&file) {
-                                    error!("Failed to save {:?}: {}", file, e);
-                                }
-                            }
-
-                            if ui.button("Save As...").clicked() {
-                                ui.close_menu();
-
-                                if let Some(file) = FileDialog::new()
-                                    .add_filter("Mesh", &["numshb"])
-                                    .save_file()
-                                {
-                                    if let Err(e) = mesh.write_to_file(&file) {
-                                        error!("Failed to save {:?}: {}", file, e);
-                                    }
-                                }
-                            }
-                        });
-
-                        egui::menu::menu_button(ui, "Mesh", |ui| {
-                            if ui
-                                .add(Button::new("Match reference mesh order...").wrap(false))
-                                .clicked()
-                            {
-                                ui.close_menu();
-
-                                if let Some(file) = FileDialog::new()
-                                    .add_filter("Mesh", &["numshb"])
-                                    .pick_file()
-                                {
-                                    match MeshData::from_file(&file) {
-                                        Ok(reference) => match_mesh_order(mesh, &reference),
-                                        Err(e) => error!("Failed to read {:?}: {}", file, e),
-                                    }
-                                }
-                            }
-                        });
-
-                        egui::menu::menu_button(ui, "Help", |ui| {
-                            if ui.button("Mesh Editor Wiki").clicked() {
-                                ui.close_menu();
-
-                                let link =
-                                    "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";
-                                if let Err(e) = open::that(link) {
-                                    log::error!("Failed to open {link}: {e}");
-                                }
-                            }
-                        });
-                    });
-                    ui.separator();
-
                     if let Some(mesh_object) = ui_state
                         .selected_mesh_influences_index
                         .and_then(|index| mesh.objects.get(index))
@@ -108,7 +107,6 @@ pub fn mesh_editor(
 
                     ui.checkbox(advanced_mode, "Advanced Settings");
 
-                    // TODO: Use a separate scroll area for this?
                     let mut meshes_to_remove = Vec::new();
                     egui::Grid::new("mesh_grid").show(ui, |ui| {
                         // TODO: Show tooltips for header names?
