@@ -49,10 +49,33 @@ impl ModelValidationErrors {
     }
 }
 
-pub struct MeshValidationError;
+// TODO: Use thiserror instead?
+#[derive(Debug, PartialEq, Eq)]
+pub enum MeshValidationError {
+    MissingRequiredVertexAttributes {
+        mesh_object_index: usize,
+        mesh_name: String,
+        material_label: String,
+        missing_attributes: Vec<String>,
+    },
+}
+
 impl Display for MeshValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
+        match self {
+            MeshValidationError::MissingRequiredVertexAttributes {
+                mesh_name,
+                material_label,
+                missing_attributes,
+                ..
+            } => write!(
+                f,
+                "Mesh {:?} is missing attributes {} required by assigned material {:?}.",
+                mesh_name,
+                missing_attributes.join(", "),
+                material_label
+            ),
+        }
     }
 }
 
@@ -206,7 +229,7 @@ fn validate_required_attributes(
         for (entry_index, entry) in matl.entries.iter().enumerate() {
             // TODO: make this a method of the database?
             if let Some(program) = shader_database.get(entry.shader_label.get(..24).unwrap_or("")) {
-                for o in mesh.objects.iter().filter(|o| {
+                for (i, o) in mesh.objects.iter().enumerate().filter(|(_, o)| {
                     modl.entries
                         .iter()
                         .filter(|e| e.material_label == entry.material_label)
@@ -223,16 +246,25 @@ fn validate_required_attributes(
                         .chain(o.color_sets.iter().map(|a| a.name.clone()))
                         .collect();
 
+                    // This error can be fixed by modifying the material's shader or mesh's attributes.
+                    // Add errors to the matl and mesh for clarity.
                     let missing_attributes = program.missing_required_attributes(&attribute_names);
                     if !missing_attributes.is_empty() {
-                        let error = MatlValidationError::MissingRequiredVertexAttributes {
+                        let matl_error = MatlValidationError::MissingRequiredVertexAttributes {
                             entry_index,
                             material_label: entry.material_label.clone(),
                             mesh_name: o.name.clone(),
+                            missing_attributes: missing_attributes.clone(),
+                        };
+                        validation.matl_errors.push(matl_error);
+
+                        let mesh_error = MeshValidationError::MissingRequiredVertexAttributes {
+                            mesh_object_index: i,
+                            mesh_name: o.name.clone(),
+                            material_label: entry.material_label.clone(),
                             missing_attributes,
                         };
-
-                        validation.matl_errors.push(error);
+                        validation.mesh_errors.push(mesh_error);
                     }
                 }
             }
@@ -434,7 +466,6 @@ mod tests {
             &shader_database,
         );
 
-        // TODO: Add a mesh error as well?
         assert_eq!(
             vec![MatlValidationError::MissingRequiredVertexAttributes {
                 entry_index: 0,
@@ -446,8 +477,23 @@ mod tests {
         );
 
         assert_eq!(
+            vec![MeshValidationError::MissingRequiredVertexAttributes {
+                mesh_object_index: 0,
+                mesh_name: "object1".to_owned(),
+                material_label: "a".to_owned(),
+                missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+            }],
+            validation.mesh_errors
+        );
+
+        assert_eq!(
             r#"Mesh "object1" is missing attributes map1, uvSet required by assigned material "a"."#,
             format!("{}", validation.matl_errors[0])
+        );
+
+        assert_eq!(
+            r#"Mesh "object1" is missing attributes map1, uvSet required by assigned material "a"."#,
+            format!("{}", validation.mesh_errors[0])
         );
     }
 

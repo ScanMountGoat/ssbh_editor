@@ -5,7 +5,11 @@ use log::error;
 use rfd::FileDialog;
 use ssbh_data::{mesh_data::MeshObjectData, prelude::*};
 
-use crate::{app::UiState, widgets::bone_combo_box};
+use crate::{
+    app::{warning_icon, UiState},
+    validation::MeshValidationError,
+    widgets::bone_combo_box,
+};
 
 pub fn mesh_editor(
     ctx: &egui::Context,
@@ -14,6 +18,7 @@ pub fn mesh_editor(
     file_name: &str,
     mesh: &mut MeshData,
     skel: Option<&SkelData>,
+    validation_errors: &[MeshValidationError],
     ui_state: &mut UiState,
 ) -> (bool, bool) {
     let mut open = true;
@@ -126,13 +131,20 @@ pub fn mesh_editor(
                             let id = egui::Id::new("mesh").with(i);
 
                             // TODO: Reorder mesh objects?
-                            if *advanced_mode {
-                                // TODO: Link name edits with the numdlb and numshexb.
-                                // This will need to check for duplicate names.
-                                changed |= ui.text_edit_singleline(&mut mesh_object.name).changed();
-                            } else {
-                                ui.label(&mesh_object.name);
-                            }
+                            ui.horizontal(|ui| {
+                                // TODO: Show error details on hover.
+                                // TODO: Add convenient methods to simplify this?
+                                if let Some(_) = validation_errors.iter().find(|e| match e {
+                                    MeshValidationError::MissingRequiredVertexAttributes {
+                                        mesh_object_index,
+                                        ..
+                                    } => *mesh_object_index == i,
+                                }) {
+                                    warning_icon(ui);
+                                }
+
+                                changed |= edit_name(ui, mesh_object, *advanced_mode);
+                            });
 
                             if *advanced_mode {
                                 changed |= ui
@@ -203,6 +215,18 @@ pub fn mesh_editor(
         });
 
     (open, changed)
+}
+
+fn edit_name(ui: &mut egui::Ui, mesh_object: &mut MeshObjectData, advanced_mode: bool) -> bool {
+    let mut changed = false;
+    if advanced_mode {
+        // TODO: Link name edits with the numdlb and numshexb.
+        // This will need to check for duplicate names.
+        changed |= ui.text_edit_singleline(&mut mesh_object.name).changed();
+    } else {
+        ui.label(&mesh_object.name);
+    }
+    changed
 }
 
 fn match_mesh_order(mesh: &mut MeshData, reference: &MeshData) {

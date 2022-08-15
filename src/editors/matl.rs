@@ -509,17 +509,20 @@ fn edit_shader_label(
     shader_label: &mut String,
     is_valid: bool,
     red_checkerboard: egui::TextureId,
-) {
+) -> bool {
+    let mut changed = false;
     if is_valid {
-        ui.text_edit_singleline(shader_label);
+        changed |= ui.text_edit_singleline(shader_label).changed();
     } else {
         ui.horizontal(|ui| {
             ui.image(red_checkerboard, egui::Vec2::new(16.0, 16.0));
-            ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED));
+            changed |= ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED)).changed();
         })
         .response
         .on_hover_text(format!("{} is not a valid shader label. Copy an existing shader label or apply a material preset.", shader_label));
     }
+
+    changed
 }
 
 fn matl_entry_editor(
@@ -538,10 +541,9 @@ fn matl_entry_editor(
     let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
 
     ui.heading("Shader");
-    // TODO: This doesn't always update properly in the viewport.
     ui.horizontal(|ui| {
         ui.label("Shader Label");
-        edit_shader_label(
+        changed |= edit_shader_label(
             ui,
             &mut entry.shader_label,
             program.is_some(),

@@ -498,6 +498,12 @@ impl SsbhApp {
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
                     if let Some((name, Ok(mesh))) = model.meshes.get_mut(mesh_index) {
+                        let validation_errors = self
+                        .validation_errors
+                        .get(folder_index)
+                        .map(|v| v.mesh_errors.as_slice())
+                        .unwrap_or_default();
+
                         let (open, changed) = mesh_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
@@ -505,6 +511,7 @@ impl SsbhApp {
                             name,
                             mesh,
                             find_file(&model.skels, "model.nusktb"),
+                            validation_errors,
                             &mut self.ui_state,
                         );
                         file_changed |= changed;
