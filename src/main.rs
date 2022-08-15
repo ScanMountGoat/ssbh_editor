@@ -114,7 +114,7 @@ fn main() {
     )
     .unwrap();
 
-    let event_loop = winit::event_loop::EventLoop::with_user_event();
+    let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
     let window = winit::window::WindowBuilder::new()
         .with_decorations(true)
         .with_resizable(true)
