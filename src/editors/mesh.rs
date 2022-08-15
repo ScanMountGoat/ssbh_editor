@@ -96,6 +96,16 @@ pub fn mesh_editor(
                         }
                     }
 
+                    if let Some(mesh_object) = ui_state
+                        .selected_mesh_attributes_index
+                        .and_then(|index| mesh.objects.get(index))
+                    {
+                        let open = attributes_window(ctx, mesh_object);
+                        if !open {
+                            ui_state.selected_mesh_attributes_index = None;
+                        }
+                    }
+
                     ui.checkbox(advanced_mode, "Advanced Settings");
 
                     // TODO: Use a separate scroll area for this?
@@ -103,13 +113,14 @@ pub fn mesh_editor(
                     egui::Grid::new("mesh_grid").show(ui, |ui| {
                         // TODO: Show tooltips for header names?
                         ui.heading("Name");
+                        ui.heading("Sub Index");
                         ui.heading("Parent Bone");
-                        ui.heading("Influences");
+                        ui.heading("");
+                        ui.heading("");
                         if *advanced_mode {
-                            ui.heading("Sub Index");
                             ui.heading("Sort Bias");
-                            ui.heading("Depth Write");
-                            ui.heading("Depth Test");
+                            ui.heading("");
+                            ui.heading("");
                         }
                         ui.end_row();
 
@@ -117,13 +128,20 @@ pub fn mesh_editor(
                             let id = egui::Id::new("mesh").with(i);
 
                             // TODO: Reorder mesh objects?
-                            // TODO: Unique names?
                             if *advanced_mode {
                                 // TODO: Link name edits with the numdlb and numshexb.
                                 // This will need to check for duplicate names.
                                 changed |= ui.text_edit_singleline(&mut mesh_object.name).changed();
                             } else {
                                 ui.label(&mesh_object.name);
+                            }
+
+                            if *advanced_mode {
+                                changed |= ui
+                                    .add(egui::DragValue::new(&mut mesh_object.sub_index))
+                                    .changed();
+                            } else {
+                                ui.label(mesh_object.sub_index.to_string());
                             }
 
                             // TODO: Are parent bones and influences mutually exclusive?
@@ -136,7 +154,11 @@ pub fn mesh_editor(
                                 &[""],
                             );
 
-                            // Open influences in a separate window since they won't fit in the grid.
+                            // Open in a separate window since they won't fit in the grid.
+                            if ui.button("Vertex Attributes...").clicked() {
+                                ui_state.selected_mesh_attributes_index = Some(i);
+                            }
+
                             if !mesh_object.bone_influences.is_empty() {
                                 if ui.button("Bone Influences...").clicked() {
                                     ui_state.selected_mesh_influences_index = Some(i);
@@ -147,9 +169,6 @@ pub fn mesh_editor(
                             }
 
                             if *advanced_mode {
-                                changed |= ui
-                                    .add(egui::DragValue::new(&mut mesh_object.sub_index))
-                                    .changed();
                                 changed |= ui
                                     .add(egui::DragValue::new(&mut mesh_object.sort_bias))
                                     .changed();
@@ -214,6 +233,64 @@ fn influences_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool 
                 for influence in &mesh_object.bone_influences {
                     ui.label(&influence.bone_name);
                     ui.label(influence.vertex_weights.len().to_string());
+                    ui.end_row();
+                }
+            })
+        });
+    open
+}
+
+fn attributes_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool {
+    let mut open = true;
+    egui::Window::new(format!("Vertex Attributes ({})", mesh_object.name))
+        .open(&mut open)
+        .show(ctx, |ui| {
+            // TODO: Add/remove attributes using default values.
+            // TODO: Don't allow removing position,normal,tangent?
+            // TODO: Link the matl to add required attributes.
+            egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
+                ui.heading("Name");
+                ui.heading("Usage");
+                ui.heading("Vertex Count");
+                ui.end_row();
+
+                // Vertex buffer 0.
+                for a in &mesh_object.positions {
+                    ui.label(&a.name);
+                    ui.label("Position");
+                    ui.label(a.data.len().to_string());
+                    ui.end_row();
+                }
+                for a in &mesh_object.normals {
+                    ui.label(&a.name);
+                    ui.label("Normal");
+                    ui.label(a.data.len().to_string());
+                    ui.end_row();
+                }
+                for a in &mesh_object.tangents {
+                    ui.label(&a.name);
+                    ui.label("Tangent");
+                    ui.label(a.data.len().to_string());
+                    ui.end_row();
+                }
+                for a in &mesh_object.binormals {
+                    ui.label(&a.name);
+                    ui.label("Binormal (Bitangent)");
+                    ui.label(a.data.len().to_string());
+                    ui.end_row();
+                }
+
+                // Vertex buffer 1.
+                for a in &mesh_object.texture_coordinates {
+                    ui.label(&a.name);
+                    ui.label("Texture Coordinate (UV)");
+                    ui.label(a.data.len().to_string());
+                    ui.end_row();
+                }
+                for a in &mesh_object.color_sets {
+                    ui.label(&a.name);
+                    ui.label("Color Set (Vertex Color)");
+                    ui.label(a.data.len().to_string());
                     ui.end_row();
                 }
             })

@@ -20,8 +20,8 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, RichText,
-    ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
+    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Grid,
+    RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
 use log::Log;
 use once_cell::sync::Lazy;
@@ -111,6 +111,7 @@ pub struct UiState {
     pub material_editor_open: bool,
     pub render_settings_open: bool,
     pub camera_settings_open: bool,
+    pub stage_lighting_open: bool,
     pub preset_editor_open: bool,
     pub right_panel_tab: PanelTab,
     pub modl_editor_advanced_mode: bool,
@@ -133,6 +134,7 @@ pub struct UiState {
     pub selected_meshex_index: Option<usize>,
 
     pub selected_mesh_influences_index: Option<usize>,
+    pub selected_mesh_attributes_index: Option<usize>,
 
     pub matl_preset_window_open: bool,
     pub selected_material_preset_index: usize,
@@ -362,6 +364,8 @@ impl SsbhApp {
         if self.ui_state.camera_settings_open {
             self.should_refresh_camera_settings = true;
         }
+
+        stage_lighting_window(ctx, &mut self.ui_state.stage_lighting_open);
 
         log_window(ctx, &mut self.ui_state.log_window_open);
 
@@ -1012,6 +1016,11 @@ impl SsbhApp {
                     self.ui_state.camera_settings_open = true;
                 }
 
+                if ui.button("Stage Lighting").clicked() {
+                    ui.close_menu();
+                    self.ui_state.stage_lighting_open = true;
+                }
+
                 if ui.button("Material Presets").clicked() {
                     ui.close_menu();
                     self.ui_state.preset_editor_open = true;
@@ -1318,5 +1327,46 @@ pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut 
                     *camera_state = CameraInputState::default();
                 }
             });
+        });
+}
+
+pub fn stage_lighting_window(ctx: &egui::Context, open: &mut bool) {
+    // TODO: Track changes.
+    Window::new("Stage Lighting")
+        .open(open)
+        .resizable(false)
+        .show(ctx, |ui| {
+            Grid::new("stage_lighting").show(ui, |ui| {
+                // TODO: Store the file paths.
+                // TODO: Show the full path on hover?
+                // TODO: Add a reset button to the menu?
+                // TODO: Add File > Load render folder...?
+                // TODO: Make the files buttons to load corresponding editors?
+                ui.label("Lighting");
+                ui.label("light00.nuanmb");
+                if ui.button("Select file...").clicked() {};
+                ui.end_row();
+
+                ui.label("Reflection Cube Map");
+                ui.label("reflection_cubemap.nutexb");
+                if ui.button("Select file...").clicked() {};
+                ui.end_row();
+
+                ui.label("Color Grading LUT");
+                ui.label("color_grading_lut.nutexb");
+                if ui.button("Select file...").clicked() {};
+                ui.end_row();
+
+                ui.label("Chara Spherical Harmonic Lighting");
+                ui.label("chara.shpcanim");
+                if ui.button("Select file...").clicked() {};
+                ui.end_row();
+
+                ui.label("Stage Spherical Harmonic Lighting");
+                ui.label("stage.shpcanim");
+                if ui.button("Select file...").clicked() {};
+                ui.end_row();
+            });
+            if ui.button("Reset").clicked() {};
         });
 }
