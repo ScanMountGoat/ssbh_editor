@@ -7,12 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added a graph viewer tab to the anim editor for graphing animated values over time
 * Added a field of view (fov) option to the Camera Settings window.
+* Added an option to match order from a numshb file in the Mesh Editor.
+* Added an option to match order from a nustkb file in the Skel Editor.
+* Added a window for viewing and editing vertex attributes to the Mesh Editor.
+* Added remaining fields to the Hlpb Editor.
 
 ### Changed
 * Changed RGBA channel toggles to use toggle buttons to be more compact than checkboxes.
+* Adjusted the layout of the Hlpb Editor to be more compact.
+* Improvements to UI layout and consistency.
+* Numshb files now show validation errors for missing required attributes.
 
 ### Fixed
 * Fixed an issue where hiding a model folder had no effect when using debug shading.
+* Fixed an issue changing the unk type for orient constraints in the Hlpb Editor.
 
 ## 0.5.2
 ### Added
