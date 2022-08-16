@@ -196,15 +196,28 @@ impl SsbhApp {
 
     pub fn add_folder_to_workspace(&mut self) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            // TODO: Should this not be recursive?
             // Users may want to load multiple animation folders at once for stages.
             let new_models = load_models_recursive(&folder);
 
-            // TODO: Automatically assign model.nuanmb.
-            // Add a dummy animation to prompt the user to select one.
             self.animation_state
                 .animations
-                .extend(vec![vec![AnimationSlot::new()]; new_models.len()]);
+                .extend(new_models.iter().enumerate().map(|(i, model)| {
+                    if let Some(anim_index) =
+                        model.anims.iter().position(|(f, _)| f == "model.nuanmb")
+                    {
+                        // The model.nuanmb always plays, so assign it automatically.
+                        vec![AnimationSlot {
+                            is_enabled: true,
+                            animation: Some(AnimationIndex {
+                                folder_index: self.models.len() + i,
+                                anim_index,
+                            }),
+                        }]
+                    } else {
+                        // Add a dummy animation to prompt the user to select one.
+                        vec![AnimationSlot::new()]
+                    }
+                }));
 
             self.models.extend(new_models);
             // TODO: Only update the models that were added?
@@ -1094,11 +1107,11 @@ fn is_model_folder(model: &ModelFolder) -> bool {
 
 fn folder_display_name(model: &ModelFolder) -> PathBuf {
     // Get enough components to differentiate folder paths.
-    // fighter/mario/motion/body/c00 -> motion/body/c00
+    // fighter/mario/motion/body/c00 -> mario/motion/body/c00
     Path::new(&model.folder_name)
         .components()
         .rev()
-        .take(3)
+        .take(4)
         .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc))
 }
 
