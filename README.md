@@ -1,7 +1,10 @@
 # ssbh_editor
 [![wiki](https://img.shields.io/badge/wiki-guide-success)](https://github.com/ScanMountGoat/ssbh_editor/wiki)
 
-SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Report bugs or request new features in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases). Make sure your system meets the [system requirements](#system-requirements).
+SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate. Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases). Make sure your system meets the [system requirements](#system-requirements).
+
+Check out [discussions](https://github.com/ScanMountGoat/ssbh_editor/discussions) for asking questions or suggesting new features. 
+Report bugs in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues).
 
 ## Features
 SSBH Editor supports a number of model file types. Some files will render in the viewport if present but need to be edited with external applications like nutexb files.
