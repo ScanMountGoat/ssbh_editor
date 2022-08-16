@@ -219,6 +219,7 @@ impl SsbhApp {
             *model = ModelFolder::load_folder(&model.folder_name);
         }
         self.should_reload_models = true;
+        self.should_validate_models = true;
     }
 
     pub fn clear_workspace(&mut self) {
