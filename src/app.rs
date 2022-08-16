@@ -20,7 +20,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Grid,
+    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Grid, Label,
     Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
 use log::Log;
@@ -1173,15 +1173,21 @@ pub fn empty_icon(ui: &mut Ui) {
 }
 
 pub fn missing_icon(ui: &mut Ui) {
-    ui.label(RichText::new("⚠").size(ICON_SIZE));
+    ui.add_sized(
+        [ICON_SIZE, ICON_SIZE],
+        Label::new(RichText::new("⚠").size(ICON_SIZE)),
+    );
 }
 
 pub fn warning_icon(ui: &mut Ui) -> Response {
-    ui.label(
-        RichText::new("⚠")
-            .strong()
-            .color(egui::Color32::from_rgb(255, 210, 0))
-            .size(ICON_SIZE),
+    ui.add_sized(
+        [ICON_SIZE, ICON_SIZE],
+        Label::new(
+            RichText::new("⚠")
+                .strong()
+                .color(egui::Color32::from_rgb(255, 210, 0))
+                .size(ICON_SIZE),
+        ),
     )
 }
 
@@ -1196,11 +1202,14 @@ pub fn display_validation_errors<E: std::fmt::Display>(ui: &mut Ui, errors: &[E]
 }
 
 pub fn error_icon(ui: &mut Ui) -> Response {
-    ui.label(
-        RichText::new("⚠")
-            .strong()
-            .color(ERROR_COLOR)
-            .size(ICON_SIZE),
+    ui.add_sized(
+        [ICON_SIZE, ICON_SIZE],
+        Label::new(
+            RichText::new("⚠")
+                .strong()
+                .color(ERROR_COLOR)
+                .size(ICON_SIZE),
+        ),
     )
 }
 
