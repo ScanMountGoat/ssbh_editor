@@ -209,6 +209,7 @@ impl SsbhApp {
             self.models.extend(new_models);
             // TODO: Only update the models that were added?
             self.should_reload_models = true;
+            self.should_validate_models = true;
         }
     }
 
