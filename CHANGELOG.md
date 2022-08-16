@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed a crash when resizing the window to be as small as possible.
 * Fixed a rendering issue where CustomBoolean4 failed to toggle indirect specular in the viewport.
 * Fixed an issue where some materials would incorrectly render as having specular lighting.
+* Fixed an issue where validation errors failed to update when opening folders or reloading the workspace.
 
 ## 0.5.1
 ### Added
