@@ -47,7 +47,8 @@ SSBH Editor provides a more intuitive and robust visual editing experience compa
 - Improved editor for animations
 
 ## System Requirements
-SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal.
+SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal. SSBH Editor for Windows 
+requires the Visual C++ 2015 runtime, which can be downloaded from https://www.microsoft.com/en-us/download/details.aspx?id=52685. Linux or MacOS users shouldn't need to install anything to run SSBH Editor.
 
 ## Limitations
 SSBH Editor simulates key components of Smash Ultimate's rendering engine that works well for most in game and custom models while being lightweight and portable. Perfectly recreating the in game lighting and shading for every model is not a goal of this application. Not all game files that impact the appearance of a model are loaded or simulated by SSBH Editor.
