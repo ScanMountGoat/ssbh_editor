@@ -16,7 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed RGBA channel toggles to use toggle buttons to be more compact than checkboxes.
 * Adjusted the layout of the Hlpb Editor to be more compact.
 * Improvements to UI layout and consistency.
-* Numshb files now show validation errors for missing required attributes.
+* Show validation errors for numshb files for missing required attributes.
+* Automatically load model.nuanmb animations when loading a folder.
 
 ### Fixed
 * Fixed an issue where hiding a model folder had no effect when using debug shading.
@@ -44,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added wireframe rendering to debug shading.
 * Added bone axes rendering for showing accumulated bone world orientations.
-* Hovering over a material in the material selector now shows the effected meshes in the viewport.
+* Show the effected meshes in the viewport when hovering over a material in the material selector.
 * Added additional fields to Hlpb Editor
 
 ### Changed
@@ -80,19 +81,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Improved layout of validation error messages when hovering over a file.
-* Errors when loading or saving the presets.json file now show in the application log.
+* Errors when loading or saving the presets.json file show in the application log.
 * Adjusted the layout of the material editor to be more consistent.
 * Changed the material preset selector to not be resizable to avoid text wrapping.
-* Selected meshes and models in the mesh list now render an outline on hover.
+* Selected meshes and models in the mesh list render an outline on hover.
 * Changed the widget for editing float values to more clearly indicate the value and be easier to use.
 * Adjusted the UI for improved layout consistency.
 * Changed the Vector4 labels in the Matl Editor to be more descriptive in normal and advanced mode.
 * Adjusted keyboard shortcuts on MacOS to use the command key instead of ctrl.
-* The Matl editor now always shows the render pass selector.
+* Always show the render pass selector in the Matl Editor.
 * Wrap coordinate values outside the 0.0 to 1.0 range for UV debug modes similar to a repeat wrap mode.
 * Animations are automatically associated with individual model folders and assignable from the Animations tab instead of the Files list.
 * Models will show up in debug shading modes or selected outlines even if no material is properly assigned.
-* Material presets and application settings are now stored in an application data directory. See the README for details.
+* Moved material presets and application settings to an application data directory. See the README for details.
 
 ## 0.4.1
 ### Added
