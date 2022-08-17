@@ -70,6 +70,7 @@ pub struct SsbhApp {
     pub should_refresh_camera_settings: bool,
     // TODO: Track what files changed in each folder?
     pub should_validate_models: bool,
+    pub should_update_lighting: bool,
 
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
@@ -142,6 +143,7 @@ pub struct UiState {
     pub matl_editor: MatlEditorState,
     pub preset_editor: MatlEditorState,
     pub anim_editor: AnimEditorState,
+    pub stage_lighting: StageLightingState,
 }
 
 #[derive(Default)]
@@ -150,6 +152,15 @@ pub struct MatlEditorState {
     pub selected_material_index: usize,
     pub is_editing_material_label: bool,
     pub hovered_material_index: Option<usize>,
+}
+
+#[derive(Default)]
+pub struct StageLightingState {
+    pub light: PathBuf,
+    pub reflection_cube_map: PathBuf,
+    pub color_grading_lut: PathBuf,
+    pub chara_shpc: PathBuf,
+    pub stage_shpc: PathBuf,
 }
 
 #[derive(PartialEq, Eq)]
@@ -380,7 +391,11 @@ impl SsbhApp {
             self.should_refresh_camera_settings = true;
         }
 
-        stage_lighting_window(ctx, &mut self.ui_state.stage_lighting_open);
+        self.should_update_lighting |= stage_lighting_window(
+            ctx,
+            &mut self.ui_state.stage_lighting_open,
+            &mut self.ui_state.stage_lighting,
+        );
 
         log_window(ctx, &mut self.ui_state.log_window_open);
 
@@ -578,6 +593,7 @@ impl SsbhApp {
                             if let Some(render_model) = self.render_models.get_mut(folder_index) {
                                 // TODO: Is it worth optimizing this to only effect certain materials?
                                 // Only the model.numatb is rendered in the viewport for now.
+                                // TODO: Move rendering code out of app.rs.
                                 if name == "model.numatb" {
                                     render_model.recreate_materials(
                                         &self.render_state.device,
@@ -1371,43 +1387,98 @@ pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut 
         });
 }
 
-pub fn stage_lighting_window(ctx: &egui::Context, open: &mut bool) {
-    // TODO: Track changes.
+pub fn stage_lighting_window(
+    ctx: &egui::Context,
+    open: &mut bool,
+    state: &mut StageLightingState,
+) -> bool {
+    let mut changed = false;
     Window::new("Stage Lighting")
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
+            let path_label = |ui: &mut Ui, path: &Path| {
+                ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
+                    .on_hover_ui(|ui| {
+                        ui.add(Label::new(path.to_string_lossy()).wrap(false));
+                    });
+            };
+
             Grid::new("stage_lighting").show(ui, |ui| {
-                // TODO: Store the file paths.
-                // TODO: Show the full path on hover?
                 // TODO: Add a reset button to the menu?
                 // TODO: Add File > Load render folder...?
                 // TODO: Make the files buttons to load corresponding editors?
                 ui.label("Lighting");
-                ui.label("light00.nuanmb");
-                if ui.button("Select file...").clicked() {};
+                path_label(ui, &state.light);
+                if ui.button("Select file...").clicked() {
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Lighting Anim", &["nuanmb"])
+                        .pick_file()
+                    {
+                        state.light = file;
+                        changed = true;
+                    };
+                }
                 ui.end_row();
 
                 ui.label("Reflection Cube Map");
-                ui.label("reflection_cubemap.nutexb");
-                if ui.button("Select file...").clicked() {};
+                path_label(ui, &state.reflection_cube_map);
+                if ui.button("Select file...").clicked() {
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Cube Map Nutexb", &["nutexb"])
+                        .pick_file()
+                    {
+                        state.reflection_cube_map = file;
+                        changed = true;
+                    };
+                };
                 ui.end_row();
 
                 ui.label("Color Grading LUT");
-                ui.label("color_grading_lut.nutexb");
-                if ui.button("Select file...").clicked() {};
+                path_label(ui, &state.color_grading_lut);
+                if ui.button("Select file...").clicked() {
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Color Grading LUT", &["nutexb"])
+                        .pick_file()
+                    {
+                        state.color_grading_lut = file;
+                        changed = true;
+                    };
+                };
                 ui.end_row();
 
                 ui.label("Chara Spherical Harmonic Lighting");
-                ui.label("chara.shpcanim");
-                if ui.button("Select file...").clicked() {};
+                path_label(ui, &state.chara_shpc);
+                if ui.button("Select file...").clicked() {
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Chara SHCPANIM", &["shpcanim"])
+                        .pick_file()
+                    {
+                        state.chara_shpc = file;
+                        changed = true;
+                    };
+                };
                 ui.end_row();
 
                 ui.label("Stage Spherical Harmonic Lighting");
-                ui.label("stage.shpcanim");
-                if ui.button("Select file...").clicked() {};
+                path_label(ui, &state.stage_shpc);
+                if ui.button("Select file...").clicked() {
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Stage SHCPANIM", &["shpcanim"])
+                        .pick_file()
+                    {
+                        state.stage_shpc = file;
+                        changed = true;
+                    };
+                };
                 ui.end_row();
             });
-            if ui.button("Reset").clicked() {};
+
+            if ui.button("Reset").clicked() {
+                // TODO: Use unwrap_or_default in main.rs to handle this?
+                *state = StageLightingState::default();
+                changed = true;
+            };
         });
+    changed
 }

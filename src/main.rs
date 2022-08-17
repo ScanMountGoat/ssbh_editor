@@ -3,9 +3,13 @@
 use chrono::{DateTime, Utc};
 use egui::color::linear_f32_from_gamma_u8;
 use egui::Visuals;
+use log::error;
+use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
-use pollster::FutureExt; // TODO: is this redundant with tokio?
+use pollster::FutureExt;
+use ssbh_data::prelude::*;
+// TODO: is this redundant with tokio?
 use ssbh_editor::app::{SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::AppPreferences;
@@ -278,6 +282,7 @@ fn main() {
         should_reload_models: false,
         should_show_update,
         new_release_tag,
+        should_update_lighting: false,
         should_refresh_render_settings: false,
         should_refresh_camera_settings: false,
         should_validate_models: false,
@@ -359,6 +364,11 @@ fn main() {
                             window.scale_factor() as f32,
                         );
                         renderer.set_scissor_rect(scissor_rect);
+
+                        if app.should_update_lighting {
+                            update_lighting(&mut renderer, &mut app);
+                            app.should_update_lighting = false;
+                        }
 
                         // TODO: Load models on a separate thread to avoid freezing the UI.
                         if app.should_reload_models {
@@ -563,6 +573,56 @@ fn main() {
             }
         },
     );
+}
+
+fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
+    // TODO: Use defaults for empty paths.
+    // light00.nuamb
+    match AnimData::from_file(&app.ui_state.stage_lighting.light) {
+        Ok(data) => {
+            renderer.update_stage_uniforms(&app.render_state.queue, &data);
+        }
+        Err(e) => error!(
+            "Error reading {:?}: {}",
+            app.ui_state.stage_lighting.light, e
+        ),
+    }
+
+    // reflection_cubemap.nutexb
+    match NutexbFile::read_from_file(&app.ui_state.stage_lighting.reflection_cube_map) {
+        Ok(nutexb) => {
+            app.render_state.shared_data.update_stage_cube_map(
+                &app.render_state.device,
+                &app.render_state.queue,
+                &nutexb,
+            );
+            // Updating the cube map requires reassigning model textures.
+            for (render_model, model) in app.render_models.iter_mut().zip(app.models.iter()) {
+                if let Some(matl) = model.find_matl() {
+                    render_model.recreate_materials(
+                        &app.render_state.device,
+                        &matl.entries,
+                        &app.render_state.shared_data,
+                    );
+                }
+            }
+        }
+        Err(e) => error!(
+            "Error reading {:?}: {}",
+            app.ui_state.stage_lighting.reflection_cube_map, e
+        ),
+    }
+
+    // color_grading_lut.nutexb
+    match NutexbFile::read_from_file(&app.ui_state.stage_lighting.color_grading_lut) {
+        Ok(nutexb) => {
+            renderer.update_color_lut(&app.render_state.device, &app.render_state.queue, &nutexb);
+        }
+        Err(e) => error!(
+            "Error reading {:?}: {}",
+            app.ui_state.stage_lighting.color_grading_lut, e
+        ),
+    }
 }
 
 fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::RenderPass) {
