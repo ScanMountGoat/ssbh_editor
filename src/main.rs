@@ -363,6 +363,9 @@ fn main() {
                         // TODO: Load models on a separate thread to avoid freezing the UI.
                         if app.should_reload_models {
                             reload_models(&mut app, &mut egui_rpass);
+                            if app.preferences.autohide_expressions {
+                                app.hide_expressions();
+                            }
                             app.should_reload_models = false;
                         }
 
