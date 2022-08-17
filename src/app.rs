@@ -1069,7 +1069,7 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "Help", |ui| {
-                if ui.button("SSBH Editor Wiki").clicked() {
+                if ui.button("Wiki").clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";
                     if let Err(e) = open::that(link) {
@@ -1077,7 +1077,15 @@ impl SsbhApp {
                     }
                 }
 
-                if ui.button("Report Issues").clicked() {
+                if ui.button("Discussion Forum").clicked() {
+                    ui.close_menu();
+                    let link = "https://github.com/ScanMountGoat/ssbh_editor/discussions";
+                    if let Err(e) = open::that(link) {
+                        log::error!("Failed to open {link}: {e}");
+                    }
+                }
+
+                if ui.button("Report Issue").clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
                     if let Err(e) = open::that(link) {
