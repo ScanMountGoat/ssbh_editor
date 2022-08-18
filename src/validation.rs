@@ -1,5 +1,6 @@
-use std::{error::Error, fmt::Display, path::Path};
+use std::{collections::HashSet, error::Error, fmt::Display, path::Path};
 
+use itertools::Itertools;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
@@ -23,6 +24,12 @@ impl ModelValidationErrors {
     pub fn from_model(model: &ModelFolder, shader_database: &ShaderDatabase) -> Self {
         let mut validation = Self::default();
 
+        let mesh = model.find_mesh();
+
+        if let Some(mesh) = mesh {
+            validate_mesh_subindices(&mut validation, mesh);
+        }
+
         // Each validation check may add errors to multiple related files.
         if let Some(matl) = model.find_matl() {
             validate_required_attributes(
@@ -40,7 +47,7 @@ impl ModelValidationErrors {
                 matl,
                 model.find_adj(),
                 model.find_modl(),
-                model.find_mesh(),
+                mesh,
             );
 
             // TODO: Validate mismatches with cube maps and 2D textures.
@@ -58,6 +65,26 @@ pub enum MeshValidationError {
         material_label: String,
         missing_attributes: Vec<String>,
     },
+    DuplicateSubindex {
+        mesh_object_index: usize,
+        mesh_name: String,
+        subindex: u64,
+    },
+}
+
+impl MeshValidationError {
+    pub fn mesh_index(&self) -> usize {
+        // Use the index to associate errors to mesh objects.
+        // The mesh name isn't always unique.
+        match self {
+            Self::MissingRequiredVertexAttributes {
+                mesh_object_index, ..
+            } => *mesh_object_index,
+            Self::DuplicateSubindex {
+                mesh_object_index, ..
+            } => *mesh_object_index,
+        }
+    }
 }
 
 impl Display for MeshValidationError {
@@ -74,6 +101,15 @@ impl Display for MeshValidationError {
                 mesh_name,
                 missing_attributes.join(", "),
                 material_label
+            ),
+            MeshValidationError::DuplicateSubindex {
+                mesh_name,
+                subindex,
+                ..
+            } => write!(
+                f,
+                "Mesh {:?} repeats subindex {}. Subindices must be unique.",
+                mesh_name, subindex
             ),
         }
     }
@@ -234,7 +270,7 @@ fn validate_required_attributes(
                         .iter()
                         .filter(|e| e.material_label == entry.material_label)
                         .any(|e| {
-                            e.mesh_object_name == o.name && e.mesh_object_sub_index == o.sub_index
+                            e.mesh_object_name == o.name && e.mesh_object_subindex == o.subindex
                         })
                 }) {
                     // Find attributes required by the shader not present in the mesh.
@@ -328,8 +364,7 @@ fn validate_renormal_material_entries(
                         .filter(|e| e.material_label == entry.material_label)
                         .filter_map(|e| {
                             mesh.objects.iter().find(|o| {
-                                o.name == e.mesh_object_name
-                                    && o.sub_index == e.mesh_object_sub_index
+                                o.name == e.mesh_object_name && o.subindex == e.mesh_object_subindex
                             })
                         })
                         .enumerate()
@@ -381,6 +416,34 @@ fn is_srgb(format: NutexbFormat) -> bool {
             | NutexbFormat::BC3Srgb
             | NutexbFormat::BC7Srgb
     )
+}
+
+fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshData) {
+    // Subindices for mesh objects with the same name should be unique.
+    // This ensures material and vertex weights can be properly assigned.
+    let mut objects: Vec<_> = mesh
+        .objects
+        .iter()
+        .enumerate()
+        .map(|(i, m)| (i, &m.name, m.subindex))
+        .collect();
+
+    // We can't assume meshes are sorted for user numshb files.
+    objects.sort_by_key(|(_, name, _)| name.clone());
+    for (_, group) in &objects.iter().group_by(|(_, name, _)| name) {
+        // TODO: Is it worth optimizing this?
+        let mut seen = HashSet::new();
+        for (i, name, subindex) in group {
+            if !seen.insert(subindex) {
+                let error = MeshValidationError::DuplicateSubindex {
+                    mesh_object_index: *i,
+                    mesh_name: name.to_string(),
+                    subindex: *subindex,
+                };
+                validation.mesh_errors.push(error);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -438,7 +501,7 @@ mod tests {
             minor_version: 10,
             objects: vec![MeshObjectData {
                 name: "object1".to_owned(),
-                sub_index: 0,
+                subindex: 0,
                 ..Default::default()
             }],
         };
@@ -452,7 +515,7 @@ mod tests {
             mesh_file_name: String::new(),
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
-                mesh_object_sub_index: 0,
+                mesh_object_subindex: 0,
                 material_label: "a".to_owned(),
             }],
         };
@@ -519,7 +582,7 @@ mod tests {
             minor_version: 10,
             objects: vec![MeshObjectData {
                 name: "object1".to_owned(),
-                sub_index: 0,
+                subindex: 0,
                 ..Default::default()
             }],
         };
@@ -533,7 +596,7 @@ mod tests {
             mesh_file_name: String::new(),
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
-                mesh_object_sub_index: 0,
+                mesh_object_subindex: 0,
                 material_label: "a_RENORMAL".to_owned(),
             }],
         };
@@ -577,7 +640,7 @@ mod tests {
             minor_version: 10,
             objects: vec![MeshObjectData {
                 name: "object1".to_owned(),
-                sub_index: 0,
+                subindex: 0,
                 ..Default::default()
             }],
         };
@@ -591,7 +654,7 @@ mod tests {
             mesh_file_name: String::new(),
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
-                mesh_object_sub_index: 0,
+                mesh_object_subindex: 0,
                 material_label: "a_RENORMAL".to_owned(),
             }],
         };
@@ -686,6 +749,53 @@ mod tests {
         assert_eq!(
             r#"Texture "texture4" for material "a" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
             format!("{}", validation.matl_errors[1])
+        );
+    }
+
+    #[test]
+    fn mesh_subindices_single_duplicate() {
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "b".to_owned(),
+                    subindex: 1,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "c".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_mesh_subindices(&mut validation, &mesh);
+
+        assert_eq!(
+            vec![MeshValidationError::DuplicateSubindex {
+                mesh_object_index: 2,
+                mesh_name: "a".to_owned(),
+                subindex: 0
+            }],
+            validation.mesh_errors
+        );
+
+        assert_eq!(
+            r#"Mesh "a" repeats subindex 0. Subindices must be unique."#,
+            format!("{}", validation.mesh_errors[0])
         );
     }
 }

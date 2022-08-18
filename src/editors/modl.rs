@@ -73,7 +73,7 @@ pub fn modl_editor(
 
                 modl.entries.push(ModlEntryData {
                     mesh_object_name: String::from("PLACEHOLDER"),
-                    mesh_object_sub_index: 0,
+                    mesh_object_subindex: 0,
                     material_label: default_material,
                 });
             }
@@ -86,7 +86,7 @@ pub fn modl_editor(
                     .filter(|mesh| {
                         !modl.entries.iter().any(|e| {
                             e.mesh_object_name == mesh.name
-                                && e.mesh_object_sub_index == mesh.sub_index
+                                && e.mesh_object_subindex == mesh.subindex
                         })
                     })
                     .collect();
@@ -102,7 +102,7 @@ pub fn modl_editor(
                     for mesh in missing_entries {
                         modl.entries.push(ModlEntryData {
                             mesh_object_name: mesh.name.clone(),
-                            mesh_object_sub_index: mesh.sub_index,
+                            mesh_object_subindex: mesh.subindex,
                             material_label: default_material.clone(),
                         });
                     }

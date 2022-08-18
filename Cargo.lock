@@ -1966,7 +1966,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#705e88bc53820523ab0022a37a8d4ad301c67196"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#cd8e8e9ac9935bd7c51cab6f5d0b82ef2da09e19"
 dependencies = [
  "bytemuck",
  "log",
@@ -2812,7 +2812,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#5ce6f85e2ef8fe04c87dcb7f1a71511f7bf0c6af"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6f0f5a638aeea4709716e1e485c2519f15289832"
 dependencies = [
  "ahash",
  "binrw",
@@ -2841,6 +2841,7 @@ dependencies = [
  "egui-winit",
  "glam",
  "image",
+ "itertools",
  "log",
  "nutexb",
  "nutexb_wgpu",
@@ -2864,7 +2865,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#5ce6f85e2ef8fe04c87dcb7f1a71511f7bf0c6af"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6f0f5a638aeea4709716e1e485c2519f15289832"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2878,7 +2879,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#705e88bc53820523ab0022a37a8d4ad301c67196"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#cd8e8e9ac9935bd7c51cab6f5d0b82ef2da09e19"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2899,7 +2900,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#5ce6f85e2ef8fe04c87dcb7f1a71511f7bf0c6af"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6f0f5a638aeea4709716e1e485c2519f15289832"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2907,7 +2908,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#5ce6f85e2ef8fe04c87dcb7f1a71511f7bf0c6af"
+source = "git+https://github.com/ultimate-research/ssbh_lib#6f0f5a638aeea4709716e1e485c2519f15289832"
 dependencies = [
  "proc-macro2",
  "quote",

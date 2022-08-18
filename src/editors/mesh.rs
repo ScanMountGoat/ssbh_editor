@@ -116,7 +116,7 @@ pub fn mesh_editor(
                     egui::Grid::new("mesh_grid").show(ui, |ui| {
                         // TODO: Show tooltips for header names?
                         ui.heading("Name");
-                        ui.heading("Sub Index");
+                        ui.heading("Subindex");
                         ui.heading("Parent Bone");
                         ui.heading("");
                         ui.heading("");
@@ -135,14 +135,10 @@ pub fn mesh_editor(
                                 // TODO: Avoid allocating here.
                                 let errors: Vec<_> = validation_errors
                                     .iter()
-                                    .filter(|e| match e {
-                                        MeshValidationError::MissingRequiredVertexAttributes {
-                                            mesh_object_index,
-                                            ..
-                                        } => *mesh_object_index == i,
-                                    })
+                                    .filter(|e| e.mesh_index() == i)
                                     .collect();
 
+                                // TODO: Show errors on the appropriate field?
                                 if !errors.is_empty() {
                                     warning_icon(ui).on_hover_ui(|ui| {
                                         display_validation_errors(ui, &errors);
@@ -154,10 +150,10 @@ pub fn mesh_editor(
 
                             if *advanced_mode {
                                 changed |= ui
-                                    .add(egui::DragValue::new(&mut mesh_object.sub_index))
+                                    .add(egui::DragValue::new(&mut mesh_object.subindex))
                                     .changed();
                             } else {
-                                ui.label(mesh_object.sub_index.to_string());
+                                ui.label(mesh_object.subindex.to_string());
                             }
 
                             // TODO: Are parent bones and influences mutually exclusive?
@@ -338,17 +334,17 @@ mod tests {
             objects: vec![
                 MeshObjectData {
                     name: "a".to_owned(),
-                    sub_index: 0,
+                    subindex: 0,
                     ..Default::default()
                 },
                 MeshObjectData {
                     name: "a".to_owned(),
-                    sub_index: 1,
+                    subindex: 1,
                     ..Default::default()
                 },
                 MeshObjectData {
                     name: "b".to_owned(),
-                    sub_index: 0,
+                    subindex: 0,
                     ..Default::default()
                 },
             ],
@@ -363,13 +359,13 @@ mod tests {
         match_mesh_order(&mut mesh, &reference);
 
         assert_eq!("a", mesh.objects[0].name);
-        assert_eq!(0, mesh.objects[0].sub_index);
+        assert_eq!(0, mesh.objects[0].subindex);
 
         assert_eq!("a", mesh.objects[1].name);
-        assert_eq!(1, mesh.objects[1].sub_index);
+        assert_eq!(1, mesh.objects[1].subindex);
 
         assert_eq!("b", mesh.objects[2].name);
-        assert_eq!(0, mesh.objects[2].sub_index);
+        assert_eq!(0, mesh.objects[2].subindex);
     }
 
     #[test]
@@ -380,17 +376,17 @@ mod tests {
             objects: vec![
                 MeshObjectData {
                     name: "a".to_owned(),
-                    sub_index: 1,
+                    subindex: 1,
                     ..Default::default()
                 },
                 MeshObjectData {
                     name: "a".to_owned(),
-                    sub_index: 0,
+                    subindex: 0,
                     ..Default::default()
                 },
                 MeshObjectData {
                     name: "b".to_owned(),
-                    sub_index: 0,
+                    subindex: 0,
                     ..Default::default()
                 },
             ],
@@ -401,7 +397,7 @@ mod tests {
             minor_version: 10,
             objects: vec![MeshObjectData {
                 name: "b".to_owned(),
-                sub_index: 0,
+                subindex: 0,
                 ..Default::default()
             }],
         };
@@ -409,12 +405,12 @@ mod tests {
         match_mesh_order(&mut mesh, &reference);
 
         assert_eq!("b", mesh.objects[0].name);
-        assert_eq!(0, mesh.objects[0].sub_index);
+        assert_eq!(0, mesh.objects[0].subindex);
 
         assert_eq!("a", mesh.objects[1].name);
-        assert_eq!(1, mesh.objects[1].sub_index);
+        assert_eq!(1, mesh.objects[1].subindex);
 
         assert_eq!("a", mesh.objects[2].name);
-        assert_eq!(0, mesh.objects[2].sub_index);
+        assert_eq!(0, mesh.objects[2].subindex);
     }
 }
