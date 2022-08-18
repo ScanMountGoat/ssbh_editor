@@ -246,6 +246,8 @@ impl Display for HlpbValidationError {
     }
 }
 
+// TODO: Check size of surface for unneeded padding.
+// TODO: Check if footer data size matches actual data.
 pub struct NutexbValidationError;
 impl Display for NutexbValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

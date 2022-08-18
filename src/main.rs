@@ -407,7 +407,6 @@ fn main() {
                             app.should_validate_models = false;
                         }
 
-                        // TODO: How to handle model.nuanmb?
                         if app.animation_state.is_playing
                             || app.animation_state.should_update_animations
                         {

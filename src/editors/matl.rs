@@ -926,25 +926,23 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             changed |= ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1)).changed();
             ui.end_row();
 
-            // TODO: Make a function for this and share with bone parent index?
-            // TODO: Format as 1x, 2x, etc?
             ui.label("Max Anisotropy");
             egui::ComboBox::from_id_source(id.with("anis{:?}"))
                 .selected_text(
-                    param
+                    anisotropy_label(param
                         .data
-                        .max_anisotropy
-                        .map(|a| a.to_string())
-                        .unwrap_or_else(|| "None".to_owned()),
+                        .max_anisotropy)
                 )
                 .show_ui(ui, |ui| {
                     changed |= ui.selectable_value(&mut param.data.max_anisotropy, None, "None").changed();
                     ui.separator();
+
                     for variant in MaxAnisotropy::VARIANTS {
+                        let value = Some(MaxAnisotropy::from_str(variant).unwrap());
                         changed |= ui.selectable_value(
                             &mut param.data.max_anisotropy,
-                            Some(MaxAnisotropy::from_str(variant).unwrap()),
-                            variant.to_string(),
+                            value,
+                            anisotropy_label(value),
                         ).changed();
                     }
                 });
@@ -953,6 +951,19 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
     });
 
     changed
+}
+
+fn anisotropy_label(v: Option<MaxAnisotropy>) -> &'static str {
+    match v {
+        Some(v) => match v {
+            MaxAnisotropy::One => "1x",
+            MaxAnisotropy::Two => "2x",
+            MaxAnisotropy::Four => "4x",
+            MaxAnisotropy::Eight => "8x",
+            MaxAnisotropy::Sixteen => "16x",
+        },
+        None => "None",
+    }
 }
 
 fn edit_vector(
