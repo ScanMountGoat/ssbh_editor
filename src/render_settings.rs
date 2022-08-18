@@ -107,7 +107,10 @@ pub fn render_settings(
                         | DebugMode::UvSet1
                         | DebugMode::UvSet2
                 ) {
-                    ui.checkbox(&mut settings.use_uv_pattern, "UV Test Pattern");
+                    ui.horizontal(|ui| {
+                        ui.radio_value(&mut settings.use_uv_pattern, false, "UV Coords");
+                        ui.radio_value(&mut settings.use_uv_pattern, true, "UV Test Pattern");
+                    });
                 }
             }
             horizontal_separator_empty(ui);
