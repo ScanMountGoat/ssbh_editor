@@ -399,6 +399,8 @@ fn main() {
                             for (model, validation) in
                                 app.models.iter().zip(app.validation_errors.iter_mut())
                             {
+                                // TODO: Only update the folders that change.
+                                // Folders should be independent from one another.
                                 *validation = ModelValidationErrors::from_model(
                                     model,
                                     app.render_state.shared_data.database(),

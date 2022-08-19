@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::{Button, ScrollArea};
+use egui::{Button, ComboBox, ScrollArea, Ui};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{mesh_data::MeshObjectData, prelude::*};
@@ -102,7 +102,7 @@ pub fn mesh_editor(
 
                     if let Some(mesh_object) = ui_state
                         .selected_mesh_attributes_index
-                        .and_then(|index| mesh.objects.get(index))
+                        .and_then(|index| mesh.objects.get_mut(index))
                     {
                         let open = attributes_window(ctx, mesh_object);
                         if !open {
@@ -264,7 +264,17 @@ fn influences_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool 
     open
 }
 
-fn attributes_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool {
+fn edit_attribute_name(ui: &mut Ui, name: &mut String, id: egui::Id, valid_names: &[&str]) {
+    ComboBox::from_id_source(id)
+        .selected_text(name.as_str())
+        .show_ui(ui, |ui| {
+            for n in valid_names {
+                ui.selectable_value(name, n.to_string(), *n);
+            }
+        });
+}
+
+fn attributes_window(ctx: &egui::Context, mesh_object: &mut MeshObjectData) -> bool {
     let mut open = true;
     egui::Window::new(format!("Vertex Attributes ({})", mesh_object.name))
         .open(&mut open)
@@ -279,40 +289,62 @@ fn attributes_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool 
                 ui.end_row();
 
                 // Vertex buffer 0.
-                for a in &mesh_object.positions {
-                    ui.label(&a.name);
+                let id = ui.make_persistent_id("attr");
+                for (i, a) in mesh_object.positions.iter_mut().enumerate() {
+                    edit_attribute_name(ui, &mut a.name, id.with("pos").with(i), &["Position0"]);
                     ui.label("Position");
                     ui.label(a.data.len().to_string());
                     ui.end_row();
                 }
-                for a in &mesh_object.normals {
-                    ui.label(&a.name);
+                for (i, a) in mesh_object.normals.iter_mut().enumerate() {
+                    edit_attribute_name(ui, &mut a.name, id.with("nrm").with(i), &["Normal0"]);
                     ui.label("Normal");
                     ui.label(a.data.len().to_string());
                     ui.end_row();
                 }
-                for a in &mesh_object.tangents {
-                    ui.label(&a.name);
+                for (i, a) in mesh_object.tangents.iter_mut().enumerate() {
+                    edit_attribute_name(ui, &mut a.name, id.with("tan").with(i), &["Tangent0"]);
                     ui.label("Tangent");
                     ui.label(a.data.len().to_string());
                     ui.end_row();
                 }
-                for a in &mesh_object.binormals {
-                    ui.label(&a.name);
+                for (i, a) in mesh_object.binormals.iter_mut().enumerate() {
+                    edit_attribute_name(ui, &mut a.name, id.with("binrm").with(i), &["Binormal0"]);
                     ui.label("Binormal (Bitangent)");
                     ui.label(a.data.len().to_string());
                     ui.end_row();
                 }
 
                 // Vertex buffer 1.
-                for a in &mesh_object.texture_coordinates {
-                    ui.label(&a.name);
+                for (i, a) in mesh_object.texture_coordinates.iter_mut().enumerate() {
+                    edit_attribute_name(
+                        ui,
+                        &mut a.name,
+                        id.with("uv").with(i),
+                        &["map1", "bake1", "uvSet", "uvSet1", "uvSet2"],
+                    );
                     ui.label("Texture Coordinate (UV)");
                     ui.label(a.data.len().to_string());
                     ui.end_row();
                 }
-                for a in &mesh_object.color_sets {
-                    ui.label(&a.name);
+                for (i, a) in mesh_object.color_sets.iter_mut().enumerate() {
+                    edit_attribute_name(
+                        ui,
+                        &mut a.name,
+                        id.with("color").with(i),
+                        &[
+                            "colorSet1",
+                            "colorSet2",
+                            "colorSet2_1",
+                            "colorSet2_2",
+                            "colorSet2_3",
+                            "colorSet3",
+                            "colorSet4",
+                            "colorSet5",
+                            "colorSet6",
+                            "colorSet7",
+                        ],
+                    );
                     ui.label("Color Set (Vertex Color)");
                     ui.label(a.data.len().to_string());
                     ui.end_row();

@@ -57,6 +57,7 @@ impl ModelValidationErrors {
 }
 
 // TODO: Use thiserror instead?
+// TODO: Check for invalid attribute names.
 #[derive(Debug, PartialEq, Eq)]
 pub enum MeshValidationError {
     MissingRequiredVertexAttributes {
