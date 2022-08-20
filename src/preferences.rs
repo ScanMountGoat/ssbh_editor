@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppPreferences {
     pub dark_mode: bool,
+    pub autohide_expressions: bool,
 }
 
 impl AppPreferences {
@@ -43,7 +44,10 @@ impl AppPreferences {
 
 impl Default for AppPreferences {
     fn default() -> Self {
-        Self { dark_mode: true }
+        Self {
+            dark_mode: true,
+            autohide_expressions: false,
+        }
     }
 }
 
@@ -54,5 +58,9 @@ pub fn preferences_window(ctx: &egui::Context, preferences: &mut AppPreferences,
         .show(ctx, |ui| {
             // TODO: Add a toggle widget instead.
             ui.checkbox(&mut preferences.dark_mode, "Dark Mode");
+            ui.checkbox(
+                &mut preferences.autohide_expressions,
+                "Automatically Hide Expressions",
+            );
         });
 }
