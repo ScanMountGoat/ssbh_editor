@@ -1,4 +1,4 @@
-use egui::{CollapsingHeader, ScrollArea};
+use egui::{Grid, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
@@ -58,26 +58,27 @@ pub fn meshex_editor(
             ui.separator();
 
             // TODO: Add buttons to add missing entries and remove unused entries.
+            // TODO: Just recreate entries from a mesh to avoid dealing with names and bounding info?
+            // TODO: Preserve existing flags?
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    // TODO: Use a grid instead?
-                    let id = egui::Id::new("meshex");
-                    for (i, group) in meshex.mesh_object_groups.iter_mut().enumerate() {
-                        // TODO: Make names editable?
-                        // TODO: Show the stripped name?
-                        CollapsingHeader::new(&group.mesh_object_full_name)
-                            .default_open(true)
-                            .id_source(id.with(i))
-                            .show(ui, |ui| {
-                                for entry in &mut group.entry_flags {
-                                    ui.horizontal(|ui| {
-                                        ui.checkbox(&mut entry.draw_model, "Draw Model");
-                                        ui.checkbox(&mut entry.cast_shadow, "Cast Shadow");
-                                    });
-                                }
-                            });
-                    }
+                    // TODO: Show bounding sphere values?
+                    Grid::new("meshex_grid").show(ui, |ui| {
+                        ui.heading("Full Name");
+                        ui.heading("Name");
+                        ui.end_row();
+
+                        for group in &mut meshex.mesh_object_groups {
+                            for entry in &mut group.entry_flags {
+                                ui.label(&group.mesh_object_full_name);
+                                ui.label(&group.mesh_object_name);
+                                ui.checkbox(&mut entry.draw_model, "Draw Model");
+                                ui.checkbox(&mut entry.cast_shadow, "Cast Shadow");
+                                ui.end_row();
+                            }
+                        }
+                    });
                 });
         });
 

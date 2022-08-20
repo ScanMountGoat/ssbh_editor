@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added remaining fields to the Hlpb Editor.
 * Added validation errors for duplicate mesh subindices, which can lead to incorrect skin weights in game.
 * Added lighting window to Menu > Stage Lighting for loading files in the viewport for lighting, luts, and cube maps.
+* Added the MeshEx Editor for editing model.numshexb files.
 
 ### Changed
 * Changed RGBA channel toggles to use toggle buttons to be more compact than checkboxes.
