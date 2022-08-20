@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added an option to match order from a nustkb file in the Skel Editor.
 * Added a window for viewing and editing vertex attributes to the Mesh Editor.
 * Added remaining fields to the Hlpb Editor.
+* Added validation errors for duplicate mesh subindices, which can lead to incorrect skin weights in game.
 
 ### Changed
 * Changed RGBA channel toggles to use toggle buttons to be more compact than checkboxes.
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue where hiding a model folder had no effect when using debug shading.
 * Fixed an issue changing the unk type for orient constraints in the Hlpb Editor.
+* Fixed an issue where saving a numshb file would sometimes result in incorrect vertex skinning in game.
 
 ## 0.5.2
 ### Added
