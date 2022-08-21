@@ -5,8 +5,8 @@ use crate::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
         remove_parameters, unused_parameters, vector4_labels_long, vector4_labels_short,
     },
+    path::presets_file,
     presets::{load_json_presets, load_xml_presets},
-    presets_file,
     validation::MatlValidationError,
     widgets::*,
 };
@@ -102,7 +102,10 @@ pub fn preset_editor(
 
                 egui::menu::menu_button(ui, "Import", |ui| {
                     // Import presets from external formats.
-                    if ui.button("JSON Presets (ssbh_data_json)").clicked() {
+                    if ui
+                        .add(Button::new("JSON Presets (ssbh_data_json)").wrap(false))
+                        .clicked()
+                    {
                         ui.close_menu();
 
                         if let Some(file) = FileDialog::new()
@@ -113,7 +116,10 @@ pub fn preset_editor(
                         }
                     }
 
-                    if ui.button("XML Presets (Cross Mod)").clicked() {
+                    if ui
+                        .add(Button::new("XML Presets (Cross Mod)").wrap(false))
+                        .clicked()
+                    {
                         ui.close_menu();
 
                         if let Some(file) = FileDialog::new()

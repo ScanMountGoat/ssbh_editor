@@ -1,4 +1,4 @@
-use crate::preferences_file;
+use crate::path::{application_dir, preferences_file};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -56,6 +56,23 @@ pub fn preferences_window(ctx: &egui::Context, preferences: &mut AppPreferences,
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::menu::menu_button(ui, "File", |ui| {
+                    if ui
+                        .add(egui::Button::new("Open preferences directory...").wrap(false))
+                        .clicked()
+                    {
+                        ui.close_menu();
+
+                        let path = application_dir();
+                        if let Err(e) = open::that(&path) {
+                            log::error!("Failed to open {path:?}: {e}");
+                        }
+                    }
+                });
+            });
+            ui.separator();
+
             // TODO: Add a toggle widget instead.
             ui.checkbox(&mut preferences.dark_mode, "Dark Mode");
             ui.checkbox(

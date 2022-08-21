@@ -16,8 +16,9 @@ use ssbh_editor::preferences::AppPreferences;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails, last_update_check_file, presets_file, widgets_dark, widgets_light,
-    AnimationState, CameraInputState, RenderState, TexturePainter, PROJECT_DIR,
+    generate_model_thumbnails,
+    path::{last_update_check_file, presets_file, PROJECT_DIR},
+    widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
 use ssbh_wgpu::{CameraTransforms, SsbhRenderer};
 use std::iter;

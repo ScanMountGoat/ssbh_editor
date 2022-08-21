@@ -11,7 +11,8 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    last_update_check_file, load_models_recursive,
+    load_models_recursive,
+    path::last_update_check_file,
     preferences::{preferences_window, AppPreferences},
     render_settings::render_settings,
     validation::ModelValidationErrors,
@@ -1058,6 +1059,7 @@ impl SsbhApp {
                 }
             });
 
+            // TODO: Add icons?
             egui::menu::menu_button(ui, "Menu", |ui| {
                 if ui.button("Render Settings").clicked() {
                     ui.close_menu();
