@@ -43,12 +43,11 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     }
 
                     for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
-                        show_anim_slot(
-                            ui,
+                        app.animation_state.should_update_animations |= show_anim_slot(
                             ctx,
+                            ui,
                             anim_slot,
                             &app.models,
-                            &mut app.animation_state.should_update_animations,
                             &available_anims,
                             model_index,
                             slot,
@@ -66,17 +65,18 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 }
 
 fn show_anim_slot(
-    ui: &mut Ui,
     ctx: &Context,
+    ui: &mut Ui,
     anim_slot: &mut AnimationSlot,
     models: &[ModelFolder],
-    update_animations: &mut bool,
     available_anims: &[(usize, &ModelFolder)],
     model_index: usize,
     slot: usize,
     slots_to_remove: &mut Vec<usize>,
-) {
-    let id = ui.make_persistent_id(format!("{model_index}.slot.{slot}"));
+) -> bool {
+    let mut update_animations = false;
+
+    let id = ui.make_persistent_id(model_index).with("slot").with(slot);
     CollapsingState::load_with_default_open(ctx, id, false)
         .show_header(ui, |ui| {
             let name = anim_slot
@@ -96,12 +96,12 @@ fn show_anim_slot(
                     ))
                     .changed()
                 {
-                    *update_animations = true;
+                    update_animations = true;
                 }
 
-                if anim_combo_box(ui, available_anims, model_index, slot, name, anim_slot) {
+                if anim_combo_box(ui, available_anims, id.with("anim"), name, anim_slot) {
                     // Reflect selecting a new animation in the viewport.
-                    *update_animations = true;
+                    update_animations = true;
                 }
 
                 if ui.button("Remove").clicked() {
@@ -144,13 +144,14 @@ fn show_anim_slot(
                 }
             }
         });
+
+    update_animations
 }
 
 fn anim_combo_box(
     ui: &mut Ui,
     anim_folders: &[(usize, &ModelFolder)],
-    model_index: usize,
-    slot: usize,
+    id: egui::Id,
     name: &str,
     anim_slot: &mut AnimationSlot,
 ) -> bool {
@@ -159,7 +160,7 @@ fn anim_combo_box(
     let mut changed = false;
 
     // TODO: Reset animations?
-    egui::ComboBox::from_id_source(egui::Id::new("slot").with(model_index).with(slot))
+    egui::ComboBox::from_id_source(id)
         .width(200.0)
         .selected_text(name)
         .show_ui(ui, |ui| {

@@ -5,6 +5,8 @@ use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 use std::{collections::HashSet, fmt::Display, path::Path};
 use thiserror::Error;
 
+use crate::FileResult;
+
 // TODO: How to update these only when a file changes?
 // TODO: Only validate known names like model.numatb or model.numdlb?
 // TODO: Add a severity level to differentiate warnings vs errors.
@@ -204,7 +206,7 @@ pub enum NutexbValidationError {
 impl NutexbValidationError {
     pub fn name(&self) -> &str {
         match self {
-            NutexbValidationError::FormatInvalidForUsage { nutexb, .. } => &nutexb,
+            NutexbValidationError::FormatInvalidForUsage { nutexb, .. } => nutexb,
         }
     }
 }
@@ -267,7 +269,7 @@ fn validate_required_attributes(
 fn validate_texture_format_usage(
     validation: &mut ModelValidationErrors,
     matl: &MatlData,
-    nutexbs: &[(String, Result<NutexbFile, Box<dyn std::error::Error>>)],
+    nutexbs: &[(String, FileResult<NutexbFile>)],
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
@@ -390,7 +392,7 @@ fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshD
         .collect();
 
     // We can't assume meshes are sorted for user numshb files.
-    objects.sort_by_key(|(_, name, _)| name.clone());
+    objects.sort_by_key(|(_, name, _)| *name);
     for (_, group) in &objects.iter().group_by(|(_, name, _)| name) {
         // TODO: Is it worth optimizing this?
         let mut seen = HashSet::new();

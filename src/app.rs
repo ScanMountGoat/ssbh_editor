@@ -17,7 +17,7 @@ use crate::{
     render_settings::render_settings,
     validation::ModelValidationErrors,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, RenderState,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -30,7 +30,6 @@ use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
 use std::{
-    error::Error,
     f32::consts::PI,
     path::{Path, PathBuf},
     sync::Mutex,
@@ -714,7 +713,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             meshex,
-                            find_file(&model.meshes, "model.numshb")
+                            find_file(&model.meshes, "model.numshb"),
                         );
                         file_changed |= changed;
 
@@ -1156,17 +1155,14 @@ fn folder_display_name(model: &ModelFolder) -> PathBuf {
         .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc))
 }
 
-fn find_file<'a, T>(files: &'a [(String, Result<T, Box<dyn Error>>)], name: &str) -> Option<&'a T> {
+fn find_file<'a, T>(files: &'a [(String, FileResult<T>)], name: &str) -> Option<&'a T> {
     files
         .iter()
         .find(|(f, _)| f == name)
         .and_then(|(_, m)| m.as_ref().ok())
 }
 
-fn find_file_mut<'a, T>(
-    files: &'a mut [(String, Result<T, Box<dyn Error>>)],
-    name: &str,
-) -> Option<&'a mut T> {
+fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) -> Option<&'a mut T> {
     files
         .iter_mut()
         .find(|(f, _)| f == name)
@@ -1175,7 +1171,7 @@ fn find_file_mut<'a, T>(
 
 fn list_files<T, E: std::fmt::Display>(
     ui: &mut Ui,
-    files: &[(String, Result<T, Box<dyn Error>>)],
+    files: &[(String, FileResult<T>)],
     folder_index: usize,
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,

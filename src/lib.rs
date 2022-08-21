@@ -20,6 +20,8 @@ pub mod widgets;
 
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
+type FileResult<T> = Result<T, Box<dyn Error>>;
+
 // TODO: Store the current nutexb to paint?
 pub struct TexturePainter<'a> {
     pub renderer: TextureRenderer,
@@ -153,7 +155,7 @@ impl AnimationIndex {
     pub fn get_animation<'a>(
         &self,
         models: &'a [ModelFolder],
-    ) -> Option<&'a (String, Result<AnimData, Box<dyn Error>>)> {
+    ) -> Option<&'a (String, FileResult<AnimData>)> {
         models
             .get(self.folder_index)
             .and_then(|m| m.anims.get(self.anim_index))
