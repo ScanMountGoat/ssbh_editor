@@ -10,6 +10,7 @@ pub fn meshex_editor(
     folder_name: &str,
     file_name: &str,
     meshex: &mut MeshExData,
+    mesh: Option<&MeshData>,
 ) -> (bool, bool) {
     let mut open = true;
     let changed = false;
@@ -43,6 +44,21 @@ pub fn meshex_editor(
                     }
                 });
 
+                egui::menu::menu_button(ui, "MeshEx", |ui| {
+                    if ui
+                        .add_enabled(mesh.is_some(), egui::Button::new("Rebuild from mesh"))
+                        .clicked()
+                    {
+                        ui.close_menu();
+
+                        if let Some(mesh) = mesh {
+                            // TODO: TODO: Only show this if the entries don't match up?
+                            // TODO: Preserve existing flags?
+                            *meshex = MeshExData::from_mesh_objects(&mesh.objects);
+                        }
+                    }
+                });
+
                 egui::menu::menu_button(ui, "Help", |ui| {
                     if ui.button("MeshEx Editor Wiki").clicked() {
                         ui.close_menu();
@@ -57,9 +73,6 @@ pub fn meshex_editor(
             });
             ui.separator();
 
-            // TODO: Add buttons to add missing entries and remove unused entries.
-            // TODO: Just recreate entries from a mesh to avoid dealing with names and bounding info?
-            // TODO: Preserve existing flags?
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {

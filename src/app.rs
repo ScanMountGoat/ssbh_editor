@@ -714,6 +714,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             meshex,
+                            find_file(&model.meshes, "model.numshb")
                         );
                         file_changed |= changed;
 
