@@ -2856,6 +2856,7 @@ dependencies = [
  "ssbh_wgpu",
  "strip-ansi-escapes",
  "strum",
+ "thiserror",
  "tokio",
  "wgpu",
  "winit",

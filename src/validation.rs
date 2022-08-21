@@ -1,9 +1,9 @@
-use std::{collections::HashSet, error::Error, fmt::Display, path::Path};
-
 use itertools::Itertools;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
+use std::{collections::HashSet, fmt::Display, path::Path};
+use thiserror::Error;
 
 // TODO: How to update these only when a file changes?
 // TODO: Only validate known names like model.numatb or model.numdlb?
@@ -56,16 +56,20 @@ impl ModelValidationErrors {
     }
 }
 
-// TODO: Use thiserror instead?
-// TODO: Check for invalid attribute names.
-#[derive(Debug, PartialEq, Eq)]
+// TODO: Check for invalid vertex attribute names.
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum MeshValidationError {
+    #[error("Mesh {mesh_name:?} is missing attributes {} required by assigned material {material_label:?}.",
+        missing_attributes.join(", "),
+    )]
     MissingRequiredVertexAttributes {
         mesh_object_index: usize,
         mesh_name: String,
         material_label: String,
         missing_attributes: Vec<String>,
     },
+
+    #[error("Mesh {mesh_name:?} repeats subindex {subindex}. Subindices must be unique.")]
     DuplicateSubindex {
         mesh_object_index: usize,
         mesh_name: String,
@@ -88,34 +92,6 @@ impl MeshValidationError {
     }
 }
 
-impl Display for MeshValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MeshValidationError::MissingRequiredVertexAttributes {
-                mesh_name,
-                material_label,
-                missing_attributes,
-                ..
-            } => write!(
-                f,
-                "Mesh {:?} is missing attributes {} required by assigned material {:?}.",
-                mesh_name,
-                missing_attributes.join(", "),
-                material_label
-            ),
-            MeshValidationError::DuplicateSubindex {
-                mesh_name,
-                subindex,
-                ..
-            } => write!(
-                f,
-                "Mesh {:?} repeats subindex {}. Subindices must be unique.",
-                mesh_name, subindex
-            ),
-        }
-    }
-}
-
 pub struct SkelValidationError;
 impl Display for SkelValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -124,14 +100,24 @@ impl Display for SkelValidationError {
 }
 
 // TODO: Move the entry index and label out of the enum?
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum MatlValidationError {
+    #[error("Mesh {mesh_name:?} is missing attributes {} required by assigned material {material_label:?}.",
+        missing_attributes.join(", ")
+    )]
     MissingRequiredVertexAttributes {
         entry_index: usize,
         material_label: String,
         mesh_name: String,
         missing_attributes: Vec<String>,
     },
+    #[error("Texture {nutexb:?} for material {material_label:?} has format {format:?}, but {param} {} an sRGB format.",
+        if expects_srgb(*param) {
+            "expects"
+        } else {
+            "does not expect"
+        }
+    )]
     InvalidTextureFormat {
         entry_index: usize,
         material_label: String,
@@ -139,71 +125,21 @@ pub enum MatlValidationError {
         nutexb: String,
         format: NutexbFormat,
     },
+    #[error(
+        "Mesh {mesh_name:?} has the RENORMAL material {material_label:?} but no corresponding entry in the model.adjb."
+    )]
     RenormalMaterialMissingMeshAdjEntry {
         entry_index: usize,
         material_label: String,
         mesh_name: String,
     },
+    #[error(
+        "Material {material_label:?} is a RENORMAL material, but the model.adjb file is missing."
+    )]
     RenormalMaterialMissingAdj {
         entry_index: usize,
         material_label: String,
     },
-}
-
-impl Display for MatlValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MatlValidationError::MissingRequiredVertexAttributes {
-                material_label,
-                mesh_name,
-                missing_attributes,
-                ..
-            } => write!(
-                f,
-                "Mesh {:?} is missing attributes {} required by assigned material {:?}.",
-                mesh_name,
-                missing_attributes.join(", "),
-                material_label
-            ),
-            MatlValidationError::InvalidTextureFormat {
-                material_label,
-                param,
-                nutexb,
-                format,
-                ..
-            } => write!(
-                f,
-                "Texture {:?} for material {:?} has format {:?}, but {} {} an sRGB format.",
-                nutexb,
-                material_label,
-                format,
-                param,
-                if expects_srgb(*param) {
-                    "expects"
-                } else {
-                    "does not expect"
-                }
-            ),
-            MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
-                material_label,
-                mesh_name,
-                ..
-            } => write!(
-                f,
-                "Mesh {:?} has the RENORMAL material {:?} but no corresponding entry in the model.adjb.",
-                mesh_name,
-                material_label
-            ),
-            MatlValidationError::RenormalMaterialMissingAdj {
-                material_label,
-                ..
-            } => write!(
-                f,
-                "Material {:?} is a RENORMAL material, but the model.adjb file is missing.",
-                material_label
-            ),
-        }
-    }
 }
 
 impl MatlValidationError {
@@ -314,7 +250,7 @@ fn validate_required_attributes(
 fn validate_texture_format_usage(
     validation: &mut ModelValidationErrors,
     matl: &MatlData,
-    nutexbs: &[(String, Result<NutexbFile, Box<dyn Error>>)],
+    nutexbs: &[(String, Result<NutexbFile, Box<dyn std::error::Error>>)],
 ) {
     // TODO: Errors for both matl and nutexb?
     for (entry_index, entry) in matl.entries.iter().enumerate() {
