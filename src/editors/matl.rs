@@ -1013,11 +1013,15 @@ fn edit_vector(
 
 fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) -> bool {
     // TODO: Edit alpha for params with alpha?
-    let mut color = [data.x, data.y, data.z];
-    if ui.color_edit_button_rgb(&mut color).changed() {
-        data.x = color[0];
-        data.y = color[1];
-        data.z = color[2];
+    let mut color = [
+        (255.0 * data.x) as u8,
+        (255.0 * data.y) as u8,
+        (255.0 * data.z) as u8,
+    ];
+    if ui.color_edit_button_srgb(&mut color).changed() {
+        data.x = (color[0] as f32) / 255.0;
+        data.y = (color[1] as f32) / 255.0;
+        data.z = (color[2] as f32) / 255.0;
         true
     } else {
         false
@@ -1026,12 +1030,20 @@ fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) -> bool {
 
 fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
     // TODO: Still show the color if the alpha is 0?
-    let mut color = [data.r, data.g, data.b, data.a];
-    if ui.color_edit_button_rgba_unmultiplied(&mut color).changed() {
-        data.r = color[0];
-        data.g = color[1];
-        data.b = color[2];
-        data.a = color[3];
+    let mut color = [
+        (255.0 * data.r) as u8,
+        (255.0 * data.g) as u8,
+        (255.0 * data.b) as u8,
+        (255.0 * data.a) as u8,
+    ];
+    if ui
+        .color_edit_button_srgba_unmultiplied(&mut color)
+        .changed()
+    {
+        data.r = (color[0] as f32) / 255.0;
+        data.g = (color[1] as f32) / 255.0;
+        data.b = (color[2] as f32) / 255.0;
+        data.a = (color[3] as f32) / 255.0;
         true
     } else {
         false
