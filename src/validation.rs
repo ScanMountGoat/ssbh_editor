@@ -185,10 +185,27 @@ impl Display for HlpbValidationError {
 
 // TODO: Check size of surface for unneeded padding.
 // TODO: Check if footer data size matches actual data.
-pub struct NutexbValidationError;
-impl Display for NutexbValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
+#[derive(Debug, PartialEq, Eq, Error)]
+pub enum NutexbValidationError {
+    #[error("Texture {nutexb:?} has format {format:?}, but {param} {} an sRGB format.",
+        if expects_srgb(*param) {
+            "expects"
+        } else {
+            "does not expect"
+        }
+    )]
+    FormatInvalidForUsage {
+        nutexb: String,
+        format: NutexbFormat,
+        param: ParamId,
+    },
+}
+
+impl NutexbValidationError {
+    pub fn name(&self) -> &str {
+        match self {
+            NutexbValidationError::FormatInvalidForUsage { nutexb, .. } => &nutexb,
+        }
     }
 }
 
@@ -252,7 +269,6 @@ fn validate_texture_format_usage(
     matl: &MatlData,
     nutexbs: &[(String, Result<NutexbFile, Box<dyn std::error::Error>>)],
 ) {
-    // TODO: Errors for both matl and nutexb?
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
             if let Some((f, Ok(nutexb))) = nutexbs.iter().find(|(f, _)| {
@@ -270,8 +286,14 @@ fn validate_texture_format_usage(
                         nutexb: f.clone(),
                         format: nutexb.footer.image_format,
                     };
-
                     validation.matl_errors.push(error);
+
+                    let error = NutexbValidationError::FormatInvalidForUsage {
+                        nutexb: f.clone(),
+                        format: nutexb.footer.image_format,
+                        param: texture.param_id,
+                    };
+                    validation.nutexb_errors.push(error);
                 }
             }
         }
@@ -334,7 +356,7 @@ fn validate_renormal_material_entries(
 }
 
 fn expects_srgb(texture: ParamId) -> bool {
-    // These formats will render inaccurately with sRGB.
+    // These textures will render inaccurately with sRGB.
     !matches!(
         texture,
         ParamId::Texture2
@@ -660,7 +682,6 @@ mod tests {
         let mut validation = ModelValidationErrors::default();
         validate_texture_format_usage(&mut validation, &matl, &textures);
 
-        // TODO: Add a nutexb error as well?
         assert_eq!(
             vec![
                 MatlValidationError::InvalidTextureFormat {
@@ -688,6 +709,31 @@ mod tests {
         assert_eq!(
             r#"Texture "texture4" for material "a" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
             format!("{}", validation.matl_errors[1])
+        );
+
+        assert_eq!(
+            vec![
+                NutexbValidationError::FormatInvalidForUsage {
+                    nutexb: "texture0".to_owned(),
+                    param: ParamId::Texture0,
+                    format: NutexbFormat::BC1Unorm
+                },
+                NutexbValidationError::FormatInvalidForUsage {
+                    nutexb: "texture4".to_owned(),
+                    param: ParamId::Texture4,
+                    format: NutexbFormat::BC2Srgb
+                }
+            ],
+            validation.nutexb_errors
+        );
+
+        assert_eq!(
+            r#"Texture "texture0" has format BC1Unorm, but Texture0 expects an sRGB format."#,
+            format!("{}", validation.nutexb_errors[0])
+        );
+        assert_eq!(
+            r#"Texture "texture4" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
+            format!("{}", validation.nutexb_errors[1])
         );
     }
 

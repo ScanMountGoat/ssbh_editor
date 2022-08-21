@@ -931,8 +931,20 @@ impl SsbhApp {
 
                             // TODO: Show file errors.
                             for (i, (file, _)) in model.nutexbs.iter().enumerate() {
+                                // TODO: Avoid collect?
+                                let validation_errors: Vec<_> = validation
+                                    .nutexb_errors
+                                    .iter()
+                                    .filter(|e| e.name() == file)
+                                    .collect();
+
                                 ui.horizontal(|ui| {
-                                    if let Some(model_thumbnails) =
+                                    // TODO: Show error icon on top of thumbnail?
+                                    if !validation_errors.is_empty() {
+                                        warning_icon(ui).on_hover_ui(|ui| {
+                                            display_validation_errors(ui, &validation_errors);
+                                        });
+                                    } else if let Some(model_thumbnails) =
                                         self.thumbnails.get(folder_index)
                                     {
                                         if let Some((_, thumbnail)) =
