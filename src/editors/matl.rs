@@ -10,7 +10,7 @@ use crate::{
     validation::MatlValidationError,
     widgets::*,
 };
-use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, Ui, Window};
+use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, TextEdit, Ui, Window};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*, Color4f, Vector4};
@@ -715,13 +715,13 @@ fn matl_entry_editor(
 
     Grid::new("matl textures").show(ui, |ui| {
         for param in &mut entry.textures {
-            // TODO: Get disabled UI working with the texture grid.
             changed |= edit_texture(
                 ui,
                 param,
                 texture_thumbnails,
                 default_thumbnails,
                 advanced_mode,
+                !unused_parameters.contains(&param.param_id),
             );
             ui.end_row();
         }
@@ -813,9 +813,10 @@ fn edit_texture(
     texture_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     advanced_mode: bool,
+    enabled: bool,
 ) -> bool {
     // TODO: Create a texture for an invalid thumbnail or missing texture?
-    ui.label(param_label(param.param_id));
+    ui.add_enabled(enabled, Label::new(param_label(param.param_id)));
     // Texture parameters don't include the file extension since it's implied.
     // Texture names aren't case sensitive.
     // TODO: Avoid allocating here.
@@ -841,31 +842,36 @@ fn edit_texture(
 
     if advanced_mode {
         // Let users enter names manually if texture files aren't present.
-        changed |= ui.text_edit_singleline(&mut param.data).changed();
+        changed |= ui
+            .add_enabled(enabled, TextEdit::singleline(&mut param.data))
+            .changed();
     } else {
-        // Texture files should be present in the folder, which allows for image previews.
-        ComboBox::from_id_source(param.param_id.to_string())
-            .selected_text(&param.data)
-            .width(300.0)
-            .show_ui(ui, |ui| {
-                // TODO: Is it safe to assume the thumbnails have all the available textures?
-                for (name, thumbnail) in texture_thumbnails.iter().chain(default_thumbnails.iter())
-                {
-                    // Material parameters don't include the .nutexb extension.
-                    let text = Path::new(name)
-                        .with_extension("")
-                        .to_string_lossy()
-                        .to_string();
+        ui.add_enabled_ui(enabled, |ui| {
+            ComboBox::from_id_source(param.param_id.to_string())
+                .selected_text(&param.data)
+                .width(300.0)
+                .show_ui(ui, |ui| {
+                    // Texture files should be present in the folder, which allows for image previews.
+                    // TODO: Is it safe to assume the thumbnails have all the available textures?
+                    for (name, thumbnail) in
+                        texture_thumbnails.iter().chain(default_thumbnails.iter())
+                    {
+                        // Material parameters don't include the .nutexb extension.
+                        let text = Path::new(name)
+                            .with_extension("")
+                            .to_string_lossy()
+                            .to_string();
 
-                    // TODO: Show a texture as selected even if the case doesn't match?
-                    ui.horizontal(|ui| {
-                        ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
-                        changed |= ui
-                            .selectable_value(&mut param.data, text.clone(), text)
-                            .changed();
-                    });
-                }
-            });
+                        // TODO: Show a texture as selected even if the case doesn't match?
+                        ui.horizontal(|ui| {
+                            ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
+                            changed |= ui
+                                .selectable_value(&mut param.data, text.clone(), text)
+                                .changed();
+                        });
+                    }
+                });
+        });
     }
 
     changed
