@@ -358,7 +358,7 @@ fn validate_texture_dimensions(
                 let actual = nutexb_dimension(nutexb);
                 if actual != expected {
                     // The dimension is a fundamental part of the texture.
-                    // Add errors the matl since users should just assign a new texture.
+                    // Add errors to the matl since users should just assign a new texture.
                     let error = MatlValidationError::UnexpectedTextureDimension {
                         entry_index,
                         material_label: entry.material_label.clone(),
