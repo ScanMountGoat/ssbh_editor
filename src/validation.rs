@@ -1,14 +1,14 @@
-use itertools::Itertools;
+use crate::FileResult;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
-use std::{collections::HashSet, fmt::Display, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    path::Path,
+};
 use thiserror::Error;
 
-use crate::FileResult;
-
-// TODO: How to update these only when a file changes?
-// TODO: Only validate known names like model.numatb or model.numdlb?
 // TODO: Add a severity level to differentiate warnings vs errors.
 #[derive(Default)]
 pub struct ModelValidationErrors {
@@ -341,7 +341,6 @@ fn expected_texture_dimension(param: ParamId) -> TextureDimension {
     }
 }
 
-// TODO: Test this.
 fn validate_texture_dimensions(
     validation: &mut ModelValidationErrors,
     matl: &MatlData,
@@ -458,27 +457,19 @@ fn is_srgb(format: NutexbFormat) -> bool {
 fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshData) {
     // Subindices for mesh objects with the same name should be unique.
     // This ensures material and vertex weights can be properly assigned.
-    let mut objects: Vec<_> = mesh
-        .objects
-        .iter()
-        .enumerate()
-        .map(|(i, m)| (i, &m.name, m.subindex))
-        .collect();
-
-    // We can't assume meshes are sorted for user numshb files.
-    objects.sort_by_key(|(_, name, _)| *name);
-    for (_, group) in &objects.iter().group_by(|(_, name, _)| name) {
-        // TODO: Is it worth optimizing this?
-        let mut seen = HashSet::new();
-        for (i, name, subindex) in group {
-            if !seen.insert(subindex) {
-                let error = MeshValidationError::DuplicateSubindex {
-                    mesh_object_index: *i,
-                    mesh_name: name.to_string(),
-                    subindex: *subindex,
-                };
-                validation.mesh_errors.push(error);
-            }
+    let mut subindices_by_name = HashMap::new();
+    for (i, o) in mesh.objects.iter().enumerate() {
+        if !subindices_by_name
+            .entry(&o.name)
+            .or_insert_with(HashSet::new)
+            .insert(o.subindex)
+        {
+            let error = MeshValidationError::DuplicateSubindex {
+                mesh_object_index: i,
+                mesh_name: o.name.clone(),
+                subindex: o.subindex,
+            };
+            validation.mesh_errors.push(error);
         }
     }
 }
@@ -509,6 +500,26 @@ mod tests {
                 mipmap_count: 1,
                 unk3: 1,
                 layer_count: 1,
+                data_size: 0,
+                version: (1, 2),
+            },
+        }
+    }
+
+    fn nutexb_cube(image_format: NutexbFormat) -> NutexbFile {
+        NutexbFile {
+            data: Vec::new(),
+            layer_mipmaps: Vec::new(),
+            footer: NutexbFooter {
+                string: Vec::new().into(),
+                width: 64,
+                height: 64,
+                depth: 1,
+                image_format,
+                unk2: 1,
+                mipmap_count: 1,
+                unk3: 1,
+                layer_count: 6,
                 data_size: 0,
                 version: (1, 2),
             },
@@ -810,6 +821,76 @@ mod tests {
         assert_eq!(
             r#"Texture "texture4" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
             format!("{}", validation.nutexb_errors[1])
+        );
+    }
+
+    #[test]
+    fn texture_dimension_invalid() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: vec![
+                    TextureParam {
+                        param_id: ParamId::Texture0,
+                        data: "texture0".to_owned(),
+                    },
+                    TextureParam {
+                        param_id: ParamId::Texture7,
+                        data: "texture7".to_owned(),
+                    },
+                ],
+            }],
+        };
+
+        let textures = vec![
+            (
+                "texture0".to_owned(),
+                Ok(nutexb_cube(NutexbFormat::BC1Unorm)),
+            ),
+            ("texture7".to_owned(), Ok(nutexb(NutexbFormat::BC2Srgb))),
+        ];
+
+        let mut validation = ModelValidationErrors::default();
+        validate_texture_dimensions(&mut validation, &matl, &textures);
+
+        assert_eq!(
+            vec![
+                MatlValidationError::UnexpectedTextureDimension {
+                    entry_index: 0,
+                    material_label: "a".to_owned(),
+                    param: ParamId::Texture0,
+                    nutexb: "texture0".to_owned(),
+                    expected: TextureDimension::Texture2d,
+                    actual: TextureDimension::TextureCube
+                },
+                MatlValidationError::UnexpectedTextureDimension {
+                    entry_index: 0,
+                    material_label: "a".to_owned(),
+                    param: ParamId::Texture7,
+                    nutexb: "texture7".to_owned(),
+                    expected: TextureDimension::TextureCube,
+                    actual: TextureDimension::Texture2d
+                }
+            ],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Texture "texture0" for material "a" has dimensions TextureCube, but Texture0 requires Texture2d."#,
+            format!("{}", validation.matl_errors[0])
+        );
+        assert_eq!(
+            r#"Texture "texture7" for material "a" has dimensions Texture2d, but Texture7 requires TextureCube."#,
+            format!("{}", validation.matl_errors[1])
         );
     }
 

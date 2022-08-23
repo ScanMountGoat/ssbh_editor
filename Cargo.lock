@@ -2841,7 +2841,6 @@ dependencies = [
  "egui-winit",
  "glam",
  "image",
- "itertools",
  "log",
  "nutexb",
  "nutexb_wgpu",
