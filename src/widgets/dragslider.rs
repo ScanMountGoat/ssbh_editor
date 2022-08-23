@@ -30,7 +30,7 @@ impl<'a> DragSlider<'a> {
         self
     }
 
-    pub fn slider_range(mut self, min: f32, max: f32) -> Self {
+    pub fn range(mut self, min: f32, max: f32) -> Self {
         self.slider_min = min;
         self.slider_max = max;
         self

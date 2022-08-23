@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::{CollapsingHeader, DragValue, Grid, ScrollArea, Ui};
+use egui::{CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, Vector3, Vector4};
@@ -93,7 +93,9 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
                     .show(ui, |ui| {
                         Grid::new(id).show(ui, |ui| {
                             ui.label("Name");
-                            changed |= ui.text_edit_singleline(&mut o.name).changed();
+                            changed |= ui
+                                .add_sized([200.0, 20.0], TextEdit::singleline(&mut o.name))
+                                .changed();
                             ui.end_row();
 
                             ui.label("Parent 1");
@@ -116,10 +118,13 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
                                 bone_combo_box(ui, &mut o.target_bone_name, id.with(3), skel, &[]);
                             ui.end_row();
 
+                            // TODO: Make this an enum in ssbh_data eventually.
                             ui.label("Unk Type");
                             egui::ComboBox::from_id_source(id.with(4))
                                 .selected_text(o.unk_type.to_string())
                                 .show_ui(ui, |ui| {
+                                    changed |=
+                                        ui.selectable_value(&mut o.unk_type, 0, "0").changed();
                                     changed |=
                                         ui.selectable_value(&mut o.unk_type, 1, "1").changed();
                                     changed |=
@@ -128,7 +133,8 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
                             ui.end_row();
 
                             ui.label("Constraint Axes");
-                            changed |= edit_vector3(ui, id.with(5), &mut o.constraint_axes);
+                            changed |=
+                                edit_vector3(ui, id.with(5), &mut o.constraint_axes, 0.0, 1.0);
                             ui.end_row();
 
                             ui.label("Quat 1");
@@ -140,11 +146,13 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
                             ui.end_row();
 
                             ui.label("Range Min");
-                            changed |= edit_vector3(ui, id.with(8), &mut o.range_min);
+                            changed |=
+                                edit_vector3(ui, id.with(8), &mut o.range_min, -180.0, 180.0);
                             ui.end_row();
 
                             ui.label("Range Max");
-                            changed |= edit_vector3(ui, id.with(9), &mut o.range_max);
+                            changed |=
+                                edit_vector3(ui, id.with(9), &mut o.range_max, -180.0, 180.0);
                             ui.end_row();
                         });
                     });
@@ -171,7 +179,9 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
                 .show(ui, |ui| {
                     egui::Grid::new(id).show(ui, |ui| {
                         ui.label("Name");
-                        changed |= ui.text_edit_singleline(&mut aim.name).changed();
+                        changed |= ui
+                            .add_sized([200.0, 20.0], TextEdit::singleline(&mut aim.name))
+                            .changed();
                         ui.end_row();
 
                         ui.label("Aim 1");
@@ -213,11 +223,11 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
                         ui.end_row();
 
                         ui.label("Aim");
-                        changed |= edit_vector3(ui, id.with(6), &mut aim.aim);
+                        changed |= edit_vector3(ui, id.with(6), &mut aim.aim, 0.0, 1.0);
                         ui.end_row();
 
                         ui.label("Up");
-                        changed |= edit_vector3(ui, id.with(7), &mut aim.up);
+                        changed |= edit_vector3(ui, id.with(7), &mut aim.up, 0.0, 1.0);
                         ui.end_row();
 
                         ui.label("Quat 1");
@@ -234,17 +244,29 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
     changed
 }
 
-fn edit_vector3(ui: &mut Ui, id: egui::Id, value: &mut Vector3) -> bool {
+fn edit_vector3(ui: &mut Ui, id: egui::Id, value: &mut Vector3, min: f32, max: f32) -> bool {
     let mut changed = false;
     ui.horizontal(|ui| {
         changed |= ui
-            .add(DragSlider::new(id.with("x"), &mut value.x).width(40.0))
+            .add(
+                DragSlider::new(id.with("x"), &mut value.x)
+                    .width(40.0)
+                    .range(min, max),
+            )
             .changed();
         changed |= ui
-            .add(DragSlider::new(id.with("y"), &mut value.y).width(40.0))
+            .add(
+                DragSlider::new(id.with("y"), &mut value.y)
+                    .width(40.0)
+                    .range(min, max),
+            )
             .changed();
         changed |= ui
-            .add(DragSlider::new(id.with("z"), &mut value.z).width(40.0))
+            .add(
+                DragSlider::new(id.with("z"), &mut value.z)
+                    .width(40.0)
+                    .range(min, max),
+            )
             .changed();
     });
     changed
