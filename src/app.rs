@@ -504,7 +504,6 @@ impl SsbhApp {
 
         let mut file_changed = false;
 
-        // TODO: Refactor this so they can also be "docked" in side panel tabs.
         // The functions would take an additional ui parameter.
         // TODO: Use some sort of trait to clean up repetitive code?
         // TODO: Passing display_name is redundant?
@@ -998,7 +997,6 @@ impl SsbhApp {
     }
 
     fn right_panel(&mut self, ctx: &Context, ui: &mut Ui) {
-        // TODO: Is it worth creating a dedicated tab control?
         ui.horizontal(|ui| {
             ui.selectable_value(
                 &mut self.ui_state.right_panel_tab,
@@ -1225,7 +1223,6 @@ fn missing_file(ui: &mut Ui, name: &str) {
     .on_hover_text(format!("Missing required file {name}"));
 }
 
-// TODO: Investigate why these have different sizes.
 pub fn empty_icon(ui: &mut Ui) {
     ui.allocate_space(egui::Vec2::new(ICON_SIZE, ICON_SIZE));
 }
@@ -1418,7 +1415,6 @@ pub fn stage_lighting_window(
             };
 
             Grid::new("stage_lighting").show(ui, |ui| {
-                // TODO: Add a reset button to the menu?
                 // TODO: Add File > Load render folder...?
                 // TODO: Make the files buttons to load corresponding editors?
                 ui.label("Lighting");

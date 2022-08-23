@@ -166,7 +166,6 @@ fn debug_mode_label(mode: DebugMode) -> String {
 }
 
 fn debug_description(mode: DebugMode) -> &'static str {
-    // TODO: Should these be identical to the material descriptions?
     match mode {
         DebugMode::Texture0 => "Col Layer 1",
         DebugMode::Texture1 => "Col Layer 2",

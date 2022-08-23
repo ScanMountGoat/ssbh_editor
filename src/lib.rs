@@ -22,7 +22,6 @@ pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
 type FileResult<T> = Result<T, Box<dyn Error>>;
 
-// TODO: Store the current nutexb to paint?
 pub struct TexturePainter<'a> {
     pub renderer: TextureRenderer,
     pub texture: Option<(&'a wgpu::Texture, &'a wgpu::TextureViewDimension)>,
@@ -236,7 +235,6 @@ fn create_egui_texture(
     depth: u32,
 ) -> egui::TextureId {
     // Assume the textures have the appropriate usage to work with egui.
-    // TODO: How to handle cube maps?
     // egui is expecting a 2D RGBA texture.
     let egui_texture = match dimension {
         wgpu::TextureViewDimension::D2 => egui_rpass.register_native_texture(

@@ -43,6 +43,7 @@ impl ModelValidationErrors {
             );
 
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
+            validate_texture_dimensions(&mut validation, matl, &model.nutexbs);
 
             validate_renormal_material_entries(
                 &mut validation,
@@ -51,8 +52,6 @@ impl ModelValidationErrors {
                 model.find_modl(),
                 mesh,
             );
-
-            // TODO: Validate mismatches with cube maps and 2D textures.
         }
         validation
     }
@@ -113,6 +112,7 @@ pub enum MatlValidationError {
         mesh_name: String,
         missing_attributes: Vec<String>,
     },
+
     #[error("Texture {nutexb:?} for material {material_label:?} has format {format:?}, but {param} {} an sRGB format.",
         if expects_srgb(*param) {
             "expects"
@@ -120,13 +120,25 @@ pub enum MatlValidationError {
             "does not expect"
         }
     )]
-    InvalidTextureFormat {
+    UnexpectedTextureFormat {
         entry_index: usize,
         material_label: String,
         param: ParamId,
         nutexb: String,
         format: NutexbFormat,
     },
+
+    // TODO: Add severity levels and make this the highest severity.
+    #[error("Texture {nutexb:?} for material {material_label:?} has dimensions {actual:?}, but {param} requires {expected:?}.")]
+    UnexpectedTextureDimension {
+        entry_index: usize,
+        material_label: String,
+        param: ParamId,
+        nutexb: String,
+        expected: TextureDimension,
+        actual: TextureDimension,
+    },
+
     #[error(
         "Mesh {mesh_name:?} has the RENORMAL material {material_label:?} but no corresponding entry in the model.adjb."
     )]
@@ -135,6 +147,7 @@ pub enum MatlValidationError {
         material_label: String,
         mesh_name: String,
     },
+
     #[error(
         "Material {material_label:?} is a RENORMAL material, but the model.adjb file is missing."
     )]
@@ -150,9 +163,10 @@ impl MatlValidationError {
         // The material label in user created files isn't always unique.
         match self {
             Self::MissingRequiredVertexAttributes { entry_index, .. } => *entry_index,
-            Self::InvalidTextureFormat { entry_index, .. } => *entry_index,
+            Self::UnexpectedTextureFormat { entry_index, .. } => *entry_index,
             Self::RenormalMaterialMissingMeshAdjEntry { entry_index, .. } => *entry_index,
             Self::RenormalMaterialMissingAdj { entry_index, .. } => *entry_index,
+            Self::UnexpectedTextureDimension { entry_index, .. } => *entry_index,
         }
     }
 }
@@ -281,7 +295,7 @@ fn validate_texture_format_usage(
             }) {
                 // Check for sRGB mismatches.
                 if expects_srgb(texture.param_id) != is_srgb(nutexb.footer.image_format) {
-                    let error = MatlValidationError::InvalidTextureFormat {
+                    let error = MatlValidationError::UnexpectedTextureFormat {
                         entry_index,
                         material_label: entry.material_label.clone(),
                         param: texture.param_id,
@@ -296,6 +310,65 @@ fn validate_texture_format_usage(
                         param: texture.param_id,
                     };
                     validation.nutexb_errors.push(error);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum TextureDimension {
+    Texture2d,
+    Texture3d,
+    TextureCube,
+}
+
+fn nutexb_dimension(nutexb: &NutexbFile) -> TextureDimension {
+    // Assume no array layers for depth and cube maps.
+    if nutexb.footer.depth > 1 {
+        TextureDimension::Texture3d
+    } else if nutexb.footer.layer_count == 6 {
+        TextureDimension::TextureCube
+    } else {
+        TextureDimension::Texture2d
+    }
+}
+
+fn expected_texture_dimension(param: ParamId) -> TextureDimension {
+    match param {
+        ParamId::Texture2 | ParamId::Texture7 | ParamId::Texture8 => TextureDimension::TextureCube,
+        _ => TextureDimension::Texture2d,
+    }
+}
+
+// TODO: Test this.
+fn validate_texture_dimensions(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    nutexbs: &[(String, FileResult<NutexbFile>)],
+) {
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        for texture in &entry.textures {
+            if let Some((f, Ok(nutexb))) = nutexbs.iter().find(|(f, _)| {
+                Path::new(f)
+                    .with_extension("")
+                    .as_os_str()
+                    .eq_ignore_ascii_case(&texture.data)
+            }) {
+                let expected = expected_texture_dimension(texture.param_id);
+                let actual = nutexb_dimension(nutexb);
+                if actual != expected {
+                    // The dimension is a fundamental part of the texture.
+                    // Add errors the matl since users should just assign a new texture.
+                    let error = MatlValidationError::UnexpectedTextureDimension {
+                        entry_index,
+                        material_label: entry.material_label.clone(),
+                        param: texture.param_id,
+                        nutexb: f.clone(),
+                        expected,
+                        actual,
+                    };
+                    validation.matl_errors.push(error);
                 }
             }
         }
@@ -359,6 +432,7 @@ fn validate_renormal_material_entries(
 
 fn expects_srgb(texture: ParamId) -> bool {
     // These textures will render inaccurately with sRGB.
+    // TODO: What should Texture8 use?
     !matches!(
         texture,
         ParamId::Texture2
@@ -686,14 +760,14 @@ mod tests {
 
         assert_eq!(
             vec![
-                MatlValidationError::InvalidTextureFormat {
+                MatlValidationError::UnexpectedTextureFormat {
                     entry_index: 0,
                     material_label: "a".to_owned(),
                     param: ParamId::Texture0,
                     nutexb: "texture0".to_owned(),
                     format: NutexbFormat::BC1Unorm
                 },
-                MatlValidationError::InvalidTextureFormat {
+                MatlValidationError::UnexpectedTextureFormat {
                     entry_index: 0,
                     material_label: "a".to_owned(),
                     param: ParamId::Texture4,
