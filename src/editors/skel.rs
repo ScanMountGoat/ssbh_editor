@@ -110,13 +110,15 @@ pub fn skel_editor(
                                     ui.separator();
                                     // TODO: Is there a way to make this not O(N^2)?
                                     for (other_i, other_bone) in other_bones.iter().enumerate() {
-                                        changed |= ui
-                                            .selectable_value(
-                                                &mut bone.parent_index,
-                                                Some(other_i),
-                                                &other_bone.name,
-                                            )
-                                            .changed();
+                                        if i != other_i {
+                                            changed |= ui
+                                                .selectable_value(
+                                                    &mut bone.parent_index,
+                                                    Some(other_i),
+                                                    &other_bone.name,
+                                                )
+                                                .changed();
+                                            }
                                     }
                                 });
 
