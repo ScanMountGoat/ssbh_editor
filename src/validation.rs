@@ -23,16 +23,22 @@ pub struct ModelValidationErrors {
 }
 
 impl ModelValidationErrors {
-    pub fn from_model(model: &ModelFolder, shader_database: &ShaderDatabase) -> Self {
+    pub fn from_model<'a, 'b>(
+        model: &'b ModelFolder,
+        shader_database: &ShaderDatabase,
+        default_texture_names: impl Iterator<Item = &'a String> + Clone,
+    ) -> Self
+    where
+        'b: 'a,
+    {
+        // Each validation check may add errors to multiple related files.
         let mut validation = Self::default();
 
         let mesh = model.find_mesh();
-
         if let Some(mesh) = mesh {
             validate_mesh_subindices(&mut validation, mesh);
         }
 
-        // Each validation check may add errors to multiple related files.
         if let Some(matl) = model.find_matl() {
             validate_required_attributes(
                 &mut validation,
@@ -44,6 +50,12 @@ impl ModelValidationErrors {
 
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
             validate_texture_dimensions(&mut validation, matl, &model.nutexbs);
+            validate_texture_assignments(
+                &mut validation,
+                matl,
+                &model.nutexbs,
+                default_texture_names,
+            );
 
             validate_renormal_material_entries(
                 &mut validation,
@@ -57,7 +69,7 @@ impl ModelValidationErrors {
     }
 }
 
-// TODO: Check for invalid vertex attribute names.
+// TODO: Check for unsupported vertex attribute names?
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MeshValidationError {
     #[error("Mesh {mesh_name:?} is missing attributes {} required by assigned material {material_label:?}.",
@@ -140,6 +152,16 @@ pub enum MatlValidationError {
     },
 
     #[error(
+        "Texture {nutexb:?} assigned to param {param} for material {material_label:?} is missing."
+    )]
+    MissingTexture {
+        entry_index: usize,
+        material_label: String,
+        param: ParamId,
+        nutexb: String,
+    },
+
+    #[error(
         "Mesh {mesh_name:?} has the RENORMAL material {material_label:?} but no corresponding entry in the model.adjb."
     )]
     RenormalMaterialMissingMeshAdjEntry {
@@ -167,6 +189,7 @@ impl MatlValidationError {
             Self::RenormalMaterialMissingMeshAdjEntry { entry_index, .. } => *entry_index,
             Self::RenormalMaterialMissingAdj { entry_index, .. } => *entry_index,
             Self::UnexpectedTextureDimension { entry_index, .. } => *entry_index,
+            Self::MissingTexture { entry_index, .. } => *entry_index,
         }
     }
 }
@@ -311,6 +334,40 @@ fn validate_texture_format_usage(
                     };
                     validation.nutexb_errors.push(error);
                 }
+            }
+        }
+    }
+}
+
+fn validate_texture_assignments<'a, 'b>(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    nutexbs: &'b [(String, FileResult<NutexbFile>)],
+    default_textures: impl Iterator<Item = &'a String> + Clone,
+) where
+    'b: 'a,
+{
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        for texture in &entry.textures {
+            // TODO: Check if is default texture?
+            if !nutexbs
+                .iter()
+                .map(|(f, _)| f)
+                .chain(default_textures.clone().into_iter())
+                .any(|f| {
+                    Path::new(f)
+                        .with_extension("")
+                        .as_os_str()
+                        .eq_ignore_ascii_case(&texture.data)
+                })
+            {
+                let error = MatlValidationError::MissingTexture {
+                    entry_index,
+                    material_label: entry.material_label.clone(),
+                    param: texture.param_id,
+                    nutexb: texture.data.clone(),
+                };
+                validation.matl_errors.push(error);
             }
         }
     }
@@ -821,6 +878,66 @@ mod tests {
         assert_eq!(
             r#"Texture "texture4" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
             format!("{}", validation.nutexb_errors[1])
+        );
+    }
+
+    #[test]
+    fn textures_one_missing() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: vec![
+                    TextureParam {
+                        param_id: ParamId::Texture0,
+                        data: "texture0".to_owned(),
+                    },
+                    TextureParam {
+                        param_id: ParamId::Texture4,
+                        data: "texture4".to_owned(),
+                    },
+                    TextureParam {
+                        param_id: ParamId::Texture7,
+                        data: "#replace_cubemap".to_owned(),
+                    },
+                ],
+            }],
+        };
+
+        let textures = vec![
+            ("texture2".to_owned(), Ok(nutexb(NutexbFormat::BC7Srgb))),
+            ("texture4".to_owned(), Ok(nutexb(NutexbFormat::BC7Unorm))),
+        ];
+
+        let mut validation = ModelValidationErrors::default();
+        validate_texture_assignments(
+            &mut validation,
+            &matl,
+            &textures,
+            ["#replace_cubemap".to_owned()].iter(),
+        );
+
+        assert_eq!(
+            vec![MatlValidationError::MissingTexture {
+                entry_index: 0,
+                material_label: "a".to_owned(),
+                param: ParamId::Texture0,
+                nutexb: "texture0".to_owned(),
+            },],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Texture "texture0" assigned to param Texture0 for material "a" is missing."#,
+            format!("{}", validation.matl_errors[0])
         );
     }
 

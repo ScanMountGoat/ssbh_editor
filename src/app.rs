@@ -15,7 +15,7 @@ use crate::{
     path::last_update_check_file,
     preferences::{preferences_window, AppPreferences},
     render_settings::render_settings,
-    validation::ModelValidationErrors,
+    validation::{MatlValidationError, ModelValidationErrors},
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
 };
@@ -929,7 +929,13 @@ impl SsbhApp {
                                 &validation.mesh_errors,
                             );
 
-                            // TODO: Show file errors.
+                            // TODO: Make a function for listing nutexbs..
+                            // Show missing textures required by the matl.
+                            for e in &validation.matl_errors {
+                                if let MatlValidationError::MissingTexture { nutexb, .. } = e {
+                                    missing_nutexb(ui, nutexb);
+                                }
+                            }
                             for (i, (file, _)) in model.nutexbs.iter().enumerate() {
                                 // TODO: Avoid collect?
                                 let validation_errors: Vec<_> = validation
@@ -1214,13 +1220,26 @@ fn list_files<T, E: std::fmt::Display>(
 }
 
 fn missing_file(ui: &mut Ui, name: &str) {
-    // TODO: Should the tooltip cover the entire layout?
     ui.horizontal(|ui| {
         missing_icon(ui);
         ui.add_enabled(false, Button::new(RichText::new(name).strikethrough()));
     })
     .response
-    .on_hover_text(format!("Missing required file {name}"));
+    .on_hover_text(format!("Missing required file {name}."));
+}
+
+fn missing_nutexb(ui: &mut Ui, name: &str) {
+    ui.horizontal(|ui| {
+        missing_icon(ui);
+        ui.add_enabled(
+            false,
+            Button::new(RichText::new(name.to_owned() + ".nutexb").strikethrough()),
+        );
+    })
+    .response
+    .on_hover_text(format!(
+        "Missing texture {name:?} required by model.numatb. Include this file or fix the texture assignment."
+    ));
 }
 
 pub fn empty_icon(ui: &mut Ui) {

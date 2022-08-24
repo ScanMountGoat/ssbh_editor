@@ -408,6 +408,11 @@ fn main() {
                                 *validation = ModelValidationErrors::from_model(
                                     model,
                                     app.render_state.shared_data.database(),
+                                    app.render_state
+                                        .shared_data
+                                        .default_textures()
+                                        .iter()
+                                        .map(|(f, _, _)| f),
                                 );
                             }
                             app.should_validate_models = false;
