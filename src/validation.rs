@@ -201,11 +201,14 @@ impl Display for ModlValidationError {
     }
 }
 
-pub struct AdjValidationError;
-impl Display for AdjValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
-    }
+#[derive(Debug, PartialEq, Eq, Error)]
+pub enum AdjValidationError {
+    #[error("Missing entry for mesh {mesh_name:?} with the RENORMAL material {material_label:?}.")]
+    MissingRenormalEntry {
+        mesh_index: usize,
+        mesh_name: String,
+        material_label: String,
+    },
 }
 
 pub struct AnimValidationError;
@@ -438,7 +441,6 @@ fn validate_renormal_material_entries(
     modl: Option<&ModlData>,
     mesh: Option<&MeshData>,
 ) {
-    // TODO: Errors for both matl and adj?
     // TODO: Is this check case sensitive?
     for (entry_index, entry) in matl
         .entries
@@ -472,6 +474,13 @@ fn validate_renormal_material_entries(
                                 mesh_name: mesh.name.clone(),
                             };
                             validation.matl_errors.push(error);
+
+                            let error = AdjValidationError::MissingRenormalEntry {
+                                mesh_index,
+                                mesh_name: mesh.name.clone(),
+                                material_label: entry.material_label.clone(),
+                            };
+                            validation.adj_errors.push(error);
                         }
                     }
                 }
@@ -671,7 +680,7 @@ mod tests {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "a_RENORMAL".to_owned(),
+                material_label: "RENORMAL_a".to_owned(),
                 shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
@@ -702,7 +711,7 @@ mod tests {
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
                 mesh_object_subindex: 0,
-                material_label: "a_RENORMAL".to_owned(),
+                material_label: "RENORMAL_a".to_owned(),
             }],
         };
 
@@ -712,13 +721,13 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError::RenormalMaterialMissingAdj {
                 entry_index: 0,
-                material_label: "a_RENORMAL".to_owned(),
+                material_label: "RENORMAL_a".to_owned(),
             }],
             validation.matl_errors
         );
 
         assert_eq!(
-            r#"Material "a_RENORMAL" is a RENORMAL material, but the model.adjb file is missing."#,
+            r#"Material "RENORMAL_a" is a RENORMAL material, but the model.adjb file is missing."#,
             format!("{}", validation.matl_errors[0])
         );
     }
@@ -729,7 +738,7 @@ mod tests {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "a_RENORMAL".to_owned(),
+                material_label: "RENORMAL_a".to_owned(),
                 shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
@@ -760,7 +769,7 @@ mod tests {
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
                 mesh_object_subindex: 0,
-                material_label: "a_RENORMAL".to_owned(),
+                material_label: "RENORMAL_a".to_owned(),
             }],
         };
         let adj = AdjData {
@@ -779,15 +788,29 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
                 entry_index: 0,
-                material_label: "a_RENORMAL".to_owned(),
+                material_label: "RENORMAL_a".to_owned(),
                 mesh_name: "object1".to_owned()
             }],
             validation.matl_errors
         );
 
         assert_eq!(
-            r#"Mesh "object1" has the RENORMAL material "a_RENORMAL" but no corresponding entry in the model.adjb."#,
+            r#"Mesh "object1" has the RENORMAL material "RENORMAL_a" but no corresponding entry in the model.adjb."#,
             format!("{}", validation.matl_errors[0])
+        );
+
+        assert_eq!(
+            vec![AdjValidationError::MissingRenormalEntry {
+                mesh_index: 0,
+                mesh_name: "object1".to_owned(),
+                material_label: "RENORMAL_a".to_owned()
+            }],
+            validation.adj_errors
+        );
+
+        assert_eq!(
+            r#"Missing entry for mesh "object1" with the RENORMAL material "RENORMAL_a"."#,
+            format!("{}", validation.adj_errors[0])
         );
     }
 
