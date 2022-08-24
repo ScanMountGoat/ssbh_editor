@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::{Button, ComboBox, ScrollArea, Ui};
+use egui::{Button, ComboBox, RichText, ScrollArea, Ui};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
@@ -9,7 +9,7 @@ use ssbh_data::{
 };
 
 use crate::{
-    app::{display_validation_errors, warning_icon, UiState},
+    app::{display_validation_errors, warning_icon, UiState, WARNING_COLOR},
     validation::MeshValidationError,
     widgets::bone_combo_box,
 };
@@ -197,19 +197,39 @@ pub fn mesh_editor(
 
                             // Open in a separate window since they won't fit in the grid.
                             ui.horizontal(|ui| {
-                                // TODO: Come up with a better way to show this.
-                                if errors.iter().any(|e| {
-                                    matches!(
-                                        e,
-                                        MeshValidationError::MissingRequiredVertexAttributes { .. }
-                                    )
-                                }) {
-                                    // TODO: Show details on hover?
-                                    warning_icon(ui);
-                                }
-                                if ui.button("Vertex Attributes...").clicked() {
-                                    ui_state.selected_mesh_attributes_index = Some(i);
-                                }
+                                // TODO: Simplify this code?
+                                let attribute_error = errors.iter().find_map(|e| match e {
+                                    MeshValidationError::MissingRequiredVertexAttributes {
+                                        ..
+                                    } => Some(e),
+                                    _ => None,
+                                });
+
+                                if let Some(attribute_error) = attribute_error {
+                                    if ui
+                                        .add_sized(
+                                            [140.0, 20.0],
+                                            Button::new(
+                                                RichText::new("⚠ Vertex Attributes...")
+                                                    .color(WARNING_COLOR),
+                                            ),
+                                        )
+                                        .on_hover_text(format!("{}", attribute_error))
+                                        .clicked()
+                                    {
+                                        ui_state.selected_mesh_attributes_index = Some(i);
+                                    }
+                                } else {
+                                    if ui
+                                        .add_sized(
+                                            [140.0, 20.0],
+                                            Button::new("Vertex Attributes..."),
+                                        )
+                                        .clicked()
+                                    {
+                                        ui_state.selected_mesh_attributes_index = Some(i);
+                                    }
+                                };
                             });
 
                             if !mesh_object.bone_influences.is_empty() {

@@ -184,7 +184,8 @@ pub struct AnimEditorState {
 }
 
 const ICON_SIZE: f32 = 18.0;
-const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(200, 40, 40);
+pub const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(200, 40, 40);
+pub const WARNING_COLOR: egui::Color32 = egui::Color32::from_rgb(255, 210, 0);
 
 // Keep track of what UI should be displayed.
 #[derive(PartialEq, Eq)]
@@ -1259,7 +1260,7 @@ pub fn warning_icon(ui: &mut Ui) -> Response {
         Label::new(
             RichText::new("⚠")
                 .strong()
-                .color(egui::Color32::from_rgb(255, 210, 0))
+                .color(WARNING_COLOR)
                 .size(ICON_SIZE),
         ),
     )
