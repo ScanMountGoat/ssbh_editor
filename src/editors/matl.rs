@@ -1,5 +1,5 @@
 use crate::{
-    app::{MatlEditorState, UiState},
+    app::{warning_icon, MatlEditorState, UiState},
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
@@ -254,6 +254,7 @@ fn edit_matl_entries(
                 &mut editor_state.selected_material_index,
                 &mut editor_state.hovered_material_index,
                 entries,
+                validation,
             );
         }
 
@@ -483,6 +484,7 @@ fn material_combo_box(
     selected_index: &mut usize,
     hovered_index: &mut Option<usize>,
     entries: &[MatlEntryData],
+    validation: &[MatlValidationError],
 ) -> bool {
     let selected_text = entries
         .get(*selected_index)
@@ -494,11 +496,17 @@ fn material_combo_box(
         .width(400.0)
         .show_ui(ui, |ui| {
             for (i, entry) in entries.iter().enumerate() {
-                let response = ui.selectable_value(selected_index, i, entry.material_label.clone());
-                if response.hovered() {
-                    // Used for material mask rendering.
-                    *hovered_index = Some(i);
-                }
+                ui.horizontal(|ui| {
+                    if validation.iter().any(|e| e.entry_index() == i) {
+                        warning_icon(ui);
+                    }
+                    let response =
+                        ui.selectable_value(selected_index, i, entry.material_label.clone());
+                    if response.hovered() {
+                        // Used for material mask rendering.
+                        *hovered_index = Some(i);
+                    }
+                });
             }
         });
 
@@ -593,7 +601,6 @@ fn matl_entry_editor(
     });
     horizontal_separator_empty(ui);
 
-    // TODO: Show errors in the material selector.
     // TODO: Add a button to open the mesh editor?
     if validation_errors.iter().any(|e| {
         matches!(
@@ -601,24 +608,35 @@ fn matl_entry_editor(
             MatlValidationError::MissingRequiredVertexAttributes { .. }
         )
     }) {
-        ui.heading("Shader Errors");
+        ui.horizontal(|ui| {
+            ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
+            ui.heading("Vertex Attribute Errors");
+        });
         ui.label(
             "Meshes with this material are missing these vertex attributes required by the shader.",
         );
-        for error in validation_errors {
-            if let MatlValidationError::MissingRequiredVertexAttributes {
-                mesh_name,
-                missing_attributes,
-                ..
-            } = error
-            {
-                ui.horizontal(|ui| {
-                    ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
-                    ui.label(mesh_name);
+        ui.label(
+            "Assign a material with a different shader or add these attributes in the Mesh Editor.",
+        );
+        horizontal_separator_empty(ui);
+
+        Grid::new("attribute_error_grid").show(ui, |ui| {
+            for error in validation_errors {
+                if let MatlValidationError::MissingRequiredVertexAttributes {
+                    mesh_name,
+                    missing_attributes,
+                    ..
+                } = error
+                {
+                    ui.horizontal(|ui| {
+                        // ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
+                        ui.label(mesh_name);
+                    });
                     ui.label(missing_attributes.join(","));
-                });
+                    ui.end_row();
+                }
             }
-        }
+        });
 
         horizontal_separator_empty(ui);
     }
