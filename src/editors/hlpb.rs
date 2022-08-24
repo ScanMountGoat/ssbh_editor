@@ -100,12 +100,12 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
 
                             ui.label("Parent 1");
                             changed |=
-                                bone_combo_box(ui, &mut o.parent_bone1_name, id.with(0), skel, &[]);
+                                bone_combo_box(ui, &mut o.parent_bone_name1, id.with(0), skel, &[]);
                             ui.end_row();
 
                             ui.label("Parent 2");
                             changed |=
-                                bone_combo_box(ui, &mut o.parent_bone2_name, id.with(1), skel, &[]);
+                                bone_combo_box(ui, &mut o.parent_bone_name2, id.with(1), skel, &[]);
                             ui.end_row();
 
                             ui.label("Source");
