@@ -3,7 +3,10 @@ use std::path::Path;
 use egui::{Button, ComboBox, ScrollArea, Ui};
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{mesh_data::MeshObjectData, prelude::*};
+use ssbh_data::{
+    mesh_data::{AttributeData, MeshObjectData, VectorData},
+    prelude::*,
+};
 
 use crate::{
     app::{display_validation_errors, warning_icon, UiState},
@@ -104,8 +107,34 @@ pub fn mesh_editor(
                         .selected_mesh_attributes_index
                         .and_then(|index| mesh.objects.get_mut(index))
                     {
-                        let open = attributes_window(ctx, mesh_object);
-                        if !open {
+                        // TODO: Find a cleaner way to get the errors for the selected mesh.
+                        let missing_attributes = validation_errors
+                            .iter()
+                            .filter_map(|e| match e {
+                                MeshValidationError::MissingRequiredVertexAttributes {
+                                    mesh_object_index,
+                                    missing_attributes,
+                                    ..
+                                } => {
+                                    if Some(*mesh_object_index)
+                                        == ui_state.selected_mesh_attributes_index
+                                    {
+                                        Some(missing_attributes.as_slice())
+                                    } else {
+                                        None
+                                    }
+                                }
+                                _ => None,
+                            })
+                            .next()
+                            .unwrap_or_default();
+
+                        let (a_open, a_changed) =
+                            attributes_window(ctx, mesh_object, missing_attributes);
+
+                        changed |= a_changed;
+
+                        if !a_open {
                             ui_state.selected_mesh_attributes_index = None;
                         }
                     }
@@ -130,14 +159,14 @@ pub fn mesh_editor(
                         for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
                             let id = egui::Id::new("mesh").with(i);
 
+                            // TODO: Avoid allocating here.
+                            let errors: Vec<_> = validation_errors
+                                .iter()
+                                .filter(|e| e.mesh_index() == i)
+                                .collect();
+
                             // TODO: Reorder mesh objects?
                             ui.horizontal(|ui| {
-                                // TODO: Avoid allocating here.
-                                let errors: Vec<_> = validation_errors
-                                    .iter()
-                                    .filter(|e| e.mesh_index() == i)
-                                    .collect();
-
                                 // TODO: Show errors on the appropriate field?
                                 if !errors.is_empty() {
                                     warning_icon(ui).on_hover_ui(|ui| {
@@ -167,9 +196,21 @@ pub fn mesh_editor(
                             );
 
                             // Open in a separate window since they won't fit in the grid.
-                            if ui.button("Vertex Attributes...").clicked() {
-                                ui_state.selected_mesh_attributes_index = Some(i);
-                            }
+                            ui.horizontal(|ui| {
+                                // TODO: Come up with a better way to show this.
+                                if errors.iter().any(|e| {
+                                    matches!(
+                                        e,
+                                        MeshValidationError::MissingRequiredVertexAttributes { .. }
+                                    )
+                                }) {
+                                    // TODO: Show details on hover?
+                                    warning_icon(ui);
+                                }
+                                if ui.button("Vertex Attributes...").clicked() {
+                                    ui_state.selected_mesh_attributes_index = Some(i);
+                                }
+                            });
 
                             if !mesh_object.bone_influences.is_empty() {
                                 if ui.button("Bone Influences...").clicked() {
@@ -274,14 +315,32 @@ fn edit_attribute_name(ui: &mut Ui, name: &mut String, id: egui::Id, valid_names
         });
 }
 
-fn attributes_window(ctx: &egui::Context, mesh_object: &mut MeshObjectData) -> bool {
+fn attributes_window(
+    ctx: &egui::Context,
+    mesh_object: &mut MeshObjectData,
+    missing_attributes: &[String],
+) -> (bool, bool) {
+    // TODO: Return changed.
     let mut open = true;
+    let mut changed = false;
+
     egui::Window::new(format!("Vertex Attributes ({})", mesh_object.name))
         .open(&mut open)
         .show(ctx, |ui| {
-            // TODO: Add/remove attributes using default values.
-            // TODO: Don't allow removing position,normal,tangent?
-            // TODO: Link the matl to add required attributes.
+            // TODO: Add button to remove unused attributes to save space.
+            if !missing_attributes.is_empty() {
+                if ui
+                    .button(format!(
+                        "Add {} Missing Attributes",
+                        missing_attributes.len()
+                    ))
+                    .clicked()
+                {
+                    add_missing_attributes(mesh_object, missing_attributes);
+                    changed = true;
+                }
+            }
+
             egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
                 ui.heading("Name");
                 ui.heading("Usage");
@@ -351,7 +410,56 @@ fn attributes_window(ctx: &egui::Context, mesh_object: &mut MeshObjectData) -> b
                 }
             })
         });
-    open
+
+    (open, changed)
+}
+
+fn add_uv(mesh_object: &mut MeshObjectData, name: &str, count: usize) {
+    mesh_object.texture_coordinates.push(AttributeData {
+        name: name.to_owned(),
+        data: VectorData::Vector2(vec![[0.0; 2]; count]),
+    });
+}
+
+fn add_color_set(mesh_object: &mut MeshObjectData, name: &str, count: usize, default: [f32; 4]) {
+    mesh_object.color_sets.push(AttributeData {
+        name: name.to_owned(),
+        data: VectorData::Vector4(vec![default; count]),
+    });
+}
+
+fn add_missing_attributes(mesh_object: &mut MeshObjectData, missing_attributes: &[String]) {
+    // TODO: Error if count is invalid?
+    if let Ok(count) = mesh_object.vertex_count() {
+        for a in missing_attributes {
+            // Choose neutral values for defaults.
+            // This avoids changing the model appearance when adding attributes.
+            // TODO: Research better defaults.
+            let name = a.as_str();
+            match name {
+                "map1" => add_uv(mesh_object, name, count),
+                "bake1" => add_uv(mesh_object, name, count),
+                "uvSet" => add_uv(mesh_object, name, count),
+                "uvSet1" => add_uv(mesh_object, name, count),
+                "uvSet2" => add_uv(mesh_object, name, count),
+                "colorSet1" => add_color_set(mesh_object, name, count, [0.5; 4]),
+                "colorSet2" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
+                "colorSet2_1" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
+                "colorSet2_2" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
+                "colorSet2_3" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
+                "colorSet3" => add_color_set(mesh_object, name, count, [0.5; 4]),
+                "colorSet4" => add_color_set(mesh_object, name, count, [0.5; 4]),
+                "colorSet5" => add_color_set(mesh_object, name, count, [0.0; 4]),
+                "colorSet6" => add_color_set(mesh_object, name, count, [1.0; 4]),
+                "colorSet7" => add_color_set(mesh_object, name, count, [1.0; 4]),
+                _ => (),
+            }
+            mesh_object.color_sets.push(AttributeData {
+                name: a.clone(),
+                data: VectorData::Vector4(vec![[0.0; 4]; count]),
+            })
+        }
+    }
 }
 
 #[cfg(test)]
