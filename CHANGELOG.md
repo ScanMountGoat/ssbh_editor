@@ -12,21 +12,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added a window for viewing and editing vertex attributes to the Mesh Editor.
 * Added remaining fields to the Hlpb Editor.
 * Added validation errors for duplicate mesh subindices, which can lead to incorrect skin weights in game.
+* Added validation errors for numshb files for missing required attributes.
+* Added validation for model.adjb file entries.
 * Added lighting window to Menu > Stage Lighting for loading files in the viewport for lighting, luts, and cube maps.
 * Added the MeshEx Editor for editing model.numshexb files.
 * Added an option to automatically hide expressions to application preferences.
+* Added an option to generated missing model.adjb entries in the Adj Editor.
+* Added an option to display bones in a heirarchy tree in the Skel Editor.
+* Added controls to the animation bar to control playback speed and looping.
 
 ### Changed
 * Changed RGBA channel toggles to use toggle buttons to be more compact than checkboxes.
 * Adjusted the layout of the Hlpb Editor to be more compact.
-* Improvements to UI layout and consistency.
-* Show validation errors for numshb files for missing required attributes.
-* Automatically load model.nuanmb animations when loading a folder.
+* Improved UI layout and consistency.
+* Adjusted loading a model folder to automatically load model.nuanmb animations.
+* Adjusted the material selector to show an error icon next to materials with errors.
 
 ### Fixed
 * Fixed an issue where hiding a model folder had no effect when using debug shading.
 * Fixed an issue changing the unk type for orient constraints in the Hlpb Editor.
 * Fixed an issue where saving a numshb file would sometimes result in incorrect vertex skinning in game.
+* Fixed scaling of invalid attributes and invalid shader checkerboards for high resolution screens.
+* Fixed an issue where a bone could be parented to itself in the Skel Editor, causing errors when saving.
 
 ## 0.5.2
 ### Added
