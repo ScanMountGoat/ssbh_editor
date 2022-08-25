@@ -1,9 +1,9 @@
-use std::path::Path;
-
+use crate::validation::AdjValidationError;
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::prelude::*;
+use ssbh_data::{adj_data::AdjEntryData, prelude::*};
+use std::path::Path;
 
 pub fn adj_editor(
     ctx: &egui::Context,
@@ -12,9 +12,10 @@ pub fn adj_editor(
     file_name: &str,
     adj: &mut AdjData,
     mesh: Option<&MeshData>,
+    validation_errors: &[AdjValidationError],
 ) -> (bool, bool) {
     let mut open = true;
-    let changed = false;
+    let mut changed = false;
 
     egui::Window::new(format!("Adj Editor ({title})"))
         .open(&mut open)
@@ -57,7 +58,33 @@ pub fn adj_editor(
             });
             ui.separator();
 
-            // TODO: Add buttons to add missing entries and remove unused entries.
+            // TODO: Consistent capitalization for non menu buttons.
+            // TODO: Add button to remove unused entries.
+            if !validation_errors.is_empty() {
+                if ui
+                    .button(format!("Add {} missing entries", validation_errors.len()))
+                    .clicked()
+                {
+                    for e in validation_errors {
+                        match e {
+                            AdjValidationError::MissingRenormalEntry {
+                                mesh_object_index, ..
+                            } => {
+                                if let Some(mesh_object) =
+                                    mesh.and_then(|mesh| mesh.objects.get(*mesh_object_index))
+                                {
+                                    adj.entries.push(AdjEntryData::from_mesh_object(
+                                        *mesh_object_index,
+                                        mesh_object,
+                                    ));
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {

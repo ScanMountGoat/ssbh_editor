@@ -28,7 +28,7 @@ pub fn matl_editor(
     ui_state: &mut UiState,
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
-    validation: &[MatlValidationError],
+    validation_errors: &[MatlValidationError],
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     shader_database: &ShaderDatabase,
@@ -63,7 +63,7 @@ pub fn matl_editor(
                         ui,
                         &mut matl.entries,
                         modl,
-                        validation,
+                        validation_errors,
                         folder_thumbnails,
                         default_thumbnails,
                         shader_database,
@@ -213,7 +213,7 @@ fn edit_matl_entries(
     ui: &mut Ui,
     entries: &mut Vec<MatlEntryData>,
     modl: Option<&mut ModlData>,
-    validation: &[MatlValidationError],
+    validation_errors: &[MatlValidationError],
     folder_thumbnails: &[(String, egui::TextureId)],
     default_thumbnails: &[(String, egui::TextureId)],
     shader_database: &ShaderDatabase,
@@ -254,7 +254,7 @@ fn edit_matl_entries(
                 &mut editor_state.selected_material_index,
                 &mut editor_state.hovered_material_index,
                 entries,
-                validation,
+                validation_errors,
             );
         }
 
@@ -277,7 +277,7 @@ fn edit_matl_entries(
     let entry = entries.get_mut(editor_state.selected_material_index);
     if let Some(entry) = entry {
         // TODO: Avoid allocating here.
-        let validation: Vec<_> = validation
+        let entry_validation_errors: Vec<_> = validation_errors
             .iter()
             .filter(|e| e.entry_index() == editor_state.selected_material_index)
             .collect();
@@ -285,7 +285,7 @@ fn edit_matl_entries(
         changed |= matl_entry_editor(
             ui,
             entry,
-            &validation,
+            &entry_validation_errors,
             folder_thumbnails,
             default_thumbnails,
             editor_state.advanced_mode,

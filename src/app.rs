@@ -664,6 +664,13 @@ impl SsbhApp {
 
                 if let Some(adj_index) = self.ui_state.selected_adj_index {
                     if let Some((name, Ok(adj))) = model.adjs.get_mut(adj_index) {
+                        // TODO: Make this a method to simplify arguments.
+                        let validation_errors = self
+                            .validation_errors
+                            .get(folder_index)
+                            .map(|v| v.adj_errors.as_slice())
+                            .unwrap_or_default();
+
                         let (open, changed) = adj_editor(
                             ctx,
                             &display_name(&model.folder_name, name),
@@ -671,6 +678,7 @@ impl SsbhApp {
                             name,
                             adj,
                             find_file(&model.meshes, "model.numshb"),
+                            validation_errors,
                         );
                         file_changed |= changed;
 
@@ -856,6 +864,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_mesh_index,
                                 required_file("model.numshb"),
+                                Some("model.numshb"),
                                 &validation.mesh_errors,
                             );
 
@@ -866,6 +875,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_skel_index,
                                 required_file("model.nusktb"),
+                                Some("model.nusktb"),
                                 &validation.skel_errors,
                             );
 
@@ -876,6 +886,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_hlpb_index,
                                 None,
+                                Some("model.nuhlpb"),
                                 &validation.hlpb_errors,
                             );
 
@@ -886,6 +897,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_matl_index,
                                 required_file("model.numatb"),
+                                Some("model.numatb"),
                                 &validation.matl_errors,
                             );
 
@@ -896,6 +908,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_modl_index,
                                 required_file("model.numdlb"),
+                                Some("model.numdlb"),
                                 &validation.modl_errors,
                             );
 
@@ -906,6 +919,7 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_adj_index,
                                 None,
+                                Some("model.adjb"),
                                 &validation.adj_errors,
                             );
 
@@ -915,6 +929,7 @@ impl SsbhApp {
                                 folder_index,
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_anim_index,
+                                None,
                                 None,
                                 &validation.anim_errors,
                             );
@@ -927,7 +942,8 @@ impl SsbhApp {
                                 &mut self.ui_state.selected_folder_index,
                                 &mut self.ui_state.selected_meshex_index,
                                 None,
-                                &validation.mesh_errors,
+                                Some("model.numshexb"),
+                                &validation.meshex_errors,
                             );
 
                             // TODO: Make a function for listing nutexbs..
@@ -1181,6 +1197,7 @@ fn list_files<T, E: std::fmt::Display>(
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
     required_file: Option<&'static str>,
+    validation_file: Option<&'static str>,
     validation_errors: &[E],
 ) {
     // TODO: Should this be a grid instead?
@@ -1190,7 +1207,7 @@ fn list_files<T, E: std::fmt::Display>(
                 Ok(_) => {
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
-                    if !validation_errors.is_empty() && Some(name.as_str()) == required_file {
+                    if !validation_errors.is_empty() && Some(name.as_str()) == validation_file {
                         warning_icon(ui).on_hover_ui(|ui| {
                             display_validation_errors(ui, validation_errors);
                         });

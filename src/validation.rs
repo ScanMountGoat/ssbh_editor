@@ -13,6 +13,7 @@ use thiserror::Error;
 #[derive(Default)]
 pub struct ModelValidationErrors {
     pub mesh_errors: Vec<MeshValidationError>,
+    pub meshex_errors: Vec<MeshExValidationError>,
     pub skel_errors: Vec<SkelValidationError>,
     pub matl_errors: Vec<MatlValidationError>,
     pub modl_errors: Vec<ModlValidationError>,
@@ -205,7 +206,7 @@ impl Display for ModlValidationError {
 pub enum AdjValidationError {
     #[error("Missing entry for mesh {mesh_name:?} with the RENORMAL material {material_label:?}.")]
     MissingRenormalEntry {
-        mesh_index: usize,
+        mesh_object_index: usize,
         mesh_name: String,
         material_label: String,
     },
@@ -248,6 +249,13 @@ impl NutexbValidationError {
         match self {
             NutexbValidationError::FormatInvalidForUsage { nutexb, .. } => nutexb,
         }
+    }
+}
+
+pub struct MeshExValidationError;
+impl Display for MeshExValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
     }
 }
 
@@ -476,7 +484,7 @@ fn validate_renormal_material_entries(
                             validation.matl_errors.push(error);
 
                             let error = AdjValidationError::MissingRenormalEntry {
-                                mesh_index,
+                                mesh_object_index: mesh_index,
                                 mesh_name: mesh.name.clone(),
                                 material_label: entry.material_label.clone(),
                             };
@@ -801,7 +809,7 @@ mod tests {
 
         assert_eq!(
             vec![AdjValidationError::MissingRenormalEntry {
-                mesh_index: 0,
+                mesh_object_index: 0,
                 mesh_name: "object1".to_owned(),
                 material_label: "RENORMAL_a".to_owned()
             }],
