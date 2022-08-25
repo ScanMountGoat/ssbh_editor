@@ -143,7 +143,25 @@ pub struct UiState {
     pub matl_editor: MatlEditorState,
     pub preset_editor: MatlEditorState,
     pub anim_editor: AnimEditorState,
+    pub skel_editor: SkelEditorState,
     pub stage_lighting: StageLightingState,
+}
+
+#[derive(Default)]
+pub struct SkelEditorState {
+    pub mode: SkelMode,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum SkelMode {
+    List,
+    Heirarchy,
+}
+
+impl Default for SkelMode {
+    fn default() -> Self {
+        Self::List
+    }
 }
 
 #[derive(Default)]
@@ -518,6 +536,7 @@ impl SsbhApp {
                             &model.folder_name,
                             name,
                             skel,
+                            &mut self.ui_state.skel_editor,
                         );
                         file_changed |= changed;
 

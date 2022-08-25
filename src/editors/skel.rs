@@ -1,10 +1,13 @@
 use std::path::Path;
 
-use crate::widgets::enum_combo_box;
-use egui::{Button, ScrollArea};
+use crate::{
+    app::{SkelEditorState, SkelMode},
+    widgets::enum_combo_box,
+};
+use egui::{Button, CollapsingHeader, Grid, ScrollArea};
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::prelude::*;
+use ssbh_data::{prelude::*, skel_data::BoneData};
 
 pub fn skel_editor(
     ctx: &egui::Context,
@@ -12,6 +15,7 @@ pub fn skel_editor(
     folder_name: &str,
     file_name: &str,
     skel: &mut SkelData,
+    state: &mut SkelEditorState,
 ) -> (bool, bool) {
     let mut open = true;
     let mut changed = false;
@@ -80,62 +84,108 @@ pub fn skel_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    // TODO: Add options to show a grid or tree based layout?
-                    egui::Grid::new("some_unique_id").show(ui, |ui| {
-                        // Header
-                        ui.heading("Bone");
-                        ui.heading("Parent");
-                        ui.heading("Billboard Type");
-                        ui.end_row();
+                    ui.label("Display Mode");
+                    ui.radio_value(&mut state.mode, SkelMode::List, "List");
+                    ui.radio_value(&mut state.mode, SkelMode::Heirarchy, "Heirarchy");
 
-                        // TODO: Do this without clone?
-                        let other_bones = skel.bones.clone();
-
-                        for (i, bone) in skel.bones.iter_mut().enumerate() {
-                            let id = egui::Id::new("bone").with(i);
-
-                            ui.label(&bone.name);
-                            let parent_bone_name = bone
-                                .parent_index
-                                .and_then(|i| other_bones.get(i))
-                                .map(|p| p.name.as_str())
-                                .unwrap_or("None");
-
-                            egui::ComboBox::from_id_source(id)
-                                .selected_text(parent_bone_name)
-                                .show_ui(ui, |ui| {
-                                    changed |= ui
-                                        .selectable_value(&mut bone.parent_index, None, "None")
-                                        .changed();
-                                    ui.separator();
-                                    // TODO: Is there a way to make this not O(N^2)?
-                                    for (other_i, other_bone) in other_bones.iter().enumerate() {
-                                        if i != other_i {
-                                            changed |= ui
-                                                .selectable_value(
-                                                    &mut bone.parent_index,
-                                                    Some(other_i),
-                                                    &other_bone.name,
-                                                )
-                                                .changed();
-                                            }
-                                    }
-                                });
-
-                            changed |= enum_combo_box(
-                                ui,
-                                "",
-                                i + other_bones.len(),
-                                &mut bone.billboard_type,
-                            );
-
-                            ui.end_row();
+                    match state.mode {
+                        SkelMode::List => {
+                            changed |= edit_bones_list(ui, skel);
                         }
-                    });
+                        SkelMode::Heirarchy => {
+                            changed |= edit_bones_heirarchy(ui, skel);
+                        }
+                    }
                 });
         });
 
     (open, changed)
+}
+
+fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
+    let mut changed = false;
+
+    Grid::new("skel_grid").show(ui, |ui| {
+        // Header
+        ui.heading("Bone");
+        ui.heading("Parent");
+        ui.heading("Billboard Type");
+        ui.end_row();
+
+        // TODO: Do this without clone?
+        let other_bones = skel.bones.clone();
+
+        for (i, bone) in skel.bones.iter_mut().enumerate() {
+            let id = egui::Id::new("bone").with(i);
+
+            ui.label(&bone.name);
+            let parent_bone_name = bone
+                .parent_index
+                .and_then(|i| other_bones.get(i))
+                .map(|p| p.name.as_str())
+                .unwrap_or("None");
+
+            egui::ComboBox::from_id_source(id)
+                .selected_text(parent_bone_name)
+                .show_ui(ui, |ui| {
+                    changed |= ui
+                        .selectable_value(&mut bone.parent_index, None, "None")
+                        .changed();
+                    ui.separator();
+                    // TODO: Is there a way to make this not O(N^2)?
+                    for (other_i, other_bone) in other_bones.iter().enumerate() {
+                        if i != other_i {
+                            changed |= ui
+                                .selectable_value(
+                                    &mut bone.parent_index,
+                                    Some(other_i),
+                                    &other_bone.name,
+                                )
+                                .changed();
+                        }
+                    }
+                });
+
+            changed |= enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
+
+            ui.end_row();
+        }
+    });
+
+    changed
+}
+
+fn edit_bones_heirarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
+    let changed = false;
+
+    for (i, bone) in skel.bones.iter().enumerate() {
+        if bone.parent_index.is_none() {
+            display_bones_recursive(ui, i, &skel.bones);
+        }
+    }
+
+    changed
+}
+
+fn display_bones_recursive<'a>(ui: &mut egui::Ui, root_index: usize, bones: &[BoneData]) {
+    // TODO: Does this handle cycles?
+    // Don't assume bone names are unique.
+    let name = &bones[root_index].name;
+    let id = ui.make_persistent_id("skel").with(name).with(root_index);
+
+    CollapsingHeader::new(name)
+        .id_source(id)
+        .default_open(true)
+        .show(ui, |ui| {
+            // Recursively iterate over the child bones.
+            for (i, _) in bones
+                .iter()
+                .enumerate()
+                .filter(|(_, b)| b.parent_index == Some(root_index))
+            {
+                display_bones_recursive(ui, i, bones);
+            }
+        });
 }
 
 fn match_skel_order(skel: &mut SkelData, reference: &SkelData) {

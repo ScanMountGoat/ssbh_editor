@@ -452,7 +452,7 @@ pub fn widgets_light() -> Widgets {
         noninteractive: WidgetVisuals {
             bg_fill: Color32::from_gray(248), // window background - should be distinct from TextEdit background
             bg_stroke: Stroke::new(1.0, Color32::from_gray(190)), // separators, indentation lines, windows outlines
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(40)),   // normal text color
+            fg_stroke: Stroke::new(1.0, Color32::from_gray(40)),  // normal text color
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
