@@ -1,6 +1,6 @@
 use crate::app::{AnimEditorState, AnimEditorTab};
 use egui::{
-    plot::{Legend, Line, Plot},
+    plot::{Legend, Line, Plot, PlotPoint},
     CentralPanel, CollapsingHeader, RichText, ScrollArea, SidePanel,
 };
 use log::error;
@@ -180,14 +180,22 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
     });
 
     CentralPanel::default().show_inside(ui, |ui| {
+        let label_fmt = |name: &str, value: &PlotPoint| {
+            if name.is_empty() {
+                // Don't show values when not hovering near a line.
+                String::new()
+            } else {
+                format!("{name}\nframe = {}\nvalue = {}", value.x, value.y)
+            }
+        };
+
         // Add a legend for labels and visibility toggles
         let plot = Plot::new("anim_plot")
             .allow_drag(false)
             .allow_zoom(false)
             .allow_scroll(false)
-            .legend(Legend::default())
-            .show_x(false)
-            .show_y(false);
+            .label_formatter(label_fmt)
+            .legend(Legend::default());
 
         let mut shapes = Vec::new();
 
@@ -246,14 +254,14 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                     for (i, v) in values.iter().enumerate() {
                         points.push([i as f64, *v as f64]);
                     }
-                    shapes.push(Line::new(points));
+                    shapes.push(Line::new(points).name("value"));
                 }
                 TrackValues::PatternIndex(values) => {
                     let mut points = Vec::new();
                     for (i, v) in values.iter().enumerate() {
                         points.push([i as f64, *v as f64]);
                     }
-                    shapes.push(Line::new(points));
+                    shapes.push(Line::new(points).name("pattern index"));
                 }
                 TrackValues::Boolean(values) => {
                     let mut points = Vec::new();
@@ -264,7 +272,7 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                             points.push([(i + 1) as f64, if *v { 1.0 } else { 0.0 }]);
                         }
                     }
-                    shapes.push(Line::new(points));
+                    shapes.push(Line::new(points).name("value"));
                 }
                 TrackValues::Vector4(values) => {
                     let mut xs = Vec::new();
