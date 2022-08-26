@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added a graph viewer tab to the anim editor for graphing animated values over time
 * Added a field of view (fov) option to the Camera Settings window.
 * Added an option to match order from a numshb file in the Mesh Editor.
-* Added an option to match order from a nustkb file in the Skel Editor.
+* Added options to manually reorder bones or match a reference nusktb in the Skel Editor.
 * Added a window for viewing and editing vertex attributes to the Mesh Editor.
 * Added remaining fields to the Hlpb Editor.
 * Added validation errors for duplicate mesh subindices, which can lead to incorrect skin weights in game.
