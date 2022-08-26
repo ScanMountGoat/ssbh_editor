@@ -45,10 +45,9 @@ SSBH Editor provides a more intuitive and robust visual editing experience compa
 - View camera animations
 - Improvements to performance and accuracy of ssbh_wgpu
 - Improved validation for errors with models, textures, and animations
-- Preview stage rendering and lighting data
+- Preview shcpanim lighting files.
 - Settings to adjust UI scaling for better readability
 - Improved spacing and consistency for UI
-- Improved editor for animations
 
 ## System Requirements
 SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal. SSBH Editor for Windows 
