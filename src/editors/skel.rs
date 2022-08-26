@@ -115,6 +115,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
         // TODO: Do this without clone?
         let other_bones = skel.bones.clone();
 
+        let mut bones_to_swap = None;
         for (i, bone) in skel.bones.iter_mut().enumerate() {
             let id = egui::Id::new("bone").with(i);
 
@@ -148,7 +149,26 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
 
             changed |= enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
 
+            ui.horizontal(|ui| {
+                if ui.button("⏶").clicked() {
+                    // Move bone up
+                    if i > 0 {
+                        bones_to_swap = Some((i, i - 1));
+                    }
+                }
+
+                if ui.button("⏷").clicked() {
+                    // Move bone down
+                    if !other_bones.is_empty() && i < other_bones.len() - 1 {
+                        bones_to_swap = Some((i, i + 1));
+                    }
+                }
+            });
             ui.end_row();
+        }
+
+        if let Some((a, b)) = bones_to_swap {
+            skel.bones = swap_bones(a, b, &skel.bones);
         }
     });
 
@@ -167,7 +187,7 @@ fn edit_bones_heirarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
     changed
 }
 
-fn display_bones_recursive<'a>(ui: &mut egui::Ui, root_index: usize, bones: &[BoneData]) {
+fn display_bones_recursive(ui: &mut egui::Ui, root_index: usize, bones: &[BoneData]) {
     // TODO: Does this handle cycles?
     // Don't assume bone names are unique.
     let name = &bones[root_index].name;
@@ -198,6 +218,34 @@ fn match_skel_order(skel: &mut SkelData, reference: &SkelData) {
             .position(|r| r.name == o.name)
             .unwrap_or(reference.bones.len())
     })
+}
+
+fn swap_bones(a: usize, b: usize, bones: &[BoneData]) -> Vec<BoneData> {
+    bones
+        .iter()
+        .enumerate()
+        .map(|(i, bone)| {
+            // Swap bones at positions a and b.
+            let mut new_bone = if i == a {
+                bones[b].clone()
+            } else if i == b {
+                bones[a].clone()
+            } else {
+                bone.clone()
+            };
+            new_bone.parent_index = if new_bone.parent_index == Some(a) {
+                // Parent anything parented to a to b.
+                Some(b)
+            } else if new_bone.parent_index == Some(b) {
+                // Parent anything parented to b to a.
+                Some(a)
+            } else {
+                new_bone.parent_index
+            };
+
+            new_bone
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -289,5 +337,126 @@ mod tests {
         assert_eq!("c", skel.bones[0].name);
         assert_eq!("a", skel.bones[1].name);
         assert_eq!("b", skel.bones[2].name);
+    }
+
+    #[test]
+    fn swap_bones_same_indices() {
+        let before = vec![
+            BoneData {
+                name: "a".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: None,
+                billboard_type: BillboardType::Disabled,
+            },
+            BoneData {
+                name: "b".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: Some(0),
+                billboard_type: BillboardType::Disabled,
+            },
+        ];
+
+        let after = swap_bones(0, 0, &before);
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn swap_bones_different_indices() {
+        let before = vec![
+            BoneData {
+                name: "a".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: None,
+                billboard_type: BillboardType::Disabled,
+            },
+            BoneData {
+                name: "b".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: Some(0),
+                billboard_type: BillboardType::Disabled,
+            },
+        ];
+
+        let after = swap_bones(0, 1, &before);
+        assert_eq!(
+            vec![
+                BoneData {
+                    name: "b".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: Some(1),
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "a".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: None,
+                    billboard_type: BillboardType::Disabled,
+                },
+            ],
+            after
+        );
+    }
+
+    #[test]
+    fn swap_bones_with_parents() {
+        let before = vec![
+            BoneData {
+                name: "a".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: Some(1),
+                billboard_type: BillboardType::Disabled,
+            },
+            BoneData {
+                name: "b".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: Some(0),
+                billboard_type: BillboardType::Disabled,
+            },
+            BoneData {
+                name: "c".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: Some(0),
+                billboard_type: BillboardType::Disabled,
+            },
+            BoneData {
+                name: "d".to_owned(),
+                transform: [[0.0; 4]; 4],
+                parent_index: Some(2),
+                billboard_type: BillboardType::Disabled,
+            },
+        ];
+
+        // Swap b and c.
+        // The bones should still point to the correct parents.
+        let after = swap_bones(1, 2, &before);
+        assert_eq!(
+            vec![
+                BoneData {
+                    name: "a".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: Some(2),
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "c".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: Some(0),
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "b".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: Some(0),
+                    billboard_type: BillboardType::Disabled,
+                },
+                BoneData {
+                    name: "d".to_owned(),
+                    transform: [[0.0; 4]; 4],
+                    parent_index: Some(1),
+                    billboard_type: BillboardType::Disabled,
+                },
+            ],
+            after
+        );
     }
 }
