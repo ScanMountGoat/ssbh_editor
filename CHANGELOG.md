@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.6.0
 ### Added
 * Added a graph viewer tab to the anim editor for graphing animated values over time
 * Added a field of view (fov) option to the Camera Settings window.
