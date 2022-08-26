@@ -58,7 +58,6 @@ pub fn adj_editor(
             });
             ui.separator();
 
-            // TODO: Consistent capitalization for non menu buttons.
             // TODO: Add button to remove unused entries.
             if !validation_errors.is_empty()
                 && ui

@@ -46,7 +46,7 @@ pub fn meshex_editor(
 
                 egui::menu::menu_button(ui, "MeshEx", |ui| {
                     if ui
-                        .add_enabled(mesh.is_some(), egui::Button::new("Rebuild from mesh"))
+                        .add_enabled(mesh.is_some(), egui::Button::new("Rebuild From Mesh"))
                         .clicked()
                     {
                         ui.close_menu();

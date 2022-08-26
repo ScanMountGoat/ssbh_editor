@@ -655,7 +655,7 @@ fn matl_entry_editor(
         let text = if missing_parameters.len() == 1 {
             "Add 1 Missing Parameter".to_owned()
         } else {
-            format!("Add {} Missing Parameters", missing_parameters.len())
+            format!("Add {} missing parameters", missing_parameters.len())
         };
         if ui.button(text).clicked() {
             add_parameters(entry, &missing_parameters);
@@ -667,7 +667,7 @@ fn matl_entry_editor(
         let text = if unused_parameters.len() == 1 {
             "Remove 1 Unused Parameter".to_owned()
         } else {
-            format!("Remove {} Unused Parameters", unused_parameters.len())
+            format!("Remove {} unused parameters", unused_parameters.len())
         };
         if ui.button(text).clicked() {
             remove_parameters(entry, &unused_parameters);

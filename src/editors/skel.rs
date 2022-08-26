@@ -51,7 +51,7 @@ pub fn skel_editor(
 
                 egui::menu::menu_button(ui, "Skeleton", |ui| {
                     if ui
-                        .add(Button::new("Match reference bone order...").wrap(false))
+                        .add(Button::new("Match Reference Bone Order...").wrap(false))
                         .clicked()
                     {
                         ui.close_menu();
