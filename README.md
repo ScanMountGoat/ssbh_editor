@@ -12,12 +12,12 @@ SSBH Editor supports a number of model file types. Some files will render in the
 
 | File | Description | Edit | Viewport Rendering |
 | --- | --- | --- | --- |
-| Adj (adjb) | Renormal mesh adjacency | :x: | :heavy_check_mark: |
+| Adj (adjb) | Renormal mesh adjacency | :heavy_check_mark: | :heavy_check_mark: |
 | Anim (nuanmb) | Animations | :x: | :heavy_check_mark: |
 | Hlpb (nuhlpb) | Helper bone constraints | :heavy_check_mark: | :heavy_check_mark: |
 | Matl (numatb) | Materials | :heavy_check_mark: | :heavy_check_mark: |
 | Mesh (numshb) | Mesh vertex data | :heavy_check_mark: | :heavy_check_mark: |
-| MeshEx (numshexb) | Mesh bounding and flags | :x: | :x: |
+| MeshEx (numshexb) | Mesh bounding and flags | :heavy_check_mark: | :heavy_check_mark: |
 | Modl (numdlb) | Mesh material assignments | :heavy_check_mark: | :heavy_check_mark: |
 | Skel (nusktb) | Skeleton | :heavy_check_mark: | :heavy_check_mark: |
 | Nutexb | Textures | :x: | :heavy_check_mark: |
