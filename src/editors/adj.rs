@@ -60,25 +60,24 @@ pub fn adj_editor(
 
             // TODO: Consistent capitalization for non menu buttons.
             // TODO: Add button to remove unused entries.
-            if !validation_errors.is_empty() {
-                if ui
+            if !validation_errors.is_empty()
+                && ui
                     .button(format!("Add {} missing entries", validation_errors.len()))
                     .clicked()
-                {
-                    for e in validation_errors {
-                        match e {
-                            AdjValidationError::MissingRenormalEntry {
-                                mesh_object_index, ..
-                            } => {
-                                if let Some(mesh_object) =
-                                    mesh.and_then(|mesh| mesh.objects.get(*mesh_object_index))
-                                {
-                                    adj.entries.push(AdjEntryData::from_mesh_object(
-                                        *mesh_object_index,
-                                        mesh_object,
-                                    ));
-                                    changed = true;
-                                }
+            {
+                for e in validation_errors {
+                    match e {
+                        AdjValidationError::MissingRenormalEntry {
+                            mesh_object_index, ..
+                        } => {
+                            if let Some(mesh_object) =
+                                mesh.and_then(|mesh| mesh.objects.get(*mesh_object_index))
+                            {
+                                adj.entries.push(AdjEntryData::from_mesh_object(
+                                    *mesh_object_index,
+                                    mesh_object,
+                                ));
+                                changed = true;
                             }
                         }
                     }

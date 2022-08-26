@@ -198,11 +198,11 @@ pub fn mesh_editor(
                             // Open in a separate window since they won't fit in the grid.
                             ui.horizontal(|ui| {
                                 // TODO: Simplify this code?
-                                let attribute_error = errors.iter().find_map(|e| match e {
-                                    MeshValidationError::MissingRequiredVertexAttributes {
-                                        ..
-                                    } => Some(e),
-                                    _ => None,
+                                let attribute_error = errors.iter().find(|e| {
+                                    matches!(
+                                        e,
+                                        MeshValidationError::MissingRequiredVertexAttributes { .. }
+                                    )
                                 });
 
                                 if let Some(attribute_error) = attribute_error {
@@ -219,17 +219,12 @@ pub fn mesh_editor(
                                     {
                                         ui_state.selected_mesh_attributes_index = Some(i);
                                     }
-                                } else {
-                                    if ui
-                                        .add_sized(
-                                            [140.0, 20.0],
-                                            Button::new("Vertex Attributes..."),
-                                        )
-                                        .clicked()
-                                    {
-                                        ui_state.selected_mesh_attributes_index = Some(i);
-                                    }
-                                };
+                                } else if ui
+                                    .add_sized([140.0, 20.0], Button::new("Vertex Attributes..."))
+                                    .clicked()
+                                {
+                                    ui_state.selected_mesh_attributes_index = Some(i);
+                                }
                             });
 
                             if !mesh_object.bone_influences.is_empty() {
@@ -347,18 +342,17 @@ fn attributes_window(
     egui::Window::new(format!("Vertex Attributes ({})", mesh_object.name))
         .open(&mut open)
         .show(ctx, |ui| {
-            // TODO: Add button to remove unused attributes to save space.
-            if !missing_attributes.is_empty() {
-                if ui
+            // TODO: Add button to remove unused attributes to save memory.
+            if !missing_attributes.is_empty()
+                && ui
                     .button(format!(
                         "Add {} Missing Attributes",
                         missing_attributes.len()
                     ))
                     .clicked()
-                {
-                    add_missing_attributes(mesh_object, missing_attributes);
-                    changed = true;
-                }
+            {
+                add_missing_attributes(mesh_object, missing_attributes);
+                changed = true;
             }
 
             egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
