@@ -1,6 +1,9 @@
 # ssbh_editor
 [![wiki](https://img.shields.io/badge/wiki-guide-success)](https://github.com/ScanMountGoat/ssbh_editor/wiki)
 
+<img src="https://images.gamebanana.com/img/ss/tools/6308f596a64a8.jpg" align="top" height="auto" width="auto">
+
+
 SSBH Editor is an application for viewing, editing, and validating models for Smash Ultimate.
 
 Check out [discussions](https://github.com/ScanMountGoat/ssbh_editor/discussions) for reading annoucements, asking questions, or suggesting new features. Report bugs in [issues](https://github.com/ScanMountGoat/ssbh_editor/issues). Download the program in [releases](https://github.com/ScanMountGoat/ssbh_editor/releases).
