@@ -4,7 +4,7 @@ use crate::{
     app::{SkelEditorState, SkelMode},
     widgets::enum_combo_box,
 };
-use egui::{Button, CollapsingHeader, Grid, ScrollArea};
+use egui::{Button, CollapsingHeader, Grid, RichText, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
@@ -81,22 +81,23 @@ pub fn skel_editor(
             });
             ui.separator();
 
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    ui.label("Display Mode");
-                    ui.radio_value(&mut state.mode, SkelMode::List, "List");
-                    ui.radio_value(&mut state.mode, SkelMode::Heirarchy, "Heirarchy");
+            ui.horizontal(|ui| {
+                ui.selectable_value(
+                    &mut state.mode,
+                    SkelMode::List,
+                    RichText::new("List").heading(),
+                );
+                ui.selectable_value(
+                    &mut state.mode,
+                    SkelMode::Hierarchy,
+                    RichText::new("Hierarchy").heading(),
+                );
+            });
 
-                    match state.mode {
-                        SkelMode::List => {
-                            changed |= edit_bones_list(ui, skel);
-                        }
-                        SkelMode::Heirarchy => {
-                            changed |= edit_bones_heirarchy(ui, skel);
-                        }
-                    }
-                });
+            changed |= match state.mode {
+                SkelMode::List => edit_bones_list(ui, skel),
+                SkelMode::Hierarchy => edit_bones_hierarchy(ui, skel),
+            };
         });
 
     (open, changed)
@@ -104,85 +105,93 @@ pub fn skel_editor(
 
 fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
     let mut changed = false;
+    ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            Grid::new("skel_grid").show(ui, |ui| {
+                // Header
+                ui.heading("Bone");
+                ui.heading("Parent");
+                ui.heading("Billboard Type");
+                ui.end_row();
 
-    Grid::new("skel_grid").show(ui, |ui| {
-        // Header
-        ui.heading("Bone");
-        ui.heading("Parent");
-        ui.heading("Billboard Type");
-        ui.end_row();
+                // TODO: Do this without clone?
+                let other_bones = skel.bones.clone();
 
-        // TODO: Do this without clone?
-        let other_bones = skel.bones.clone();
+                let mut bones_to_swap = None;
+                for (i, bone) in skel.bones.iter_mut().enumerate() {
+                    let id = egui::Id::new("bone").with(i);
 
-        let mut bones_to_swap = None;
-        for (i, bone) in skel.bones.iter_mut().enumerate() {
-            let id = egui::Id::new("bone").with(i);
+                    ui.label(&bone.name);
+                    let parent_bone_name = bone
+                        .parent_index
+                        .and_then(|i| other_bones.get(i))
+                        .map(|p| p.name.as_str())
+                        .unwrap_or("None");
 
-            ui.label(&bone.name);
-            let parent_bone_name = bone
-                .parent_index
-                .and_then(|i| other_bones.get(i))
-                .map(|p| p.name.as_str())
-                .unwrap_or("None");
-
-            egui::ComboBox::from_id_source(id)
-                .selected_text(parent_bone_name)
-                .show_ui(ui, |ui| {
-                    changed |= ui
-                        .selectable_value(&mut bone.parent_index, None, "None")
-                        .changed();
-                    ui.separator();
-                    // TODO: Is there a way to make this not O(N^2)?
-                    for (other_i, other_bone) in other_bones.iter().enumerate() {
-                        if i != other_i {
+                    egui::ComboBox::from_id_source(id)
+                        .selected_text(parent_bone_name)
+                        .show_ui(ui, |ui| {
                             changed |= ui
-                                .selectable_value(
-                                    &mut bone.parent_index,
-                                    Some(other_i),
-                                    &other_bone.name,
-                                )
+                                .selectable_value(&mut bone.parent_index, None, "None")
                                 .changed();
+                            ui.separator();
+                            // TODO: Is there a way to make this not O(N^2)?
+                            for (other_i, other_bone) in other_bones.iter().enumerate() {
+                                if i != other_i {
+                                    changed |= ui
+                                        .selectable_value(
+                                            &mut bone.parent_index,
+                                            Some(other_i),
+                                            &other_bone.name,
+                                        )
+                                        .changed();
+                                }
+                            }
+                        });
+
+                    changed |=
+                        enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
+
+                    ui.horizontal(|ui| {
+                        if ui.button("⏶").clicked() {
+                            // Move bone up
+                            if i > 0 {
+                                bones_to_swap = Some((i, i - 1));
+                            }
                         }
-                    }
-                });
 
-            changed |= enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
-
-            ui.horizontal(|ui| {
-                if ui.button("⏶").clicked() {
-                    // Move bone up
-                    if i > 0 {
-                        bones_to_swap = Some((i, i - 1));
-                    }
+                        if ui.button("⏷").clicked() {
+                            // Move bone down
+                            if !other_bones.is_empty() && i < other_bones.len() - 1 {
+                                bones_to_swap = Some((i, i + 1));
+                            }
+                        }
+                    });
+                    ui.end_row();
                 }
 
-                if ui.button("⏷").clicked() {
-                    // Move bone down
-                    if !other_bones.is_empty() && i < other_bones.len() - 1 {
-                        bones_to_swap = Some((i, i + 1));
-                    }
+                if let Some((a, b)) = bones_to_swap {
+                    skel.bones = swap_bones(a, b, &skel.bones);
                 }
             });
-            ui.end_row();
-        }
-
-        if let Some((a, b)) = bones_to_swap {
-            skel.bones = swap_bones(a, b, &skel.bones);
-        }
-    });
+        });
 
     changed
 }
 
-fn edit_bones_heirarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
+fn edit_bones_hierarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
     let changed = false;
 
-    for (i, bone) in skel.bones.iter().enumerate() {
-        if bone.parent_index.is_none() {
-            display_bones_recursive(ui, i, &skel.bones);
-        }
-    }
+    ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            for (i, bone) in skel.bones.iter().enumerate() {
+                if bone.parent_index.is_none() {
+                    display_bones_recursive(ui, i, &skel.bones);
+                }
+            }
+        });
 
     changed
 }

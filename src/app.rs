@@ -155,7 +155,7 @@ pub struct SkelEditorState {
 #[derive(PartialEq, Eq)]
 pub enum SkelMode {
     List,
-    Heirarchy,
+    Hierarchy,
 }
 
 impl Default for SkelMode {
