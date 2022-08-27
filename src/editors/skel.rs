@@ -86,14 +86,14 @@ pub fn skel_editor(
                 .show(ui, |ui| {
                     ui.label("Display Mode");
                     ui.radio_value(&mut state.mode, SkelMode::List, "List");
-                    ui.radio_value(&mut state.mode, SkelMode::Heirarchy, "Heirarchy");
+                    ui.radio_value(&mut state.mode, SkelMode::Hierarchy, "Hierarchy");
 
                     match state.mode {
                         SkelMode::List => {
                             changed |= edit_bones_list(ui, skel);
                         }
-                        SkelMode::Heirarchy => {
-                            changed |= edit_bones_heirarchy(ui, skel);
+                        SkelMode::Hierarchy => {
+                            changed |= edit_bones_hierarchy(ui, skel);
                         }
                     }
                 });
@@ -175,7 +175,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
     changed
 }
 
-fn edit_bones_heirarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
+fn edit_bones_hierarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
     let changed = false;
 
     for (i, bone) in skel.bones.iter().enumerate() {

@@ -117,7 +117,7 @@ pub fn modl_editor(
                         // TODO: There are three ways to display duplicate object names.
                         // 1. "object.0", "object.1"
                         // 2. "object", "object"
-                        // 3. heirarchy with "object0" and "object1" as children of "object"
+                        // 3. hierarchy with "object0" and "object1" as children of "object"
                         ui.heading("Mesh Object");
                         ui.heading("Material Label");
                         ui.end_row();

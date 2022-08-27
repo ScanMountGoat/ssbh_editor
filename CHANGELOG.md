@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added the MeshEx Editor for editing model.numshexb files.
 * Added an option to automatically hide expressions to application preferences.
 * Added an option to generated missing model.adjb entries in the Adj Editor.
-* Added an option to display bones in a heirarchy tree in the Skel Editor.
+* Added an option to display bones in a hierarchy tree in the Skel Editor.
 * Added controls to the animation bar to control playback speed and looping.
 
 ### Changed

@@ -155,7 +155,7 @@ pub struct SkelEditorState {
 #[derive(PartialEq, Eq)]
 pub enum SkelMode {
     List,
-    Heirarchy,
+    Hierarchy,
 }
 
 impl Default for SkelMode {
@@ -857,7 +857,7 @@ impl SsbhApp {
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| {
-                // TODO: Is it worth showing a folder heirarchy instead of hiding empty folders?
+                // TODO: Is it worth showing a folder hierarchy instead of hiding empty folders?
                 for (folder_index, (model, validation)) in self
                     .models
                     .iter_mut()
