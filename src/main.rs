@@ -205,13 +205,6 @@ fn main() {
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
     winit_state.set_pixels_per_point(window.scale_factor() as f32);
 
-    // Assume an sRGB framebuffer, so convert sRGB to linear.
-    let clear_dark = widgets_dark().noninteractive.bg_fill.r();
-    let clear_dark = [linear_f32_from_gamma_u8(clear_dark) as f64; 3];
-
-    let clear_light = widgets_light().noninteractive.bg_fill.r();
-    let clear_light = [linear_f32_from_gamma_u8(clear_light) as f64; 3];
-
     ctx.set_style(egui::style::Style {
         text_styles: default_text_styles(),
         visuals: egui::style::Visuals {
@@ -287,6 +280,7 @@ fn main() {
         should_refresh_render_settings: false,
         should_refresh_camera_settings: false,
         should_validate_models: false,
+        should_update_clear_color: true,
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
@@ -305,7 +299,7 @@ fn main() {
 
     // Make sure the theme updates if changed from preferences.
     // TODO: This is redundant with the initialization above?
-    update_color_theme(&app, &ctx, &mut renderer, clear_dark, clear_light);
+    update_color_theme(&app, &ctx);
     let mut previous_dark_mode = false;
 
     // TODO: Does the T in the the event type matter here?
@@ -323,8 +317,18 @@ fn main() {
 
                         let final_frame_index = app.max_final_frame_index();
 
+                        if app.should_update_clear_color {
+                            // Assume an sRGB framebuffer, so convert sRGB to linear.
+                            let clear_color = app
+                                .preferences
+                                .viewport_color
+                                .map(|c| linear_f32_from_gamma_u8(c) as f64);
+                            renderer.set_clear_color(clear_color);
+                            app.should_update_clear_color = false;
+                        }
+
                         if previous_dark_mode != app.preferences.dark_mode {
-                            update_color_theme(&app, &ctx, &mut renderer, clear_dark, clear_light);
+                            update_color_theme(&app, &ctx);
                         }
 
                         previous_dark_mode = app.preferences.dark_mode;
@@ -713,25 +717,17 @@ fn get_hovered_material_label(app: &SsbhApp, folder_index: usize) -> Option<&str
     )
 }
 
-fn update_color_theme(
-    app: &SsbhApp,
-    ctx: &egui::Context,
-    renderer: &mut SsbhRenderer,
-    clear_dark: [f64; 3],
-    clear_light: [f64; 3],
-) {
+fn update_color_theme(app: &SsbhApp, ctx: &egui::Context) {
     if app.preferences.dark_mode {
         ctx.set_visuals(Visuals {
             widgets: widgets_dark(),
             ..Default::default()
         });
-        renderer.set_clear_color(clear_dark);
     } else {
         ctx.set_visuals(Visuals {
             widgets: widgets_light(),
             ..Visuals::light()
         });
-        renderer.set_clear_color(clear_light);
     }
 }
 

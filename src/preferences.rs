@@ -1,4 +1,7 @@
-use crate::path::{application_dir, preferences_file};
+use crate::{
+    path::{application_dir, preferences_file},
+    widgets_dark,
+};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -6,6 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct AppPreferences {
     pub dark_mode: bool,
     pub autohide_expressions: bool,
+    pub viewport_color: [u8; 3],
 }
 
 impl AppPreferences {
@@ -44,14 +48,22 @@ impl AppPreferences {
 
 impl Default for AppPreferences {
     fn default() -> Self {
+        let color = widgets_dark().noninteractive.bg_fill;
         Self {
             dark_mode: true,
             autohide_expressions: false,
+            viewport_color: [color.r(), color.g(), color.b()],
         }
     }
 }
 
-pub fn preferences_window(ctx: &egui::Context, preferences: &mut AppPreferences, open: &mut bool) {
+pub fn preferences_window(
+    ctx: &egui::Context,
+    preferences: &mut AppPreferences,
+    open: &mut bool,
+) -> bool {
+    let mut changed = false;
+
     egui::Window::new("Preferences")
         .open(open)
         .resizable(false)
@@ -74,10 +86,22 @@ pub fn preferences_window(ctx: &egui::Context, preferences: &mut AppPreferences,
             ui.separator();
 
             // TODO: Add a toggle widget instead.
-            ui.checkbox(&mut preferences.dark_mode, "Dark Mode");
-            ui.checkbox(
-                &mut preferences.autohide_expressions,
-                "Automatically Hide Expressions",
-            );
+            changed |= ui
+                .checkbox(&mut preferences.dark_mode, "Dark Mode")
+                .changed();
+            changed |= ui
+                .checkbox(
+                    &mut preferences.autohide_expressions,
+                    "Automatically Hide Expressions",
+                )
+                .changed();
+
+            ui.horizontal(|ui| {
+                changed |= ui
+                    .color_edit_button_srgb(&mut preferences.viewport_color)
+                    .changed();
+                ui.label("Viewport Background");
+            });
         });
+    changed
 }

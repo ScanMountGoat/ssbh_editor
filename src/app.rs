@@ -71,6 +71,7 @@ pub struct SsbhApp {
     // TODO: Track what files changed in each folder?
     pub should_validate_models: bool,
     pub should_update_lighting: bool,
+    pub should_update_clear_color: bool,
 
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
@@ -420,7 +421,7 @@ impl SsbhApp {
 
         log_window(ctx, &mut self.ui_state.log_window_open);
 
-        preferences_window(
+        self.should_update_clear_color |= preferences_window(
             ctx,
             &mut self.preferences,
             &mut self.ui_state.preferences_window_open,
