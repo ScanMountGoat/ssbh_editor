@@ -89,19 +89,22 @@ pub fn preferences_window(
             changed |= ui
                 .checkbox(&mut preferences.dark_mode, "Dark Mode")
                 .changed();
-            changed |= ui
-                .checkbox(
-                    &mut preferences.autohide_expressions,
-                    "Automatically Hide Expressions",
-                )
-                .changed();
-
             ui.horizontal(|ui| {
                 changed |= ui
                     .color_edit_button_srgb(&mut preferences.viewport_color)
                     .changed();
                 ui.label("Viewport Background");
             });
+            changed |= ui
+                .checkbox(
+                    &mut preferences.autohide_expressions,
+                    "Automatically Hide Expressions",
+                )
+                .changed();
+            if ui.button("Reset Preferences").clicked() {
+               *preferences = AppPreferences::default();
+               changed = true;
+           }
         });
     changed
 }
