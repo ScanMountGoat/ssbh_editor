@@ -1,9 +1,10 @@
 use crate::{horizontal_separator_empty, widgets::*};
-use ssbh_wgpu::{DebugMode, RenderSettings};
+use ssbh_wgpu::{DebugMode, RenderSettings, ModelRenderOptions};
 
 pub fn render_settings(
     ctx: &egui::Context,
     settings: &mut RenderSettings,
+    options: &mut ModelRenderOptions,
     open: &mut bool,
     draw_skeletons: &mut bool,
     draw_bone_names: &mut bool,
@@ -97,7 +98,7 @@ pub fn render_settings(
                     ui.toggle_value(&mut settings.render_rgba[3], "A");
                 });
 
-                ui.checkbox(&mut settings.wireframe, "Wireframe");
+                ui.checkbox(&mut options.draw_wireframe, "Wireframe");
 
                 if matches!(
                     settings.debug_mode,

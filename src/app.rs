@@ -175,11 +175,11 @@ pub struct MatlEditorState {
 
 #[derive(Default)]
 pub struct StageLightingState {
-    pub light: PathBuf,
-    pub reflection_cube_map: PathBuf,
-    pub color_grading_lut: PathBuf,
-    pub chara_shpc: PathBuf,
-    pub stage_shpc: PathBuf,
+    pub light: Option<PathBuf>,
+    pub reflection_cube_map: Option<PathBuf>,
+    pub color_grading_lut: Option<PathBuf>,
+    pub chara_shpc: Option<PathBuf>,
+    pub stage_shpc: Option<PathBuf>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -395,6 +395,7 @@ impl SsbhApp {
         render_settings(
             ctx,
             &mut self.render_state.render_settings,
+            &mut self.render_state.model_render_options,
             &mut self.ui_state.render_settings_open,
             &mut self.draw_skeletons,
             &mut self.draw_bone_names,
@@ -1464,11 +1465,16 @@ pub fn stage_lighting_window(
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
-            let path_label = |ui: &mut Ui, path: &Path| {
-                ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
-                    .on_hover_ui(|ui| {
-                        ui.add(Label::new(path.to_string_lossy()).wrap(false));
-                    });
+            let path_label = |ui: &mut Ui, path: &Option<PathBuf>| match path {
+                Some(path) => {
+                    ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
+                        .on_hover_ui(|ui| {
+                            ui.add(Label::new(path.to_string_lossy()).wrap(false));
+                        });
+                }
+                None => {
+                    ui.label("");
+                }
             };
 
             Grid::new("stage_lighting").show(ui, |ui| {
@@ -1481,7 +1487,7 @@ pub fn stage_lighting_window(
                         .add_filter("Lighting Anim", &["nuanmb"])
                         .pick_file()
                     {
-                        state.light = file;
+                        state.light = Some(file);
                         changed = true;
                     };
                 }
@@ -1494,7 +1500,7 @@ pub fn stage_lighting_window(
                         .add_filter("Cube Map Nutexb", &["nutexb"])
                         .pick_file()
                     {
-                        state.reflection_cube_map = file;
+                        state.reflection_cube_map = Some(file);
                         changed = true;
                     };
                 };
@@ -1507,7 +1513,7 @@ pub fn stage_lighting_window(
                         .add_filter("Color Grading LUT", &["nutexb"])
                         .pick_file()
                     {
-                        state.color_grading_lut = file;
+                        state.color_grading_lut = Some(file);
                         changed = true;
                     };
                 };
@@ -1520,7 +1526,7 @@ pub fn stage_lighting_window(
                         .add_filter("Chara SHCPANIM", &["shpcanim"])
                         .pick_file()
                     {
-                        state.chara_shpc = file;
+                        state.chara_shpc = Some(file);
                         changed = true;
                     };
                 };
@@ -1533,7 +1539,7 @@ pub fn stage_lighting_window(
                         .add_filter("Stage SHCPANIM", &["shpcanim"])
                         .pick_file()
                     {
-                        state.stage_shpc = file;
+                        state.stage_shpc = Some(file);
                         changed = true;
                     };
                 };

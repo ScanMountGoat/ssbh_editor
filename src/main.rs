@@ -20,8 +20,9 @@ use ssbh_editor::{
     path::{last_update_check_file, presets_file, PROJECT_DIR},
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
-use ssbh_wgpu::{CameraTransforms, SsbhRenderer};
+use ssbh_wgpu::{CameraTransforms, ModelFolder, RenderModel, SsbhRenderer};
 use std::iter;
+use std::path::Path;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::*,
@@ -450,10 +451,18 @@ fn main() {
                             },
                         );
 
-                        // First we draw the 3D viewport.
-                        // TODO: Simplify these parameters.
                         // TODO: Support opening editors from more than one folder?
+
+                        // First we draw the 3D viewport.
+                        // TODO: This doesn't need to be updated every frame?
+                        // TODO: Rework these fields to use Option<T>.
                         let mask_model_index = app.ui_state.selected_folder_index.unwrap_or(0);
+                        app.render_state.model_render_options.mask_model_index = mask_model_index;
+                        app.render_state.model_render_options.mask_material_label =
+                            get_hovered_material_label(&app, mask_model_index)
+                                .unwrap_or("")
+                                .to_owned();
+
                         let mut final_pass = renderer.render_models(
                             &mut encoder,
                             &output_view,
@@ -467,9 +476,7 @@ fn main() {
                                 }
                             }),
                             app.render_state.shared_data.database(),
-                            app.draw_bone_axes,
-                            mask_model_index,
-                            get_hovered_material_label(&app, mask_model_index).unwrap_or(""),
+                            &app.render_state.model_render_options,
                         );
 
                         // TODO: Avoid calculating the MVP matrix every frame.
@@ -590,52 +597,78 @@ fn main() {
 }
 
 fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
-    // TODO: Use defaults for empty paths.
     // light00.nuamb
-    match AnimData::from_file(&app.ui_state.stage_lighting.light) {
-        Ok(data) => {
-            renderer.update_stage_uniforms(&app.render_state.queue, &data);
+    match &app.ui_state.stage_lighting.light {
+        Some(path) => {
+            update_stage_uniforms(renderer, app, path);
         }
-        Err(e) => error!(
-            "Error reading {:?}: {}",
-            app.ui_state.stage_lighting.light, e
-        ),
+        None => renderer.reset_stage_uniforms(&app.render_state.queue),
     }
 
+    // color_grading_lut.nutexb
+    match &app.ui_state.stage_lighting.color_grading_lut {
+        Some(path) => update_color_lut(app, renderer, path),
+        None => renderer.reset_color_lut(&app.render_state.device, &app.render_state.queue),
+    };
+
     // reflection_cubemap.nutexb
-    match NutexbFile::read_from_file(&app.ui_state.stage_lighting.reflection_cube_map) {
+    match &app.ui_state.stage_lighting.reflection_cube_map {
+        Some(path) => update_stage_cube_map(
+            &mut app.render_state,
+            &app.models,
+            &mut app.render_models,
+            path,
+        ),
+        None => app
+            .render_state
+            .shared_data
+            .reset_stage_cube_map(&app.render_state.device, &app.render_state.queue),
+    }
+}
+
+fn update_color_lut(app: &SsbhApp, renderer: &mut SsbhRenderer, path: &Path) {
+    match NutexbFile::read_from_file(path) {
         Ok(nutexb) => {
-            app.render_state.shared_data.update_stage_cube_map(
-                &app.render_state.device,
-                &app.render_state.queue,
+            renderer.update_color_lut(&app.render_state.device, &app.render_state.queue, &nutexb);
+        }
+        Err(e) => error!("Error reading {:?}: {}", path, e),
+    }
+}
+
+fn update_stage_cube_map(
+    render_state: &mut RenderState,
+    models: &[ModelFolder],
+    render_models: &mut [RenderModel],
+    path: &Path,
+) {
+    match NutexbFile::read_from_file(path) {
+        Ok(nutexb) => {
+            render_state.shared_data.update_stage_cube_map(
+                &render_state.device,
+                &render_state.queue,
                 &nutexb,
             );
             // Updating the cube map requires reassigning model textures.
-            for (render_model, model) in app.render_models.iter_mut().zip(app.models.iter()) {
+            for (render_model, model) in render_models.iter_mut().zip(models.iter()) {
                 if let Some(matl) = model.find_matl() {
                     render_model.recreate_materials(
-                        &app.render_state.device,
+                        &render_state.device,
                         &matl.entries,
-                        &app.render_state.shared_data,
+                        &render_state.shared_data,
                     );
                 }
             }
         }
-        Err(e) => error!(
-            "Error reading {:?}: {}",
-            app.ui_state.stage_lighting.reflection_cube_map, e
-        ),
+        Err(e) => error!("Error reading {:?}: {}", path, e),
     }
+}
 
-    // color_grading_lut.nutexb
-    match NutexbFile::read_from_file(&app.ui_state.stage_lighting.color_grading_lut) {
-        Ok(nutexb) => {
-            renderer.update_color_lut(&app.render_state.device, &app.render_state.queue, &nutexb);
+fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path) {
+    match AnimData::from_file(path) {
+        Ok(data) => {
+            renderer.update_stage_uniforms(&app.render_state.queue, &data);
         }
-        Err(e) => error!(
-            "Error reading {:?}: {}",
-            app.ui_state.stage_lighting.color_grading_lut, e
-        ),
+        Err(e) => error!("Error reading {:?}: {}", path, e),
     }
 }
 
