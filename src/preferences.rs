@@ -5,7 +5,9 @@ use crate::{
 use log::error;
 use serde::{Deserialize, Serialize};
 
+// Use defaults for missing values to avoid most version conflicts.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AppPreferences {
     pub dark_mode: bool,
     pub autohide_expressions: bool,
@@ -102,9 +104,9 @@ pub fn preferences_window(
                 )
                 .changed();
             if ui.button("Reset Preferences").clicked() {
-               *preferences = AppPreferences::default();
-               changed = true;
-           }
+                *preferences = AppPreferences::default();
+                changed = true;
+            }
         });
     changed
 }
