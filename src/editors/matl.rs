@@ -10,7 +10,10 @@ use crate::{
     validation::MatlValidationError,
     widgets::*,
 };
-use egui::{Button, ComboBox, DragValue, Grid, Label, ScrollArea, TextEdit, Ui, Window};
+use egui::{
+    Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, ScrollArea, TextEdit, Ui,
+    Window,
+};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*, Color4f, Vector4};
@@ -60,6 +63,7 @@ pub fn matl_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     changed |= edit_matl_entries(
+                        ctx,
                         ui,
                         &mut matl.entries,
                         modl,
@@ -147,6 +151,7 @@ pub fn preset_editor(
                     // Use an empty model thumbnail list to encourage using default textures.
                     // These textures will be replaced by param specific defaults anyway.
                     edit_matl_entries(
+                        ctx,
                         ui,
                         presets,
                         None,
@@ -210,6 +215,7 @@ fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {
 }
 
 fn edit_matl_entries(
+    ctx: &Context,
     ui: &mut Ui,
     entries: &mut Vec<MatlEntryData>,
     modl: Option<&mut ModlData>,
@@ -283,6 +289,7 @@ fn edit_matl_entries(
             .collect();
 
         changed |= matl_entry_editor(
+            ctx,
             ui,
             entry,
             &entry_validation_errors,
@@ -540,6 +547,7 @@ fn edit_shader_label(
 }
 
 fn matl_entry_editor(
+    ctx: &Context,
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
     validation_errors: &[&MatlValidationError],
@@ -703,7 +711,7 @@ fn matl_entry_editor(
     if advanced_mode {
         for param in entry.vectors.iter_mut() {
             ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                changed |= edit_vector_advanced(ui, param, program);
+                changed |= edit_vector_advanced(ctx, ui, param, program);
             });
         }
     } else {
@@ -721,16 +729,6 @@ fn matl_entry_editor(
     }
     horizontal_separator_empty(ui);
 
-    // The defaults for samplers are usually fine, so don't show samplers by default.
-    if advanced_mode {
-        for param in &mut entry.samplers {
-            ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                changed |= edit_sampler(ui, param);
-            });
-        }
-        horizontal_separator_empty(ui);
-    }
-
     Grid::new("matl textures").show(ui, |ui| {
         for param in &mut entry.textures {
             changed |= edit_texture(
@@ -746,14 +744,19 @@ fn matl_entry_editor(
     });
     horizontal_separator_empty(ui);
 
-    // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
-    if advanced_mode {
-        // Edits to RasterizerState0 are rare, so restrict it to advanced mode.
-        for param in &mut entry.rasterizer_states {
-            changed |= edit_rasterizer(ui, param);
-        }
-        horizontal_separator_empty(ui);
+    for param in &mut entry.samplers {
+        ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
+            changed |= edit_sampler(ui, param);
+        });
     }
+    horizontal_separator_empty(ui);
+
+    // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
+    // Edits to RasterizerState0 are rare, so restrict it to advanced mode.
+    for param in &mut entry.rasterizer_states {
+        changed |= edit_rasterizer(ui, param);
+    }
+    horizontal_separator_empty(ui);
 
     for param in &mut entry.blend_states {
         changed |= edit_blend(ui, param);
@@ -765,38 +768,39 @@ fn matl_entry_editor(
 fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
     let mut changed = false;
 
-    ui.label(param_label(param.param_id));
-    ui.indent("indent", |ui| {
-        let id = egui::Id::new(param.param_id.to_string());
+    CollapsingHeader::new(param_label(param.param_id))
+        .default_open(true)
+        .show(ui, |ui| {
+            let id = egui::Id::new(param.param_id.to_string());
 
-        Grid::new(id).show(ui, |ui| {
-            changed |= enum_combo_box(
-                ui,
-                "Source Color",
-                id.with("srccolor"),
-                &mut param.data.source_color,
-            );
-            ui.end_row();
+            Grid::new(id).show(ui, |ui| {
+                changed |= enum_combo_box(
+                    ui,
+                    "Source Color",
+                    id.with("srccolor"),
+                    &mut param.data.source_color,
+                );
+                ui.end_row();
 
-            changed |= enum_combo_box(
-                ui,
-                "Destination Color",
-                id.with("dstcolor"),
-                &mut param.data.destination_color,
-            );
-            ui.end_row();
+                changed |= enum_combo_box(
+                    ui,
+                    "Destination Color",
+                    id.with("dstcolor"),
+                    &mut param.data.destination_color,
+                );
+                ui.end_row();
 
-            changed |= ui
-                .checkbox(
-                    &mut param.data.alpha_sample_to_coverage,
-                    "Alpha Sample to Coverage",
-                )
-                .changed();
-            ui.end_row();
-            // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
-            // TODO: Research in game examples for these presets (premultiplied alpha?)
+                changed |= ui
+                    .checkbox(
+                        &mut param.data.alpha_sample_to_coverage,
+                        "Alpha Sample to Coverage",
+                    )
+                    .changed();
+                ui.end_row();
+                // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
+                // TODO: Research in game examples for these presets (premultiplied alpha?)
+            });
         });
-    });
 
     changed
 }
@@ -804,8 +808,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
 fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
     let mut changed = false;
 
-    ui.label(param_label(param.param_id));
-    ui.indent("indent", |ui| {
+    CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
@@ -898,8 +901,7 @@ fn edit_texture(
 fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
     let mut changed = false;
 
-    ui.label(param_label(param.param_id));
-    ui.indent("indent", |ui| {
+    CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
@@ -1081,11 +1083,14 @@ fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
 }
 
 fn edit_vector_advanced(
+    _ctx: &Context,
     ui: &mut Ui,
     param: &mut Vector4Param,
     program: Option<&ShaderProgram>,
 ) -> bool {
     let mut changed = false;
+
+    let id = egui::Id::new(param.param_id.to_string());
 
     // TODO: Set custom ranges.
     ui.horizontal(|ui| {
@@ -1099,8 +1104,6 @@ fn edit_vector_advanced(
     let channels = program
         .map(|p| p.accessed_channels(&param.param_id.to_string()))
         .unwrap_or_default();
-
-    let id = egui::Id::new(param.param_id.to_string());
 
     // Don't allow editing components that are never accessed in game.
     let edit_component = |ui: &mut Ui, i, value| {
