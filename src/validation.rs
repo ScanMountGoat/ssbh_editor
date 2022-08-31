@@ -83,7 +83,7 @@ pub enum MeshValidationError {
         missing_attributes: Vec<String>,
     },
 
-    #[error("Mesh {mesh_name:?} repeats subindex {subindex}. Subindices must be unique.")]
+    #[error("Mesh {mesh_name:?} repeats subindex {subindex}. Meshes with the same name must have unique subindices.")]
     DuplicateSubindex {
         mesh_object_index: usize,
         mesh_name: String,
@@ -152,9 +152,7 @@ pub enum MatlValidationError {
         actual: TextureDimension,
     },
 
-    #[error(
-        "Texture {nutexb:?} assigned to param {param} for material {material_label:?} is missing."
-    )]
+    #[error("Texture {nutexb:?} assigned to {param} for material {material_label:?} is missing.")]
     MissingTexture {
         entry_index: usize,
         material_label: String,
@@ -967,7 +965,7 @@ mod tests {
         );
 
         assert_eq!(
-            r#"Texture "texture0" assigned to param Texture0 for material "a" is missing."#,
+            r#"Texture "texture0" assigned to Texture0 for material "a" is missing."#,
             format!("{}", validation.matl_errors[0])
         );
     }
@@ -1084,7 +1082,7 @@ mod tests {
         );
 
         assert_eq!(
-            r#"Mesh "a" repeats subindex 0. Subindices must be unique."#,
+            r#"Mesh "a" repeats subindex 0. Meshes with the same name must have unique subindices."#,
             format!("{}", validation.mesh_errors[0])
         );
     }
