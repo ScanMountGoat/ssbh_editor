@@ -10,7 +10,7 @@ use octocrab::models::repos::Release;
 use pollster::FutureExt;
 use ssbh_data::prelude::*;
 // TODO: is this redundant with tokio?
-use ssbh_editor::app::{SsbhApp, UiState};
+use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::AppPreferences;
 use ssbh_editor::validation::ModelValidationErrors;
@@ -274,7 +274,7 @@ fn main() {
         thumbnails: Vec::new(),
         validation_errors: Vec::new(),
         default_thumbnails,
-        should_reload_models: false,
+        models_to_update: ItemsToUpdate::None,
         should_show_update,
         new_release_tag,
         should_update_lighting: false,
@@ -282,6 +282,7 @@ fn main() {
         should_refresh_camera_settings: false,
         should_validate_models: false,
         should_update_clear_color: true,
+        should_update_thumbnails: false,
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
@@ -377,13 +378,7 @@ fn main() {
                         }
 
                         // TODO: Load models on a separate thread to avoid freezing the UI.
-                        if app.should_reload_models {
-                            reload_models(&mut app, &mut egui_rpass);
-                            if app.preferences.autohide_expressions {
-                                app.hide_expressions();
-                            }
-                            app.should_reload_models = false;
-                        }
+                        reload_models(&mut app, &mut egui_rpass);
 
                         if app.should_refresh_render_settings {
                             renderer.update_render_settings(
@@ -405,21 +400,14 @@ fn main() {
                         }
 
                         if app.should_validate_models {
-                            for (model, validation) in
-                                app.models.iter().zip(app.validation_errors.iter_mut())
-                            {
-                                // TODO: Only update the folders that change.
-                                // Folders should be independent from one another.
-                                *validation = ModelValidationErrors::from_model(
-                                    model,
-                                    app.render_state.shared_data.database(),
-                                    app.render_state
-                                        .shared_data
-                                        .default_textures()
-                                        .iter()
-                                        .map(|(f, _, _)| f),
-                                );
-                            }
+                            // TODO: Only update the folders that change.
+                            // Folders should be independent from one another.
+                            app.validation_errors = app
+                                .models
+                                .iter()
+                                .map(|_| ModelValidationErrors::default())
+                                .collect();
+
                             app.should_validate_models = false;
                         }
 
@@ -673,24 +661,49 @@ fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path
 }
 
 fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::RenderPass) {
-    app.render_models = ssbh_wgpu::load_render_models(
-        &app.render_state.device,
-        &app.render_state.queue,
-        &app.models,
-        &app.render_state.shared_data,
-    );
-    app.validation_errors = app
-        .models
-        .iter()
-        .map(|_| ModelValidationErrors::default())
-        .collect();
-    app.thumbnails = generate_model_thumbnails(
-        egui_rpass,
-        &app.models,
-        &app.render_models,
-        &app.render_state.device,
-        &app.render_state.queue,
-    );
+    // Only load render models that need to change to improve performance.
+    match app.models_to_update {
+        ItemsToUpdate::None => (),
+        ItemsToUpdate::One(i) => {
+            if let (Some(render_model), Some(model)) =
+                (app.render_models.get_mut(i), app.models.get(i))
+            {
+                *render_model = RenderModel::from_folder(
+                    &app.render_state.device,
+                    &app.render_state.queue,
+                    model,
+                    &app.render_state.shared_data,
+                );
+            }
+        }
+        ItemsToUpdate::All => {
+            app.render_models = ssbh_wgpu::load_render_models(
+                &app.render_state.device,
+                &app.render_state.queue,
+                &app.models,
+                &app.render_state.shared_data,
+            );
+        }
+    }
+
+    if app.should_update_thumbnails {
+        app.thumbnails = generate_model_thumbnails(
+            egui_rpass,
+            &app.models,
+            &app.render_models,
+            &app.render_state.device,
+            &app.render_state.queue,
+        );
+        app.should_update_thumbnails = false;
+    }
+
+    if app.models_to_update != ItemsToUpdate::None {
+        if app.preferences.autohide_expressions {
+            app.hide_expressions();
+        }
+    }
+
+    app.models_to_update = ItemsToUpdate::None;
 }
 
 fn animate_models(app: &mut SsbhApp) {
@@ -895,8 +908,8 @@ fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app:
         if !is_synthetic {
             if let Some(key) = input.virtual_keycode {
                 match (modifiers, key) {
-                    (CTRL, VirtualKeyCode::O) => app.open_folder(),
-                    (CTRL_SHIFT, VirtualKeyCode::O) => app.add_folder_to_workspace(),
+                    (CTRL, VirtualKeyCode::O) => app.add_folder_to_workspace(true),
+                    (CTRL_SHIFT, VirtualKeyCode::O) => app.add_folder_to_workspace(false),
                     (CTRL, VirtualKeyCode::R) => app.reload_workspace(),
                     _ => (),
                 }

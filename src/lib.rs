@@ -5,7 +5,7 @@ use egui::{
 use nutexb_wgpu::TextureRenderer;
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData};
-use std::{collections::BTreeMap, error::Error, path::Path};
+use std::{collections::BTreeMap, error::Error};
 use winit::dpi::PhysicalPosition;
 
 pub mod app;
@@ -163,30 +163,19 @@ impl AnimationIndex {
     }
 }
 
-pub fn load_models_recursive<P: AsRef<Path>>(root: P) -> Vec<ModelFolder> {
-    let mut models = ssbh_wgpu::load_model_folders(root);
+fn sort_files(models: &mut [ModelFolder]) {
     models.sort_by_key(|m| m.folder_name.clone());
-    for model in &mut models {
-        sort_files(model);
+
+    for model in models {
+        // Sort by file name for consistent ordering in the UI.
+        model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        model.meshes.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
     }
-    models
-}
-
-pub fn load_model<P: AsRef<Path>>(root: P) -> ModelFolder {
-    let mut model = ssbh_wgpu::ModelFolder::load_folder(root);
-    sort_files(&mut model);
-    model
-}
-
-fn sort_files(model: &mut ModelFolder) {
-    // Sort by file name for consistent ordering in the UI.
-    model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    model.meshes.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
 }
 
 pub fn generate_model_thumbnails(

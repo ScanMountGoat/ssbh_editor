@@ -11,10 +11,10 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    load_models_recursive,
     path::last_update_check_file,
     preferences::{preferences_window, AppPreferences},
     render_settings::render_settings,
+    sort_files,
     validation::{MatlValidationError, ModelValidationErrors},
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
@@ -65,14 +65,15 @@ impl Log for AppLogger {
 }
 
 pub struct SsbhApp {
-    pub should_reload_models: bool,
     pub should_refresh_render_settings: bool,
     pub should_refresh_camera_settings: bool,
     // TODO: Track what files changed in each folder?
+    pub models_to_update: ItemsToUpdate,
+    pub should_update_thumbnails: bool,
     pub should_validate_models: bool,
     pub should_update_lighting: bool,
     pub should_update_clear_color: bool,
-
+    // TODO: Add a mesh_to_refresh index? Option<folder, mesh>
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
 
@@ -103,6 +104,13 @@ pub struct SsbhApp {
     pub camera_state: CameraInputState,
 
     pub preferences: AppPreferences,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum ItemsToUpdate {
+    None,
+    One(usize),
+    All,
 }
 
 #[derive(Default)]
@@ -220,15 +228,17 @@ impl Default for PanelTab {
 }
 
 impl SsbhApp {
-    pub fn open_folder(&mut self) {
-        self.clear_workspace();
-        self.add_folder_to_workspace();
-    }
-
-    pub fn add_folder_to_workspace(&mut self) {
+    pub fn add_folder_to_workspace(&mut self, clear_workspace: bool) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            // Users may want to load multiple animation folders at once for stages.
-            let new_models = load_models_recursive(&folder);
+            // Don't clear existing files if the user cancels the dialog.
+            if clear_workspace {
+                self.clear_workspace();
+            }
+
+            // TODO: Check for duplicate folders?
+
+            // Load recursively for nested folders like stages.
+            let new_models = ssbh_wgpu::load_model_folders(&folder);
 
             self.animation_state
                 .animations
@@ -250,10 +260,21 @@ impl SsbhApp {
                     }
                 }));
 
+            self.render_models.extend(new_models.iter().map(|model| {
+                RenderModel::from_folder(
+                    &self.render_state.device,
+                    &self.render_state.queue,
+                    model,
+                    &self.render_state.shared_data,
+                )
+            }));
+
             self.models.extend(new_models);
-            // TODO: Only update the models that were added?
-            self.should_reload_models = true;
+            sort_files(&mut self.models);
+
+            // TODO: Only validate the models that were added?
             self.should_validate_models = true;
+            self.should_update_thumbnails = true;
         }
     }
 
@@ -262,7 +283,10 @@ impl SsbhApp {
         for model in &mut self.models {
             *model = ModelFolder::load_folder(&model.folder_name);
         }
-        self.should_reload_models = true;
+        sort_files(&mut self.models);
+
+        self.models_to_update = ItemsToUpdate::All;
+        self.should_update_thumbnails = true;
         self.should_validate_models = true;
     }
 
@@ -567,6 +591,8 @@ impl SsbhApp {
                             validation_errors,
                             &mut self.ui_state,
                         );
+                        // TODO: Reload the specified render model if necessary?
+                        // The mesh editor has no high frequency edits (sliders), so just reload on any change?
                         file_changed |= changed;
 
                         if !open {
@@ -604,6 +630,7 @@ impl SsbhApp {
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         );
+                        // TODO: shader error checkboards don't update properly.
                         file_changed |= changed;
 
                         if !open {
@@ -1082,12 +1109,12 @@ impl SsbhApp {
 
                 if button(ui, format!("Open Folder...    {ctrl} O")).clicked() {
                     ui.close_menu();
-                    self.open_folder();
+                    self.add_folder_to_workspace(true);
                 }
 
                 if button(ui, format!("Add Folder to Workspace...    {ctrl_shift} O")).clicked() {
                     ui.close_menu();
-                    self.add_folder_to_workspace();
+                    self.add_folder_to_workspace(false);
                 }
 
                 if button(ui, format!("Reload Workspace    {ctrl} R")).clicked() {
