@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Added
+* Added a viewport background color option to preferences.
+* Added a reset button to preferences.
+
+### Changed
+* Improved performance when adding new folders to an existing workspace.
+* Adjusted valiadation error messages for clarity and conciseness.
+* Changed the Matl Editor layout to always show all parameters even without advanced settings checked.
+
+### Fixed
+* Fixed an issue where canceling a folder dialog would clear the existing files.
+* Fixed an issue where the Lighting Window reset button didn't work properly.
+* Fixed an issue where loading lighting files would create errors about loading empty paths.
+* Fixed inconsistencies in sorting for opening folders vs reloading the workspace.
+
 ## 0.6.0
 ### Added
 * Added a graph viewer tab to the anim editor for graphing animated values over time
