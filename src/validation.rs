@@ -1,6 +1,9 @@
 use crate::FileResult;
 use nutexb::{NutexbFile, NutexbFormat};
-use ssbh_data::{matl_data::ParamId, prelude::*};
+use ssbh_data::{
+    matl_data::{ParamId, WrapMode},
+    prelude::*,
+};
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 use std::{
     collections::{HashMap, HashSet},
@@ -40,14 +43,18 @@ impl ModelValidationErrors {
             validate_mesh_subindices(&mut validation, mesh);
         }
 
+        let modl = model.find_modl();
+
         if let Some(matl) = model.find_matl() {
             validate_required_attributes(
                 &mut validation,
                 matl,
-                model.find_modl(),
+                modl,
                 model.find_mesh(),
                 shader_database,
             );
+
+            validate_wrap_mode_tiling(&mut validation, matl, modl, mesh);
 
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
             validate_texture_dimensions(&mut validation, matl, &model.nutexbs);
@@ -73,9 +80,7 @@ impl ModelValidationErrors {
 // TODO: Check for unsupported vertex attribute names?
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MeshValidationError {
-    #[error("Mesh {mesh_name:?} is missing attributes {} required by assigned material {material_label:?}.",
-        missing_attributes.join(", "),
-    )]
+    #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
     MissingRequiredVertexAttributes {
         mesh_object_index: usize,
         mesh_name: String,
@@ -116,9 +121,7 @@ impl Display for SkelValidationError {
 // TODO: Move the entry index and label out of the enum?
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MatlValidationError {
-    #[error("Mesh {mesh_name:?} is missing attributes {} required by assigned material {material_label:?}.",
-        missing_attributes.join(", ")
-    )]
+    #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
     MissingRequiredVertexAttributes {
         entry_index: usize,
         material_label: String,
@@ -176,6 +179,18 @@ pub enum MatlValidationError {
         entry_index: usize,
         material_label: String,
     },
+
+    // TODO: use indoc?
+    #[error(
+        "Samplers {samplers:?} for material {material_label:?} will clamp UV coordinates for mesh {mesh_name:?}.
+Use wrap mode Repeat if the texture should tile.",
+    )]
+    WrapModeClampsUvs {
+        entry_index: usize,
+        material_label: String,
+        mesh_name: String,
+        samplers: Vec<ParamId>,
+    },
 }
 
 impl MatlValidationError {
@@ -189,6 +204,7 @@ impl MatlValidationError {
             Self::RenormalMaterialMissingAdj { entry_index, .. } => *entry_index,
             Self::UnexpectedTextureDimension { entry_index, .. } => *entry_index,
             Self::MissingTexture { entry_index, .. } => *entry_index,
+            Self::WrapModeClampsUvs { entry_index, .. } => *entry_index,
         }
     }
 }
@@ -305,6 +321,87 @@ fn validate_required_attributes(
                             missing_attributes,
                         };
                         validation.mesh_errors.push(mesh_error);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn validate_wrap_mode_tiling(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    modl: Option<&ModlData>,
+    mesh: Option<&MeshData>,
+) {
+    // Both the modl and mesh should be present to determine material assignments.
+    if let (Some(modl), Some(mesh)) = (modl, mesh) {
+        for (entry_index, entry) in matl.entries.iter().enumerate() {
+            for (_, o) in mesh.objects.iter().enumerate().filter(|(_, o)| {
+                modl.entries
+                    .iter()
+                    .filter(|e| e.material_label == entry.material_label)
+                    .any(|e| e.mesh_object_name == o.name && e.mesh_object_subindex == o.subindex)
+            }) {
+                // Check if any UV coordinates are outside the 0.0 to 1.0 range.
+                let mut max_u = 0.0f32;
+                let mut min_u = 0.0f32;
+                let mut max_v = 0.0f32;
+                let mut min_v = 0.0f32;
+
+                let mut update_min_max = |u: &f32, v: &f32| {
+                    min_u = min_u.min(*u);
+                    max_u = max_u.max(*u);
+
+                    min_v = min_v.min(*v);
+                    max_v = max_v.max(*v);
+                };
+
+                for attribute in &o.texture_coordinates {
+                    match &attribute.data {
+                        ssbh_data::mesh_data::VectorData::Vector2(values) => {
+                            for [u, v] in values {
+                                update_min_max(u, v);
+                            }
+                        }
+                        ssbh_data::mesh_data::VectorData::Vector3(values) => {
+                            for [u, v, _] in values {
+                                update_min_max(u, v);
+                            }
+                        }
+                        ssbh_data::mesh_data::VectorData::Vector4(values) => {
+                            for [u, v, _, _] in values {
+                                update_min_max(u, v);
+                            }
+                        }
+                    }
+                }
+
+                if min_u < 0.0 || max_u > 1.0 || min_v < 0.0 || max_v > 1.0 {
+                    // Combine samplers to reduce the number of errors.
+                    // Don't check cube maps since they should use clamp to edge.
+                    // TODO: Combine meshes as well?
+                    let samplers: Vec<_> = entry
+                        .samplers
+                        .iter()
+                        .filter(|s| {
+                            !matches!(
+                                s.param_id,
+                                ParamId::Sampler2 | ParamId::Sampler7 | ParamId::Sampler8
+                            ) && (s.data.wraps != WrapMode::Repeat
+                                || s.data.wrapt != WrapMode::Repeat)
+                        })
+                        .map(|s| s.param_id)
+                        .collect();
+
+                    if !samplers.is_empty() {
+                        let matl_error = MatlValidationError::WrapModeClampsUvs {
+                            entry_index,
+                            material_label: entry.material_label.clone(),
+                            mesh_name: o.name.clone(),
+                            samplers,
+                        };
+                        validation.matl_errors.push(matl_error);
                     }
                 }
             }
@@ -550,8 +647,8 @@ fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshD
 mod tests {
     use nutexb::{NutexbFile, NutexbFooter, NutexbFormat};
     use ssbh_data::{
-        matl_data::{MatlEntryData, TextureParam},
-        mesh_data::MeshObjectData,
+        matl_data::{MatlEntryData, SamplerData, SamplerParam, TextureParam},
+        mesh_data::{AttributeData, MeshObjectData, VectorData},
         modl_data::ModlEntryData,
     };
     use ssbh_wgpu::create_database;
@@ -670,12 +767,12 @@ mod tests {
         );
 
         assert_eq!(
-            r#"Mesh "object1" is missing attributes map1, uvSet required by assigned material "a"."#,
+            r#"Mesh "object1" is missing attributes ["map1", "uvSet"] required by assigned material "a"."#,
             format!("{}", validation.matl_errors[0])
         );
 
         assert_eq!(
-            r#"Mesh "object1" is missing attributes map1, uvSet required by assigned material "a"."#,
+            r#"Mesh "object1" is missing attributes ["map1", "uvSet"] required by assigned material "a"."#,
             format!("{}", validation.mesh_errors[0])
         );
     }
@@ -1085,5 +1182,156 @@ mod tests {
             r#"Mesh "a" repeats subindex 0. Meshes with the same name must have unique subindices."#,
             format!("{}", validation.mesh_errors[0])
         );
+    }
+
+    #[test]
+    fn wrap_mode_tiling_clamped_uvs() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: vec![
+                    SamplerParam {
+                        param_id: ParamId::Sampler0,
+                        data: SamplerData {
+                            wraps: WrapMode::ClampToEdge,
+                            wrapt: WrapMode::ClampToEdge,
+                            ..Default::default()
+                        },
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler4,
+                        data: SamplerData {
+                            wraps: WrapMode::ClampToEdge,
+                            wrapt: WrapMode::ClampToEdge,
+                            ..Default::default()
+                        },
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler2,
+                        data: SamplerData::default(),
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler7,
+                        data: SamplerData::default(),
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler8,
+                        data: SamplerData::default(),
+                    },
+                ],
+                textures: Vec::new(),
+            }],
+        };
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![MeshObjectData {
+                name: "object1".to_owned(),
+                subindex: 0,
+                texture_coordinates: vec![AttributeData {
+                    name: "map1".to_owned(),
+                    data: VectorData::Vector2(vec![[0.0, 0.0], [-1.0, 1.5]]),
+                }],
+                ..Default::default()
+            }],
+        };
+        let modl = ModlData {
+            major_version: 1,
+            minor_version: 0,
+            model_name: String::new(),
+            skeleton_file_name: String::new(),
+            material_file_names: Vec::new(),
+            animation_file_name: None,
+            mesh_file_name: String::new(),
+            entries: vec![ModlEntryData {
+                mesh_object_name: "object1".to_owned(),
+                mesh_object_subindex: 0,
+                material_label: "a".to_owned(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_wrap_mode_tiling(&mut validation, &matl, Some(&modl), Some(&mesh));
+
+        assert_eq!(
+            vec![MatlValidationError::WrapModeClampsUvs {
+                entry_index: 0,
+                material_label: "a".to_owned(),
+                mesh_name: "object1".to_owned(),
+                samplers: vec![ParamId::Sampler0, ParamId::Sampler4],
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            "Samplers [Sampler0, Sampler4] for material \"a\" will clamp UV coordinates for mesh \"object1\".\nUse wrap mode Repeat if the texture should tile.",
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn wrap_mode_tiling_all_repeat() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: vec![SamplerParam {
+                    param_id: ParamId::Sampler0,
+                    data: SamplerData {
+                        wraps: WrapMode::Repeat,
+                        wrapt: WrapMode::Repeat,
+                        ..Default::default()
+                    },
+                }],
+                textures: Vec::new(),
+            }],
+        };
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![MeshObjectData {
+                name: "object1".to_owned(),
+                subindex: 0,
+                texture_coordinates: vec![AttributeData {
+                    name: "map1".to_owned(),
+                    data: VectorData::Vector2(vec![[0.0, 0.0], [-1.0, 1.5]]),
+                }],
+                ..Default::default()
+            }],
+        };
+        let modl = ModlData {
+            major_version: 1,
+            minor_version: 0,
+            model_name: String::new(),
+            skeleton_file_name: String::new(),
+            material_file_names: Vec::new(),
+            animation_file_name: None,
+            mesh_file_name: String::new(),
+            entries: vec![ModlEntryData {
+                mesh_object_name: "object1".to_owned(),
+                mesh_object_subindex: 0,
+                material_label: "a".to_owned(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_wrap_mode_tiling(&mut validation, &matl, Some(&modl), Some(&mesh));
+
+        assert!(validation.matl_errors.is_empty());
     }
 }

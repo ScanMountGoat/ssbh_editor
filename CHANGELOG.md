@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added a viewport background color option to preferences.
 * Added a reset button to preferences.
+* Added validation for not using the Repeat wrap mode when UVs are outside the 0.0 to 1.0 range.
 
 ### Changed
 * Improved performance when adding new folders to an existing workspace.

@@ -405,7 +405,17 @@ fn main() {
                             app.validation_errors = app
                                 .models
                                 .iter()
-                                .map(|_| ModelValidationErrors::default())
+                                .map(|model| {
+                                    ModelValidationErrors::from_model(
+                                        model,
+                                        app.render_state.shared_data.database(),
+                                        app.render_state
+                                            .shared_data
+                                            .default_textures()
+                                            .iter()
+                                            .map(|(f, _, _)| f),
+                                    )
+                                })
                                 .collect();
 
                             app.should_validate_models = false;
