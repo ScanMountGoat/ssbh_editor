@@ -2,6 +2,7 @@ use crate::FileResult;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
     matl_data::{ParamId, WrapMode},
+    mesh_data::VectorData,
     prelude::*,
 };
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
@@ -328,6 +329,17 @@ fn validate_required_attributes(
     }
 }
 
+fn is_repeat(wrap: WrapMode) -> bool {
+    wrap == WrapMode::Repeat || wrap == WrapMode::MirroredRepeat
+}
+
+fn is_cube(param: ParamId) -> bool {
+    matches!(
+        param,
+        ParamId::Sampler2 | ParamId::Sampler7 | ParamId::Sampler8
+    )
+}
+
 fn validate_wrap_mode_tiling(
     validation: &mut ModelValidationErrors,
     matl: &MatlData,
@@ -343,70 +355,79 @@ fn validate_wrap_mode_tiling(
                     .filter(|e| e.material_label == entry.material_label)
                     .any(|e| e.mesh_object_name == o.name && e.mesh_object_subindex == o.subindex)
             }) {
-                // Check if any UV coordinates are outside the 0.0 to 1.0 range.
-                let mut max_u = 0.0f32;
-                let mut min_u = 0.0f32;
-                let mut max_v = 0.0f32;
-                let mut min_v = 0.0f32;
+                // Combine samplers to reduce the number of errors.
+                let mut samplers = Vec::new();
 
-                let mut update_min_max = |u: &f32, v: &f32| {
-                    min_u = min_u.min(*u);
-                    max_u = max_u.max(*u);
+                // Don't check cube maps since they should use clamp to edge.
+                for sampler in entry.samplers.iter().filter(|s| {
+                    !is_cube(s.param_id) && (!is_repeat(s.data.wraps) || !is_repeat(s.data.wrapt))
+                }) {
+                    let uv_name = match sampler.param_id {
+                        ParamId::Sampler1 | ParamId::Sampler11 | ParamId::Sampler14 => "uvSet",
+                        ParamId::Sampler3 | ParamId::Sampler9 => "bake1",
+                        _ => "map1",
+                    };
 
-                    min_v = min_v.min(*v);
-                    max_v = max_v.max(*v);
-                };
-
-                for attribute in &o.texture_coordinates {
-                    match &attribute.data {
-                        ssbh_data::mesh_data::VectorData::Vector2(values) => {
-                            for [u, v] in values {
-                                update_min_max(u, v);
-                            }
-                        }
-                        ssbh_data::mesh_data::VectorData::Vector3(values) => {
-                            for [u, v, _] in values {
-                                update_min_max(u, v);
-                            }
-                        }
-                        ssbh_data::mesh_data::VectorData::Vector4(values) => {
-                            for [u, v, _, _] in values {
-                                update_min_max(u, v);
-                            }
+                    // Only check the corresponding UV coordinates for each sampler.
+                    for a in o.texture_coordinates.iter().filter(|a| a.name == uv_name) {
+                        let (min_u, max_u, min_v, max_v) = get_uv_range(&a.data);
+                        if min_u < 0.0 || max_u > 1.0 || min_v < 0.0 || max_v > 1.0 {
+                            samplers.push(sampler.param_id);
                         }
                     }
                 }
 
-                if min_u < 0.0 || max_u > 1.0 || min_v < 0.0 || max_v > 1.0 {
-                    // Combine samplers to reduce the number of errors.
-                    // Don't check cube maps since they should use clamp to edge.
-                    // TODO: Combine meshes as well?
-                    let samplers: Vec<_> = entry
-                        .samplers
-                        .iter()
-                        .filter(|s| {
-                            !matches!(
-                                s.param_id,
-                                ParamId::Sampler2 | ParamId::Sampler7 | ParamId::Sampler8
-                            ) && (s.data.wraps != WrapMode::Repeat
-                                || s.data.wrapt != WrapMode::Repeat)
-                        })
-                        .map(|s| s.param_id)
-                        .collect();
-
-                    if !samplers.is_empty() {
-                        let matl_error = MatlValidationError::WrapModeClampsUvs {
-                            entry_index,
-                            material_label: entry.material_label.clone(),
-                            mesh_name: o.name.clone(),
-                            samplers,
-                        };
-                        validation.matl_errors.push(matl_error);
-                    }
+                if !samplers.is_empty() {
+                    let matl_error = MatlValidationError::WrapModeClampsUvs {
+                        entry_index,
+                        material_label: entry.material_label.clone(),
+                        mesh_name: o.name.clone(),
+                        samplers,
+                    };
+                    validation.matl_errors.push(matl_error);
                 }
             }
         }
     }
+}
+
+fn get_uv_range(data: &VectorData) -> (f32, f32, f32, f32) {
+    // Check if any UV coordinates are outside the 0.0 to 1.0 range.
+    let mut max_u = 0.0f32;
+    let mut min_u = 0.0f32;
+    let mut max_v = 0.0f32;
+    let mut min_v = 0.0f32;
+
+    let mut update_min_max = |u: &f32, v: &f32| {
+        min_u = min_u.min(*u);
+        max_u = max_u.max(*u);
+
+        min_v = min_v.min(*v);
+        max_v = max_v.max(*v);
+    };
+
+    // TODO: Associate the correct sampler with the correct UV map.
+    // TODO: Check UV map bounds individually.
+    // TODO: Add tests for this.
+    match data {
+        VectorData::Vector2(values) => {
+            for [u, v] in values {
+                update_min_max(u, v);
+            }
+        }
+        VectorData::Vector3(values) => {
+            for [u, v, _] in values {
+                update_min_max(u, v);
+            }
+        }
+        VectorData::Vector4(values) => {
+            for [u, v, _, _] in values {
+                update_min_max(u, v);
+            }
+        }
+    }
+
+    (min_u, max_u, min_v, max_v)
 }
 
 fn validate_texture_format_usage(
@@ -1207,6 +1228,14 @@ mod tests {
                         },
                     },
                     SamplerParam {
+                        param_id: ParamId::Sampler3,
+                        data: SamplerData {
+                            wraps: WrapMode::ClampToEdge,
+                            wrapt: WrapMode::ClampToEdge,
+                            ..Default::default()
+                        },
+                    },
+                    SamplerParam {
                         param_id: ParamId::Sampler4,
                         data: SamplerData {
                             wraps: WrapMode::ClampToEdge,
@@ -1236,10 +1265,16 @@ mod tests {
             objects: vec![MeshObjectData {
                 name: "object1".to_owned(),
                 subindex: 0,
-                texture_coordinates: vec![AttributeData {
-                    name: "map1".to_owned(),
-                    data: VectorData::Vector2(vec![[0.0, 0.0], [-1.0, 1.5]]),
-                }],
+                texture_coordinates: vec![
+                    AttributeData {
+                        name: "map1".to_owned(),
+                        data: VectorData::Vector2(vec![[0.0, 0.0], [-1.0, 1.5]]),
+                    },
+                    AttributeData {
+                        name: "bake1".to_owned(),
+                        data: VectorData::Vector2(vec![[0.0, 0.0], [1.0, 1.0]]),
+                    },
+                ],
                 ..Default::default()
             }],
         };
@@ -1261,6 +1296,7 @@ mod tests {
         let mut validation = ModelValidationErrors::default();
         validate_wrap_mode_tiling(&mut validation, &matl, Some(&modl), Some(&mesh));
 
+        // Sampler3 isn't included since bake1 UVs are still in range.
         assert_eq!(
             vec![MatlValidationError::WrapModeClampsUvs {
                 entry_index: 0,
@@ -1294,7 +1330,7 @@ mod tests {
                     param_id: ParamId::Sampler0,
                     data: SamplerData {
                         wraps: WrapMode::Repeat,
-                        wrapt: WrapMode::Repeat,
+                        wrapt: WrapMode::MirroredRepeat,
                         ..Default::default()
                     },
                 }],
