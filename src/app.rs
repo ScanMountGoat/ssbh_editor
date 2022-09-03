@@ -1492,6 +1492,25 @@ pub fn stage_lighting_window(
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::menu::menu_button(ui, "File", |ui| {
+                    if ui.button("Open render folder...").clicked() {
+                        if let Some(folder) = FileDialog::new().pick_folder() {
+                            // Attempt to load supported lighting files based on naming conventions.
+                            // Users should select paths like "/stage/battlefield/normal/render/".
+                            state.light = Some(folder.join("light").join("light00.nuanmb"));
+                            state.reflection_cube_map =
+                                Some(folder.join("reflection_cubemap.nutexb"));
+                            state.color_grading_lut = folder
+                                .parent()
+                                .map(|p| p.join("lut").join("color_grading_lut.nutexb"));
+                            changed = true;
+                        }
+                    }
+                });
+            });
+            ui.separator();
+
             let path_label = |ui: &mut Ui, path: &Option<PathBuf>| match path {
                 Some(path) => {
                     ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
@@ -1505,7 +1524,6 @@ pub fn stage_lighting_window(
             };
 
             Grid::new("stage_lighting").show(ui, |ui| {
-                // TODO: Add File > Load render folder...?
                 // TODO: Make the files buttons to load corresponding editors?
                 ui.label("Lighting");
                 path_label(ui, &state.light);
@@ -1574,7 +1592,6 @@ pub fn stage_lighting_window(
             });
 
             if ui.button("Reset").clicked() {
-                // TODO: Use unwrap_or_default in main.rs to handle this?
                 *state = StageLightingState::default();
                 changed = true;
             };

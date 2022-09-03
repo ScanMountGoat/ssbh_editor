@@ -20,7 +20,7 @@ use ssbh_editor::{
     path::{last_update_check_file, presets_file, PROJECT_DIR},
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
-use ssbh_wgpu::{CameraTransforms, ModelFolder, RenderModel, SsbhRenderer};
+use ssbh_wgpu::{CameraTransforms, RenderModel, SsbhRenderer};
 use std::iter;
 use std::path::Path;
 use winit::{
@@ -611,16 +611,23 @@ fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
 
     // reflection_cubemap.nutexb
     match &app.ui_state.stage_lighting.reflection_cube_map {
-        Some(path) => update_stage_cube_map(
-            &mut app.render_state,
-            &app.models,
-            &mut app.render_models,
-            path,
-        ),
-        None => app
-            .render_state
-            .shared_data
-            .reset_stage_cube_map(&app.render_state.device, &app.render_state.queue),
+        Some(path) => update_stage_cube_map(&mut app.render_state, path),
+        None => {
+            app.render_state
+                .shared_data
+                .reset_stage_cube_map(&app.render_state.device, &app.render_state.queue);
+        }
+    }
+
+    // Updating the cube map requires reassigning model textures.
+    for (render_model, model) in app.render_models.iter_mut().zip(app.models.iter()) {
+        if let Some(matl) = model.find_matl() {
+            render_model.recreate_materials(
+                &app.render_state.device,
+                &matl.entries,
+                &app.render_state.shared_data,
+            );
+        }
     }
 }
 
@@ -633,12 +640,7 @@ fn update_color_lut(app: &SsbhApp, renderer: &mut SsbhRenderer, path: &Path) {
     }
 }
 
-fn update_stage_cube_map(
-    render_state: &mut RenderState,
-    models: &[ModelFolder],
-    render_models: &mut [RenderModel],
-    path: &Path,
-) {
+fn update_stage_cube_map(render_state: &mut RenderState, path: &Path) {
     match NutexbFile::read_from_file(path) {
         Ok(nutexb) => {
             render_state.shared_data.update_stage_cube_map(
@@ -646,16 +648,6 @@ fn update_stage_cube_map(
                 &render_state.queue,
                 &nutexb,
             );
-            // Updating the cube map requires reassigning model textures.
-            for (render_model, model) in render_models.iter_mut().zip(models.iter()) {
-                if let Some(matl) = model.find_matl() {
-                    render_model.recreate_materials(
-                        &render_state.device,
-                        &matl.entries,
-                        &render_state.shared_data,
-                    );
-                }
-            }
         }
         Err(e) => error!("Error reading {:?}: {}", path, e),
     }
