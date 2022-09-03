@@ -497,7 +497,7 @@ impl SsbhApp {
         self.render_state.viewport_right = if self.show_right_panel {
             Some(
                 SidePanel::right("right panel")
-                    .min_width(375.0)
+                    .min_width(450.0)
                     .show(ctx, |ui| self.right_panel(ctx, ui))
                     .response
                     .rect
