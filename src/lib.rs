@@ -4,7 +4,9 @@ use egui::{
 };
 use nutexb_wgpu::TextureRenderer;
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData};
+use ssbh_wgpu::{
+    ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData, SkinningSettings,
+};
 use std::{collections::BTreeMap, error::Error};
 use winit::dpi::PhysicalPosition;
 
@@ -59,6 +61,7 @@ pub struct RenderState {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub render_settings: RenderSettings,
+    pub skinning_settings: SkinningSettings,
     pub model_render_options: ModelRenderOptions,
     pub texture_render_settings: nutexb_wgpu::RenderSettings,
     pub shared_data: SharedRenderData,
@@ -79,6 +82,7 @@ impl RenderState {
             device,
             queue,
             render_settings: RenderSettings::default(),
+            skinning_settings: SkinningSettings::default(),
             model_render_options: ModelRenderOptions::default(),
             texture_render_settings: nutexb_wgpu::RenderSettings::default(),
             shared_data,

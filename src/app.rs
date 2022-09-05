@@ -85,6 +85,7 @@ pub struct SsbhApp {
     pub draw_skeletons: bool,
     pub draw_bone_names: bool,
     pub draw_bone_axes: bool,
+    pub enable_helper_bones: bool,
 
     pub ui_state: UiState,
     // TODO: Is parallel list with models the best choice here?
@@ -420,10 +421,12 @@ impl SsbhApp {
             ctx,
             &mut self.render_state.render_settings,
             &mut self.render_state.model_render_options,
+            &mut self.render_state.skinning_settings,
             &mut self.ui_state.render_settings_open,
             &mut self.draw_skeletons,
             &mut self.draw_bone_names,
             &mut self.draw_bone_axes,
+            &mut self.enable_helper_bones
         );
         if self.ui_state.render_settings_open {
             self.should_refresh_render_settings = true;

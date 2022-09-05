@@ -297,6 +297,7 @@ fn main() {
         show_bottom_panel: true,
         camera_state,
         preferences,
+        enable_helper_bones: true,
     };
 
     // Make sure the theme updates if changed from preferences.
@@ -384,6 +385,10 @@ fn main() {
                             renderer.update_render_settings(
                                 &app.render_state.queue,
                                 &app.render_state.render_settings,
+                            );
+                            renderer.update_skinning_settings(
+                                &app.render_state.queue,
+                                &app.render_state.skinning_settings,
                             );
                             app.should_refresh_render_settings = false;
                         }
@@ -726,8 +731,7 @@ fn animate_models(app: &mut SsbhApp) {
                     .and_then(|(_, a)| a.as_ref().ok())
             });
 
-        // TODO: Should animations loop independently if some animations are longer than others?
-
+        // TODO: Snimations should loop independently.
         // TODO: Make frame timing logic in ssbh_wgpu public?
         render_model.apply_anim(
             &app.render_state.queue,
@@ -742,11 +746,15 @@ fn animate_models(app: &mut SsbhApp) {
                 .iter()
                 .find(|(f, _)| f == "model.numatb")
                 .and_then(|(_, m)| m.as_ref().ok()),
-            model
-                .hlpbs
-                .iter()
-                .find(|(f, _)| f == "model.nuhlpb")
-                .and_then(|(_, m)| m.as_ref().ok()),
+            if app.enable_helper_bones {
+                model
+                    .hlpbs
+                    .iter()
+                    .find(|(f, _)| f == "model.nuhlpb")
+                    .and_then(|(_, m)| m.as_ref().ok())
+            } else {
+                None
+            },
             app.animation_state.current_frame,
             &app.render_state.shared_data,
         );

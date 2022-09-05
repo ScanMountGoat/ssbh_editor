@@ -1,14 +1,16 @@
 use crate::{horizontal_separator_empty, widgets::*};
-use ssbh_wgpu::{DebugMode, RenderSettings, ModelRenderOptions};
+use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
 
 pub fn render_settings(
     ctx: &egui::Context,
     settings: &mut RenderSettings,
     options: &mut ModelRenderOptions,
+    skinning_settings: &mut SkinningSettings,
     open: &mut bool,
     draw_skeletons: &mut bool,
     draw_bone_names: &mut bool,
     draw_bone_axes: &mut bool,
+    enable_helper_bones: &mut bool
 ) {
     egui::Window::new("Render Settings")
         .open(open)
@@ -145,6 +147,17 @@ pub fn render_settings(
                 ui.toggle_value(&mut settings.render_prm[3], "A");
             });
             horizontal_separator_empty(ui);
+
+            ui.heading("Animation");
+            ui.checkbox(
+                &mut skinning_settings.enable_parenting,
+                "Enable Mesh Parenting",
+            );
+            ui.checkbox(
+                &mut skinning_settings.enable_skinning,
+                "Enable Vertex Skinning",
+            );
+            ui.checkbox(enable_helper_bones, "Enable Helper Bones");
 
             ui.heading("Skeleton");
             ui.checkbox(draw_skeletons, "Draw Bones");
