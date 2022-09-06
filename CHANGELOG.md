@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Improved performance when adding new folders to an existing workspace.
-* Adjusted valiadation error messages for clarity and conciseness.
+* Adjusted validation error messages for clarity and conciseness.
 * Changed the Matl Editor layout to always show all parameters even without advanced settings checked.
 * Removed unused SHCP information from Stage Lighting window.
 
