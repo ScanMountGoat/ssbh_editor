@@ -704,10 +704,8 @@ fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::Render
         app.should_update_thumbnails = false;
     }
 
-    if app.models_to_update != ItemsToUpdate::None {
-        if app.preferences.autohide_expressions {
-            app.hide_expressions();
-        }
+    if app.models_to_update != ItemsToUpdate::None && app.preferences.autohide_expressions {
+        app.hide_expressions();
     }
 
     app.models_to_update = ItemsToUpdate::None;

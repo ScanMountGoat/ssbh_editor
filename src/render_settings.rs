@@ -10,7 +10,7 @@ pub fn render_settings(
     draw_skeletons: &mut bool,
     draw_bone_names: &mut bool,
     draw_bone_axes: &mut bool,
-    enable_helper_bones: &mut bool
+    enable_helper_bones: &mut bool,
 ) {
     egui::Window::new("Render Settings")
         .open(open)
