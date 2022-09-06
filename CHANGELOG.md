@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added a viewport background color option to preferences.
 * Added a reset button to preferences.
 * Added validation for not using the Repeat wrap mode when UVs are outside the 0.0 to 1.0 range.
+* Added vertex skinning and mesh parenting toggles to render settings to help debug animation related issues.
 
 ### Changed
 * Improved performance when adding new folders to an existing workspace.
@@ -19,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue where the Lighting Window reset button didn't work properly.
 * Fixed an issue where loading lighting files would create errors about loading empty paths.
 * Fixed inconsistencies in sorting for opening folders vs reloading the workspace.
+* Fixed an issue where resaving a skeleton would incorrectly transpose the transforms.
 
 ## 0.6.0
 ### Added
