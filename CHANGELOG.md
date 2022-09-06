@@ -9,11 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added a reset button to preferences.
 * Added validation for not using the Repeat wrap mode when UVs are outside the 0.0 to 1.0 range.
 * Added vertex skinning and mesh parenting toggles to render settings to help debug animation related issues.
+* Added an option to load an entire render folder to the Stage Lighting window with File > Load Render Folder.
 
 ### Changed
 * Improved performance when adding new folders to an existing workspace.
 * Adjusted valiadation error messages for clarity and conciseness.
 * Changed the Matl Editor layout to always show all parameters even without advanced settings checked.
+* Removed unused SHCP information from Stage Lighting window.
 
 ### Fixed
 * Fixed an issue where canceling a folder dialog would clear the existing files.

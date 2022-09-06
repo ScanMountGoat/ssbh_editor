@@ -426,7 +426,7 @@ impl SsbhApp {
             &mut self.draw_skeletons,
             &mut self.draw_bone_names,
             &mut self.draw_bone_axes,
-            &mut self.enable_helper_bones
+            &mut self.enable_helper_bones,
         );
         if self.ui_state.render_settings_open {
             self.should_refresh_render_settings = true;
@@ -1562,32 +1562,6 @@ pub fn stage_lighting_window(
                         .pick_file()
                     {
                         state.color_grading_lut = Some(file);
-                        changed = true;
-                    };
-                };
-                ui.end_row();
-
-                ui.label("Chara Spherical Harmonic Lighting");
-                path_label(ui, &state.chara_shpc);
-                if ui.button("Select file...").clicked() {
-                    if let Some(file) = FileDialog::new()
-                        .add_filter("Chara SHCPANIM", &["shpcanim"])
-                        .pick_file()
-                    {
-                        state.chara_shpc = Some(file);
-                        changed = true;
-                    };
-                };
-                ui.end_row();
-
-                ui.label("Stage Spherical Harmonic Lighting");
-                path_label(ui, &state.stage_shpc);
-                if ui.button("Select file...").clicked() {
-                    if let Some(file) = FileDialog::new()
-                        .add_filter("Stage SHCPANIM", &["shpcanim"])
-                        .pick_file()
-                    {
-                        state.stage_shpc = Some(file);
                         changed = true;
                     };
                 };
