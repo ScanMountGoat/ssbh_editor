@@ -1,6 +1,6 @@
 [package]
 name = "ssbh_editor"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["SMG"]
 edition = "2021"
 description = "View, edit, and validate models for Smash Ultimate"
