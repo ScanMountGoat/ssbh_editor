@@ -1974,7 +1974,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#2f2f69abe49be376b0fc6c32e9968f4fdb4c96bc"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#71b1eae601fe1b8b97c5bd59ee39d7765877bf09"
 dependencies = [
  "bytemuck",
  "log",
@@ -2820,7 +2820,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#acb27b98273208071d10d09c2a67aa845e90bd78"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c63f329eda718271906e22c93221eb8b621d6727"
 dependencies = [
  "ahash 0.7.6",
  "binrw",
@@ -2873,7 +2873,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#acb27b98273208071d10d09c2a67aa845e90bd78"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c63f329eda718271906e22c93221eb8b621d6727"
 dependencies = [
  "binrw",
  "modular-bitfield",
@@ -2887,7 +2887,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#2f2f69abe49be376b0fc6c32e9968f4fdb4c96bc"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#71b1eae601fe1b8b97c5bd59ee39d7765877bf09"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2908,7 +2908,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#acb27b98273208071d10d09c2a67aa845e90bd78"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c63f329eda718271906e22c93221eb8b621d6727"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -2916,7 +2916,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.14.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#acb27b98273208071d10d09c2a67aa845e90bd78"
+source = "git+https://github.com/ultimate-research/ssbh_lib#c63f329eda718271906e22c93221eb8b621d6727"
 dependencies = [
  "proc-macro2",
  "quote",
