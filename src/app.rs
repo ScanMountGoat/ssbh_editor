@@ -260,6 +260,8 @@ impl SsbhApp {
                     }
                 }));
 
+            // Only load new render models for better performance.
+            // TODO: Handle this with models to update?
             self.render_models.extend(new_models.iter().map(|model| {
                 RenderModel::from_folder(
                     &self.render_state.device,
@@ -268,6 +270,10 @@ impl SsbhApp {
                     &self.render_state.shared_data,
                 )
             }));
+
+            if self.preferences.autohide_expressions {
+                self.hide_expressions();
+            }
 
             self.models.extend(new_models);
             sort_files(&mut self.models);
