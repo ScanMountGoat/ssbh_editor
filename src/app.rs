@@ -84,7 +84,6 @@ pub struct SsbhApp {
 
     pub draw_skeletons: bool,
     pub draw_bone_names: bool,
-    pub draw_bone_axes: bool,
     pub enable_helper_bones: bool,
 
     pub ui_state: UiState,
@@ -425,7 +424,6 @@ impl SsbhApp {
             &mut self.ui_state.render_settings_open,
             &mut self.draw_skeletons,
             &mut self.draw_bone_names,
-            &mut self.draw_bone_axes,
             &mut self.enable_helper_bones,
         );
         if self.ui_state.render_settings_open {
