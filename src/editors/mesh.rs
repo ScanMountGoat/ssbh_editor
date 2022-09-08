@@ -468,10 +468,6 @@ fn add_missing_attributes(mesh_object: &mut MeshObjectData, missing_attributes: 
                 "colorSet7" => add_color_set(mesh_object, name, count, [1.0; 4]),
                 _ => (),
             }
-            mesh_object.color_sets.push(AttributeData {
-                name: a.clone(),
-                data: VectorData::Vector4(vec![[0.0; 4]; count]),
-            })
         }
     }
 }
