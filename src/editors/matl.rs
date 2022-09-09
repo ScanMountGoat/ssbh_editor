@@ -265,7 +265,6 @@ fn edit_matl_entries(
         }
 
         if !editor_state.is_editing_material_label && ui.button("Rename").clicked() {
-            // TODO: The material assignments don't always update in the viewport.
             editor_state.is_editing_material_label = true;
         }
 
@@ -547,7 +546,7 @@ fn edit_shader_label(
 }
 
 fn matl_entry_editor(
-    ctx: &Context,
+    _ctx: &Context,
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
     validation_errors: &[&MatlValidationError],
@@ -595,16 +594,14 @@ fn matl_entry_editor(
             });
         ui.end_row();
 
-        if advanced_mode {
-            if let Some(program) = program {
-                ui.label("Alpha Testing");
-                ui.label(program.discard.to_string());
-                ui.end_row();
+        if let Some(program) = program {
+            ui.label("Alpha Testing");
+            ui.label(program.discard.to_string());
+            ui.end_row();
 
-                ui.label("Vertex Attributes");
-                ui.add(Label::new(program.vertex_attributes.join(",")).wrap(true));
-                ui.end_row();
-            }
+            ui.label("Vertex Attributes");
+            ui.add(Label::new(program.vertex_attributes.join(", ")).wrap(true));
+            ui.end_row();
         }
     });
     horizontal_separator_empty(ui);
@@ -636,10 +633,7 @@ fn matl_entry_editor(
                     ..
                 } = error
                 {
-                    ui.horizontal(|ui| {
-                        // ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
-                        ui.label(mesh_name);
-                    });
+                    ui.label(mesh_name);
                     ui.label(missing_attributes.join(","));
                     ui.end_row();
                 }
@@ -708,25 +702,17 @@ fn matl_entry_editor(
     }
     horizontal_separator_empty(ui);
 
-    if advanced_mode {
+    Grid::new("vectors").show(ui, |ui| {
         for param in entry.vectors.iter_mut() {
-            ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-                changed |= edit_vector_advanced(ctx, ui, param, program);
-            });
+            changed |= edit_vector(
+                ui,
+                param,
+                !unused_parameters.contains(&param.param_id),
+                program,
+            );
+            ui.end_row();
         }
-    } else {
-        Grid::new("vectors").show(ui, |ui| {
-            for param in entry.vectors.iter_mut() {
-                changed |= edit_vector(
-                    ui,
-                    param,
-                    !unused_parameters.contains(&param.param_id),
-                    program,
-                );
-                ui.end_row();
-            }
-        });
-    }
+    });
     horizontal_separator_empty(ui);
 
     Grid::new("matl textures").show(ui, |ui| {
@@ -904,6 +890,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
     CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
+        // TODO: Show validation errors for wrap mode.
         Grid::new(id).show(ui, |ui| {
             changed |= enum_combo_box(
                 ui,
@@ -1021,8 +1008,9 @@ fn edit_vector(
         .map(|p| p.accessed_channels(&param.param_id.to_string()))
         .unwrap_or_default();
     let labels = vector4_labels_short(param.param_id);
+    let labels_long = vector4_labels_long(param.param_id);
 
-    // Don't allow editing components that are never accessed in game.
+    // Prevent editing components not accessed by shaders in game.
     let id = egui::Id::new(param.param_id.to_string());
     let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
         ui.add_enabled_ui(enabled && channels[i], |ui| {
@@ -1030,6 +1018,7 @@ fn edit_vector(
                 ui.label(labels[i]);
                 *changed |= ui
                     .add(DragSlider::new(id.with(labels[i]), value).width(50.0))
+                    .on_hover_text(labels_long[i])
                     .changed();
             });
         });
@@ -1080,55 +1069,6 @@ fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
     } else {
         false
     }
-}
-
-fn edit_vector_advanced(
-    _ctx: &Context,
-    ui: &mut Ui,
-    param: &mut Vector4Param,
-    program: Option<&ShaderProgram>,
-) -> bool {
-    let mut changed = false;
-
-    let id = egui::Id::new(param.param_id.to_string());
-
-    // TODO: Set custom ranges.
-    ui.horizontal(|ui| {
-        changed |= edit_vector4_rgba(ui, &mut param.data);
-        ui.label(param_label(param.param_id));
-    });
-
-    let labels = vector4_labels_long(param.param_id);
-
-    // TODO: Is it less annoying to enable all parameters if the shader label is invalid?
-    let channels = program
-        .map(|p| p.accessed_channels(&param.param_id.to_string()))
-        .unwrap_or_default();
-
-    // Don't allow editing components that are never accessed in game.
-    let edit_component = |ui: &mut Ui, i, value| {
-        ui.add_enabled(channels[i], Label::new(labels[i]));
-        ui.add_enabled(channels[i], DragSlider::new(id.with(i), value).width(150.0))
-            .changed()
-    };
-
-    ui.indent("indent", |ui| {
-        Grid::new(param.param_id.to_string()).show(ui, |ui| {
-            changed |= edit_component(ui, 0, &mut param.data.x);
-            ui.end_row();
-
-            changed |= edit_component(ui, 1, &mut param.data.y);
-            ui.end_row();
-
-            changed |= edit_component(ui, 2, &mut param.data.z);
-            ui.end_row();
-
-            changed |= edit_component(ui, 3, &mut param.data.w);
-            ui.end_row();
-        });
-    });
-
-    changed
 }
 
 fn param_label(p: ParamId) -> String {
