@@ -893,6 +893,8 @@ impl SsbhApp {
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| {
+                let mut folder_to_remove = None;
+
                 // TODO: Is it worth showing a folder hierarchy instead of hiding empty folders?
                 for (folder_index, (model, validation)) in self
                     .models
@@ -1041,7 +1043,23 @@ impl SsbhApp {
                                     }
                                 });
                             }
+                        })
+                        .header_response
+                        .context_menu(|ui| {
+                            if ui.button("Remove").clicked() {
+                                ui.close_menu();
+                                folder_to_remove = Some(folder_index);
+                            }
                         });
+                }
+
+                if let Some(folder_to_remove) = folder_to_remove {
+                    if self.models.get(folder_to_remove).is_some() {
+                        self.models.remove(folder_to_remove);
+                    }
+                    if self.render_models.get(folder_to_remove).is_some() {
+                        self.render_models.remove(folder_to_remove);
+                    }
                 }
             });
     }
@@ -1263,6 +1281,8 @@ fn list_files<T, E: std::fmt::Display>(
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
                     if !validation_errors.is_empty() && Some(name.as_str()) == validation_file {
+                        // TODO: Show top few errors and ... N others on hover?
+                        // TODO: Display the validation errors as a separate window on click?
                         warning_icon(ui).on_hover_ui(|ui| {
                             display_validation_errors(ui, validation_errors);
                         });
@@ -1270,7 +1290,7 @@ fn list_files<T, E: std::fmt::Display>(
                         // TODO: This doesn't have the same size as the others?
                         empty_icon(ui);
                     }
-                    if ui.button(name.clone()).clicked() {
+                    if ui.button(name).clicked() {
                         *selected_folder_index = Some(folder_index);
                         *selected_file_index = Some(i);
                     }
