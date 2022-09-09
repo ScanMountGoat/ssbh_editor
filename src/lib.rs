@@ -349,31 +349,30 @@ pub fn generate_default_thumbnails(
 pub fn default_fonts() -> egui::FontDefinitions {
     // The default fonts don't support Japanese or Chinese characters.
     // These languages are required to display some user mods correctly.
-    let mut fonts = egui::FontDefinitions::empty();
-    fonts
-        .font_data
-        .insert("font".to_owned(), egui::FontData::from_static(FONT_BYTES));
-    fonts.font_data.insert(
-        "emoji".to_owned(),
-        egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")),
-    );
-
-    // Use the same font for all text for a consistent look for numeric digits.
-    let monospace = fonts
-        .families
-        .get_mut(&egui::FontFamily::Monospace)
-        .unwrap();
-    monospace.insert(0, "font".to_owned());
-    monospace.insert(1, "emoji".to_owned());
-
-    let proportional = fonts
-        .families
-        .get_mut(&egui::FontFamily::Proportional)
-        .unwrap();
-    proportional.insert(0, "font".to_owned());
-    proportional.insert(1, "emoji".to_owned());
-
-    fonts
+    egui::FontDefinitions {
+        font_data: BTreeMap::from([
+            ("noto".to_owned(), egui::FontData::from_static(FONT_BYTES)),
+            (
+                "emoji".to_owned(),
+                egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")),
+            ),
+        ]),
+        families: BTreeMap::from([
+            (
+                // Use the same font for monospace for a consistent look for numeric digits.
+                egui::FontFamily::Monospace,
+                vec!["noto".to_owned(), "emoji".to_owned()],
+            ),
+            (
+                egui::FontFamily::Proportional,
+                vec!["noto".to_owned(), "emoji".to_owned()],
+            ),
+            (
+                egui::FontFamily::Name("emoji".into()),
+                vec!["emoji".to_owned()],
+            ),
+        ]),
+    }
 }
 
 pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
