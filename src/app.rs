@@ -368,7 +368,6 @@ impl SsbhApp {
 
     pub fn write_state_to_disk(&self, update_check_time: DateTime<Utc>) {
         // TODO: Handle errors and write to log file?
-        // TODO: Use json to support more settings.
         let path = last_update_check_file();
         std::fs::write(path, update_check_time.to_string()).unwrap();
 
@@ -598,13 +597,18 @@ impl SsbhApp {
                             validation_errors,
                             &mut self.ui_state,
                         );
-                        // TODO: Reload the specified render model if necessary?
-                        // The mesh editor has no high frequency edits (sliders), so just reload on any change?
                         file_changed |= changed;
 
                         if !open {
                             // Close the window.
                             self.ui_state.selected_mesh_index = None;
+                        }
+
+                        if changed {
+                            // TODO: Reload the specified render model if necessary?
+                            // The mesh editor has no high frequency edits (sliders), so just reload on any change?
+                            // TODO: Add a mesh to update field instead with (folder, mesh)?
+                            self.models_to_update = ItemsToUpdate::One(folder_index);
                         }
 
                         // TODO: Update pipeline depth settings on change.
@@ -648,7 +652,6 @@ impl SsbhApp {
                         // Update on change to avoid costly state changes every frame.
                         if changed {
                             if let Some(render_model) = self.render_models.get_mut(folder_index) {
-                                // TODO: Is it worth optimizing this to only effect certain materials?
                                 // Only the model.numatb is rendered in the viewport for now.
                                 // TODO: Move rendering code out of app.rs.
                                 if name == "model.numatb" {
@@ -657,7 +660,11 @@ impl SsbhApp {
                                         &matl.entries,
                                         &self.render_state.shared_data,
                                     );
-                                    // TODO: Also reassign materials?
+                                    if let Some(modl) = find_file(&model.modls, "model.numdlb") {
+                                        // Reassign materials in case material or shader labels changed.
+                                        // This is necessary for error checkerboards to display properly.
+                                        render_model.reassign_materials(modl, Some(matl))
+                                    }
                                 }
                             }
                         }
