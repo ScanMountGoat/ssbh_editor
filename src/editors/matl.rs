@@ -738,7 +738,6 @@ fn matl_entry_editor(
     horizontal_separator_empty(ui);
 
     // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
-    // Edits to RasterizerState0 are rare, so restrict it to advanced mode.
     for param in &mut entry.rasterizer_states {
         changed |= edit_rasterizer(ui, param);
     }
@@ -807,6 +806,10 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
             ui.end_row();
 
             changed |= enum_combo_box(ui, "Cull Mode", id.with("cull"), &mut param.data.cull_mode);
+            ui.end_row();
+
+            ui.label("Depth Bias");
+            ui.add(DragValue::new(&mut param.data.depth_bias).speed(0.1));
             ui.end_row();
         });
     });

@@ -529,6 +529,7 @@ pub fn param_description(p: ParamId) -> &'static str {
         ParamId::CustomVector30 => "Subsurface Params",
         ParamId::CustomVector31 => "UV Transform Layer 2",
         ParamId::CustomVector32 => "UV Transform Layer 3",
+        ParamId::CustomVector34 => "UV Transform Dual Normal",
         ParamId::CustomVector47 => "Prm Color",
         ParamId::Texture0 => "Col Layer 1",
         ParamId::Texture1 => "Col Layer 2",
@@ -609,7 +610,7 @@ pub fn vector4_labels_long(p: ParamId) -> [&'static str; 4] {
         | ParamId::CustomVector43
         | ParamId::CustomVector44
         | ParamId::CustomVector45 => ["Red", "Green", "Blue", "Alpha"],
-        ParamId::CustomVector0 => ["Min Texture Alpha", "Y", "Z", "W"],
+        ParamId::CustomVector0 => ["Min Texture Alpha", "Ryu/Ken Focus Intensity", "Z", "W"],
         ParamId::CustomVector6 | ParamId::CustomVector31 | ParamId::CustomVector32 => {
             ["Scale U", "Scale V", "Translate U", "Translate V"]
         }
