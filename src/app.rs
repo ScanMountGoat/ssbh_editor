@@ -211,7 +211,7 @@ pub struct AnimEditorState {
 }
 
 const ICON_SIZE: f32 = 18.0;
-pub const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(200, 40, 40);
+pub const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(240, 80, 80);
 pub const WARNING_COLOR: egui::Color32 = egui::Color32::from_rgb(255, 210, 0);
 
 // Keep track of what UI should be displayed.
@@ -1025,12 +1025,7 @@ impl SsbhApp {
                                     .collect();
 
                                 ui.horizontal(|ui| {
-                                    // TODO: Show error icon on top of thumbnail?
-                                    if !validation_errors.is_empty() {
-                                        warning_icon(ui).on_hover_ui(|ui| {
-                                            display_validation_errors(ui, &validation_errors);
-                                        });
-                                    } else if let Some(model_thumbnails) =
+                                    if let Some(model_thumbnails) =
                                         self.thumbnails.get(folder_index)
                                     {
                                         if let Some((_, thumbnail)) =
@@ -1043,7 +1038,13 @@ impl SsbhApp {
                                         }
                                     }
 
-                                    if ui.button(file).clicked() {
+                                    let response = if !validation_errors.is_empty() {
+                                        file_button_with_errors(ui, file, &validation_errors)
+                                    } else {
+                                        ui.button(file)
+                                    };
+
+                                    if response.clicked() {
                                         self.ui_state.selected_folder_index = Some(folder_index);
                                         self.ui_state.selected_nutexb_index = Some(i);
                                     }
@@ -1284,19 +1285,19 @@ fn list_files<T, E: std::fmt::Display>(
         ui.horizontal(|ui| {
             match file {
                 Ok(_) => {
+                    empty_icon(ui);
+
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
-                    if !validation_errors.is_empty() && Some(name.as_str()) == validation_file {
-                        // TODO: Show top few errors and ... N others on hover?
-                        // TODO: Display the validation errors as a separate window on click?
-                        warning_icon(ui).on_hover_ui(|ui| {
-                            display_validation_errors(ui, validation_errors);
-                        });
+                    let response = if !validation_errors.is_empty()
+                        && Some(name.as_str()) == validation_file
+                    {
+                        file_button_with_errors(ui, name, validation_errors)
                     } else {
-                        // TODO: This doesn't have the same size as the others?
-                        empty_icon(ui);
-                    }
-                    if ui.button(name).clicked() {
+                        ui.button(name)
+                    };
+
+                    if response.clicked() {
                         *selected_folder_index = Some(folder_index);
                         *selected_file_index = Some(i);
                     }
@@ -1304,8 +1305,8 @@ fn list_files<T, E: std::fmt::Display>(
                 Err(_) => {
                     // TODO: Investigate a cleaner way to summarize errors.
                     // Don't show the full error for now to avoid showing lots of text.
-                    error_icon(ui);
-                    ui.label(RichText::new(name).color(ERROR_COLOR))
+                    empty_icon(ui);
+                    ui.label(RichText::new("⚠ ".to_string() + name).color(ERROR_COLOR))
                         .on_hover_text(format!("Error reading {}", name));
                 }
             }
@@ -1316,6 +1317,22 @@ fn list_files<T, E: std::fmt::Display>(
             missing_file(ui, required_file);
         }
     }
+}
+
+fn file_button_with_errors<E: std::fmt::Display>(
+    ui: &mut Ui,
+    name: &String,
+    validation_errors: &[E],
+) -> Response {
+    // TODO: Only color the icon itself?
+    // TODO: Show top few errors and ... N others on hover?
+    // TODO: Display the validation errors as a separate window on click?
+    ui.add(Button::new(
+        RichText::new("⚠ ".to_string() + name).color(WARNING_COLOR),
+    ))
+    .on_hover_ui(|ui| {
+        display_validation_errors(ui, validation_errors);
+    })
 }
 
 fn missing_file(ui: &mut Ui, name: &str) {

@@ -119,6 +119,7 @@ impl Display for SkelValidationError {
     }
 }
 
+// TODO: Validate shader labels.
 // TODO: Move the entry index and label out of the enum?
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MatlValidationError {
