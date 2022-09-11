@@ -902,7 +902,6 @@ impl SsbhApp {
             .show(ui, |ui| {
                 let mut folder_to_remove = None;
 
-                // TODO: Is it worth showing a folder hierarchy instead of hiding empty folders?
                 for (folder_index, (model, validation)) in self
                     .models
                     .iter_mut()

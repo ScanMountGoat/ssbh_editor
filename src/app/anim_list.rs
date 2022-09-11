@@ -20,12 +20,10 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         let mut slots_to_remove = Vec::new();
 
         let id = ui.make_persistent_id("animlist").with(model_index);
-        CollapsingState::load_with_default_open(ctx, id, true)
-            .show_header(ui, |ui| {
-                // Assume the associated animation folder names matche the model folder.
-                ui.label(folder_display_name(model).to_string_lossy());
-            })
-            .body(|ui| {
+        CollapsingHeader::new(folder_display_name(model).to_string_lossy())
+            .id_source(id)
+            .default_open(true)
+            .show(ui, |ui| {
                 // Associate animations with the model folder by name.
                 // TODO: Is is it worth precomputing this list for performance?
                 let available_anims = find_anim_folders(model, &app.models);
