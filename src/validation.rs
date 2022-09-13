@@ -55,6 +55,8 @@ impl ModelValidationErrors {
                 shader_database,
             );
 
+            validate_shader_labels(&mut validation, matl, shader_database);
+
             validate_wrap_mode_tiling(&mut validation, matl, modl, mesh);
 
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
@@ -128,7 +130,6 @@ impl std::fmt::Display for MatlValidationError {
     }
 }
 
-// TODO: Validate shader labels.
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MatlValidationErrorKind {
     #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
@@ -191,6 +192,12 @@ Use wrap mode Repeat if the texture should tile.",
         material_label: String,
         mesh_name: String,
         samplers: Vec<ParamId>,
+    },
+
+    #[error("Shader label {shader_label:?} for material {material_label:?} is not a valid shader label.")]
+    InvalidShaderLabel {
+        material_label: String,
+        shader_label: String,
     },
 }
 
@@ -313,6 +320,29 @@ fn validate_required_attributes(
                     }
                 }
             }
+        }
+    }
+}
+
+fn validate_shader_labels(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    shader_database: &ShaderDatabase,
+) {
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        // TODO: make this a method of the database?
+        if shader_database
+            .get(entry.shader_label.get(..24).unwrap_or(""))
+            .is_none()
+        {
+            let error = MatlValidationError {
+                entry_index,
+                kind: MatlValidationErrorKind::InvalidShaderLabel {
+                    material_label: entry.material_label.clone(),
+                    shader_label: entry.shader_label.clone(),
+                },
+            };
+            validation.matl_errors.push(error);
         }
     }
 }
@@ -1444,5 +1474,57 @@ mod tests {
         validate_wrap_mode_tiling(&mut validation, &matl, Some(&modl), Some(&mesh));
 
         assert!(validation.matl_errors.is_empty());
+    }
+
+    #[test]
+    fn shader_label_invalid() {
+        let shader_database = create_database();
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![
+                MatlEntryData {
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+                MatlEntryData {
+                    material_label: "b".to_owned(),
+                    shader_label: "SFX_PBS_777002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_shader_labels(&mut validation, &matl, &shader_database);
+
+        assert_eq!(
+            vec![MatlValidationError {
+                entry_index: 1,
+                kind: MatlValidationErrorKind::InvalidShaderLabel {
+                    material_label: "b".to_owned(),
+                    shader_label: "SFX_PBS_777002000800824f_opaque".to_owned()
+                }
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Shader label "SFX_PBS_777002000800824f_opaque" for material "b" is not a valid shader label."#,
+            format!("{}", validation.matl_errors[0])
+        );
     }
 }
