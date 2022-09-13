@@ -204,17 +204,17 @@ pub fn add_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
         } else if is_float(param_id) {
             entry.floats.push(FloatParam {
                 param_id,
-                data: 0.0,
+                data: default_float(param_id),
             });
         } else if is_bool(param_id) {
             entry.booleans.push(BooleanParam {
                 param_id,
-                data: false,
+                data: default_bool(param_id),
             });
         } else if is_vector(param_id) {
             entry.vectors.push(Vector4Param {
                 param_id,
-                data: Vector4::default(),
+                data: default_vector(param_id),
             });
         } else if is_rasterizer(param_id) {
             entry.rasterizer_states.push(RasterizerStateParam {
@@ -513,6 +513,37 @@ pub fn default_texture(p: ParamId) -> &'static str {
         ParamId::Texture19 => "/common/shader/sfxpbs/default_white",
         _ => "/common/shader/sfxpbs/default_white",
     }
+}
+
+pub fn default_float(p: ParamId) -> f32 {
+    match p {
+        ParamId::CustomFloat1 => 1.0,
+        _ => 0.0,
+    }
+}
+
+pub fn default_vector(p: ParamId) -> Vector4 {
+    match p {
+        // UV transforms
+        ParamId::CustomVector6
+        | ParamId::CustomVector31
+        | ParamId::CustomVector32
+        | ParamId::CustomVector33
+        | ParamId::CustomVector34 => Vector4::new(1.0, 1.0, 0.0, 0.0),
+        // Vector multipliers
+        ParamId::CustomVector3
+        | ParamId::CustomVector8
+        | ParamId::CustomVector13
+        | ParamId::CustomVector18 => Vector4::new(1.0, 1.0, 1.0, 1.0),
+        _ => Vector4::ZERO,
+    }
+}
+
+pub fn default_bool(p: ParamId) -> bool {
+    matches!(
+        p,
+        ParamId::CustomBoolean1 | ParamId::CustomBoolean3 | ParamId::CustomBoolean4
+    )
 }
 
 pub fn param_description(p: ParamId) -> &'static str {
