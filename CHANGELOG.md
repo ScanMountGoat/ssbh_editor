@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Added
+* Added rendering support for CustomVector34.
+* Added rendering support for CustomVector47.
+* Added validation for invalid material shader labels.
+* Added support for editing depth bias to the Matl Editor.
+* Added an option to remove a loaded folder in the file list by right clicking and clicking remove.
+
+### Changed
+* Moved validation warning icons to the file button itself to always show thumbnails.
+* Improved default values when adding missing required parameters in the Matl Editor.
+* Improved material parameter descriptions for the Matl Editor.
+* Changed vector component descriptions in the Matl Editor to display on hover instead of requiring advanced mode.
+
+### Fixed
+* Fixed an issue where adding missing color sets in the mesh editor would add each attribute twice.
+* Fixed an issue where bone axes failed to render in the viewport.
+* Fixed an issue where shader and mesh attribute errors didn't update in the viewport properly.
+* Fixed an issue where opening a folder didn't take into account the hide expressions setting.
+
 ## 0.6.1
 ### Added
 * Added a viewport background color option to preferences.
