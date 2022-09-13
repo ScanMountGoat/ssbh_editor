@@ -31,7 +31,7 @@ impl ModelValidationErrors {
     pub fn from_model<'a, 'b>(
         model: &'b ModelFolder,
         shader_database: &ShaderDatabase,
-        default_texture_names: impl Iterator<Item = &'a String> + Clone,
+        default_texture_names: impl Iterator<Item = (&'a String, TextureDimension)> + Clone,
     ) -> Self
     where
         'b: 'a,
@@ -58,7 +58,12 @@ impl ModelValidationErrors {
             validate_wrap_mode_tiling(&mut validation, matl, modl, mesh);
 
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
-            validate_texture_dimensions(&mut validation, matl, &model.nutexbs);
+            validate_texture_dimensions(
+                &mut validation,
+                matl,
+                &model.nutexbs,
+                default_texture_names.clone(),
+            );
             validate_texture_assignments(
                 &mut validation,
                 matl,
@@ -148,11 +153,11 @@ pub enum MatlValidationErrorKind {
     },
 
     // TODO: Add severity levels and make this the highest severity.
-    #[error("Texture {nutexb:?} for material {material_label:?} has dimensions {actual:?}, but {param} requires {expected:?}.")]
+    #[error("Texture {texture:?} for material {material_label:?} has dimensions {actual:?}, but {param} requires {expected:?}.")]
     UnexpectedTextureDimension {
         material_label: String,
         param: ParamId,
-        nutexb: String,
+        texture: String,
         expected: TextureDimension,
         actual: TextureDimension,
     },
@@ -188,6 +193,7 @@ Use wrap mode Repeat if the texture should tile.",
         samplers: Vec<ParamId>,
     },
 }
+
 pub struct ModlValidationError;
 impl Display for ModlValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -456,17 +462,16 @@ fn validate_texture_assignments<'a, 'b>(
     validation: &mut ModelValidationErrors,
     matl: &MatlData,
     nutexbs: &'b [(String, FileResult<NutexbFile>)],
-    default_textures: impl Iterator<Item = &'a String> + Clone,
+    default_textures: impl Iterator<Item = (&'a String, TextureDimension)> + Clone,
 ) where
     'b: 'a,
 {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
-            // TODO: Check if is default texture?
             if !nutexbs
                 .iter()
                 .map(|(f, _)| f)
-                .chain(default_textures.clone().into_iter())
+                .chain(default_textures.clone().into_iter().map(|(f, _)| f))
                 .any(|f| {
                     Path::new(f)
                         .with_extension("")
@@ -488,14 +493,29 @@ fn validate_texture_assignments<'a, 'b>(
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TextureDimension {
+    Texture1d,
     Texture2d,
     Texture3d,
     TextureCube,
 }
 
-fn nutexb_dimension(nutexb: &NutexbFile) -> TextureDimension {
+impl From<&wgpu::TextureViewDimension> for TextureDimension {
+    fn from(d: &wgpu::TextureViewDimension) -> Self {
+        // TODO: Worry about array textures?
+        match d {
+            wgpu::TextureViewDimension::D1 => Self::Texture1d,
+            wgpu::TextureViewDimension::D2 => Self::Texture2d,
+            wgpu::TextureViewDimension::D2Array => Self::Texture2d,
+            wgpu::TextureViewDimension::Cube => Self::TextureCube,
+            wgpu::TextureViewDimension::CubeArray => Self::TextureCube,
+            wgpu::TextureViewDimension::D3 => Self::Texture3d,
+        }
+    }
+}
+
+pub fn nutexb_dimension(nutexb: &NutexbFile) -> TextureDimension {
     // Assume no array layers for depth and cube maps.
     if nutexb.footer.depth > 1 {
         TextureDimension::Texture3d
@@ -513,21 +533,26 @@ fn expected_texture_dimension(param: ParamId) -> TextureDimension {
     }
 }
 
-fn validate_texture_dimensions(
+fn validate_texture_dimensions<'a>(
     validation: &mut ModelValidationErrors,
     matl: &MatlData,
-    nutexbs: &[(String, FileResult<NutexbFile>)],
+    nutexbs: &'a [(String, FileResult<NutexbFile>)],
+    default_textures: impl Iterator<Item = (&'a String, TextureDimension)> + Clone,
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
-            if let Some((f, Ok(nutexb))) = nutexbs.iter().find(|(f, _)| {
-                Path::new(f)
-                    .with_extension("")
-                    .as_os_str()
-                    .eq_ignore_ascii_case(&texture.data)
-            }) {
+            if let Some((f, actual)) = nutexbs
+                .iter()
+                .filter_map(|(f, n)| Some((f, nutexb_dimension(n.as_ref().ok()?))))
+                .chain(default_textures.clone().into_iter())
+                .find(|(f, _)| {
+                    Path::new(f)
+                        .with_extension("")
+                        .as_os_str()
+                        .eq_ignore_ascii_case(&texture.data)
+                })
+            {
                 let expected = expected_texture_dimension(texture.param_id);
-                let actual = nutexb_dimension(nutexb);
                 if actual != expected {
                     // The dimension is a fundamental part of the texture.
                     // Add errors to the matl since users should just assign a new texture.
@@ -536,7 +561,7 @@ fn validate_texture_dimensions(
                         kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                             material_label: entry.material_label.clone(),
                             param: texture.param_id,
-                            nutexb: f.clone(),
+                            texture: f.clone(),
                             expected,
                             actual,
                         },
@@ -1078,7 +1103,11 @@ mod tests {
             &mut validation,
             &matl,
             &textures,
-            ["#replace_cubemap".to_owned()].iter(),
+            [(
+                &"#replace_cubemap".to_owned(),
+                TextureDimension::TextureCube,
+            )]
+            .into_iter(),
         );
 
         assert_eq!(
@@ -1119,6 +1148,10 @@ mod tests {
                         data: "texture0".to_owned(),
                     },
                     TextureParam {
+                        param_id: ParamId::Texture1,
+                        data: "#replace_cubemap".to_owned(),
+                    },
+                    TextureParam {
                         param_id: ParamId::Texture7,
                         data: "texture7".to_owned(),
                     },
@@ -1135,7 +1168,16 @@ mod tests {
         ];
 
         let mut validation = ModelValidationErrors::default();
-        validate_texture_dimensions(&mut validation, &matl, &textures);
+        validate_texture_dimensions(
+            &mut validation,
+            &matl,
+            &textures,
+            [(
+                &"#replace_cubemap".to_owned(),
+                TextureDimension::TextureCube,
+            )]
+            .into_iter(),
+        );
 
         assert_eq!(
             vec![
@@ -1144,7 +1186,17 @@ mod tests {
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
                         param: ParamId::Texture0,
-                        nutexb: "texture0".to_owned(),
+                        texture: "texture0".to_owned(),
+                        expected: TextureDimension::Texture2d,
+                        actual: TextureDimension::TextureCube
+                    }
+                },
+                MatlValidationError {
+                    entry_index: 0,
+                    kind: MatlValidationErrorKind::UnexpectedTextureDimension {
+                        material_label: "a".to_owned(),
+                        param: ParamId::Texture1,
+                        texture: "#replace_cubemap".to_owned(),
                         expected: TextureDimension::Texture2d,
                         actual: TextureDimension::TextureCube
                     }
@@ -1154,7 +1206,7 @@ mod tests {
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
                         param: ParamId::Texture7,
-                        nutexb: "texture7".to_owned(),
+                        texture: "texture7".to_owned(),
                         expected: TextureDimension::TextureCube,
                         actual: TextureDimension::Texture2d
                     }
@@ -1168,8 +1220,12 @@ mod tests {
             format!("{}", validation.matl_errors[0])
         );
         assert_eq!(
-            r#"Texture "texture7" for material "a" has dimensions Texture2d, but Texture7 requires TextureCube."#,
+            r##"Texture "#replace_cubemap" for material "a" has dimensions TextureCube, but Texture1 requires Texture2d."##,
             format!("{}", validation.matl_errors[1])
+        );
+        assert_eq!(
+            r#"Texture "texture7" for material "a" has dimensions Texture2d, but Texture7 requires TextureCube."#,
+            format!("{}", validation.matl_errors[2])
         );
     }
 

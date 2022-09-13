@@ -417,7 +417,7 @@ fn main() {
                                             .shared_data
                                             .default_textures()
                                             .iter()
-                                            .map(|(f, _, _)| f),
+                                            .map(|(f, _, d)| (f, d.into())),
                                     )
                                 })
                                 .collect();
