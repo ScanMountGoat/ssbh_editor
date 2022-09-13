@@ -15,7 +15,7 @@ use crate::{
     preferences::{preferences_window, AppPreferences},
     render_settings::render_settings,
     sort_files,
-    validation::{MatlValidationError, ModelValidationErrors},
+    validation::{MatlValidationErrorKind, ModelValidationErrors},
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
 };
@@ -1012,7 +1012,9 @@ impl SsbhApp {
                             // TODO: Make a function for listing nutexbs..
                             // Show missing textures required by the matl.
                             for e in &validation.matl_errors {
-                                if let MatlValidationError::MissingTexture { nutexb, .. } = e {
+                                if let MatlValidationErrorKind::MissingTexture { nutexb, .. } =
+                                    &e.kind
+                                {
                                     missing_nutexb(ui, nutexb);
                                 }
                             }

@@ -7,7 +7,7 @@ use crate::{
     },
     path::presets_file,
     presets::{load_json_presets, load_xml_presets},
-    validation::MatlValidationError,
+    validation::{MatlValidationError, MatlValidationErrorKind},
     widgets::*,
 };
 use egui::{
@@ -284,7 +284,7 @@ fn edit_matl_entries(
         // TODO: Avoid allocating here.
         let entry_validation_errors: Vec<_> = validation_errors
             .iter()
-            .filter(|e| e.entry_index() == editor_state.selected_material_index)
+            .filter(|e| e.entry_index == editor_state.selected_material_index)
             .collect();
 
         changed |= matl_entry_editor(
@@ -503,7 +503,7 @@ fn material_combo_box(
         .show_ui(ui, |ui| {
             for (i, entry) in entries.iter().enumerate() {
                 ui.horizontal(|ui| {
-                    if validation.iter().any(|e| e.entry_index() == i) {
+                    if validation.iter().any(|e| e.entry_index == i) {
                         warning_icon(ui);
                     }
                     let response =
@@ -609,8 +609,8 @@ fn matl_entry_editor(
     // TODO: Add a button to open the mesh editor?
     if validation_errors.iter().any(|e| {
         matches!(
-            e,
-            MatlValidationError::MissingRequiredVertexAttributes { .. }
+            e.kind,
+            MatlValidationErrorKind::MissingRequiredVertexAttributes { .. }
         )
     }) {
         ui.horizontal(|ui| {
@@ -627,11 +627,11 @@ fn matl_entry_editor(
 
         Grid::new("attribute_error_grid").show(ui, |ui| {
             for error in validation_errors {
-                if let MatlValidationError::MissingRequiredVertexAttributes {
+                if let MatlValidationErrorKind::MissingRequiredVertexAttributes {
                     mesh_name,
                     missing_attributes,
                     ..
-                } = error
+                } = &error.kind
                 {
                     ui.label(mesh_name);
                     ui.label(missing_attributes.join(","));

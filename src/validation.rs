@@ -78,38 +78,30 @@ impl ModelValidationErrors {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct MeshValidationError {
+    pub mesh_object_index: usize,
+    pub kind: MeshValidationErrorKind,
+}
+
+impl std::fmt::Display for MeshValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.kind)
+    }
+}
+
 // TODO: Check for unsupported vertex attribute names?
 #[derive(Debug, PartialEq, Eq, Error)]
-pub enum MeshValidationError {
+pub enum MeshValidationErrorKind {
     #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
     MissingRequiredVertexAttributes {
-        mesh_object_index: usize,
         mesh_name: String,
         material_label: String,
         missing_attributes: Vec<String>,
     },
 
     #[error("Mesh {mesh_name:?} repeats subindex {subindex}. Meshes with the same name must have unique subindices.")]
-    DuplicateSubindex {
-        mesh_object_index: usize,
-        mesh_name: String,
-        subindex: u64,
-    },
-}
-
-impl MeshValidationError {
-    pub fn mesh_index(&self) -> usize {
-        // Use the index to associate errors to mesh objects.
-        // The mesh name isn't always unique.
-        match self {
-            Self::MissingRequiredVertexAttributes {
-                mesh_object_index, ..
-            } => *mesh_object_index,
-            Self::DuplicateSubindex {
-                mesh_object_index, ..
-            } => *mesh_object_index,
-        }
-    }
+    DuplicateSubindex { mesh_name: String, subindex: u64 },
 }
 
 pub struct SkelValidationError;
@@ -119,13 +111,23 @@ impl Display for SkelValidationError {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct MatlValidationError {
+    pub entry_index: usize,
+    pub kind: MatlValidationErrorKind,
+}
+
+impl std::fmt::Display for MatlValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.kind)
+    }
+}
+
 // TODO: Validate shader labels.
-// TODO: Move the entry index and label out of the enum?
 #[derive(Debug, PartialEq, Eq, Error)]
-pub enum MatlValidationError {
+pub enum MatlValidationErrorKind {
     #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
     MissingRequiredVertexAttributes {
-        entry_index: usize,
         material_label: String,
         mesh_name: String,
         missing_attributes: Vec<String>,
@@ -139,7 +141,6 @@ pub enum MatlValidationError {
         }
     )]
     UnexpectedTextureFormat {
-        entry_index: usize,
         material_label: String,
         param: ParamId,
         nutexb: String,
@@ -149,7 +150,6 @@ pub enum MatlValidationError {
     // TODO: Add severity levels and make this the highest severity.
     #[error("Texture {nutexb:?} for material {material_label:?} has dimensions {actual:?}, but {param} requires {expected:?}.")]
     UnexpectedTextureDimension {
-        entry_index: usize,
         material_label: String,
         param: ParamId,
         nutexb: String,
@@ -159,7 +159,6 @@ pub enum MatlValidationError {
 
     #[error("Texture {nutexb:?} assigned to {param} for material {material_label:?} is missing.")]
     MissingTexture {
-        entry_index: usize,
         material_label: String,
         param: ParamId,
         nutexb: String,
@@ -169,7 +168,6 @@ pub enum MatlValidationError {
         "Mesh {mesh_name:?} has the RENORMAL material {material_label:?} but no corresponding entry in the model.adjb."
     )]
     RenormalMaterialMissingMeshAdjEntry {
-        entry_index: usize,
         material_label: String,
         mesh_name: String,
     },
@@ -177,10 +175,7 @@ pub enum MatlValidationError {
     #[error(
         "Material {material_label:?} is a RENORMAL material, but the model.adjb file is missing."
     )]
-    RenormalMaterialMissingAdj {
-        entry_index: usize,
-        material_label: String,
-    },
+    RenormalMaterialMissingAdj { material_label: String },
 
     // TODO: use indoc?
     #[error(
@@ -188,29 +183,11 @@ pub enum MatlValidationError {
 Use wrap mode Repeat if the texture should tile.",
     )]
     WrapModeClampsUvs {
-        entry_index: usize,
         material_label: String,
         mesh_name: String,
         samplers: Vec<ParamId>,
     },
 }
-
-impl MatlValidationError {
-    pub fn entry_index(&self) -> usize {
-        // Use the index to associate errors to entries.
-        // The material label in user created files isn't always unique.
-        match self {
-            Self::MissingRequiredVertexAttributes { entry_index, .. } => *entry_index,
-            Self::UnexpectedTextureFormat { entry_index, .. } => *entry_index,
-            Self::RenormalMaterialMissingMeshAdjEntry { entry_index, .. } => *entry_index,
-            Self::RenormalMaterialMissingAdj { entry_index, .. } => *entry_index,
-            Self::UnexpectedTextureDimension { entry_index, .. } => *entry_index,
-            Self::MissingTexture { entry_index, .. } => *entry_index,
-            Self::WrapModeClampsUvs { entry_index, .. } => *entry_index,
-        }
-    }
-}
-
 pub struct ModlValidationError;
 impl Display for ModlValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -308,19 +285,23 @@ fn validate_required_attributes(
                     // Add errors to the matl and mesh for clarity.
                     let missing_attributes = program.missing_required_attributes(&attribute_names);
                     if !missing_attributes.is_empty() {
-                        let matl_error = MatlValidationError::MissingRequiredVertexAttributes {
+                        let matl_error = MatlValidationError {
                             entry_index,
-                            material_label: entry.material_label.clone(),
-                            mesh_name: o.name.clone(),
-                            missing_attributes: missing_attributes.clone(),
+                            kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
+                                material_label: entry.material_label.clone(),
+                                mesh_name: o.name.clone(),
+                                missing_attributes: missing_attributes.clone(),
+                            },
                         };
                         validation.matl_errors.push(matl_error);
 
-                        let mesh_error = MeshValidationError::MissingRequiredVertexAttributes {
+                        let mesh_error = MeshValidationError {
                             mesh_object_index: i,
-                            mesh_name: o.name.clone(),
-                            material_label: entry.material_label.clone(),
-                            missing_attributes,
+                            kind: MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                                mesh_name: o.name.clone(),
+                                material_label: entry.material_label.clone(),
+                                missing_attributes,
+                            },
                         };
                         validation.mesh_errors.push(mesh_error);
                     }
@@ -379,11 +360,13 @@ fn validate_wrap_mode_tiling(
                 }
 
                 if !samplers.is_empty() {
-                    let matl_error = MatlValidationError::WrapModeClampsUvs {
+                    let matl_error = MatlValidationError {
                         entry_index,
-                        material_label: entry.material_label.clone(),
-                        mesh_name: o.name.clone(),
-                        samplers,
+                        kind: MatlValidationErrorKind::WrapModeClampsUvs {
+                            material_label: entry.material_label.clone(),
+                            mesh_name: o.name.clone(),
+                            samplers,
+                        },
                     };
                     validation.matl_errors.push(matl_error);
                 }
@@ -446,12 +429,14 @@ fn validate_texture_format_usage(
             }) {
                 // Check for sRGB mismatches.
                 if expects_srgb(texture.param_id) != is_srgb(nutexb.footer.image_format) {
-                    let error = MatlValidationError::UnexpectedTextureFormat {
+                    let error = MatlValidationError {
                         entry_index,
-                        material_label: entry.material_label.clone(),
-                        param: texture.param_id,
-                        nutexb: f.clone(),
-                        format: nutexb.footer.image_format,
+                        kind: MatlValidationErrorKind::UnexpectedTextureFormat {
+                            material_label: entry.material_label.clone(),
+                            param: texture.param_id,
+                            nutexb: f.clone(),
+                            format: nutexb.footer.image_format,
+                        },
                     };
                     validation.matl_errors.push(error);
 
@@ -489,11 +474,13 @@ fn validate_texture_assignments<'a, 'b>(
                         .eq_ignore_ascii_case(&texture.data)
                 })
             {
-                let error = MatlValidationError::MissingTexture {
+                let error = MatlValidationError {
                     entry_index,
-                    material_label: entry.material_label.clone(),
-                    param: texture.param_id,
-                    nutexb: texture.data.clone(),
+                    kind: MatlValidationErrorKind::MissingTexture {
+                        material_label: entry.material_label.clone(),
+                        param: texture.param_id,
+                        nutexb: texture.data.clone(),
+                    },
                 };
                 validation.matl_errors.push(error);
             }
@@ -544,13 +531,15 @@ fn validate_texture_dimensions(
                 if actual != expected {
                     // The dimension is a fundamental part of the texture.
                     // Add errors to the matl since users should just assign a new texture.
-                    let error = MatlValidationError::UnexpectedTextureDimension {
+                    let error = MatlValidationError {
                         entry_index,
-                        material_label: entry.material_label.clone(),
-                        param: texture.param_id,
-                        nutexb: f.clone(),
-                        expected,
-                        actual,
+                        kind: MatlValidationErrorKind::UnexpectedTextureDimension {
+                            material_label: entry.material_label.clone(),
+                            param: texture.param_id,
+                            nutexb: f.clone(),
+                            expected,
+                            actual,
+                        },
                     };
                     validation.matl_errors.push(error);
                 }
@@ -593,10 +582,13 @@ fn validate_renormal_material_entries(
                             .iter()
                             .any(|a| a.mesh_object_index == mesh_index)
                         {
-                            let error = MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
+                            let error = MatlValidationError {
                                 entry_index,
-                                material_label: entry.material_label.clone(),
-                                mesh_name: mesh.name.clone(),
+                                kind:
+                                    MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
+                                        material_label: entry.material_label.clone(),
+                                        mesh_name: mesh.name.clone(),
+                                    },
                             };
                             validation.matl_errors.push(error);
 
@@ -611,9 +603,11 @@ fn validate_renormal_material_entries(
                 }
             }
         } else {
-            let error = MatlValidationError::RenormalMaterialMissingAdj {
+            let error = MatlValidationError {
                 entry_index,
-                material_label: entry.material_label.clone(),
+                kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
+                    material_label: entry.material_label.clone(),
+                },
             };
             validation.matl_errors.push(error);
         }
@@ -655,10 +649,12 @@ fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshD
             .or_insert_with(HashSet::new)
             .insert(o.subindex)
         {
-            let error = MeshValidationError::DuplicateSubindex {
+            let error = MeshValidationError {
                 mesh_object_index: i,
-                mesh_name: o.name.clone(),
-                subindex: o.subindex,
+                kind: MeshValidationErrorKind::DuplicateSubindex {
+                    mesh_name: o.name.clone(),
+                    subindex: o.subindex,
+                },
             };
             validation.mesh_errors.push(error);
         }
@@ -769,21 +765,25 @@ mod tests {
         );
 
         assert_eq!(
-            vec![MatlValidationError::MissingRequiredVertexAttributes {
+            vec![MatlValidationError {
                 entry_index: 0,
-                material_label: "a".to_owned(),
-                mesh_name: "object1".to_owned(),
-                missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+                kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
+                    material_label: "a".to_owned(),
+                    mesh_name: "object1".to_owned(),
+                    missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+                }
             }],
             validation.matl_errors
         );
 
         assert_eq!(
-            vec![MeshValidationError::MissingRequiredVertexAttributes {
+            vec![MeshValidationError {
                 mesh_object_index: 0,
-                mesh_name: "object1".to_owned(),
-                material_label: "a".to_owned(),
-                missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+                kind: MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                    mesh_name: "object1".to_owned(),
+                    material_label: "a".to_owned(),
+                    missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+                }
             }],
             validation.mesh_errors
         );
@@ -844,9 +844,11 @@ mod tests {
         validate_renormal_material_entries(&mut validation, &matl, None, Some(&modl), Some(&mesh));
 
         assert_eq!(
-            vec![MatlValidationError::RenormalMaterialMissingAdj {
+            vec![MatlValidationError {
                 entry_index: 0,
-                material_label: "RENORMAL_a".to_owned(),
+                kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
+                    material_label: "RENORMAL_a".to_owned(),
+                }
             }],
             validation.matl_errors
         );
@@ -911,10 +913,12 @@ mod tests {
         );
 
         assert_eq!(
-            vec![MatlValidationError::RenormalMaterialMissingMeshAdjEntry {
+            vec![MatlValidationError {
                 entry_index: 0,
-                material_label: "RENORMAL_a".to_owned(),
-                mesh_name: "object1".to_owned()
+                kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
+                    material_label: "RENORMAL_a".to_owned(),
+                    mesh_name: "object1".to_owned()
+                }
             }],
             validation.matl_errors
         );
@@ -976,19 +980,23 @@ mod tests {
 
         assert_eq!(
             vec![
-                MatlValidationError::UnexpectedTextureFormat {
+                MatlValidationError {
                     entry_index: 0,
-                    material_label: "a".to_owned(),
-                    param: ParamId::Texture0,
-                    nutexb: "texture0".to_owned(),
-                    format: NutexbFormat::BC1Unorm
+                    kind: MatlValidationErrorKind::UnexpectedTextureFormat {
+                        material_label: "a".to_owned(),
+                        param: ParamId::Texture0,
+                        nutexb: "texture0".to_owned(),
+                        format: NutexbFormat::BC1Unorm
+                    }
                 },
-                MatlValidationError::UnexpectedTextureFormat {
+                MatlValidationError {
                     entry_index: 0,
-                    material_label: "a".to_owned(),
-                    param: ParamId::Texture4,
-                    nutexb: "texture4".to_owned(),
-                    format: NutexbFormat::BC2Srgb
+                    kind: MatlValidationErrorKind::UnexpectedTextureFormat {
+                        material_label: "a".to_owned(),
+                        param: ParamId::Texture4,
+                        nutexb: "texture4".to_owned(),
+                        format: NutexbFormat::BC2Srgb
+                    }
                 }
             ],
             validation.matl_errors
@@ -1074,11 +1082,13 @@ mod tests {
         );
 
         assert_eq!(
-            vec![MatlValidationError::MissingTexture {
+            vec![MatlValidationError {
                 entry_index: 0,
-                material_label: "a".to_owned(),
-                param: ParamId::Texture0,
-                nutexb: "texture0".to_owned(),
+                kind: MatlValidationErrorKind::MissingTexture {
+                    material_label: "a".to_owned(),
+                    param: ParamId::Texture0,
+                    nutexb: "texture0".to_owned(),
+                }
             },],
             validation.matl_errors
         );
@@ -1129,21 +1139,25 @@ mod tests {
 
         assert_eq!(
             vec![
-                MatlValidationError::UnexpectedTextureDimension {
+                MatlValidationError {
                     entry_index: 0,
-                    material_label: "a".to_owned(),
-                    param: ParamId::Texture0,
-                    nutexb: "texture0".to_owned(),
-                    expected: TextureDimension::Texture2d,
-                    actual: TextureDimension::TextureCube
+                    kind: MatlValidationErrorKind::UnexpectedTextureDimension {
+                        material_label: "a".to_owned(),
+                        param: ParamId::Texture0,
+                        nutexb: "texture0".to_owned(),
+                        expected: TextureDimension::Texture2d,
+                        actual: TextureDimension::TextureCube
+                    }
                 },
-                MatlValidationError::UnexpectedTextureDimension {
+                MatlValidationError {
                     entry_index: 0,
-                    material_label: "a".to_owned(),
-                    param: ParamId::Texture7,
-                    nutexb: "texture7".to_owned(),
-                    expected: TextureDimension::TextureCube,
-                    actual: TextureDimension::Texture2d
+                    kind: MatlValidationErrorKind::UnexpectedTextureDimension {
+                        material_label: "a".to_owned(),
+                        param: ParamId::Texture7,
+                        nutexb: "texture7".to_owned(),
+                        expected: TextureDimension::TextureCube,
+                        actual: TextureDimension::Texture2d
+                    }
                 }
             ],
             validation.matl_errors
@@ -1192,10 +1206,12 @@ mod tests {
         validate_mesh_subindices(&mut validation, &mesh);
 
         assert_eq!(
-            vec![MeshValidationError::DuplicateSubindex {
+            vec![MeshValidationError {
                 mesh_object_index: 2,
-                mesh_name: "a".to_owned(),
-                subindex: 0
+                kind: MeshValidationErrorKind::DuplicateSubindex {
+                    mesh_name: "a".to_owned(),
+                    subindex: 0
+                }
             }],
             validation.mesh_errors
         );
@@ -1299,11 +1315,13 @@ mod tests {
 
         // Sampler3 isn't included since bake1 UVs are still in range.
         assert_eq!(
-            vec![MatlValidationError::WrapModeClampsUvs {
+            vec![MatlValidationError {
                 entry_index: 0,
-                material_label: "a".to_owned(),
-                mesh_name: "object1".to_owned(),
-                samplers: vec![ParamId::Sampler0, ParamId::Sampler4],
+                kind: MatlValidationErrorKind::WrapModeClampsUvs {
+                    material_label: "a".to_owned(),
+                    mesh_name: "object1".to_owned(),
+                    samplers: vec![ParamId::Sampler0, ParamId::Sampler4],
+                }
             }],
             validation.matl_errors
         );

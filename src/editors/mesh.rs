@@ -10,7 +10,7 @@ use ssbh_data::{
 
 use crate::{
     app::{display_validation_errors, warning_icon, UiState, WARNING_COLOR},
-    validation::MeshValidationError,
+    validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
 };
 
@@ -110,13 +110,12 @@ pub fn mesh_editor(
                         // TODO: Find a cleaner way to get the errors for the selected mesh.
                         let missing_attributes = validation_errors
                             .iter()
-                            .filter_map(|e| match e {
-                                MeshValidationError::MissingRequiredVertexAttributes {
-                                    mesh_object_index,
+                            .filter_map(|e| match &e.kind {
+                                MeshValidationErrorKind::MissingRequiredVertexAttributes {
                                     missing_attributes,
                                     ..
                                 } => {
-                                    if Some(*mesh_object_index)
+                                    if Some(e.mesh_object_index)
                                         == ui_state.selected_mesh_attributes_index
                                     {
                                         Some(missing_attributes.as_slice())
@@ -162,7 +161,7 @@ pub fn mesh_editor(
                             // TODO: Avoid allocating here.
                             let errors: Vec<_> = validation_errors
                                 .iter()
-                                .filter(|e| e.mesh_index() == i)
+                                .filter(|e| e.mesh_object_index == i)
                                 .collect();
 
                             // TODO: Reorder mesh objects?
@@ -200,8 +199,8 @@ pub fn mesh_editor(
                                 // TODO: Simplify this code?
                                 let attribute_error = errors.iter().find(|e| {
                                     matches!(
-                                        e,
-                                        MeshValidationError::MissingRequiredVertexAttributes { .. }
+                                        e.kind,
+                                        MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
                                     )
                                 });
 
