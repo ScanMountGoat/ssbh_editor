@@ -60,20 +60,27 @@ pub fn next_frame(
     playback_speed: f32,
     should_loop: bool,
 ) -> f32 {
-    // Animate at 60 fps regardless of the rendering framerate.
+    // Convert elapsed time to a delta in frames.
     // This relies on interpolation or frame skipping.
     // TODO: How robust is this timing implementation?
     // TODO: Create a module/tests for this?
     let delta_t = current.duration_since(previous);
 
+    // TODO: Ensure 60hz monitors always advanced by exactly one frame per refresh?
     let millis_per_frame = 1000.0f64 / 60.0f64;
     let delta_t_frames = delta_t.as_millis() as f64 / millis_per_frame;
 
     let mut next_frame = current_frame + (delta_t_frames as f32 * playback_speed);
 
-    // TODO: Each animation should loop individually.
-    if next_frame > final_frame_index && should_loop {
-        next_frame = 0.0;
+    if next_frame > final_frame_index {
+        if should_loop {
+            // Wrap around to loop the animation.
+            // This may not be seamless if the animations have different lengths.
+            next_frame = next_frame.rem_euclid(final_frame_index);
+        } else {
+            // Reduce chances of overflow.
+            next_frame = final_frame_index;
+        }
     }
 
     next_frame
@@ -728,7 +735,6 @@ fn animate_models(app: &mut SsbhApp) {
                     .and_then(|(_, a)| a.as_ref().ok())
             });
 
-        // TODO: Snimations should loop independently.
         // TODO: Make frame timing logic in ssbh_wgpu public?
         render_model.apply_anim(
             &app.render_state.queue,
@@ -752,8 +758,9 @@ fn animate_models(app: &mut SsbhApp) {
             } else {
                 None
             },
-            app.animation_state.current_frame,
             &app.render_state.shared_data,
+            app.animation_state.current_frame,
+            app.animation_state.should_loop,
         );
     }
 }
