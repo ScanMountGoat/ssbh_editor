@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved default values when adding missing required parameters in the Matl Editor.
 * Improved material parameter descriptions for the Matl Editor.
 * Changed vector component descriptions in the Matl Editor to display on hover instead of requiring advanced mode.
+* Adjusted animation looping to apply individually to each animation. 
 
 ### Fixed
 * Fixed an issue where adding missing color sets in the mesh editor would add each attribute twice.
