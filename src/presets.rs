@@ -288,7 +288,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamId::BlendState0,
                 BlendStateData {
                     source_color: BlendFactor::One,
-                    destination_color: BlendFactor::OneMinusSourceAlpha,
+                    destination_color: BlendFactor::Zero,
                     alpha_sample_to_coverage: false,
                 },
             )],
