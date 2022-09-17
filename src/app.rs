@@ -480,7 +480,7 @@ impl SsbhApp {
         self.render_state.viewport_left = if self.show_left_panel {
             Some(
                 SidePanel::left("left_panel")
-                    .min_width(200.0)
+                    .default_width(200.0)
                     .show(ctx, |ui| self.files_list(ui))
                     .response
                     .rect
@@ -505,7 +505,7 @@ impl SsbhApp {
         self.render_state.viewport_right = if self.show_right_panel {
             Some(
                 SidePanel::right("right panel")
-                    .min_width(450.0)
+                    .default_width(450.0)
                     .show(ctx, |ui| self.right_panel(ctx, ui))
                     .response
                     .rect

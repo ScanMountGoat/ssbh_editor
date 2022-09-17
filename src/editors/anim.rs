@@ -23,6 +23,8 @@ pub fn anim_editor(
     let mut changed = false;
 
     egui::Window::new(format!("Anim Editor ({title})"))
+        .default_width(800.0)
+        .default_height(600.0)
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
@@ -115,69 +117,77 @@ fn editor_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorSt
 fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
     let mut _changed = false;
 
-    SidePanel::left("anim_left_panel").show_inside(ui, |ui| {
-        ScrollArea::vertical()
-            .auto_shrink([false; 2])
-            .show(ui, |ui| {
-                // TODO: Make names editable in edit mode?
-                for (g, group) in &mut anim.groups.iter().enumerate() {
-                    CollapsingHeader::new(group.group_type.to_string())
-                        .default_open(false)
-                        .show(ui, |ui| {
-                            for (n, node) in &mut group.nodes.iter().enumerate() {
-                                match &node.tracks[..] {
-                                    [t] => {
-                                        // Single tracks just use the group type as the name.
-                                        // Make the node selectable instead.
-                                        let mut selected = state.selected_group_index == Some(g)
-                                            && state.selected_node_index == Some(n)
-                                            && state.selected_track_index == Some(0);
-                                        ui.selectable_value(
-                                            &mut selected,
-                                            true,
-                                            format!("{} ({} frames)", node.name, t.values.len()),
-                                        );
-                                        if selected {
-                                            state.selected_group_index = Some(g);
-                                            state.selected_node_index = Some(n);
-                                            state.selected_track_index = Some(0);
+    SidePanel::left("anim_left_panel")
+        .default_width(300.0)
+        .show_inside(ui, |ui| {
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    // TODO: Make names editable in edit mode?
+                    for (g, group) in &mut anim.groups.iter().enumerate() {
+                        CollapsingHeader::new(group.group_type.to_string())
+                            .default_open(false)
+                            .show(ui, |ui| {
+                                for (n, node) in &mut group.nodes.iter().enumerate() {
+                                    match &node.tracks[..] {
+                                        [t] => {
+                                            // Single tracks just use the group type as the name.
+                                            // Make the node selectable instead.
+                                            let mut selected = state.selected_group_index
+                                                == Some(g)
+                                                && state.selected_node_index == Some(n)
+                                                && state.selected_track_index == Some(0);
+                                            ui.selectable_value(
+                                                &mut selected,
+                                                true,
+                                                format!(
+                                                    "{} ({} frames)",
+                                                    node.name,
+                                                    t.values.len()
+                                                ),
+                                            );
+                                            if selected {
+                                                state.selected_group_index = Some(g);
+                                                state.selected_node_index = Some(n);
+                                                state.selected_track_index = Some(0);
+                                            }
+                                        }
+                                        tracks => {
+                                            CollapsingHeader::new(&node.name)
+                                                .default_open(true)
+                                                .show(ui, |ui| {
+                                                    for (t, track) in tracks.iter().enumerate() {
+                                                        // TODO: Should multiple tracks be viewable at once?
+                                                        // TODO: Easier to just have a selected group, node, track?
+                                                        let mut selected = state
+                                                            .selected_group_index
+                                                            == Some(g)
+                                                            && state.selected_node_index == Some(n)
+                                                            && state.selected_track_index
+                                                                == Some(t);
+                                                        ui.selectable_value(
+                                                            &mut selected,
+                                                            true,
+                                                            format!(
+                                                                "{} ({} frames)",
+                                                                track.name,
+                                                                track.values.len()
+                                                            ),
+                                                        );
+                                                        if selected {
+                                                            state.selected_group_index = Some(g);
+                                                            state.selected_node_index = Some(n);
+                                                            state.selected_track_index = Some(t);
+                                                        }
+                                                    }
+                                                });
                                         }
                                     }
-                                    tracks => {
-                                        CollapsingHeader::new(&node.name).default_open(true).show(
-                                            ui,
-                                            |ui| {
-                                                for (t, track) in tracks.iter().enumerate() {
-                                                    // TODO: Should multiple tracks be viewable at once?
-                                                    // TODO: Easier to just have a selected group, node, track?
-                                                    let mut selected = state.selected_group_index
-                                                        == Some(g)
-                                                        && state.selected_node_index == Some(n)
-                                                        && state.selected_track_index == Some(t);
-                                                    ui.selectable_value(
-                                                        &mut selected,
-                                                        true,
-                                                        format!(
-                                                            "{} ({} frames)",
-                                                            track.name,
-                                                            track.values.len()
-                                                        ),
-                                                    );
-                                                    if selected {
-                                                        state.selected_group_index = Some(g);
-                                                        state.selected_node_index = Some(n);
-                                                        state.selected_track_index = Some(t);
-                                                    }
-                                                }
-                                            },
-                                        );
-                                    }
                                 }
-                            }
-                        });
-                }
-            });
-    });
+                            });
+                    }
+                });
+        });
 
     CentralPanel::default().show_inside(ui, |ui| {
         let label_fmt = |name: &str, value: &PlotPoint| {
