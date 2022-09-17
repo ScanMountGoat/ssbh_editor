@@ -11,6 +11,7 @@ use pollster::FutureExt;
 use ssbh_data::prelude::*;
 // TODO: is this redundant with tokio?
 use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
+use ssbh_editor::capture::render_screenshot;
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::AppPreferences;
 use ssbh_editor::validation::ModelValidationErrors;
@@ -28,6 +29,8 @@ use winit::{
     event::*,
     event_loop::ControlFlow,
 };
+
+// TODO: Split up this file into modules.
 
 // TODO: Separate project for camera + input handling?
 fn calculate_mvp(
@@ -304,6 +307,7 @@ fn main() {
         camera_state,
         preferences,
         enable_helper_bones: true,
+        screenshot_to_render: None,
     };
 
     // Make sure the theme updates if changed from preferences.
@@ -539,6 +543,14 @@ fn main() {
                         }
                         // Present the final rendered image.
                         output_frame.present();
+
+                        if let Some(file) = &app.screenshot_to_render {
+                            let image = render_screenshot(&mut renderer, &app, size);
+                            if let Err(e) = image.save(file) {
+                                error!("Error saving screenshot to {:?}: {}", file, e);
+                            }
+                            app.screenshot_to_render = None;
+                        }
                     }
                 }
                 winit::event::Event::WindowEvent { event, .. } => {
@@ -880,11 +892,13 @@ fn egui_render_pass<'a>(
         &clipped_primitives,
         &screen_descriptor,
     );
+
+    for id in &full_output.textures_delta.free {
+        egui_rpass.free_texture(id);
+    }
+
     // Record all render passes.
     egui_rpass.execute_with_renderpass(rpass, &clipped_primitives, &screen_descriptor);
-    // for id in &full_output.textures_delta.free {
-    //     egui_rpass.free_texture(id);
-    // }
 }
 
 fn request_adapter(

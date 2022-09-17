@@ -11,6 +11,7 @@ use std::{collections::BTreeMap, error::Error};
 use winit::dpi::PhysicalPosition;
 
 pub mod app;
+pub mod capture;
 pub mod editors;
 pub mod material;
 pub mod path;

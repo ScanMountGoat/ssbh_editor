@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added validation for invalid material shader labels.
 * Added support for editing depth bias to the Matl Editor.
 * Added an option to remove a loaded folder in the file list by right clicking and clicking remove.
+* Added screenshot saving support to Viewport > Save Screenshot.
 
 ### Changed
 * Moved validation warning icons to the file button itself to always show thumbnails.

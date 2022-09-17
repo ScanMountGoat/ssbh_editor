@@ -77,6 +77,8 @@ pub struct SsbhApp {
     pub should_show_update: bool,
     pub new_release_tag: Option<String>,
 
+    pub screenshot_to_render: Option<PathBuf>,
+
     pub material_presets: Vec<MatlEntryData>,
 
     pub red_checkerboard: egui::TextureId,
@@ -1187,6 +1189,18 @@ impl SsbhApp {
                 if ui.button("Preferences").clicked() {
                     ui.close_menu();
                     self.ui_state.preferences_window_open = true;
+                }
+            });
+
+            egui::menu::menu_button(ui, "Viewport", |ui| {
+                if ui.button("Save Screenshot...").clicked() {
+                    ui.close_menu();
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Image", &["png", "jpg", "tif", "bmp"])
+                        .save_file()
+                    {
+                        self.screenshot_to_render = Some(file);
+                    }
                 }
             });
 
