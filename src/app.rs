@@ -1323,7 +1323,10 @@ fn list_files<T, E: std::fmt::Display>(
                     // Don't show the full error for now to avoid showing lots of text.
                     empty_icon(ui);
                     ui.label(RichText::new("⚠ ".to_string() + name).color(ERROR_COLOR))
-                        .on_hover_text(format!("Error reading {}", name));
+                        .on_hover_text(format!(
+                            "Error reading {}. Check the application logs for details.",
+                            name
+                        ));
                 }
             }
         });
