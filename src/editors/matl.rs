@@ -762,6 +762,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
                 changed |= enum_combo_box(
                     ui,
                     "Source Color",
+                    "",
                     id.with("srccolor"),
                     &mut param.data.source_color,
                 );
@@ -770,6 +771,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
                 changed |= enum_combo_box(
                     ui,
                     "Destination Color",
+                    "",
                     id.with("dstcolor"),
                     &mut param.data.destination_color,
                 );
@@ -800,12 +802,13 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
             changed |= enum_combo_box(
                 ui,
                 "Polygon Fill",
+                "",
                 id.with("fill"),
                 &mut param.data.fill_mode,
             );
             ui.end_row();
 
-            changed |= enum_combo_box(ui, "Cull Mode", id.with("cull"), &mut param.data.cull_mode);
+            changed |= enum_combo_box(ui, "Cull Mode", "", id.with("cull"), &mut param.data.cull_mode);
             ui.end_row();
 
             ui.label("Depth Bias");
@@ -898,6 +901,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             changed |= enum_combo_box(
                 ui,
                 "Wrap S",
+                "",
                 id.with("wraps{:?}"),
                 &mut param.data.wraps,
             );
@@ -906,6 +910,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             changed |= enum_combo_box(
                 ui,
                 "Wrap T",
+                "",
                 id.with("wrapt{:?}"),
                 &mut param.data.wrapt,
             );
@@ -914,6 +919,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             changed |= enum_combo_box(
                 ui,
                 "Wrap R",
+                "",
                 id.with("wrapr{:?}"),
                 &mut param.data.wrapr,
             );
@@ -922,6 +928,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             changed |= enum_combo_box(
                 ui,
                 "Min Filter",
+                "",
                 id.with("minfilter{:?}"),
                 &mut param.data.min_filter,
             );
@@ -930,6 +937,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             changed |= enum_combo_box(
                 ui,
                 "Mag Filter",
+                "",
                 id.with("magfilter{:?}"),
                 &mut param.data.mag_filter,
             );

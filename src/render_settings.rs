@@ -18,7 +18,8 @@ pub fn render_settings(
             ui.heading("Debug Shading");
             egui::Grid::new("debug_shading_grid").show(ui, |ui| {
                 // TODO: Add descriptions.
-                ui.label("Debug Mode");
+                ui.label("Debug Mode")
+                     .on_hover_text("Description");
                 egui::ComboBox::from_id_source("Debug Mode")
                     .width(200.0)
                     .selected_text(debug_mode_label(settings.debug_mode))
@@ -78,12 +79,14 @@ pub fn render_settings(
                     enum_combo_box(
                         ui,
                         "Transition Material",
+                        "Description",
                         "Transition Material",
                         &mut settings.transition_material,
                     );
                     ui.end_row();
 
-                    ui.label("Transition Factor");
+                    ui.label("Transition Factor")
+                        .on_hover_text("Description");
                     ui.add(DragSlider::new(
                         "transition_factor",
                         &mut settings.transition_factor,
@@ -118,28 +121,37 @@ pub fn render_settings(
             horizontal_separator_empty(ui);
 
             ui.heading("Render Passes");
-            ui.checkbox(&mut settings.render_diffuse, "Enable Diffuse");
-            ui.checkbox(&mut settings.render_specular, "Enable Specular");
-            ui.checkbox(&mut settings.render_emission, "Enable Emission");
-            ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting");
-            ui.checkbox(&mut settings.render_bloom, "Enable Bloom");
+            ui.checkbox(&mut settings.render_diffuse, "Enable Diffuse")
+                .on_hover_text("Description");
+            ui.checkbox(&mut settings.render_specular, "Enable Specular")
+                .on_hover_text("Description");
+            ui.checkbox(&mut settings.render_emission, "Enable Emission")
+                .on_hover_text("Description");
+            ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting")
+                .on_hover_text("Description");
+            ui.checkbox(&mut settings.render_bloom, "Enable Bloom")
+                .on_hover_text("Description");
             horizontal_separator_empty(ui);
 
             ui.heading("Lighting");
-            ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
+            ui.checkbox(&mut settings.render_shadows, "Enable Shadows")
+                .on_hover_text("Description");
             horizontal_separator_empty(ui);
 
             ui.heading("Materials");
-            ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color");
+            ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color")
+                .on_hover_text("Description");
             ui.horizontal(|ui| {
-                ui.label("Enable Nor Channels");
+                ui.label("Enable Nor Channels")
+                    .on_hover_text("Description");
                 ui.toggle_value(&mut settings.render_nor[0], "R");
                 ui.toggle_value(&mut settings.render_nor[1], "G");
                 ui.toggle_value(&mut settings.render_nor[2], "B");
                 ui.toggle_value(&mut settings.render_nor[3], "A");
             });
             ui.horizontal(|ui| {
-                ui.label("Enable Prm Channels");
+                ui.label("Enable Prm Channels")
+                    .on_hover_text("Description");
                 ui.toggle_value(&mut settings.render_prm[0], "R");
                 ui.toggle_value(&mut settings.render_prm[1], "G");
                 ui.toggle_value(&mut settings.render_prm[2], "B");
@@ -151,17 +163,23 @@ pub fn render_settings(
             ui.checkbox(
                 &mut skinning_settings.enable_parenting,
                 "Enable Mesh Parenting",
-            );
+            )
+                .on_hover_text("Description");
             ui.checkbox(
                 &mut skinning_settings.enable_skinning,
                 "Enable Vertex Skinning",
-            );
-            ui.checkbox(enable_helper_bones, "Enable Helper Bones");
+            )
+                .on_hover_text("Description");
+            ui.checkbox(enable_helper_bones, "Enable Helper Bones")
+                .on_hover_text("Description");
 
             ui.heading("Skeleton");
-            ui.checkbox(draw_skeletons, "Draw Bones");
-            ui.checkbox(&mut options.draw_bone_axes, "Draw Bone Axes");
-            ui.checkbox(draw_bone_names, "Draw Bone Names");
+            ui.checkbox(draw_skeletons, "Draw Bones")
+                .on_hover_text("Description");
+            ui.checkbox(&mut options.draw_bone_axes, "Draw Bone Axes")
+                .on_hover_text("Description");
+            ui.checkbox(draw_bone_names, "Draw Bone Names")
+                .on_hover_text("Description");
         });
 }
 
