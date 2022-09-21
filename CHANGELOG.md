@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue where shader and mesh attribute errors didn't update in the viewport properly.
 * Fixed an issue where opening a folder didn't take into account the hide expressions setting.
 
-## 0.6.1
+## 0.6.1 - 2022-9-5
 ### Added
 * Added a viewport background color option to preferences.
 * Added a reset button to preferences.
@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed inconsistencies in sorting for opening folders vs reloading the workspace.
 * Fixed an issue where resaving a skeleton would incorrectly transpose the transforms.
 
-## 0.6.0
+## 0.6.0 - 2022-08-26
 ### Added
 * Added a graph viewer tab to the anim editor for graphing animated values over time
 * Added a field of view (fov) option to the Camera Settings window.
@@ -78,7 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed scaling of invalid attributes and invalid shader checkerboards for high resolution screens.
 * Fixed an issue where a bone could be parented to itself in the Skel Editor, causing errors when saving.
 
-## 0.5.2
+## 0.5.2 - 2022-08-08
 ### Added
 * Added an Anim Editor for editing track flags.
 
@@ -96,7 +96,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue where some materials would incorrectly render as having specular lighting.
 * Fixed an issue where validation errors failed to update when opening folders or reloading the workspace.
 
-## 0.5.1
+## 0.5.1 - 2022-07-22
 ### Added
 * Added wireframe rendering to debug shading.
 * Added bone axes rendering for showing accumulated bone world orientations.
@@ -115,7 +115,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 * Removed the system console on Windows.
 
-## 0.5.0
+## 0.5.0 - 2022-07-17
 ### Added
 * Added the ability to add the current material as a preset from the Matl Editor.
 * Added the Material Presets Editor to Menu > Material presets based on the Matl Editor UI.
@@ -150,7 +150,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Models will show up in debug shading modes or selected outlines even if no material is properly assigned.
 * Moved material presets and application settings to an application data directory. See the README for details.
 
-## 0.4.1
+## 0.4.1 - 2022-07-07
 ### Added
 * Added vertex color, nor channels, and prm channels to render settings.
 * Added the keyboard shortcut Ctrl+Shift+O for adding a folder to the workspace.
@@ -174,7 +174,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue where some emissive materials would incorrectly render as having specular shading.
 * Fixed a crash when minimizing the window.
 
-## 0.4.0
+## 0.4.0 - 2022-06-28
 ### Added
 * Added skeleton and bone name rendering to render settings.
 * Added basic, normals, bitangents, and albedo debug shading modes.
@@ -190,7 +190,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed inaccurate blending of alpha for transparent materials.
 * Fixed an issue where files that failed to open displayed as missing.
 
-## 0.3.0
+## 0.3.0 - 2022-06-24
 ### Added
 * Added an option to reload files in the current workspace.
 * Added keyboard shortcuts for open folder and reload workspace.
@@ -219,11 +219,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed consistency of the viewport background color.
 * Improved rendering of glass materials for better rendering accuracy.
 
-## 0.2.1
+## 0.2.1 - 2022-06-10
 ### Fixed
 * Fixed check for new updates.
 
-## 0.2.0
+## 0.2.0 - 2022-06-10
 ### Added
 * Material presets can be applied from the matl editor. Add and edit presets in the `presets.json` file.
 * Added the ability to delete and rename materials in the matl editor.
@@ -238,5 +238,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed a potential crash if a file has errors on saving.
 * Fixed "Add Folder to Workspace..." not updating the viewport models.
 
-## 0.1.0
+## 0.1.0 - 2022-06-05
 First public release!
