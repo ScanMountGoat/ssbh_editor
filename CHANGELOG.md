@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue where shader and mesh attribute errors didn't update in the viewport properly.
 * Fixed an issue where opening a folder didn't take into account the hide expressions setting.
 
-## 0.6.1 - 2022-9-5
+## 0.6.1 - 2022-09-05
 ### Added
 * Added a viewport background color option to preferences.
 * Added a reset button to preferences.
