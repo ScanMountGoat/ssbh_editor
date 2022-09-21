@@ -1171,11 +1171,6 @@ impl SsbhApp {
                     self.ui_state.render_settings_open = true;
                 }
 
-                if ui.button("Camera Settings").clicked() {
-                    ui.close_menu();
-                    self.ui_state.camera_settings_open = true;
-                }
-
                 if ui.button("Stage Lighting").clicked() {
                     ui.close_menu();
                     self.ui_state.stage_lighting_open = true;
@@ -1193,6 +1188,11 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "Viewport", |ui| {
+                if ui.button("Camera Settings").clicked() {
+                    ui.close_menu();
+                    self.ui_state.camera_settings_open = true;
+                }
+
                 if ui.button("Save Screenshot...").clicked() {
                     ui.close_menu();
                     if let Some(file) = FileDialog::new()
