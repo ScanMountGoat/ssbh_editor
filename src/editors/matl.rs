@@ -1,5 +1,5 @@
 use crate::{
-    app::{warning_icon, MatlEditorState, UiState},
+    app::{warning_icon_text, MatlEditorState, UiState},
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
@@ -11,8 +11,8 @@ use crate::{
     widgets::*,
 };
 use egui::{
-    Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, ScrollArea, TextEdit, Ui,
-    Window,
+    Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, RichText, ScrollArea,
+    TextEdit, Ui, Window,
 };
 use log::error;
 use rfd::FileDialog;
@@ -502,17 +502,17 @@ fn material_combo_box(
         .width(400.0)
         .show_ui(ui, |ui| {
             for (i, entry) in entries.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    if validation.iter().any(|e| e.entry_index == i) {
-                        warning_icon(ui);
-                    }
-                    let response =
-                        ui.selectable_value(selected_index, i, entry.material_label.clone());
-                    if response.hovered() {
-                        // Used for material mask rendering.
-                        *hovered_index = Some(i);
-                    }
-                });
+                let text = if validation.iter().any(|e| e.entry_index == i) {
+                    warning_icon_text(&entry.material_label)
+                } else {
+                    RichText::new(&entry.material_label)
+                };
+                let response = ui.selectable_value(selected_index, i, text);
+
+                if response.hovered() {
+                    // Used for material mask rendering.
+                    *hovered_index = Some(i);
+                }
             }
         });
 

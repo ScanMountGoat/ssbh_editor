@@ -1347,11 +1347,15 @@ fn file_button_with_errors<E: std::fmt::Display>(
     // TODO: Show top few errors and ... N others on hover?
     // TODO: Display the validation errors as a separate window on click?
     ui.add(Button::new(
-        RichText::new("⚠ ".to_string() + name).color(WARNING_COLOR),
+        warning_icon_text(name),
     ))
     .on_hover_ui(|ui| {
         display_validation_errors(ui, validation_errors);
     })
+}
+
+pub fn warning_icon_text(name: &str) -> RichText {
+    RichText::new("⚠ ".to_string() + name).color(WARNING_COLOR)
 }
 
 fn missing_file(ui: &mut Ui, name: &str) {

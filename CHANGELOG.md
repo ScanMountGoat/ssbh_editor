@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue where bone axes failed to render in the viewport.
 * Fixed an issue where shader and mesh attribute errors didn't update in the viewport properly.
 * Fixed an issue where opening a folder didn't take into account the hide expressions setting.
+* Fixed an issue where the material selector layout would break on some numatb files.
 
 ## 0.6.1 - 2022-09-05
 ### Added
