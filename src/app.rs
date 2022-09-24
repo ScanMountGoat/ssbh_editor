@@ -17,7 +17,8 @@ use crate::{
     sort_files,
     validation::{MatlValidationErrorKind, ModelValidationErrors},
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState, TextureDimension,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
+    TextureDimension,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -675,6 +676,12 @@ impl SsbhApp {
 
                 if let Some(modl_index) = self.ui_state.selected_modl_index {
                     if let Some((name, Ok(modl))) = model.modls.get_mut(modl_index) {
+                        let validation_errors = self
+                            .validation_errors
+                            .get(folder_index)
+                            .map(|v| v.modl_errors.as_slice())
+                            .unwrap_or_default();
+
                         // TODO: Make a WindowResponse struct?
                         let matl = find_file(&model.matls, "model.numatb");
                         let (open, changed) = modl_editor(
@@ -685,6 +692,7 @@ impl SsbhApp {
                             modl,
                             find_file(&model.meshes, "model.numshb"),
                             matl,
+                            validation_errors,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         );
                         file_changed |= changed;
@@ -1035,8 +1043,9 @@ impl SsbhApp {
                                     if let Some(model_thumbnails) =
                                         self.thumbnails.get(folder_index)
                                     {
-                                        if let Some((_, thumbnail, _)) =
-                                            model_thumbnails.iter().find(|(name, _, _)| name == file)
+                                        if let Some((_, thumbnail, _)) = model_thumbnails
+                                            .iter()
+                                            .find(|(name, _, _)| name == file)
                                         {
                                             ui.image(
                                                 *thumbnail,

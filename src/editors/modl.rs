@@ -1,4 +1,8 @@
-use egui::ScrollArea;
+use crate::{
+    app::warning_icon_text,
+    validation::{ModlValidationError, ModlValidationErrorKind},
+};
+use egui::{RichText, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
@@ -12,6 +16,7 @@ pub fn modl_editor(
     modl: &mut ModlData,
     mesh: Option<&MeshData>,
     matl: Option<&MatlData>,
+    validation_errors: &[ModlValidationError],
     advanced_mode: &mut bool,
 ) -> (bool, bool) {
     let mut open = true;
@@ -122,42 +127,56 @@ pub fn modl_editor(
                         ui.heading("Material Label");
                         ui.end_row();
 
-                        let mut entries_to_remove = Vec::new();
+                        let mut entry_to_remove = None;
                         for (i, entry) in modl.entries.iter_mut().enumerate() {
                             let id = egui::Id::new("modl").with(i);
 
-                            // TODO: If a user renames a material, both the modl and matl need to update.
-                            // TODO: How to handle the case where the user enters a duplicate name?
-                            // TODO: module of useful functions from ModelFolder -> ui?
+                            // Check for assignment errors for the current entry.
+                            let mut valid_mesh = true;
+                            let mut valid_material = true;
+                            for e in validation_errors.iter().filter(|e| e.entry_index == i) {
+                                match &e.kind {
+                                    ModlValidationErrorKind::InvalidMeshObject { .. } => {
+                                        valid_mesh = false
+                                    }
+                                    ModlValidationErrorKind::InvalidMaterial { .. } => {
+                                        valid_material = false
+                                    }
+                                }
+                            }
+
                             if *advanced_mode {
                                 changed |= mesh_name_combo_box(
                                     ui,
                                     &mut entry.mesh_object_name,
                                     id.with("mesh"),
                                     mesh,
+                                    valid_mesh,
                                 );
                             } else {
-                                ui.label(&entry.mesh_object_name);
+                                if valid_mesh {
+                                    ui.label(&entry.mesh_object_name);
+                                } else {
+                                    ui.label(warning_icon_text(&entry.mesh_object_name));
+                                }
                             }
 
-                            // TODO: How to handle sub indices?
-                            // TODO: Show an indication if the matl is missing the current material.
                             changed |= material_label_combo_box(
                                 ui,
                                 &mut entry.material_label,
                                 id.with("matl"),
                                 matl,
+                                valid_material,
                             );
 
                             if *advanced_mode && ui.button("Delete").clicked() {
                                 changed = true;
-                                entries_to_remove.push(i);
+                                entry_to_remove = Some(i)
                             }
                             ui.end_row();
                         }
 
-                        // TODO: Will this handle multiple entries?
-                        for i in entries_to_remove {
+                        if let Some(i) = entry_to_remove {
                             modl.entries.remove(i);
                         }
                     });
@@ -167,15 +186,22 @@ pub fn modl_editor(
     (open, changed)
 }
 
+// TODO: Create a function that handles displaying combo box errors?
 fn mesh_name_combo_box(
     ui: &mut egui::Ui,
     mesh_name: &mut String,
     id: impl std::hash::Hash,
     mesh: Option<&MeshData>,
+    is_valid: bool,
 ) -> bool {
     let mut changed = false;
+    let text = if is_valid {
+        RichText::new(mesh_name.as_str())
+    } else {
+        warning_icon_text(mesh_name)
+    };
     egui::ComboBox::from_id_source(id)
-        .selected_text(mesh_name.clone())
+        .selected_text(text)
         .width(300.0)
         .show_ui(ui, |ui| {
             // TODO: Just use text boxes if the mesh is missing?
@@ -195,10 +221,17 @@ fn material_label_combo_box(
     material_label: &mut String,
     id: impl std::hash::Hash,
     matl: Option<&MatlData>,
+    is_valid: bool,
 ) -> bool {
     let mut changed = false;
+
+    let text = if is_valid {
+        RichText::new(material_label.as_str())
+    } else {
+        warning_icon_text(material_label)
+    };
     egui::ComboBox::from_id_source(id)
-        .selected_text(material_label.clone())
+        .selected_text(text)
         .width(400.0)
         .show_ui(ui, |ui| {
             // TODO: Just use text boxes if the matl is missing?

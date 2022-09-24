@@ -45,20 +45,16 @@ impl ModelValidationErrors {
         }
 
         let modl = model.find_modl();
+        let matl = model.find_matl();
 
-        if let Some(matl) = model.find_matl() {
-            validate_required_attributes(
-                &mut validation,
-                matl,
-                modl,
-                model.find_mesh(),
-                shader_database,
-            );
+        if let Some(modl) = modl {
+            validate_modl_entries(&mut validation, modl, matl, mesh);
+        }
 
+        if let Some(matl) = matl {
+            validate_required_attributes(&mut validation, matl, modl, mesh, shader_database);
             validate_shader_labels(&mut validation, matl, shader_database);
-
             validate_wrap_mode_tiling(&mut validation, matl, modl, mesh);
-
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
             validate_texture_dimensions(
                 &mut validation,
@@ -72,7 +68,6 @@ impl ModelValidationErrors {
                 &model.nutexbs,
                 default_texture_names,
             );
-
             validate_renormal_material_entries(
                 &mut validation,
                 matl,
@@ -81,6 +76,7 @@ impl ModelValidationErrors {
                 mesh,
             );
         }
+
         validation
     }
 }
@@ -200,12 +196,28 @@ Use wrap mode Repeat if the texture should tile.",
     },
 }
 
-// TODO: Validate if assignments refer to a mesh or material that does not exist.
-pub struct ModlValidationError;
-impl Display for ModlValidationError {
+#[derive(Debug, PartialEq, Eq)]
+pub struct ModlValidationError {
+    pub entry_index: usize,
+    pub kind: ModlValidationErrorKind,
+}
+
+impl std::fmt::Display for ModlValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
+        write!(f, "{}", self.kind)
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Error)]
+pub enum ModlValidationErrorKind {
+    #[error("Modl entry assigns to mesh {mesh_object_name:?} not found in the model.numshb. Ensure the name and subindex are correct.")]
+    InvalidMeshObject {
+        mesh_object_name: String,
+        mesh_object_subindex: usize,
+    },
+
+    #[error("Modl entry assigns a material {material_label:?} not found in the model.numatb.")]
+    InvalidMaterial { material_label: String },
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
@@ -683,6 +695,48 @@ fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshD
                 },
             };
             validation.mesh_errors.push(error);
+        }
+    }
+}
+
+fn validate_modl_entries(
+    validation: &mut ModelValidationErrors,
+    modl: &ModlData,
+    matl: Option<&MatlData>,
+    mesh: Option<&MeshData>,
+) {
+    if let Some(matl) = matl {
+        for (entry_index, entry) in modl.entries.iter().enumerate() {
+            if !matl
+                .entries
+                .iter()
+                .any(|e| e.material_label == entry.material_label)
+            {
+                let error = ModlValidationError {
+                    entry_index,
+                    kind: ModlValidationErrorKind::InvalidMaterial {
+                        material_label: entry.material_label.clone(),
+                    },
+                };
+                validation.modl_errors.push(error);
+            }
+        }
+    }
+
+    if let Some(mesh) = mesh {
+        for (entry_index, entry) in modl.entries.iter().enumerate() {
+            if !mesh.objects.iter().any(|o| {
+                o.name == entry.mesh_object_name && o.subindex == entry.mesh_object_subindex
+            }) {
+                let error = ModlValidationError {
+                    entry_index,
+                    kind: ModlValidationErrorKind::InvalidMeshObject {
+                        mesh_object_name: entry.mesh_object_name.clone(),
+                        mesh_object_subindex: entry.mesh_object_subindex as usize,
+                    },
+                };
+                validation.modl_errors.push(error);
+            }
         }
     }
 }
@@ -1499,6 +1553,103 @@ mod tests {
         assert_eq!(
             r#"Shader label "SFX_PBS_777002000800824f_opaque" for material "b" is not a valid shader label."#,
             format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn invalid_modl_entries() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: Vec::new(),
+            }],
+        };
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![MeshObjectData {
+                name: "object1".to_owned(),
+                subindex: 0,
+                ..Default::default()
+            }],
+        };
+        let modl = ModlData {
+            major_version: 1,
+            minor_version: 0,
+            model_name: String::new(),
+            skeleton_file_name: String::new(),
+            material_file_names: Vec::new(),
+            animation_file_name: None,
+            mesh_file_name: String::new(),
+            entries: vec![
+                ModlEntryData {
+                    mesh_object_name: "object1".to_owned(),
+                    mesh_object_subindex: 0,
+                    material_label: "b".to_owned(),
+                },
+                ModlEntryData {
+                    mesh_object_name: "object1".to_owned(),
+                    mesh_object_subindex: 2,
+                    material_label: "a".to_owned(),
+                },
+                ModlEntryData {
+                    mesh_object_name: "object2".to_owned(),
+                    mesh_object_subindex: 0,
+                    material_label: "a".to_owned(),
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_modl_entries(&mut validation, &modl, Some(&matl), Some(&mesh));
+
+        // Check each kind of invalid assignment.
+        assert_eq!(
+            vec![
+                ModlValidationError {
+                    entry_index: 0,
+                    kind: ModlValidationErrorKind::InvalidMaterial {
+                        material_label: "b".to_owned(),
+                    }
+                },
+                ModlValidationError {
+                    entry_index: 1,
+                    kind: ModlValidationErrorKind::InvalidMeshObject {
+                        mesh_object_name: "object1".to_owned(),
+                        mesh_object_subindex: 2
+                    }
+                },
+                ModlValidationError {
+                    entry_index: 2,
+                    kind: ModlValidationErrorKind::InvalidMeshObject {
+                        mesh_object_name: "object2".to_owned(),
+                        mesh_object_subindex: 0
+                    }
+                }
+            ],
+            validation.modl_errors
+        );
+
+        assert_eq!(
+            r#"Modl entry assigns a material "b" not found in the model.numatb."#,
+            format!("{}", validation.modl_errors[0])
+        );
+        assert_eq!(
+            r#"Modl entry assigns to mesh "object1" not found in the model.numshb. Ensure the name and subindex are correct."#,
+            format!("{}", validation.modl_errors[1])
+        );
+        assert_eq!(
+            r#"Modl entry assigns to mesh "object2" not found in the model.numshb. Ensure the name and subindex are correct."#,
+            format!("{}", validation.modl_errors[2])
         );
     }
 }
