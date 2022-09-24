@@ -15,3 +15,5 @@
 
 # Application configuration files
 ssbh_editor_config.txt
+
+*.bat
