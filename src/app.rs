@@ -17,7 +17,7 @@ use crate::{
     sort_files,
     validation::{MatlValidationErrorKind, ModelValidationErrors},
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState, TextureDimension,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -92,10 +92,10 @@ pub struct SsbhApp {
     // TODO: Is parallel list with models the best choice here?
     pub models: Vec<ModelFolder>,
     pub render_models: Vec<RenderModel>,
-    pub thumbnails: Vec<Vec<(String, egui::TextureId)>>,
+    pub thumbnails: Vec<Vec<(String, egui::TextureId, TextureDimension)>>,
     pub validation_errors: Vec<ModelValidationErrors>,
 
-    pub default_thumbnails: Vec<(String, egui::TextureId)>,
+    pub default_thumbnails: Vec<(String, egui::TextureId, TextureDimension)>,
     pub animation_state: AnimationState,
     pub render_state: RenderState,
 
@@ -1014,10 +1014,13 @@ impl SsbhApp {
                             // TODO: Make a function for listing nutexbs..
                             // Show missing textures required by the matl.
                             for e in &validation.matl_errors {
-                                if let MatlValidationErrorKind::MissingTexture { nutexb, .. } =
-                                    &e.kind
+                                if let MatlValidationErrorKind::MissingTextures {
+                                    textures, ..
+                                } = &e.kind
                                 {
-                                    missing_nutexb(ui, nutexb);
+                                    for texture in textures {
+                                        missing_nutexb(ui, texture);
+                                    }
                                 }
                             }
                             for (i, (file, _)) in model.nutexbs.iter().enumerate() {
@@ -1032,8 +1035,8 @@ impl SsbhApp {
                                     if let Some(model_thumbnails) =
                                         self.thumbnails.get(folder_index)
                                     {
-                                        if let Some((_, thumbnail)) =
-                                            model_thumbnails.iter().find(|(name, _)| name == file)
+                                        if let Some((_, thumbnail, _)) =
+                                            model_thumbnails.iter().find(|(name, _, _)| name == file)
                                         {
                                             ui.image(
                                                 *thumbnail,
@@ -1346,12 +1349,10 @@ fn file_button_with_errors<E: std::fmt::Display>(
     // TODO: Only color the icon itself?
     // TODO: Show top few errors and ... N others on hover?
     // TODO: Display the validation errors as a separate window on click?
-    ui.add(Button::new(
-        warning_icon_text(name),
-    ))
-    .on_hover_ui(|ui| {
-        display_validation_errors(ui, validation_errors);
-    })
+    ui.add(Button::new(warning_icon_text(name)))
+        .on_hover_ui(|ui| {
+            display_validation_errors(ui, validation_errors);
+        })
 }
 
 pub fn warning_icon_text(name: &str) -> RichText {

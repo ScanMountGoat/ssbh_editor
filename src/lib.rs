@@ -2,8 +2,9 @@ use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, Rounding, Stroke, TextStyle,
 };
+use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
-use ssbh_data::prelude::*;
+use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{
     ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData, SkinningSettings,
 };
@@ -54,6 +55,50 @@ impl Default for CameraInputState {
             translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
             rotation_xyz_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum TextureDimension {
+    Texture1d,
+    Texture2d,
+    Texture3d,
+    TextureCube,
+}
+
+impl TextureDimension {
+    pub fn from_nutexb(nutexb: &NutexbFile) -> TextureDimension {
+        // Assume no array layers for depth and cube maps.
+        if nutexb.footer.depth > 1 {
+            TextureDimension::Texture3d
+        } else if nutexb.footer.layer_count == 6 {
+            TextureDimension::TextureCube
+        } else {
+            TextureDimension::Texture2d
+        }
+    }
+
+    pub fn from_param(param: ParamId) -> TextureDimension {
+        match param {
+            ParamId::Texture2 | ParamId::Texture7 | ParamId::Texture8 => {
+                TextureDimension::TextureCube
+            }
+            _ => TextureDimension::Texture2d,
+        }
+    }
+}
+
+impl From<&wgpu::TextureViewDimension> for TextureDimension {
+    fn from(d: &wgpu::TextureViewDimension) -> Self {
+        // TODO: Worry about array textures?
+        match d {
+            wgpu::TextureViewDimension::D1 => Self::Texture1d,
+            wgpu::TextureViewDimension::D2 => Self::Texture2d,
+            wgpu::TextureViewDimension::D2Array => Self::Texture2d,
+            wgpu::TextureViewDimension::Cube => Self::TextureCube,
+            wgpu::TextureViewDimension::CubeArray => Self::TextureCube,
+            wgpu::TextureViewDimension::D3 => Self::Texture3d,
         }
     }
 }
@@ -189,7 +234,7 @@ pub fn generate_model_thumbnails(
     render_models: &[ssbh_wgpu::RenderModel],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-) -> Vec<Vec<(String, egui::TextureId)>> {
+) -> Vec<Vec<(String, egui::TextureId, TextureDimension)>> {
     models
         .iter()
         .zip(render_models)
@@ -213,7 +258,7 @@ pub fn generate_model_thumbnails(
                         n.footer.depth,
                     );
 
-                    Some((file_name.clone(), egui_texture))
+                    Some((file_name.clone(), egui_texture, dimension.into()))
                 })
                 .collect()
         })
@@ -317,10 +362,10 @@ pub fn generate_default_thumbnails(
     default_textures: &[(String, wgpu::Texture, wgpu::TextureViewDimension)],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-) -> Vec<(String, egui::TextureId)> {
+) -> Vec<(String, egui::TextureId, TextureDimension)> {
     default_textures
         .iter()
-        .map(|(name, texture, _)| {
+        .map(|(name, texture, dimension)| {
             // Assume the textures have the appropriate usage to work with egui.
             // TODO: Are there other default cube textures?
             let egui_texture = if name == "#replace_cubemap" {
@@ -342,7 +387,7 @@ pub fn generate_default_thumbnails(
                 )
             };
 
-            (name.clone(), egui_texture)
+            (name.clone(), egui_texture, dimension.into())
         })
         .collect()
 }

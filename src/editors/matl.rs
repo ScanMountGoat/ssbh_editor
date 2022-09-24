@@ -9,6 +9,7 @@ use crate::{
     presets::{load_json_presets, load_xml_presets},
     validation::{MatlValidationError, MatlValidationErrorKind},
     widgets::*,
+    TextureDimension,
 };
 use egui::{
     Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, RichText, ScrollArea,
@@ -32,8 +33,8 @@ pub fn matl_editor(
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
     validation_errors: &[MatlValidationError],
-    folder_thumbnails: &[(String, egui::TextureId)],
-    default_thumbnails: &[(String, egui::TextureId)],
+    folder_thumbnails: &[(String, egui::TextureId, TextureDimension)],
+    default_thumbnails: &[(String, egui::TextureId, TextureDimension)],
     shader_database: &ShaderDatabase,
     material_presets: &mut Vec<MatlEntryData>,
     red_checkerboard: egui::TextureId,
@@ -86,7 +87,7 @@ pub fn preset_editor(
     ctx: &egui::Context,
     ui_state: &mut UiState,
     presets: &mut Vec<MatlEntryData>,
-    default_thumbnails: &[(String, egui::TextureId)],
+    default_thumbnails: &[(String, egui::TextureId, TextureDimension)],
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
@@ -220,8 +221,8 @@ fn edit_matl_entries(
     entries: &mut Vec<MatlEntryData>,
     modl: Option<&mut ModlData>,
     validation_errors: &[MatlValidationError],
-    folder_thumbnails: &[(String, egui::TextureId)],
-    default_thumbnails: &[(String, egui::TextureId)],
+    folder_thumbnails: &[(String, egui::TextureId, TextureDimension)],
+    default_thumbnails: &[(String, egui::TextureId, TextureDimension)],
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
@@ -551,8 +552,8 @@ fn matl_entry_editor(
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
     validation_errors: &[&MatlValidationError],
-    texture_thumbnails: &[(String, egui::TextureId)],
-    default_thumbnails: &[(String, egui::TextureId)],
+    texture_thumbnails: &[(String, egui::TextureId, TextureDimension)],
+    default_thumbnails: &[(String, egui::TextureId, TextureDimension)],
     advanced_mode: bool,
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
@@ -821,22 +822,22 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
 fn edit_texture(
     ui: &mut Ui,
     param: &mut TextureParam,
-    texture_thumbnails: &[(String, egui::TextureId)],
-    default_thumbnails: &[(String, egui::TextureId)],
+    texture_thumbnails: &[(String, egui::TextureId, TextureDimension)],
+    default_thumbnails: &[(String, egui::TextureId, TextureDimension)],
     advanced_mode: bool,
     enabled: bool,
 ) -> bool {
-    // TODO: Create a texture for an invalid thumbnail or missing texture?
     ui.add_enabled(enabled, Label::new(param_label(param.param_id)));
-    // Texture parameters don't include the file extension since it's implied.
-    // Texture names aren't case sensitive.
-    // TODO: Avoid allocating here.
-    // TODO: Don't store the extension with the thumbnail at all?
-    // TODO: Should this functionality be part of ssbh_wgpu?
+
     if let Some(thumbnail) = texture_thumbnails
         .iter()
         .chain(default_thumbnails.iter())
         .find(|t| {
+            // Texture parameters don't include the file extension since it's implied.
+            // Texture names aren't case sensitive.
+            // TODO: Avoid allocating here.
+            // TODO: Don't store the extension with the thumbnail at all?
+            // TODO: Should this functionality be part of ssbh_wgpu?
             Path::new(&t.0)
                 .with_extension("")
                 .to_string_lossy()
@@ -862,10 +863,13 @@ fn edit_texture(
                 .selected_text(&param.data)
                 .width(300.0)
                 .show_ui(ui, |ui| {
-                    // Texture files should be present in the folder, which allows for image previews.
-                    // TODO: Is it safe to assume the thumbnails have all the available textures?
-                    for (name, thumbnail) in
-                        texture_thumbnails.iter().chain(default_thumbnails.iter())
+                    // Assume every available texture correctly generated a thumbnail.
+                    // Prevent assigning cube maps to 2D textures and 2D textures to cube maps.
+                    let expected_dimension = TextureDimension::from_param(param.param_id);
+                    for (name, thumbnail, _) in texture_thumbnails
+                        .iter()
+                        .chain(default_thumbnails.iter())
+                        .filter(|(_, _, dimension)| *dimension == expected_dimension)
                     {
                         // Material parameters don't include the .nutexb extension.
                         let text = Path::new(name)

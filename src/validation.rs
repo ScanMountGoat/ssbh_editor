@@ -1,4 +1,4 @@
-use crate::FileResult;
+use crate::{FileResult, TextureDimension};
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
     matl_data::{ParamId, WrapMode},
@@ -163,11 +163,10 @@ pub enum MatlValidationErrorKind {
         actual: TextureDimension,
     },
 
-    #[error("Texture {nutexb:?} assigned to {param} for material {material_label:?} is missing.")]
-    MissingTexture {
+    #[error("Textures {textures:?} for material {material_label:?} are missing.")]
+    MissingTextures {
         material_label: String,
-        param: ParamId,
-        nutexb: String,
+        textures: Vec<String>,
     },
 
     #[error(
@@ -201,6 +200,7 @@ Use wrap mode Repeat if the texture should tile.",
     },
 }
 
+// TODO: Validate if assignments refer to a mesh or material that does not exist.
 pub struct ModlValidationError;
 impl Display for ModlValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -497,69 +497,40 @@ fn validate_texture_assignments<'a, 'b>(
     'b: 'a,
 {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
-        for texture in &entry.textures {
-            if !nutexbs
-                .iter()
-                .map(|(f, _)| f)
-                .chain(default_textures.clone().into_iter().map(|(f, _)| f))
-                .any(|f| {
-                    Path::new(f)
-                        .with_extension("")
-                        .as_os_str()
-                        .eq_ignore_ascii_case(&texture.data)
-                })
-            {
-                let error = MatlValidationError {
-                    entry_index,
-                    kind: MatlValidationErrorKind::MissingTexture {
-                        material_label: entry.material_label.clone(),
-                        param: texture.param_id,
-                        nutexb: texture.data.clone(),
-                    },
-                };
-                validation.matl_errors.push(error);
-            }
+        // If a material is unused, every texture may show up as missing.
+        // Group missing textures to avoid flooding the log windows with errors.
+        let textures: Vec<_> = entry
+            .textures
+            .iter()
+            .filter_map(|texture| {
+                if !nutexbs
+                    .iter()
+                    .map(|(f, _)| f)
+                    .chain(default_textures.clone().into_iter().map(|(f, _)| f))
+                    .any(|f| {
+                        Path::new(f)
+                            .with_extension("")
+                            .as_os_str()
+                            .eq_ignore_ascii_case(&texture.data)
+                    })
+                {
+                    Some(texture.data.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if !textures.is_empty() {
+            let error = MatlValidationError {
+                entry_index,
+                kind: MatlValidationErrorKind::MissingTextures {
+                    material_label: entry.material_label.clone(),
+                    textures,
+                },
+            };
+            validation.matl_errors.push(error);
         }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum TextureDimension {
-    Texture1d,
-    Texture2d,
-    Texture3d,
-    TextureCube,
-}
-
-impl From<&wgpu::TextureViewDimension> for TextureDimension {
-    fn from(d: &wgpu::TextureViewDimension) -> Self {
-        // TODO: Worry about array textures?
-        match d {
-            wgpu::TextureViewDimension::D1 => Self::Texture1d,
-            wgpu::TextureViewDimension::D2 => Self::Texture2d,
-            wgpu::TextureViewDimension::D2Array => Self::Texture2d,
-            wgpu::TextureViewDimension::Cube => Self::TextureCube,
-            wgpu::TextureViewDimension::CubeArray => Self::TextureCube,
-            wgpu::TextureViewDimension::D3 => Self::Texture3d,
-        }
-    }
-}
-
-pub fn nutexb_dimension(nutexb: &NutexbFile) -> TextureDimension {
-    // Assume no array layers for depth and cube maps.
-    if nutexb.footer.depth > 1 {
-        TextureDimension::Texture3d
-    } else if nutexb.footer.layer_count == 6 {
-        TextureDimension::TextureCube
-    } else {
-        TextureDimension::Texture2d
-    }
-}
-
-fn expected_texture_dimension(param: ParamId) -> TextureDimension {
-    match param {
-        ParamId::Texture2 | ParamId::Texture7 | ParamId::Texture8 => TextureDimension::TextureCube,
-        _ => TextureDimension::Texture2d,
     }
 }
 
@@ -573,7 +544,7 @@ fn validate_texture_dimensions<'a>(
         for texture in &entry.textures {
             if let Some((f, actual)) = nutexbs
                 .iter()
-                .filter_map(|(f, n)| Some((f, nutexb_dimension(n.as_ref().ok()?))))
+                .filter_map(|(f, n)| Some((f, TextureDimension::from_nutexb(n.as_ref().ok()?))))
                 .chain(default_textures.clone().into_iter())
                 .find(|(f, _)| {
                     Path::new(f)
@@ -582,7 +553,7 @@ fn validate_texture_dimensions<'a>(
                         .eq_ignore_ascii_case(&texture.data)
                 })
             {
-                let expected = expected_texture_dimension(texture.param_id);
+                let expected = TextureDimension::from_param(texture.param_id);
                 if actual != expected {
                     // The dimension is a fundamental part of the texture.
                     // Add errors to the matl since users should just assign a new texture.
@@ -1112,6 +1083,10 @@ mod tests {
                         data: "texture0".to_owned(),
                     },
                     TextureParam {
+                        param_id: ParamId::Texture1,
+                        data: "texture1".to_owned(),
+                    },
+                    TextureParam {
                         param_id: ParamId::Texture4,
                         data: "texture4".to_owned(),
                     },
@@ -1143,17 +1118,16 @@ mod tests {
         assert_eq!(
             vec![MatlValidationError {
                 entry_index: 0,
-                kind: MatlValidationErrorKind::MissingTexture {
+                kind: MatlValidationErrorKind::MissingTextures {
                     material_label: "a".to_owned(),
-                    param: ParamId::Texture0,
-                    nutexb: "texture0".to_owned(),
+                    textures: vec!["texture0".to_owned(), "texture1".to_owned()],
                 }
             },],
             validation.matl_errors
         );
 
         assert_eq!(
-            r#"Texture "texture0" assigned to Texture0 for material "a" is missing."#,
+            r#"Textures ["texture0", "texture1"] for material "a" are missing."#,
             format!("{}", validation.matl_errors[0])
         );
     }
