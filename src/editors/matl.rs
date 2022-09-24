@@ -271,6 +271,7 @@ fn edit_matl_entries(
         if editor_state.advanced_mode && ui.button("Delete").clicked() {
             // TODO: Potential panic?
             entries.remove(editor_state.selected_material_index);
+            changed = true;
         }
     });
     horizontal_separator_empty(ui);
