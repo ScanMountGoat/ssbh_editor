@@ -1,5 +1,5 @@
 use crate::{
-    app::{warning_icon_text, MatlEditorState, UiState},
+    app::{display_validation_errors, warning_icon_text, MatlEditorState, UiState},
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
@@ -289,7 +289,7 @@ fn edit_matl_entries(
             .filter(|e| e.entry_index == editor_state.selected_material_index)
             .collect();
 
-        changed |= matl_entry_editor(
+        changed |= edit_matl_entry(
             ctx,
             ui,
             entry,
@@ -504,13 +504,20 @@ fn material_combo_box(
         .width(400.0)
         .show_ui(ui, |ui| {
             for (i, entry) in entries.iter().enumerate() {
-                let text = if validation.iter().any(|e| e.entry_index == i) {
+                let error_count = validation.iter().filter(|e| e.entry_index == i).count();
+                let text = if error_count > 0 {
                     warning_icon_text(&entry.material_label)
                 } else {
                     RichText::new(&entry.material_label)
                 };
-                let response = ui.selectable_value(selected_index, i, text);
+                let mut response = ui.selectable_value(selected_index, i, text);
 
+                if error_count > 0 {
+                    response = response
+                        .on_hover_text(format!("{error_count} validation errors detected."));
+                }
+
+                // TODO: Show number of errors on hover?
                 if response.hovered() {
                     // Used for material mask rendering.
                     *hovered_index = Some(i);
@@ -547,7 +554,7 @@ fn edit_shader_label(
     changed
 }
 
-fn matl_entry_editor(
+fn edit_matl_entry(
     _ctx: &Context,
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
@@ -564,48 +571,7 @@ fn matl_entry_editor(
     let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
 
     ui.heading("Shader");
-    ui.horizontal(|ui| {
-        ui.label("Shader Label");
-        changed |= edit_shader_label(
-            ui,
-            &mut entry.shader_label,
-            program.is_some(),
-            red_checkerboard,
-        );
-    });
-
-    Grid::new("shader_grid").show(ui, |ui| {
-        // TODO: Should this be part of the basic mode.
-        ui.label("Render Pass");
-        let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
-        ComboBox::from_id_source("render pass")
-            .selected_text(entry.shader_label.get(25..).unwrap_or(""))
-            .show_ui(ui, |ui| {
-                for pass in [
-                    shader.clone() + "_opaque",
-                    shader.clone() + "_far",
-                    shader.clone() + "_sort",
-                    shader.clone() + "_near",
-                ] {
-                    ui.selectable_value(
-                        &mut entry.shader_label,
-                        pass.clone(),
-                        pass.get(25..).unwrap_or(""),
-                    );
-                }
-            });
-        ui.end_row();
-
-        if let Some(program) = program {
-            ui.label("Alpha Testing");
-            ui.label(program.discard.to_string());
-            ui.end_row();
-
-            ui.label("Vertex Attributes");
-            ui.add(Label::new(program.vertex_attributes.join(", ")).wrap(true));
-            ui.end_row();
-        }
-    });
+    changed |= edit_shader(ui, entry, program, red_checkerboard);
     horizontal_separator_empty(ui);
 
     // TODO: Add a button to open the mesh editor?
@@ -733,8 +699,17 @@ fn matl_entry_editor(
     horizontal_separator_empty(ui);
 
     for param in &mut entry.samplers {
+        // TODO: Avoid collect.
+        let errors: Vec<_> = validation_errors
+            .iter()
+            .filter(|e| {
+                matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. } 
+                if samplers.contains(&param.param_id))
+            })
+            .collect();
+
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-            changed |= edit_sampler(ui, param);
+            changed |= edit_sampler(ui, param, &errors);
         });
     }
     horizontal_separator_empty(ui);
@@ -748,6 +723,59 @@ fn matl_entry_editor(
     for param in &mut entry.blend_states {
         changed |= edit_blend(ui, param);
     }
+
+    changed
+}
+
+fn edit_shader(
+    ui: &mut Ui,
+    entry: &mut MatlEntryData,
+    program: Option<&ShaderProgram>,
+    red_checkerboard: egui::TextureId,
+) -> bool {
+    let mut changed = false;
+
+    ui.horizontal(|ui| {
+        ui.label("Shader Label");
+        changed |= edit_shader_label(
+            ui,
+            &mut entry.shader_label,
+            program.is_some(),
+            red_checkerboard,
+        );
+    });
+    Grid::new("shader_grid").show(ui, |ui| {
+        // TODO: Should this be part of the basic mode.
+        ui.label("Render Pass");
+        let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
+        ComboBox::from_id_source("render pass")
+            .selected_text(entry.shader_label.get(25..).unwrap_or(""))
+            .show_ui(ui, |ui| {
+                for pass in [
+                    shader.clone() + "_opaque",
+                    shader.clone() + "_far",
+                    shader.clone() + "_sort",
+                    shader.clone() + "_near",
+                ] {
+                    ui.selectable_value(
+                        &mut entry.shader_label,
+                        pass.clone(),
+                        pass.get(25..).unwrap_or(""),
+                    );
+                }
+            });
+        ui.end_row();
+
+        if let Some(program) = program {
+            ui.label("Alpha Testing");
+            ui.label(program.discard.to_string());
+            ui.end_row();
+
+            ui.label("Vertex Attributes");
+            ui.add(Label::new(program.vertex_attributes.join(", ")).wrap(true));
+            ui.end_row();
+        }
+    });
 
     changed
 }
@@ -892,13 +920,19 @@ fn edit_texture(
     changed
 }
 
-fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
+fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidationError]) -> bool {
     let mut changed = false;
 
-    CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
+    // Show errors that apply to this parameter.
+    let text = if errors.is_empty() {
+        RichText::new(param_label(param.param_id))
+    } else {
+        warning_icon_text(&param_label(param.param_id))
+    };
+    let response = CollapsingHeader::new(text).id_source(param.param_id.to_string()).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
-        // TODO: Show validation errors for wrap mode.
+        // TODO: List which wrap modes are the problem on error?
         Grid::new(id).show(ui, |ui| {
             changed |= enum_combo_box(
                 ui,
@@ -976,6 +1010,12 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam) -> bool {
             ui.end_row();
         });
     });
+
+    if !errors.is_empty() {
+        response.header_response.on_hover_ui(|ui| {
+            display_validation_errors(ui, errors);
+        });
+    }
 
     changed
 }

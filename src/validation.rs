@@ -178,7 +178,6 @@ pub enum MatlValidationErrorKind {
     )]
     RenormalMaterialMissingAdj { material_label: String },
 
-    // TODO: use indoc?
     #[error(
         "Samplers {samplers:?} for material {material_label:?} will clamp UV coordinates for mesh {mesh_name:?}.
 Use wrap mode Repeat if the texture should tile.",
