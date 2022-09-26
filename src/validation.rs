@@ -135,8 +135,8 @@ pub enum MatlValidationErrorKind {
         missing_attributes: Vec<String>,
     },
 
-    #[error("Texture {nutexb:?} for material {material_label:?} has format {format:?}, but {param} {} an sRGB format.",
-        if expects_srgb(*param) {
+    #[error("Texture {nutexb:?} for material {material_label:?} has format {format:?}, but {param_id} {} an sRGB format.",
+        if expects_srgb(*param_id) {
             "expects"
         } else {
             "does not expect"
@@ -144,16 +144,16 @@ pub enum MatlValidationErrorKind {
     )]
     UnexpectedTextureFormat {
         material_label: String,
-        param: ParamId,
+        param_id: ParamId,
         nutexb: String,
         format: NutexbFormat,
     },
 
     // TODO: Add severity levels and make this the highest severity.
-    #[error("Texture {texture:?} for material {material_label:?} has dimensions {actual:?}, but {param} requires {expected:?}.")]
+    #[error("Texture {texture:?} for material {material_label:?} has dimensions {actual:?}, but {param_id} requires {expected:?}.")]
     UnexpectedTextureDimension {
         material_label: String,
-        param: ParamId,
+        param_id: ParamId,
         texture: String,
         expected: TextureDimension,
         actual: TextureDimension,
@@ -480,7 +480,7 @@ fn validate_texture_format_usage(
                         entry_index,
                         kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                             material_label: entry.material_label.clone(),
-                            param: texture.param_id,
+                            param_id: texture.param_id,
                             nutexb: f.clone(),
                             format: nutexb.footer.image_format,
                         },
@@ -572,7 +572,7 @@ fn validate_texture_dimensions<'a>(
                         entry_index,
                         kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                             material_label: entry.material_label.clone(),
-                            param: texture.param_id,
+                            param_id: texture.param_id,
                             texture: f.clone(),
                             expected,
                             actual,
@@ -1063,7 +1063,7 @@ mod tests {
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                         material_label: "a".to_owned(),
-                        param: ParamId::Texture0,
+                        param_id: ParamId::Texture0,
                         nutexb: "texture0".to_owned(),
                         format: NutexbFormat::BC1Unorm
                     }
@@ -1072,7 +1072,7 @@ mod tests {
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                         material_label: "a".to_owned(),
-                        param: ParamId::Texture4,
+                        param_id: ParamId::Texture4,
                         nutexb: "texture4".to_owned(),
                         format: NutexbFormat::BC2Srgb
                     }
@@ -1242,7 +1242,7 @@ mod tests {
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
-                        param: ParamId::Texture0,
+                        param_id: ParamId::Texture0,
                         texture: "texture0".to_owned(),
                         expected: TextureDimension::Texture2d,
                         actual: TextureDimension::TextureCube
@@ -1252,7 +1252,7 @@ mod tests {
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
-                        param: ParamId::Texture1,
+                        param_id: ParamId::Texture1,
                         texture: "#replace_cubemap".to_owned(),
                         expected: TextureDimension::Texture2d,
                         actual: TextureDimension::TextureCube
@@ -1262,7 +1262,7 @@ mod tests {
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
-                        param: ParamId::Texture7,
+                        param_id: ParamId::Texture7,
                         texture: "texture7".to_owned(),
                         expected: TextureDimension::TextureCube,
                         actual: TextureDimension::Texture2d

@@ -1,5 +1,5 @@
 use crate::{
-    app::{display_validation_errors, warning_icon_text, MatlEditorState, UiState},
+    app::{display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, UiState},
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
@@ -685,6 +685,20 @@ fn edit_matl_entry(
 
     Grid::new("matl textures").show(ui, |ui| {
         for param in &mut entry.textures {
+            // TODO: Avoid collect.
+            let errors: Vec<_> = validation_errors
+                .iter()
+                .filter(|e| match e.kind {
+                    MatlValidationErrorKind::UnexpectedTextureFormat { param_id, .. } => {
+                        param_id == param.param_id
+                    }
+                    MatlValidationErrorKind::UnexpectedTextureDimension { param_id, .. } => {
+                        param_id == param.param_id
+                    }
+                    _ => false,
+                })
+                .collect();
+
             changed |= edit_texture(
                 ui,
                 param,
@@ -692,6 +706,7 @@ fn edit_matl_entry(
                 default_thumbnails,
                 advanced_mode,
                 !unused_parameters.contains(&param.param_id),
+                &errors,
             );
             ui.end_row();
         }
@@ -854,8 +869,14 @@ fn edit_texture(
     default_thumbnails: &[(String, egui::TextureId, TextureDimension)],
     advanced_mode: bool,
     enabled: bool,
+    errors: &[&&MatlValidationError],
 ) -> bool {
-    ui.add_enabled(enabled, Label::new(param_label(param.param_id)));
+    // Show errors that apply to this param.
+    let text = param_text(param.param_id, errors);
+    let response = ui.add_enabled(enabled, Label::new(text));
+    if !errors.is_empty() {
+        response.on_hover_ui(|ui| display_validation_errors(ui, errors));
+    }
 
     if let Some(thumbnail) = texture_thumbnails
         .iter()
@@ -875,7 +896,12 @@ fn edit_texture(
     {
         ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));
     } else {
-        ui.allocate_space(egui::Vec2::new(24.0, 24.0));
+        // The missing texture validation error doesn't contain the ParamID.
+        // Assume missing textures aren't present in the thumbnail cache.
+        warning_icon(ui).on_hover_text(format!(
+            "Texture {:?} is not a valid nutexb file or default texture name.",
+            &param.data
+        ));
     }
 
     let mut changed = false;
@@ -923,12 +949,7 @@ fn edit_texture(
 fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidationError]) -> bool {
     let mut changed = false;
 
-    // Show errors that apply to this parameter.
-    let text = if errors.is_empty() {
-        RichText::new(param_label(param.param_id))
-    } else {
-        warning_icon_text(&param_label(param.param_id))
-    };
+    let text = param_text(param.param_id, errors);
     let response = CollapsingHeader::new(text).id_source(param.param_id.to_string()).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
@@ -1018,6 +1039,15 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
     }
 
     changed
+}
+
+fn param_text(param_id: ParamId, errors: &[&&MatlValidationError]) -> RichText {
+    // Show errors that apply to this parameter.
+    if errors.is_empty() {
+        RichText::new(param_label(param_id))
+    } else {
+        warning_icon_text(&param_label(param_id))
+    }
 }
 
 fn anisotropy_label(v: Option<MaxAnisotropy>) -> &'static str {

@@ -153,12 +153,10 @@ pub fn modl_editor(
                                     mesh,
                                     valid_mesh,
                                 );
+                            } else if valid_mesh {
+                                ui.label(&entry.mesh_object_name);
                             } else {
-                                if valid_mesh {
-                                    ui.label(&entry.mesh_object_name);
-                                } else {
-                                    ui.label(warning_icon_text(&entry.mesh_object_name));
-                                }
+                                ui.label(warning_icon_text(&entry.mesh_object_name));
                             }
 
                             changed |= material_label_combo_box(

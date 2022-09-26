@@ -1395,11 +1395,11 @@ pub fn empty_icon(ui: &mut Ui) {
     ui.allocate_space(egui::Vec2::new(ICON_SIZE, ICON_SIZE));
 }
 
-pub fn missing_icon(ui: &mut Ui) {
+pub fn missing_icon(ui: &mut Ui) -> Response {
     ui.add_sized(
         [ICON_SIZE, ICON_SIZE],
         Label::new(RichText::new("⚠").size(ICON_SIZE)),
-    );
+    )
 }
 
 pub fn warning_icon(ui: &mut Ui) -> Response {
