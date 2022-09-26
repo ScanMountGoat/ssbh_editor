@@ -18,7 +18,7 @@ use crate::{
     validation::{MatlValidationErrorKind, ModelValidationErrors},
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
-    TextureDimension,
+    Thumbnail,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -93,10 +93,10 @@ pub struct SsbhApp {
     // TODO: Is parallel list with models the best choice here?
     pub models: Vec<ModelFolder>,
     pub render_models: Vec<RenderModel>,
-    pub thumbnails: Vec<Vec<(String, egui::TextureId, TextureDimension)>>,
+    pub thumbnails: Vec<Vec<Thumbnail>>,
     pub validation_errors: Vec<ModelValidationErrors>,
 
-    pub default_thumbnails: Vec<(String, egui::TextureId, TextureDimension)>,
+    pub default_thumbnails: Vec<Thumbnail>,
     pub animation_state: AnimationState,
     pub render_state: RenderState,
 
@@ -1019,53 +1019,15 @@ impl SsbhApp {
                                 &validation.meshex_errors,
                             );
 
-                            // TODO: Make a function for listing nutexbs..
-                            // Show missing textures required by the matl.
-                            for e in &validation.matl_errors {
-                                if let MatlValidationErrorKind::MissingTextures {
-                                    textures, ..
-                                } = &e.kind
-                                {
-                                    for texture in textures {
-                                        missing_nutexb(ui, texture);
-                                    }
-                                }
-                            }
-                            for (i, (file, _)) in model.nutexbs.iter().enumerate() {
-                                // TODO: Avoid collect?
-                                let validation_errors: Vec<_> = validation
-                                    .nutexb_errors
-                                    .iter()
-                                    .filter(|e| e.name() == file)
-                                    .collect();
-
-                                ui.horizontal(|ui| {
-                                    if let Some(model_thumbnails) =
-                                        self.thumbnails.get(folder_index)
-                                    {
-                                        if let Some((_, thumbnail, _)) = model_thumbnails
-                                            .iter()
-                                            .find(|(name, _, _)| name == file)
-                                        {
-                                            ui.image(
-                                                *thumbnail,
-                                                egui::Vec2::new(ICON_SIZE, ICON_SIZE),
-                                            );
-                                        }
-                                    }
-
-                                    let response = if !validation_errors.is_empty() {
-                                        file_button_with_errors(ui, file, &validation_errors)
-                                    } else {
-                                        ui.button(file)
-                                    };
-
-                                    if response.clicked() {
-                                        self.ui_state.selected_folder_index = Some(folder_index);
-                                        self.ui_state.selected_nutexb_index = Some(i);
-                                    }
-                                });
-                            }
+                            list_nutexb_files(
+                                ui,
+                                model,
+                                folder_index,
+                                &mut self.ui_state.selected_folder_index,
+                                &mut self.ui_state.selected_nutexb_index,
+                                &self.thumbnails,
+                                validation,
+                            );
                         })
                         .header_response
                         .context_menu(|ui| {
@@ -1347,6 +1309,57 @@ fn list_files<T, E: std::fmt::Display>(
         if !files.iter().any(|(f, _)| f == required_file) {
             missing_file(ui, required_file);
         }
+    }
+}
+
+fn list_nutexb_files(
+    ui: &mut Ui,
+    model: &ModelFolder,
+    folder_index: usize,
+    selected_folder_index: &mut Option<usize>,
+    selected_file_index: &mut Option<usize>,
+    thumbnails: &[Vec<Thumbnail>],
+    validation: &ModelValidationErrors,
+) {
+    // Show missing textures required by the matl.
+    for e in &validation.matl_errors {
+        if let MatlValidationErrorKind::MissingTextures { textures, .. } = &e.kind {
+            for texture in textures {
+                missing_nutexb(ui, texture);
+            }
+        }
+    }
+    for (i, (file, _)) in model.nutexbs.iter().enumerate() {
+        // TODO: Avoid collect?
+        let validation_errors: Vec<_> = validation
+            .nutexb_errors
+            .iter()
+            .filter(|e| e.name() == file)
+            .collect();
+
+        ui.horizontal(|ui| {
+            if let Some((_, thumbnail, _)) = thumbnails
+                .get(folder_index)
+                .and_then(|thumbnails| thumbnails.iter().find(|(name, _, _)| name == file))
+            {
+                ui.image(*thumbnail, egui::Vec2::new(ICON_SIZE, ICON_SIZE));
+            } else {
+                warning_icon(ui).on_hover_text(
+                    "Failed to generate GPU texture. Check the application log for details.",
+                );
+            }
+
+            let response = if !validation_errors.is_empty() {
+                file_button_with_errors(ui, file, &validation_errors)
+            } else {
+                ui.button(file)
+            };
+
+            if response.clicked() {
+                *selected_folder_index = Some(folder_index);
+                *selected_file_index = Some(i);
+            }
+        });
     }
 }
 

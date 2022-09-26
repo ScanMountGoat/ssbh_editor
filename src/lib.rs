@@ -228,13 +228,15 @@ fn sort_files(models: &mut [ModelFolder]) {
     }
 }
 
+pub type Thumbnail = (String, egui::TextureId, TextureDimension);
+
 pub fn generate_model_thumbnails(
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
     models: &[ssbh_wgpu::ModelFolder],
     render_models: &[ssbh_wgpu::RenderModel],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-) -> Vec<Vec<(String, egui::TextureId, TextureDimension)>> {
+) -> Vec<Vec<Thumbnail>> {
     models
         .iter()
         .zip(render_models)
@@ -362,7 +364,7 @@ pub fn generate_default_thumbnails(
     default_textures: &[(String, wgpu::Texture, wgpu::TextureViewDimension)],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-) -> Vec<(String, egui::TextureId, TextureDimension)> {
+) -> Vec<Thumbnail> {
     default_textures
         .iter()
         .map(|(name, texture, dimension)| {
