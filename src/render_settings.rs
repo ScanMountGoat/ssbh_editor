@@ -131,20 +131,25 @@ pub fn render_settings(
 
             ui.heading("Materials");
             ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color");
-            ui.horizontal(|ui| {
-                ui.label("Enable Nor Channels");
-                ui.toggle_value(&mut settings.render_nor[0], "R");
-                ui.toggle_value(&mut settings.render_nor[1], "G");
-                ui.toggle_value(&mut settings.render_nor[2], "B");
-                ui.toggle_value(&mut settings.render_nor[3], "A");
-            });
-            ui.horizontal(|ui| {
-                ui.label("Enable Prm Channels");
-                ui.toggle_value(&mut settings.render_prm[0], "R");
-                ui.toggle_value(&mut settings.render_prm[1], "G");
-                ui.toggle_value(&mut settings.render_prm[2], "B");
-                ui.toggle_value(&mut settings.render_prm[3], "A");
-            });
+            egui::Grid::new("enable_texture_channels")
+                .show(ui, |ui| {
+                    ui.label("Enable Nor Channels");
+                    ui.horizontal(|ui| {
+                        ui.toggle_value(&mut settings.render_nor[0], "R");
+                        ui.toggle_value(&mut settings.render_nor[1], "G");
+                        ui.toggle_value(&mut settings.render_nor[2], "B");
+                        ui.toggle_value(&mut settings.render_nor[3], "A");
+                    });
+                    ui.end_row();
+
+                    ui.label("Enable Prm Channels");
+                    ui.horizontal(|ui| {
+                        ui.toggle_value(&mut settings.render_prm[0], "R");
+                        ui.toggle_value(&mut settings.render_prm[1], "G");
+                        ui.toggle_value(&mut settings.render_prm[2], "B");
+                        ui.toggle_value(&mut settings.render_prm[3], "A");
+                    });
+                });
             horizontal_separator_empty(ui);
 
             ui.heading("Animation");

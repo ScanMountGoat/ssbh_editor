@@ -1103,7 +1103,7 @@ fn edit_vector(
     let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
         ui.add_enabled_ui(enabled && channels[i], |ui| {
             ui.horizontal(|ui| {
-                ui.label(labels[i]);
+                ui.add_sized([15.0, 20.0], egui::Label::new(labels[i]));
                 *changed |= ui
                     .add(DragSlider::new(id.with(labels[i]), value).width(50.0))
                     .on_hover_text(labels_long[i])
