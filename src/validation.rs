@@ -399,8 +399,10 @@ fn validate_wrap_mode_tiling(
 
                     // Only check the corresponding UV coordinates for each sampler.
                     for a in o.texture_coordinates.iter().filter(|a| a.name == uv_name) {
+                        // It's normal to have UVs slightly outside the first quadrant.
+                        // UVs well outside the first quadrant probably expect tiling.
                         let (min_u, max_u, min_v, max_v) = get_uv_range(&a.data);
-                        if min_u < 0.0 || max_u > 1.0 || min_v < 0.0 || max_v > 1.0 {
+                        if min_u < -0.2 || max_u > 1.2 || min_v < -0.2 || max_v > 1.2 {
                             samplers.push(sampler.param_id);
                         }
                     }
@@ -1402,7 +1404,7 @@ mod tests {
                     },
                     AttributeData {
                         name: "bake1".to_owned(),
-                        data: VectorData::Vector2(vec![[0.0, 0.0], [1.0, 1.0]]),
+                        data: VectorData::Vector2(vec![[-0.15, 0.0], [1.0, 1.15]]),
                     },
                 ],
                 ..Default::default()
