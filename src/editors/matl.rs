@@ -628,7 +628,7 @@ fn edit_matl_entry(
         let text = if missing_parameters.len() == 1 {
             "Add 1 Missing Parameter".to_owned()
         } else {
-            format!("Add {} missing parameters", missing_parameters.len())
+            format!("Add {} Missing Parameters", missing_parameters.len())
         };
         if ui.button(text).clicked() {
             add_parameters(entry, &missing_parameters);
@@ -640,7 +640,7 @@ fn edit_matl_entry(
         let text = if unused_parameters.len() == 1 {
             "Remove 1 Unused Parameter".to_owned()
         } else {
-            format!("Remove {} unused parameters", unused_parameters.len())
+            format!("Remove {} Unused Parameters", unused_parameters.len())
         };
         if ui.button(text).clicked() {
             remove_parameters(entry, &unused_parameters);
@@ -722,7 +722,7 @@ fn edit_matl_entry(
         let errors: Vec<_> = validation_errors
             .iter()
             .filter(|e| {
-                matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. } 
+                matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. }
                 if samplers.contains(&param.param_id))
             })
             .collect();
