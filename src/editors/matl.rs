@@ -23,6 +23,9 @@ use std::path::Path;
 use std::str::FromStr;
 use strum::VariantNames;
 
+const UNUSED_PARAM: &'static str =
+    "This parameter is not required by the shader and will be ignored in game.";
+
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
     ctx: &egui::Context,
@@ -653,17 +656,18 @@ fn edit_matl_entry(
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
             changed |= ui
                 .checkbox(&mut param.data, param_label(param.param_id))
+                .on_disabled_hover_text(UNUSED_PARAM)
                 .changed();
         });
     }
     horizontal_separator_empty(ui);
 
-    // TODO: Show a tooltip to explain why entries are disabled?
     for param in entry.floats.iter_mut() {
         let id = egui::Id::new(param.param_id.to_string());
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
             ui.horizontal(|ui| {
-                ui.label(param_label(param.param_id));
+                ui.label(param_label(param.param_id))
+                    .on_disabled_hover_text(UNUSED_PARAM);
                 changed |= ui.add(DragSlider::new(id, &mut param.data)).changed();
             })
         });
@@ -873,7 +877,10 @@ fn edit_texture(
 ) -> bool {
     // Show errors that apply to this param.
     let text = param_text(param.param_id, errors);
-    let response = ui.add_enabled(enabled, Label::new(text));
+    let response = ui
+        .add_enabled(enabled, Label::new(text))
+        .on_disabled_hover_text(UNUSED_PARAM);
+
     if !errors.is_empty() {
         response.on_hover_ui(|ui| display_validation_errors(ui, errors));
     }
@@ -1032,8 +1039,12 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
         });
     });
 
+    let header_response = response
+        .header_response
+        .on_disabled_hover_text(UNUSED_PARAM);
+
     if !errors.is_empty() {
-        response.header_response.on_hover_ui(|ui| {
+        header_response.on_hover_ui(|ui| {
             display_validation_errors(ui, errors);
         });
     }
@@ -1077,9 +1088,8 @@ fn edit_vector(
         changed |= edit_vector4_rgba(ui, &mut param.data);
     });
 
-    ui.add_enabled_ui(enabled, |ui| {
-        ui.label(param_label(param.param_id));
-    });
+    ui.add_enabled(enabled, Label::new(param_label(param.param_id)))
+        .on_disabled_hover_text(UNUSED_PARAM);
 
     // TODO: Is it less annoying to enable all parameters if the shader label is invalid?
     let channels = program
