@@ -628,7 +628,7 @@ fn edit_matl_entry(
         let text = if missing_parameters.len() == 1 {
             "Add 1 Missing Parameter".to_owned()
         } else {
-            format!("Add {} missing parameters", missing_parameters.len())
+            format!("Add {} Missing Parameters", missing_parameters.len())
         };
         if ui.button(text).clicked() {
             add_parameters(entry, &missing_parameters);
@@ -640,7 +640,7 @@ fn edit_matl_entry(
         let text = if unused_parameters.len() == 1 {
             "Remove 1 Unused Parameter".to_owned()
         } else {
-            format!("Remove {} unused parameters", unused_parameters.len())
+            format!("Remove {} Unused Parameters", unused_parameters.len())
         };
         if ui.button(text).clicked() {
             remove_parameters(entry, &unused_parameters);
@@ -722,7 +722,7 @@ fn edit_matl_entry(
         let errors: Vec<_> = validation_errors
             .iter()
             .filter(|e| {
-                matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. } 
+                matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. }
                 if samplers.contains(&param.param_id))
             })
             .collect();
@@ -1103,7 +1103,7 @@ fn edit_vector(
     let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
         ui.add_enabled_ui(enabled && channels[i], |ui| {
             ui.horizontal(|ui| {
-                ui.label(labels[i]);
+                ui.add_sized([15.0, 20.0], egui::Label::new(labels[i]));
                 *changed |= ui
                     .add(DragSlider::new(id.with(labels[i]), value).width(50.0))
                     .on_hover_text(labels_long[i])
