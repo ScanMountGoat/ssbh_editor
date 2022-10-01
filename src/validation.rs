@@ -408,6 +408,8 @@ fn validate_wrap_mode_tiling(
                     }
                 }
 
+                // TODO: Group by sampler instead of mesh?
+                // TODO: Only validate the first layer (map1/bake1) to avoid flagging eye materials?
                 if !samplers.is_empty() {
                     let matl_error = MatlValidationError {
                         entry_index,

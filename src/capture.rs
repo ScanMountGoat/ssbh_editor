@@ -1,19 +1,48 @@
-use crate::app::SsbhApp;
+use crate::{animate_models, app::SsbhApp};
 use futures::executor::block_on;
 use ssbh_wgpu::SsbhRenderer;
 use std::num::NonZeroU32;
-use winit::dpi::PhysicalSize;
+
+pub fn render_animation_sequence(
+    renderer: &mut SsbhRenderer,
+    app: &mut SsbhApp,
+    width: u32,
+    height: u32,
+    output_rect: [u32; 4],
+) -> Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
+    let saved_frame = app.animation_state.current_frame;
+
+    let mut frames = Vec::new();
+
+    // Render out an animation sequence using the loaded animations.
+    let final_frame = app.max_final_frame_index();
+    app.animation_state.current_frame = 0.0;
+    while app.animation_state.current_frame <= final_frame {
+        animate_models(app);
+        let frame = render_screenshot(renderer, app, width, height, output_rect);
+        frames.push(frame);
+
+        app.animation_state.current_frame += 1.0;
+    }
+
+    // Restore any state we modified while animating.
+    app.animation_state.current_frame = saved_frame;
+
+    frames
+}
 
 // TODO: Add an option to make the background transparent.
 pub fn render_screenshot(
     renderer: &mut SsbhRenderer,
     app: &SsbhApp,
-    size: PhysicalSize<u32>,
+    width: u32,
+    height: u32,
+    output_rect: [u32; 4],
 ) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     // Round up to satisfy alignment requirements for texture copies.
     let round_up = |x, n| ((x + n - 1) / n) * n;
-    let screenshot_width = round_up(size.width, 64);
-    let screenshot_height = size.height;
+    let screenshot_width = round_up(width, 64);
+    let screenshot_height = height;
 
     // Use a separate texture for drawing since the swapchain isn't COPY_SRC.
     let screenshot_texture = app
@@ -63,8 +92,7 @@ pub fn render_screenshot(
         &screenshot_texture,
         screenshot_width,
         screenshot_height,
-        size.width,
-        size.height,
+        output_rect,
     )
 }
 
@@ -75,8 +103,7 @@ fn read_texture_to_image(
     output: &wgpu::Texture,
     width: u32,
     height: u32,
-    output_width: u32,
-    output_height: u32,
+    output_rect: [u32; 4],
 ) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     let output_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         size: width as u64 * height as u64 * 4,
@@ -120,14 +147,7 @@ fn read_texture_to_image(
 
     queue.submit([encoder.finish()]);
 
-    let image = read_buffer_to_image(
-        &output_buffer,
-        device,
-        width,
-        height,
-        output_width,
-        output_height,
-    );
+    let image = read_buffer_to_image(&output_buffer, device, width, height, output_rect);
     output_buffer.unmap();
 
     image
@@ -138,8 +158,7 @@ fn read_buffer_to_image(
     device: &wgpu::Device,
     width: u32,
     height: u32,
-    output_width: u32,
-    output_height: u32,
+    output_rect: [u32; 4],
 ) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     // Save the output texture.
     // Adapted from WGPU Example https://github.com/gfx-rs/wgpu/tree/master/wgpu/examples/capture
@@ -155,8 +174,19 @@ fn read_buffer_to_image(
     let data = buffer_slice.get_mapped_range();
     let mut buffer =
         image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(width, height, data.to_owned()).unwrap();
+
     // Convert BGRA to RGBA.
     buffer.pixels_mut().for_each(|p| p.0.swap(0, 2));
-    // Remove any padding needed to meet alignment requirements.
-    image::imageops::crop(&mut buffer, 0, 0, output_width, output_height).to_image()
+
+    // Crop the image to the viewport region.
+    // This also removes any padding needed to meet alignment requirements.
+    // TODO: This doesn't always crop correctly.
+    image::imageops::crop(
+        &mut buffer,
+        output_rect[0],
+        output_rect[1],
+        output_rect[2],
+        output_rect[3],
+    )
+    .to_image()
 }

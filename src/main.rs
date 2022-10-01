@@ -11,13 +11,13 @@ use pollster::FutureExt;
 use ssbh_data::prelude::*;
 // TODO: is this redundant with tokio?
 use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
-use ssbh_editor::capture::render_screenshot;
+use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::AppPreferences;
 use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
-    checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
-    generate_model_thumbnails,
+    animate_models, checkerboard_texture, default_fonts, default_text_styles,
+    generate_default_thumbnails, generate_model_thumbnails,
     path::{last_update_check_file, presets_file, PROJECT_DIR},
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
@@ -32,7 +32,7 @@ use winit::{
 
 // TODO: Split up this file into modules.
 
-// TODO: Separate project for camera + input handling?
+// TODO: Separate module for camera + input handling?
 fn calculate_mvp(
     size: winit::dpi::PhysicalSize<u32>,
     translation_xyz: glam::Vec3,
@@ -308,6 +308,7 @@ fn main() {
         preferences,
         enable_helper_bones: true,
         screenshot_to_render: None,
+        animation_gif_to_render: None,
     };
 
     // Make sure the theme updates if changed from preferences.
@@ -545,12 +546,32 @@ fn main() {
                         output_frame.present();
 
                         if let Some(file) = &app.screenshot_to_render {
-                            let image = render_screenshot(&mut renderer, &app, size);
+                            let rect = app.viewport_rect(
+                                size.width,
+                                size.height,
+                                window.scale_factor() as f32,
+                            );
+                            let image = render_screenshot(
+                                &mut renderer,
+                                &app,
+                                size.width,
+                                size.height,
+                                rect,
+                            );
                             if let Err(e) = image.save(file) {
                                 error!("Error saving screenshot to {:?}: {}", file, e);
                             }
                             app.screenshot_to_render = None;
                         }
+
+                        // TODO: Avoid clone?
+                        if let Some(file) = app.animation_gif_to_render.clone() {
+                            // TODO: Run this on another thread?
+                            render_animation_to_gif(&mut app, size, &window, &mut renderer, file);
+                            app.animation_gif_to_render = None;
+                        }
+
+                        // TODO: Image sequence.
                     }
                 }
                 winit::event::Event::WindowEvent { event, .. } => {
@@ -615,6 +636,22 @@ fn main() {
             }
         },
     );
+}
+
+fn render_animation_to_gif(
+    app: &mut SsbhApp,
+    size: PhysicalSize<u32>,
+    window: &winit::window::Window,
+    renderer: &mut SsbhRenderer,
+    file: std::path::PathBuf,
+) {
+    let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+    let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
+    let file_out = std::fs::File::create(&file).unwrap();
+    let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
+    if let Err(e) = encoder.encode_frames(images.into_iter().map(|i| image::Frame::new(i))) {
+        error!("Error saving GIF to {:?}: {}", file, e);
+    }
 }
 
 fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
@@ -727,54 +764,6 @@ fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::Render
     }
 
     app.models_to_update = ItemsToUpdate::None;
-}
-
-fn animate_models(app: &mut SsbhApp) {
-    for ((render_model, model), model_animations) in app
-        .render_models
-        .iter_mut()
-        .zip(app.models.iter())
-        .zip(app.animation_state.animations.iter())
-    {
-        // Only render enabled animations.
-        let animations = model_animations
-            .iter()
-            .filter(|anim_slot| anim_slot.is_enabled)
-            .filter_map(|anim_slot| {
-                anim_slot
-                    .animation
-                    .and_then(|anim_index| anim_index.get_animation(&app.models))
-                    .and_then(|(_, a)| a.as_ref().ok())
-            });
-
-        // TODO: Make frame timing logic in ssbh_wgpu public?
-        render_model.apply_anim(
-            &app.render_state.queue,
-            animations,
-            model
-                .skels
-                .iter()
-                .find(|(f, _)| f == "model.nusktb")
-                .and_then(|(_, m)| m.as_ref().ok()),
-            model
-                .matls
-                .iter()
-                .find(|(f, _)| f == "model.numatb")
-                .and_then(|(_, m)| m.as_ref().ok()),
-            if app.enable_helper_bones {
-                model
-                    .hlpbs
-                    .iter()
-                    .find(|(f, _)| f == "model.nuhlpb")
-                    .and_then(|(_, m)| m.as_ref().ok())
-            } else {
-                None
-            },
-            &app.render_state.shared_data,
-            app.animation_state.current_frame,
-            app.animation_state.should_loop,
-        );
-    }
 }
 
 fn get_hovered_material_label(app: &SsbhApp, folder_index: usize) -> Option<&str> {

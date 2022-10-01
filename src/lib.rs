@@ -1,3 +1,4 @@
+use app::SsbhApp;
 use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, Rounding, Stroke, TextStyle,
@@ -532,4 +533,52 @@ pub fn widgets_light() -> Widgets {
 fn horizontal_separator_empty(ui: &mut egui::Ui) {
     let available_space = ui.available_size_before_wrap();
     ui.allocate_space(egui::vec2(available_space.x, 6.0));
+}
+
+pub fn animate_models(app: &mut SsbhApp) {
+    for ((render_model, model), model_animations) in app
+        .render_models
+        .iter_mut()
+        .zip(app.models.iter())
+        .zip(app.animation_state.animations.iter())
+    {
+        // Only render enabled animations.
+        let animations = model_animations
+            .iter()
+            .filter(|anim_slot| anim_slot.is_enabled)
+            .filter_map(|anim_slot| {
+                anim_slot
+                    .animation
+                    .and_then(|anim_index| anim_index.get_animation(&app.models))
+                    .and_then(|(_, a)| a.as_ref().ok())
+            });
+
+        // TODO: Make frame timing logic in ssbh_wgpu public?
+        render_model.apply_anim(
+            &app.render_state.queue,
+            animations,
+            model
+                .skels
+                .iter()
+                .find(|(f, _)| f == "model.nusktb")
+                .and_then(|(_, m)| m.as_ref().ok()),
+            model
+                .matls
+                .iter()
+                .find(|(f, _)| f == "model.numatb")
+                .and_then(|(_, m)| m.as_ref().ok()),
+            if app.enable_helper_bones {
+                model
+                    .hlpbs
+                    .iter()
+                    .find(|(f, _)| f == "model.nuhlpb")
+                    .and_then(|(_, m)| m.as_ref().ok())
+            } else {
+                None
+            },
+            &app.render_state.shared_data,
+            app.animation_state.current_frame,
+            app.animation_state.should_loop,
+        );
+    }
 }

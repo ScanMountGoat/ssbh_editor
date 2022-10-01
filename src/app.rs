@@ -79,6 +79,7 @@ pub struct SsbhApp {
     pub new_release_tag: Option<String>,
 
     pub screenshot_to_render: Option<PathBuf>,
+    pub animation_gif_to_render: Option<PathBuf>,
 
     pub material_presets: Vec<MatlEntryData>,
 
@@ -1174,6 +1175,17 @@ impl SsbhApp {
                         .save_file()
                     {
                         self.screenshot_to_render = Some(file);
+                    }
+                }
+
+                // TODO: Image sequence.
+                if ui
+                    .add(Button::new("Render Animation to GIF...").wrap(false))
+                    .clicked()
+                {
+                    ui.close_menu();
+                    if let Some(file) = FileDialog::new().add_filter("GIF", &["gif"]).save_file() {
+                        self.animation_gif_to_render = Some(file);
                     }
                 }
             });
