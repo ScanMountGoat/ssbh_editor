@@ -1,15 +1,16 @@
 use std::path::Path;
 
+use crate::{
+    app::folder_editor_title,
+    widgets::{bone_combo_box, DragSlider},
+};
 use egui::{CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, Vector3, Vector4};
 
-use crate::widgets::{bone_combo_box, DragSlider};
-
 pub fn hlpb_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     hlpb: &mut HlpbData,
@@ -18,6 +19,7 @@ pub fn hlpb_editor(
     let mut open = true;
     let mut changed = true;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Hlpb Editor ({title})"))
         .open(&mut open)
         .resizable(true)

@@ -546,29 +546,16 @@ impl SsbhApp {
     }
 
     fn file_editors(&mut self, ctx: &Context) -> bool {
-        let display_name = |folder: &str, name: &str| {
-            format!(
-                "{}/{}",
-                Path::new(folder)
-                    .file_name()
-                    .map(|f| f.to_string_lossy())
-                    .unwrap_or_default(),
-                name
-            )
-        };
-
         let mut file_changed = false;
 
-        // The functions would take an additional ui parameter.
         // TODO: Use some sort of trait to clean up repetitive code?
-        // TODO: Passing display_name is redundant?
+        // The functions would take an additional ui parameter.
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, Ok(skel))) = model.skels.get_mut(skel_index) {
                         let (open, changed) = skel_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             skel,
@@ -593,7 +580,6 @@ impl SsbhApp {
 
                         let (open, changed) = mesh_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             mesh,
@@ -609,8 +595,7 @@ impl SsbhApp {
                         }
 
                         if changed {
-                            // TODO: Reload the specified render model if necessary?
-                            // The mesh editor has no high frequency edits (sliders), so just reload on any change?
+                            // The mesh editor has no high frequency edits (sliders), so reload on any change.
                             // TODO: Add a mesh to update field instead with (folder, mesh)?
                             self.models_to_update = ItemsToUpdate::One(folder_index);
                         }
@@ -631,7 +616,6 @@ impl SsbhApp {
 
                         let (open, changed) = matl_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             &mut self.ui_state,
@@ -645,7 +629,6 @@ impl SsbhApp {
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         );
-                        // TODO: shader error checkboards don't update properly.
                         file_changed |= changed;
 
                         if !open {
@@ -687,7 +670,6 @@ impl SsbhApp {
                         let matl = find_file(&model.matls, "model.numatb");
                         let (open, changed) = modl_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             modl,
@@ -715,7 +697,6 @@ impl SsbhApp {
                     if let Some((name, Ok(hlpb))) = model.hlpbs.get_mut(hlpb_index) {
                         let (open, changed) = hlpb_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             hlpb,
@@ -746,7 +727,6 @@ impl SsbhApp {
 
                         let (open, changed) = adj_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             adj,
@@ -766,7 +746,6 @@ impl SsbhApp {
                     if let Some((name, Ok(anim))) = model.anims.get_mut(anim_index) {
                         let (open, changed) = anim_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             anim,
@@ -790,7 +769,6 @@ impl SsbhApp {
                     if let Some((name, Ok(meshex))) = model.meshexes.get_mut(meshex_index) {
                         let (open, changed) = meshex_editor(
                             ctx,
-                            &display_name(&model.folder_name, name),
                             &model.folder_name,
                             name,
                             meshex,
@@ -809,7 +787,7 @@ impl SsbhApp {
                     if let Some((name, Ok(nutexb))) = model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(
                             ctx,
-                            &display_name(&model.folder_name, name),
+                            &folder_editor_title(&model.folder_name, name),
                             nutexb,
                             &mut self.render_state.texture_render_settings,
                         ) {
@@ -1246,6 +1224,18 @@ fn is_model_folder(model: &ModelFolder) -> bool {
         || !model.modls.is_empty()
         || !model.skels.is_empty()
         || !model.matls.is_empty()
+}
+
+// TODO: Move path formatting to its own module?
+pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
+    format!(
+        "{}/{}",
+        Path::new(folder_name)
+            .file_name()
+            .map(|f| f.to_string_lossy())
+            .unwrap_or_default(),
+        file_name
+    )
 }
 
 fn folder_display_name(model: &ModelFolder) -> PathBuf {

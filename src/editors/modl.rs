@@ -1,5 +1,5 @@
 use crate::{
-    app::warning_icon_text,
+    app::{folder_editor_title, warning_icon_text},
     validation::{ModlValidationError, ModlValidationErrorKind},
 };
 use egui::{RichText, ScrollArea};
@@ -10,7 +10,6 @@ use std::path::Path;
 
 pub fn modl_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     modl: &mut ModlData,
@@ -22,6 +21,7 @@ pub fn modl_editor(
     let mut open = true;
     let mut changed = false;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Modl Editor ({title})"))
         .open(&mut open)
         .resizable(true)

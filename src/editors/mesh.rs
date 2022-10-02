@@ -9,14 +9,13 @@ use ssbh_data::{
 };
 
 use crate::{
-    app::{display_validation_errors, warning_icon, UiState, WARNING_COLOR},
+    app::{display_validation_errors, folder_editor_title, warning_icon, UiState, WARNING_COLOR},
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
 };
 
 pub fn mesh_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     mesh: &mut MeshData,
@@ -29,6 +28,7 @@ pub fn mesh_editor(
 
     let advanced_mode = &mut ui_state.mesh_editor_advanced_mode;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Mesh Editor ({title})"))
         .open(&mut open)
         .resizable(true)

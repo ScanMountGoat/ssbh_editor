@@ -1,3 +1,4 @@
+use crate::app::folder_editor_title;
 use egui::{Grid, ScrollArea};
 use log::error;
 use rfd::FileDialog;
@@ -6,7 +7,6 @@ use std::path::Path;
 
 pub fn meshex_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     meshex: &mut MeshExData,
@@ -15,6 +15,7 @@ pub fn meshex_editor(
     let mut open = true;
     let changed = false;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("MeshEx Editor ({title})"))
         .open(&mut open)
         .resizable(true)

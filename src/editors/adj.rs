@@ -1,4 +1,4 @@
-use crate::validation::AdjValidationError;
+use crate::{app::folder_editor_title, validation::AdjValidationError};
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
@@ -7,7 +7,6 @@ use std::path::Path;
 
 pub fn adj_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     adj: &mut AdjData,
@@ -17,6 +16,7 @@ pub fn adj_editor(
     let mut open = true;
     let mut changed = false;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Adj Editor ({title})"))
         .open(&mut open)
         .resizable(true)

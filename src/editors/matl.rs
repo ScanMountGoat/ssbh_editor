@@ -1,5 +1,8 @@
 use crate::{
-    app::{display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, UiState},
+    app::{
+        display_validation_errors, folder_editor_title, warning_icon, warning_icon_text,
+        MatlEditorState, UiState,
+    },
     horizontal_separator_empty,
     material::{
         add_parameters, apply_preset, default_material, missing_parameters, param_description,
@@ -29,7 +32,6 @@ const UNUSED_PARAM: &'static str =
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     ui_state: &mut UiState,
@@ -46,6 +48,7 @@ pub fn matl_editor(
     let mut open = true;
     let mut changed = false;
 
+    let title = folder_editor_title(folder_name, file_name);
     Window::new(format!("Matl Editor ({title})"))
         .open(&mut open)
         .default_size(egui::Vec2::new(400.0, 700.0))

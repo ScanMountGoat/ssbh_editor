@@ -1,4 +1,4 @@
-use crate::app::{AnimEditorState, AnimEditorTab};
+use crate::app::{folder_editor_title, AnimEditorState, AnimEditorTab};
 use egui::{
     plot::{Legend, Line, Plot, PlotPoint},
     CentralPanel, CollapsingHeader, RichText, ScrollArea, SidePanel,
@@ -13,7 +13,6 @@ use std::path::Path;
 
 pub fn anim_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     anim: &mut AnimData,
@@ -22,6 +21,7 @@ pub fn anim_editor(
     let mut open = true;
     let mut changed = false;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Anim Editor ({title})"))
         .default_width(800.0)
         .default_height(600.0)

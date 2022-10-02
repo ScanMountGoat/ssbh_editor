@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    app::{SkelEditorState, SkelMode},
+    app::{folder_editor_title, SkelEditorState, SkelMode},
     widgets::enum_combo_box,
 };
 use egui::{Button, CollapsingHeader, Grid, ScrollArea};
@@ -11,7 +11,6 @@ use ssbh_data::{prelude::*, skel_data::BoneData};
 
 pub fn skel_editor(
     ctx: &egui::Context,
-    title: &str,
     folder_name: &str,
     file_name: &str,
     skel: &mut SkelData,
@@ -20,6 +19,7 @@ pub fn skel_editor(
     let mut open = true;
     let mut changed = false;
 
+    let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Skel Editor ({title})"))
         .resizable(true)
         .open(&mut open)
