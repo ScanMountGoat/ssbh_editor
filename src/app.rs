@@ -1,3 +1,4 @@
+use self::window::*;
 use crate::{
     app::anim_list::anim_list,
     editors::{
@@ -12,8 +13,7 @@ use crate::{
         skel::skel_editor,
     },
     path::last_update_check_file,
-    preferences::{preferences_window, AppPreferences},
-    render_settings::render_settings,
+    preferences::AppPreferences,
     sort_files,
     validation::{MatlValidationErrorKind, ModelValidationErrors},
     widgets::*,
@@ -22,7 +22,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Grid, Label,
+    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Label,
     Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
 use log::Log;
@@ -31,12 +31,12 @@ use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_wgpu::{ModelFolder, RenderModel};
 use std::{
-    f32::consts::PI,
     path::{Path, PathBuf},
     sync::Mutex,
 };
 
 mod anim_list;
+mod window;
 
 pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
@@ -425,7 +425,7 @@ impl SsbhApp {
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
-        render_settings(
+        render_settings_window(
             ctx,
             &mut self.render_state.render_settings,
             &mut self.render_state.model_render_options,
@@ -439,7 +439,7 @@ impl SsbhApp {
             self.should_refresh_render_settings = true;
         }
 
-        camera_settings(
+        camera_settings_window(
             ctx,
             &mut self.ui_state.camera_settings_open,
             &mut self.camera_state,
@@ -898,114 +898,18 @@ impl SsbhApp {
                     .enumerate()
                     .filter(|(_, (model, _))| !model.is_empty())
                 {
+                    // TODO: Show full path on hover?
                     CollapsingHeader::new(folder_display_name(model).to_string_lossy())
                         .id_source(format!("folder.{}", folder_index))
                         .default_open(true)
                         .show(ui, |ui| {
-                            // Avoid a confusing missing file error for animation or texture folders.
-                            let is_model = is_model_folder(model);
-                            let required_file = |name| if is_model { Some(name) } else { None };
-
-                            // Clicking a file opens the corresponding editor.
-                            // Set selected index so the editor remains open for the file.
-                            // TODO: Should the index be cleared when reloading models?
-                            list_files(
-                                ui,
-                                &model.meshes,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_mesh_index,
-                                required_file("model.numshb"),
-                                Some("model.numshb"),
-                                &validation.mesh_errors,
-                            );
-
-                            list_files(
-                                ui,
-                                &model.skels,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_skel_index,
-                                required_file("model.nusktb"),
-                                Some("model.nusktb"),
-                                &validation.skel_errors,
-                            );
-
-                            list_files(
-                                ui,
-                                &model.hlpbs,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_hlpb_index,
-                                None,
-                                Some("model.nuhlpb"),
-                                &validation.hlpb_errors,
-                            );
-
-                            list_files(
-                                ui,
-                                &model.matls,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_matl_index,
-                                required_file("model.numatb"),
-                                Some("model.numatb"),
-                                &validation.matl_errors,
-                            );
-
-                            list_files(
-                                ui,
-                                &model.modls,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_modl_index,
-                                required_file("model.numdlb"),
-                                Some("model.numdlb"),
-                                &validation.modl_errors,
-                            );
-
-                            list_files(
-                                ui,
-                                &model.adjs,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_adj_index,
-                                None,
-                                Some("model.adjb"),
-                                &validation.adj_errors,
-                            );
-
-                            list_files(
-                                ui,
-                                &model.anims,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_anim_index,
-                                None,
-                                None,
-                                &validation.anim_errors,
-                            );
-
-                            // TODO: Is the model.numshexb required?
-                            list_files(
-                                ui,
-                                &model.meshexes,
-                                folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_meshex_index,
-                                None,
-                                Some("model.numshexb"),
-                                &validation.meshex_errors,
-                            );
-
-                            list_nutexb_files(
-                                ui,
+                            show_folder_files(
+                                &mut self.ui_state,
                                 model,
+                                ui,
                                 folder_index,
-                                &mut self.ui_state.selected_folder_index,
-                                &mut self.ui_state.selected_nutexb_index,
-                                &self.thumbnails,
                                 validation,
+                                &self.thumbnails,
                             );
                         })
                         .header_response
@@ -1034,26 +938,29 @@ impl SsbhApp {
 
             // The next layout needs to be min since it's nested inside a centered layout.
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                // The layout is right to left, so add in reverse order.
-                if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
-                    if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
-                        self.ui_state.log_window_open = true;
-                    }
-
-                    // Clicking the message also opens the log window.
-                    let abbreviated_message =
-                        message.get(..40).unwrap_or_default().to_string() + "...";
-                    if ui
-                        .add(egui::Label::new(abbreviated_message).sense(egui::Sense::click()))
-                        .clicked()
-                    {
-                        self.ui_state.log_window_open = true;
-                    }
-
-                    log_level_icon(ui, level);
-                }
+                self.show_most_recent_log_message(ui);
             });
         });
+    }
+
+    fn show_most_recent_log_message(&mut self, ui: &mut Ui) {
+        // The layout is right to left, so add in reverse order.
+        if let Some((level, message)) = LOGGER.messages.lock().unwrap().last() {
+            if ui.add_sized([60.0, 30.0], Button::new("Logs")).clicked() {
+                self.ui_state.log_window_open = true;
+            }
+
+            // Clicking the message also opens the log window.
+            let abbreviated_message = message.get(..40).unwrap_or_default().to_string() + "...";
+            if ui
+                .add(egui::Label::new(abbreviated_message).sense(egui::Sense::click()))
+                .clicked()
+            {
+                self.ui_state.log_window_open = true;
+            }
+
+            log_level_icon(ui, level);
+        }
     }
 
     fn right_panel(&mut self, ctx: &Context, ui: &mut Ui) {
@@ -1219,6 +1126,113 @@ impl SsbhApp {
     }
 }
 
+fn show_folder_files(
+    ui_state: &mut UiState,
+    model: &mut ModelFolder,
+    ui: &mut Ui,
+    folder_index: usize,
+    validation: &ModelValidationErrors,
+    thumbnails: &[Vec<Thumbnail>],
+) {
+    // Avoid a confusing missing file error for animation or texture folders.
+    let is_model = is_model_folder(model);
+    let required_file = |name| if is_model { Some(name) } else { None };
+    // Clicking a file opens the corresponding editor.
+    // Set selected index so the editor remains open for the file.
+    // TODO: Should the index be cleared when reloading models?
+    list_files(
+        ui,
+        &model.meshes,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_mesh_index,
+        required_file("model.numshb"),
+        Some("model.numshb"),
+        &validation.mesh_errors,
+    );
+    list_files(
+        ui,
+        &model.skels,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_skel_index,
+        required_file("model.nusktb"),
+        Some("model.nusktb"),
+        &validation.skel_errors,
+    );
+    list_files(
+        ui,
+        &model.hlpbs,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_hlpb_index,
+        None,
+        Some("model.nuhlpb"),
+        &validation.hlpb_errors,
+    );
+    list_files(
+        ui,
+        &model.matls,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_matl_index,
+        required_file("model.numatb"),
+        Some("model.numatb"),
+        &validation.matl_errors,
+    );
+    list_files(
+        ui,
+        &model.modls,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_modl_index,
+        required_file("model.numdlb"),
+        Some("model.numdlb"),
+        &validation.modl_errors,
+    );
+    list_files(
+        ui,
+        &model.adjs,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_adj_index,
+        None,
+        Some("model.adjb"),
+        &validation.adj_errors,
+    );
+    list_files(
+        ui,
+        &model.anims,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_anim_index,
+        None,
+        None,
+        &validation.anim_errors,
+    );
+    // TODO: Is the model.numshexb required?
+    list_files(
+        ui,
+        &model.meshexes,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_meshex_index,
+        None,
+        Some("model.numshexb"),
+        &validation.meshex_errors,
+    );
+    // TODO: Create a single function that takes thumbnails?
+    list_nutexb_files(
+        ui,
+        model,
+        folder_index,
+        &mut ui_state.selected_folder_index,
+        &mut ui_state.selected_nutexb_index,
+        thumbnails,
+        validation,
+    );
+}
+
 fn is_model_folder(model: &ModelFolder) -> bool {
     !model.meshes.is_empty()
         || !model.modls.is_empty()
@@ -1228,6 +1242,8 @@ fn is_model_folder(model: &ModelFolder) -> bool {
 
 // TODO: Move path formatting to its own module?
 pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
+    // Show a simplified version of the path.
+    // fighter/mario/motion/body/c00/model.numatb -> c00/model.numatb
     format!(
         "{}/{}",
         Path::new(folder_name)
@@ -1367,7 +1383,7 @@ fn list_nutexb_files(
 
 fn file_button_with_errors<E: std::fmt::Display>(
     ui: &mut Ui,
-    name: &String,
+    name: &str,
     validation_errors: &[E],
 ) -> Response {
     // TODO: Only color the icon itself?
@@ -1492,29 +1508,6 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     }
 }
 
-fn log_window(ctx: &Context, open: &mut bool) {
-    Window::new("Application Log")
-        .open(open)
-        .resizable(true)
-        .show(ctx, |ui| {
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    for (level, message) in LOGGER.messages.lock().unwrap().iter() {
-                        ui.horizontal(|ui| {
-                            log_level_icon(ui, level);
-                            // binrw formats backtraces, which isn't supported by egui font rendering.
-                            // TODO: Avoid clone?
-                            let clean_message = strip_ansi_escapes::strip(message)
-                                .map(|m| String::from_utf8_lossy(&m).to_string())
-                                .unwrap_or_else(|_| message.clone());
-                            ui.label(clean_message);
-                        });
-                    }
-                });
-        });
-}
-
 fn log_level_icon(ui: &mut Ui, level: &log::Level) {
     match level {
         log::Level::Error => {
@@ -1527,146 +1520,4 @@ fn log_level_icon(ui: &mut Ui, level: &log::Level) {
         log::Level::Debug => (),
         log::Level::Trace => (),
     }
-}
-
-pub fn camera_settings(ctx: &egui::Context, open: &mut bool, camera_state: &mut CameraInputState) {
-    egui::Window::new("Camera Settings")
-        .resizable(false)
-        .open(open)
-        .show(ctx, |ui| {
-            egui::Grid::new("camera_grid").show(ui, |ui| {
-                ui.label("Translation X");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.x));
-                ui.end_row();
-
-                ui.label("Translation Y");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.y));
-                ui.end_row();
-
-                ui.label("Translation Z");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.z));
-                ui.end_row();
-
-                // TODO: This will need to use quaternions to work with camera anims.
-                // TODO: Add an option for radians or degrees?
-                ui.label("Rotation X");
-                ui.add(
-                    egui::DragValue::new(&mut camera_state.rotation_xyz_radians.x)
-                        .speed(0.01)
-                        .clamp_range(-2.0 * PI..=2.0 * PI),
-                );
-                ui.end_row();
-
-                ui.label("Rotation Y");
-                ui.add(
-                    egui::DragValue::new(&mut camera_state.rotation_xyz_radians.y)
-                        .speed(0.01)
-                        .clamp_range(-2.0 * PI..=2.0 * PI),
-                );
-                ui.end_row();
-
-                ui.label("FOV");
-                ui.add(
-                    egui::DragValue::new(&mut camera_state.fov_y_radians)
-                        .speed(0.01)
-                        .clamp_range(0.0..=2.0 * PI),
-                );
-                ui.end_row();
-
-                if ui.button("Reset").clicked() {
-                    *camera_state = CameraInputState::default();
-                }
-            });
-        });
-}
-
-pub fn stage_lighting_window(
-    ctx: &egui::Context,
-    open: &mut bool,
-    state: &mut StageLightingState,
-) -> bool {
-    let mut changed = false;
-    Window::new("Stage Lighting")
-        .open(open)
-        .resizable(false)
-        .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
-                    if ui.button("Open render folder...").clicked() {
-                        if let Some(folder) = FileDialog::new().pick_folder() {
-                            // Attempt to load supported lighting files based on naming conventions.
-                            // Users should select paths like "/stage/battlefield/normal/render/".
-                            state.light = Some(folder.join("light").join("light00.nuanmb"));
-                            state.reflection_cube_map =
-                                Some(folder.join("reflection_cubemap.nutexb"));
-                            state.color_grading_lut = folder
-                                .parent()
-                                .map(|p| p.join("lut").join("color_grading_lut.nutexb"));
-                            changed = true;
-                        }
-                    }
-                });
-            });
-            ui.separator();
-
-            let path_label = |ui: &mut Ui, path: &Option<PathBuf>| match path {
-                Some(path) => {
-                    ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
-                        .on_hover_ui(|ui| {
-                            ui.add(Label::new(path.to_string_lossy()).wrap(false));
-                        });
-                }
-                None => {
-                    ui.label("");
-                }
-            };
-
-            Grid::new("stage_lighting").show(ui, |ui| {
-                // TODO: Make the files buttons to load corresponding editors?
-                ui.label("Lighting");
-                path_label(ui, &state.light);
-                if ui.button("Select file...").clicked() {
-                    if let Some(file) = FileDialog::new()
-                        .add_filter("Lighting Anim", &["nuanmb"])
-                        .pick_file()
-                    {
-                        state.light = Some(file);
-                        changed = true;
-                    };
-                }
-                ui.end_row();
-
-                ui.label("Reflection Cube Map");
-                path_label(ui, &state.reflection_cube_map);
-                if ui.button("Select file...").clicked() {
-                    if let Some(file) = FileDialog::new()
-                        .add_filter("Cube Map Nutexb", &["nutexb"])
-                        .pick_file()
-                    {
-                        state.reflection_cube_map = Some(file);
-                        changed = true;
-                    };
-                };
-                ui.end_row();
-
-                ui.label("Color Grading LUT");
-                path_label(ui, &state.color_grading_lut);
-                if ui.button("Select file...").clicked() {
-                    if let Some(file) = FileDialog::new()
-                        .add_filter("Color Grading LUT", &["nutexb"])
-                        .pick_file()
-                    {
-                        state.color_grading_lut = Some(file);
-                        changed = true;
-                    };
-                };
-                ui.end_row();
-            });
-
-            if ui.button("Reset").clicked() {
-                *state = StageLightingState::default();
-                changed = true;
-            };
-        });
-    changed
 }

@@ -1,7 +1,7 @@
 use crate::{horizontal_separator_empty, widgets::*};
 use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
 
-pub fn render_settings(
+pub fn render_settings_window(
     ctx: &egui::Context,
     settings: &mut RenderSettings,
     options: &mut ModelRenderOptions,

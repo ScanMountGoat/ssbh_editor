@@ -649,7 +649,7 @@ fn render_animation_to_gif(
     let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
     let file_out = std::fs::File::create(&file).unwrap();
     let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
-    if let Err(e) = encoder.encode_frames(images.into_iter().map(|i| image::Frame::new(i))) {
+    if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
         error!("Error saving GIF to {:?}: {}", file, e);
     }
 }

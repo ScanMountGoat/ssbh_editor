@@ -1,7 +1,4 @@
-use crate::{
-    path::{application_dir, preferences_file},
-    widgets_dark,
-};
+use crate::{path::preferences_file, widgets_dark};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -57,56 +54,4 @@ impl Default for AppPreferences {
             viewport_color: [color.r(), color.g(), color.b()],
         }
     }
-}
-
-pub fn preferences_window(
-    ctx: &egui::Context,
-    preferences: &mut AppPreferences,
-    open: &mut bool,
-) -> bool {
-    let mut changed = false;
-
-    egui::Window::new("Preferences")
-        .open(open)
-        .resizable(false)
-        .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
-                    if ui
-                        .add(egui::Button::new("Open preferences directory...").wrap(false))
-                        .clicked()
-                    {
-                        ui.close_menu();
-
-                        let path = application_dir();
-                        if let Err(e) = open::that(&path) {
-                            log::error!("Failed to open {path:?}: {e}");
-                        }
-                    }
-                });
-            });
-            ui.separator();
-
-            // TODO: Add a toggle widget instead.
-            changed |= ui
-                .checkbox(&mut preferences.dark_mode, "Dark Mode")
-                .changed();
-            ui.horizontal(|ui| {
-                changed |= ui
-                    .color_edit_button_srgb(&mut preferences.viewport_color)
-                    .changed();
-                ui.label("Viewport Background");
-            });
-            changed |= ui
-                .checkbox(
-                    &mut preferences.autohide_expressions,
-                    "Automatically Hide Expressions",
-                )
-                .changed();
-            if ui.button("Reset Preferences").clicked() {
-                *preferences = AppPreferences::default();
-                changed = true;
-            }
-        });
-    changed
 }

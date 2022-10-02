@@ -26,7 +26,7 @@ use std::path::Path;
 use std::str::FromStr;
 use strum::VariantNames;
 
-const UNUSED_PARAM: &'static str =
+const UNUSED_PARAM: &str =
     "This parameter is not required by the shader and will be ignored in game.";
 
 #[allow(clippy::too_many_arguments)]

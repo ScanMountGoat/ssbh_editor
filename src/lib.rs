@@ -19,7 +19,6 @@ pub mod material;
 pub mod path;
 pub mod preferences;
 pub mod presets;
-pub mod render_settings;
 pub mod validation;
 pub mod widgets;
 
