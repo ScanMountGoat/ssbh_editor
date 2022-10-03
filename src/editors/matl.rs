@@ -442,9 +442,17 @@ fn help_menu(ui: &mut Ui) {
     egui::menu::menu_button(ui, "Help", |ui| {
         let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
 
-        if button(ui, "Material Reference (GitHub)").clicked() {
+        if button(ui, "Material Parameter Reference (GitHub)").clicked() {
             ui.close_menu();
             let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
+            if let Err(open_err) = open::that(link) {
+                log::error!("Failed to open link ({link}). {open_err}");
+            }
+        }
+
+        if button(ui, "Material Research Website").clicked() {
+            ui.close_menu();
+            let link = "https://scanmountgoat.github.io/Smush-Material-Research/";
             if let Err(open_err) = open::that(link) {
                 log::error!("Failed to open link ({link}). {open_err}");
             }
