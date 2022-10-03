@@ -79,7 +79,12 @@ pub fn next_frame(
         if should_loop {
             // Wrap around to loop the animation.
             // This may not be seamless if the animations have different lengths.
-            next_frame = next_frame.rem_euclid(final_frame_index);
+            next_frame = if final_frame_index > 0.0 {
+                next_frame.rem_euclid(final_frame_index)
+            } else {
+                // Use 0.0 instead of NaN for empty animations.
+                0.0
+            };
         } else {
             // Reduce chances of overflow.
             next_frame = final_frame_index;
