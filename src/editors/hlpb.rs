@@ -7,7 +7,11 @@ use crate::{
 use egui::{CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{prelude::*, Vector3, Vector4};
+use ssbh_data::{
+    hlpb_data::{AimConstraintData, OrientConstraintData},
+    prelude::*,
+    Vector3, Vector4,
+};
 
 pub fn hlpb_editor(
     ctx: &egui::Context,
@@ -46,6 +50,62 @@ pub fn hlpb_editor(
                                 error!("Failed to save {:?}: {}", file, e);
                             }
                         }
+                    }
+                });
+
+                egui::menu::menu_button(ui, "Constraint", |ui| {
+                    if ui.button("Add Aim Constraint").clicked() {
+                        ui.close_menu();
+
+                        // Create a unique name for the new constraint.
+                        // TODO: Increment the ID at the end instead (requires tests).
+                        hlpb.aim_constraints.push(AimConstraintData {
+                            name: hlpb
+                                .aim_constraints
+                                .iter()
+                                .map(|a| &a.name)
+                                .max()
+                                .map(|n| n.to_owned() + "1")
+                                .unwrap_or("nuHelperBoneRotateAim1".to_owned()),
+                            aim_bone_name1: String::new(),
+                            aim_bone_name2: String::new(),
+                            aim_type1: "DEFAULT".to_owned(),
+                            aim_type2: "DEFAULT".to_owned(),
+                            target_bone_name1: String::new(),
+                            target_bone_name2: String::new(),
+                            unk1: 0,
+                            unk2: 1,
+                            aim: Vector3::new(1.0, 0.0, 0.0),
+                            up: Vector3::new(0.0, 1.0, 0.0),
+                            quat1: Vector4::new(0.0, 0.0, 0.0, 1.0),
+                            quat2: Vector4::new(0.0, 0.0, 0.0, 1.0),
+                        });
+                    }
+
+                    if ui.button("Add Orient Constraint").clicked() {
+                        ui.close_menu();
+
+                        // Create a unique name for the new constraint.
+                        // TODO: Increment the ID at the end instead (requires tests).
+                        hlpb.orient_constraints.push(OrientConstraintData {
+                            name: hlpb
+                                .orient_constraints
+                                .iter()
+                                .map(|o| &o.name)
+                                .max()
+                                .map(|n| n.to_owned() + "1")
+                                .unwrap_or("nuHelperBoneRotateInterp1".to_owned()),
+                            parent_bone_name1: String::new(),
+                            parent_bone_name2: String::new(),
+                            source_bone_name: String::new(),
+                            target_bone_name: String::new(),
+                            unk_type: 1,
+                            constraint_axes: Vector3::new(1.0, 1.0, 1.0),
+                            quat1: Vector4::new(0.0, 0.0, 0.0, 1.0),
+                            quat2: Vector4::new(0.0, 0.0, 0.0, 1.0),
+                            range_min: Vector3::new(-180.0, -180.0, -180.0),
+                            range_max: Vector3::new(180.0, 180.0, 180.0),
+                        });
                     }
                 });
 
