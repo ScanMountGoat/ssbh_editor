@@ -914,6 +914,7 @@ impl SsbhApp {
                         })
                         .header_response
                         .context_menu(|ui| {
+                            // Use "Remove" since this doesn't delete the folder on disk.
                             if ui.button("Remove").clicked() {
                                 ui.close_menu();
                                 folder_to_remove = Some(folder_index);

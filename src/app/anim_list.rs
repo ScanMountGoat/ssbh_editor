@@ -102,6 +102,7 @@ fn show_anim_slot(
                     update_animations = true;
                 }
 
+                // Use "Remove" since this doesn't delete the actual animation.
                 if ui.button("Remove").clicked() {
                     slots_to_remove.push(slot);
                 }

@@ -145,6 +145,7 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
     CollapsingHeader::new("Orient Constraints")
         .default_open(true)
         .show(ui, |ui| {
+            let mut entry_to_remove = None;
             for (i, o) in hlpb.orient_constraints.iter_mut().enumerate() {
                 let id = egui::Id::new("orient").with(i);
 
@@ -217,7 +218,18 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
                                 edit_vector3(ui, id.with(9), &mut o.range_max, -180.0, 180.0);
                             ui.end_row();
                         });
+                    })
+                    .header_response
+                    .context_menu(|ui| {
+                        if ui.button("Delete").clicked() {
+                            ui.close_menu();
+                            entry_to_remove = Some(i);
+                        }
                     });
+            }
+
+            if let Some(i) = entry_to_remove {
+                hlpb.orient_constraints.remove(i);
             }
         });
     changed
@@ -228,6 +240,7 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
     CollapsingHeader::new("Aim Constraints")
         .default_open(true)
         .show(ui, |ui| {
+            let mut entry_to_remove = None;
             for (i, aim) in hlpb.aim_constraints.iter_mut().enumerate() {
                 let id = egui::Id::new("aim").with(i);
 
@@ -300,7 +313,18 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
                         changed |= edit_vector4(ui, id.with(9), &mut aim.quat2);
                         ui.end_row();
                     });
+                })
+                .header_response
+                .context_menu(|ui| {
+                    if ui.button("Delete").clicked() {
+                        ui.close_menu();
+                        entry_to_remove = Some(i);
+                    }
                 });
+            }
+
+            if let Some(i) = entry_to_remove {
+                hlpb.aim_constraints.remove(i);
             }
         });
     changed
