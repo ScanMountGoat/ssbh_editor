@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### unreleased
+### Added
+* Added an option to add and delete constraints to the Hlpb Editor
+* Added validation for model.numdlb entries.
+
+### Changed
+* Improved alignment and consistenty of UI elements.
+* Show a warning icon if a nutexb thumbnail fails to load.
+* Adjusted disabled parameters in the Matl Editor to indicate on hover that the parameter is unused.
+* Improved the display of validation errors to appear next to the effected entry or field for better readability.
+* Reduced the strictness of the check for UV wrapping to avoid false positives for cases like eye textures.
+* Adjusted the texture selector to prevent assigning cube maps to 2D textures and 2D textures to cube maps.
+
+### Fixed
+* Fixed an issue where the viewport failed to update after deleting materials.
+* Fixed an issue where the current frame would be set to NaN when playing empty animations.
+
 ## 0.6.2 - 2022-09-24
 ### Added
 * Added rendering support for CustomVector34.
