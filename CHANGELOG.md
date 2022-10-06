@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue where the viewport failed to update after deleting materials.
 * Fixed an issue where the current frame would be set to NaN when playing empty animations.
+* Fixed an issue where animations could be assigned to the wrong model and fail to play in the viewport.
 
 ## 0.6.2 - 2022-09-24
 ### Added

@@ -14,7 +14,6 @@ use crate::{
     },
     path::last_update_check_file,
     preferences::AppPreferences,
-    sort_files,
     validation::{MatlValidationErrorKind, ModelValidationErrors},
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
@@ -242,7 +241,8 @@ impl SsbhApp {
             // TODO: Check for duplicate folders?
 
             // Load recursively for nested folders like stages.
-            let new_models = ssbh_wgpu::load_model_folders(&folder);
+            let mut new_models = ssbh_wgpu::load_model_folders(&folder);
+            new_models.sort_by_key(|m| m.folder_name.clone());
 
             self.animation_state
                 .animations
@@ -280,7 +280,7 @@ impl SsbhApp {
             }
 
             self.models.extend(new_models);
-            sort_files(&mut self.models);
+            self.sort_files();
 
             // TODO: Only validate the models that were added?
             self.should_validate_models = true;
@@ -293,7 +293,7 @@ impl SsbhApp {
         for model in &mut self.models {
             *model = ModelFolder::load_folder(&model.folder_name);
         }
-        sort_files(&mut self.models);
+        self.sort_files();
 
         self.models_to_update = ItemsToUpdate::All;
         self.should_update_thumbnails = true;
@@ -307,6 +307,19 @@ impl SsbhApp {
         self.animation_state.animations = Vec::new();
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
+    }
+
+    fn sort_files(&mut self) {
+        for model in &mut self.models {
+            // Sort by file name for consistent ordering in the UI.
+            model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.meshes.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+        }
     }
 
     pub fn hide_expressions(&mut self) {

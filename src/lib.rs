@@ -213,21 +213,6 @@ impl AnimationIndex {
     }
 }
 
-fn sort_files(models: &mut [ModelFolder]) {
-    models.sort_by_key(|m| m.folder_name.clone());
-
-    for model in models {
-        // Sort by file name for consistent ordering in the UI.
-        model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        model.meshes.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-    }
-}
-
 pub type Thumbnail = (String, egui::TextureId, TextureDimension);
 
 pub fn generate_model_thumbnails(
