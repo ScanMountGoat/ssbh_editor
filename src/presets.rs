@@ -348,6 +348,13 @@ pub fn load_xml_presets(xml_text: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
     // TODO: Fail if any files fail to parse?
     // TODO: Avoid unwrap.
     let element = Element::parse(xml_text)?;
+    if element.name != "MaterialLibrary" {
+        return Err(anyhow!(
+            "Unexpected first element. Expected \"MaterialLibrary\" but found {:?}",
+            element.name
+        ));
+    }
+
     element
         .children
         .iter()

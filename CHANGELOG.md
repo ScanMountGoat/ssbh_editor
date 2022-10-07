@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved the display of validation errors to appear next to the effected entry or field for better readability.
 * Reduced the strictness of the check for UV wrapping to avoid false positives for cases like eye textures.
 * Adjusted the texture selector to prevent assigning cube maps to 2D textures and 2D textures to cube maps.
+* Improved logging when importing XML material presets missing a MaterialLibrary node.
 
 ### Fixed
 * Fixed an issue where the viewport failed to update after deleting materials.
