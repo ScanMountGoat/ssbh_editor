@@ -392,18 +392,26 @@ fn validate_wrap_mode_tiling(
                     !is_cube(s.param_id) && (!is_repeat(s.data.wraps) || !is_repeat(s.data.wrapt))
                 }) {
                     let uv_name = match sampler.param_id {
-                        ParamId::Sampler1 | ParamId::Sampler11 | ParamId::Sampler14 => "uvSet",
+                        ParamId::Sampler0
+                        | ParamId::Sampler4
+                        | ParamId::Sampler5
+                        | ParamId::Sampler6
+                        | ParamId::Sampler10 => "map1",
                         ParamId::Sampler3 | ParamId::Sampler9 => "bake1",
-                        _ => "map1",
+                        _ => "",
                     };
 
-                    // Only check the corresponding UV coordinates for each sampler.
-                    for a in o.texture_coordinates.iter().filter(|a| a.name == uv_name) {
-                        // It's normal to have UVs slightly outside the first quadrant.
-                        // UVs well outside the first quadrant probably expect tiling.
-                        let (min_u, max_u, min_v, max_v) = get_uv_range(&a.data);
-                        if min_u < -0.2 || max_u > 1.2 || min_v < -0.2 || max_v > 1.2 {
-                            samplers.push(sampler.param_id);
+                    // Ignore additional UV layers for now.
+                    // This prevents unwanted errors for iris textures using uvSet.
+                    if uv_name != "" {
+                        // Only check the corresponding UV coordinates for each sampler.
+                        for a in o.texture_coordinates.iter().filter(|a| a.name == uv_name) {
+                            // It's normal to have UVs slightly outside the first quadrant.
+                            // UVs well outside the first quadrant probably expect tiling.
+                            let (min_u, max_u, min_v, max_v) = get_uv_range(&a.data);
+                            if min_u < -0.2 || max_u > 1.2 || min_v < -0.2 || max_v > 1.2 {
+                                samplers.push(sampler.param_id);
+                            }
                         }
                     }
                 }
