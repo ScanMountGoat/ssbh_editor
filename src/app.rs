@@ -79,6 +79,7 @@ pub struct SsbhApp {
 
     pub screenshot_to_render: Option<PathBuf>,
     pub animation_gif_to_render: Option<PathBuf>,
+    pub animation_image_sequence_to_render: Option<PathBuf>,
 
     pub material_presets: Vec<MatlEntryData>,
 
@@ -1077,7 +1078,19 @@ impl SsbhApp {
                     }
                 }
 
-                // TODO: Image sequence.
+                if ui
+                    .add(Button::new("Render Animation to Image Sequence...").wrap(false))
+                    .clicked()
+                {
+                    ui.close_menu();
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Image", &["png", "jpg", "tif", "bmp"])
+                        .save_file()
+                    {
+                        self.animation_image_sequence_to_render = Some(file);
+                    }
+                }
+
                 if ui
                     .add(Button::new("Render Animation to GIF...").wrap(false))
                     .clicked()

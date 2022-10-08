@@ -314,6 +314,7 @@ fn main() {
         enable_helper_bones: true,
         screenshot_to_render: None,
         animation_gif_to_render: None,
+        animation_image_sequence_to_render: None,
     };
 
     // Make sure the theme updates if changed from preferences.
@@ -576,7 +577,17 @@ fn main() {
                             app.animation_gif_to_render = None;
                         }
 
-                        // TODO: Image sequence.
+                        if let Some(file) = app.animation_image_sequence_to_render.clone() {
+                            // TODO: Run this on another thread?
+                            render_animation_to_image_sequence(
+                                &mut app,
+                                size,
+                                &window,
+                                &mut renderer,
+                                file,
+                            );
+                            app.animation_image_sequence_to_render = None;
+                        }
                     }
                 }
                 winit::event::Event::WindowEvent { event, .. } => {
@@ -656,6 +667,35 @@ fn render_animation_to_gif(
     let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
     if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
         error!("Error saving GIF to {:?}: {}", file, e);
+    }
+}
+
+fn render_animation_to_image_sequence(
+    app: &mut SsbhApp,
+    size: PhysicalSize<u32>,
+    window: &winit::window::Window,
+    renderer: &mut SsbhRenderer,
+    file: std::path::PathBuf,
+) {
+    let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+    let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
+    for (i, image) in images.iter().enumerate() {
+        // TODO: Find a simpler way to do this.
+        let file_name = file
+            .with_extension("")
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or("img".to_owned());
+        let extension = file
+            .extension()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or("png".to_owned());
+        let output = file
+            .with_file_name(file_name + &i.to_string())
+            .with_extension(extension);
+        if let Err(e) = image.save(output) {
+            error!("Error saving image to {:?}: {}", file, e);
+        }
     }
 }
 
