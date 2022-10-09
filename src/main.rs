@@ -645,13 +645,18 @@ fn render_animation_to_gif(
     renderer: &mut SsbhRenderer,
     file: std::path::PathBuf,
 ) {
+    // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
     let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
     let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
-    let file_out = std::fs::File::create(&file).unwrap();
-    let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
-    if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
-        error!("Error saving GIF to {:?}: {}", file, e);
-    }
+
+    // TODO: Add progress indication.
+    std::thread::spawn(move || {
+        let file_out = std::fs::File::create(&file).unwrap();
+        let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
+        if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
+            error!("Error saving GIF to {:?}: {}", file, e);
+        }
+    });
 }
 
 fn render_animation_to_image_sequence(
@@ -661,26 +666,31 @@ fn render_animation_to_image_sequence(
     renderer: &mut SsbhRenderer,
     file: std::path::PathBuf,
 ) {
+    // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
     let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
     let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
-    for (i, image) in images.iter().enumerate() {
-        // TODO: Find a simpler way to do this.
-        let file_name = file
-            .with_extension("")
-            .file_name()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or("img".to_owned());
-        let extension = file
-            .extension()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or("png".to_owned());
-        let output = file
-            .with_file_name(file_name + &i.to_string())
-            .with_extension(extension);
-        if let Err(e) = image.save(output) {
-            error!("Error saving image to {:?}: {}", file, e);
+
+    // TODO: Add progress indication.
+    std::thread::spawn(move || {
+        for (i, image) in images.iter().enumerate() {
+            // TODO: Find a simpler way to do this.
+            let file_name = file
+                .with_extension("")
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or("img".to_owned());
+            let extension = file
+                .extension()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or("png".to_owned());
+            let output = file
+                .with_file_name(file_name + &i.to_string())
+                .with_extension(extension);
+            if let Err(e) = image.save(output) {
+                error!("Error saving image to {:?}: {}", file, e);
+            }
         }
-    }
+    });
 }
 
 fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {

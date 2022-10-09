@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added an option to add and delete constraints to the Hlpb Editor
 * Added validation for model.numdlb entries.
+* Add basic support for rendering animations to a GIF or image sequence.
 
 ### Changed
 * Improved alignment and consistenty of UI elements.
