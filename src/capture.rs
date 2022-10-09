@@ -75,7 +75,7 @@ pub fn render_screenshot(
         app.models.iter().map(|m| {
             // TODO: Find a cleaner way to disable bone rendering.
             if app.draw_skeletons {
-                m.find_skel()
+                m.model.find_skel()
             } else {
                 None
             }

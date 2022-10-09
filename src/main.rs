@@ -14,7 +14,6 @@ use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::AppPreferences;
-use ssbh_editor::validation::ModelValidationErrors;
 use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
     generate_default_thumbnails, generate_model_thumbnails,
@@ -286,8 +285,6 @@ fn main() {
     let mut app = SsbhApp {
         models: Vec::new(),
         render_models: Vec::new(),
-        thumbnails: Vec::new(),
-        validation_errors: Vec::new(),
         default_thumbnails,
         models_to_update: ItemsToUpdate::None,
         should_show_update,
@@ -422,23 +419,10 @@ fn main() {
                         }
 
                         if app.should_validate_models {
-                            // TODO: Only update the folders that change.
-                            // Folders should be independent from one another.
-                            app.validation_errors = app
-                                .models
-                                .iter()
-                                .map(|model| {
-                                    ModelValidationErrors::from_model(
-                                        model,
-                                        app.render_state.shared_data.database(),
-                                        app.render_state
-                                            .shared_data
-                                            .default_textures()
-                                            .iter()
-                                            .map(|(f, _, d)| (f, d.into())),
-                                    )
-                                })
-                                .collect();
+                            // Folders can be validated independently from one another.
+                            for model in &mut app.models {
+                                model.validate(&app.render_state.shared_data)
+                            }
 
                             app.should_validate_models = false;
                         }
@@ -490,7 +474,7 @@ fn main() {
                             app.models.iter().map(|m| {
                                 // TODO: Find a cleaner way to disable bone rendering.
                                 if app.draw_skeletons {
-                                    m.find_skel()
+                                    m.model.find_skel()
                                 } else {
                                     None
                                 }
@@ -528,8 +512,8 @@ fn main() {
                                 &app.render_state.device,
                                 &app.render_state.queue,
                                 &output_view,
-                                &app.render_models,
-                                app.models.iter().map(|m| m.find_skel()),
+                                app.render_models.iter(),
+                                app.models.iter().map(|m| m.model.find_skel()),
                                 size.width,
                                 size.height,
                                 mvp,
@@ -726,7 +710,7 @@ fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
 
     // Updating the cube map requires reassigning model textures.
     for (render_model, model) in app.render_models.iter_mut().zip(app.models.iter()) {
-        if let Some(matl) = model.find_matl() {
+        if let Some(matl) = model.model.find_matl() {
             render_model.recreate_materials(
                 &app.render_state.device,
                 &matl.entries,
@@ -778,7 +762,7 @@ fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::Render
                 *render_model = RenderModel::from_folder(
                     &app.render_state.device,
                     &app.render_state.queue,
-                    model,
+                    &model.model,
                     &app.render_state.shared_data,
                 );
             }
@@ -787,20 +771,22 @@ fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::Render
             app.render_models = ssbh_wgpu::load_render_models(
                 &app.render_state.device,
                 &app.render_state.queue,
-                &app.models,
+                app.models.iter().map(|m| &m.model),
                 &app.render_state.shared_data,
             );
         }
     }
 
     if app.should_update_thumbnails {
-        app.thumbnails = generate_model_thumbnails(
-            egui_rpass,
-            &app.models,
-            &app.render_models,
-            &app.render_state.device,
-            &app.render_state.queue,
-        );
+        for (model, render_model) in app.models.iter_mut().zip(app.render_models.iter()) {
+            model.thumbnails = generate_model_thumbnails(
+                egui_rpass,
+                &model.model,
+                render_model,
+                &app.render_state.device,
+                &app.render_state.queue,
+            );
+        }
         app.should_update_thumbnails = false;
     }
 
@@ -815,6 +801,7 @@ fn get_hovered_material_label(app: &SsbhApp, folder_index: usize) -> Option<&str
     Some(
         app.models
             .get(folder_index)?
+            .model
             .find_matl()?
             .entries
             .get(app.ui_state.matl_editor.hovered_material_index?)?
@@ -877,7 +864,10 @@ fn get_nutexb_to_render(
     let render_model = app.render_models.get(folder_index)?;
 
     // Assume file names are unique, so use the name instead of the index.
-    let (name, nutexb) = model.nutexbs.get(app.ui_state.selected_nutexb_index?)?;
+    let (name, nutexb) = model
+        .model
+        .nutexbs
+        .get(app.ui_state.selected_nutexb_index?)?;
     let nutexb = nutexb.as_ref().ok()?;
 
     render_model.get_texture(name).map(|(texture, dim)| {

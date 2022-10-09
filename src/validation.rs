@@ -760,7 +760,6 @@ mod tests {
         mesh_data::{AttributeData, MeshObjectData, VectorData},
         modl_data::ModlEntryData,
     };
-    use ssbh_wgpu::create_database;
 
     use super::*;
 
@@ -806,7 +805,7 @@ mod tests {
 
     #[test]
     fn required_attributes_all_missing() {
-        let shader_database = create_database();
+        let shader_database = ShaderDatabase::new();
         let matl = MatlData {
             major_version: 1,
             minor_version: 6,
@@ -1517,7 +1516,7 @@ mod tests {
 
     #[test]
     fn shader_label_invalid() {
-        let shader_database = create_database();
+        let shader_database = ShaderDatabase::new();
         let matl = MatlData {
             major_version: 1,
             minor_version: 6,

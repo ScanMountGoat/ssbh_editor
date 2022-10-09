@@ -10,6 +10,7 @@ use ssbh_wgpu::{
     ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData, SkinningSettings,
 };
 use std::{collections::BTreeMap, error::Error};
+use validation::ModelValidationErrors;
 use winit::dpi::PhysicalPosition;
 
 pub mod app;
@@ -25,6 +26,36 @@ pub mod widgets;
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
 type FileResult<T> = Result<T, Box<dyn Error>>;
+
+// TODO: Move functions that take a reference to be methods for better organization.
+pub struct ModelFolderState {
+    pub model: ModelFolder,
+    pub thumbnails: Vec<Thumbnail>,
+    pub validation: ModelValidationErrors,
+    // TODO: Add animation slots
+}
+
+impl ModelFolderState {
+    pub fn from_model(model: ModelFolder) -> Self {
+        // TODO: Initialize validation here?
+        Self {
+            model,
+            thumbnails: Vec::new(),
+            validation: ModelValidationErrors::default(),
+        }
+    }
+
+    pub fn validate(&mut self, shared_data: &SharedRenderData) {
+        self.validation = ModelValidationErrors::from_model(
+            &self.model,
+            shared_data.database(),
+            shared_data
+                .default_textures()
+                .iter()
+                .map(|(f, _, d)| (f, d.into())),
+        );
+    }
+}
 
 pub struct TexturePainter<'a> {
     pub renderer: TextureRenderer,
@@ -205,11 +236,11 @@ pub struct AnimationIndex {
 impl AnimationIndex {
     pub fn get_animation<'a>(
         &self,
-        models: &'a [ModelFolder],
+        models: &'a [ModelFolderState],
     ) -> Option<&'a (String, FileResult<AnimData>)> {
         models
             .get(self.folder_index)
-            .and_then(|m| m.anims.get(self.anim_index))
+            .and_then(|m| m.model.anims.get(self.anim_index))
     }
 }
 
@@ -217,37 +248,31 @@ pub type Thumbnail = (String, egui::TextureId, TextureDimension);
 
 pub fn generate_model_thumbnails(
     egui_rpass: &mut egui_wgpu::renderer::RenderPass,
-    models: &[ssbh_wgpu::ModelFolder],
-    render_models: &[ssbh_wgpu::RenderModel],
+    model: &ssbh_wgpu::ModelFolder,
+    render_model: &ssbh_wgpu::RenderModel,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-) -> Vec<Vec<Thumbnail>> {
-    models
+) -> Vec<Thumbnail> {
+    model
+        .nutexbs
         .iter()
-        .zip(render_models)
-        .map(|(model, render_model)| {
-            model
-                .nutexbs
-                .iter()
-                .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
-                .filter_map(|(file_name, n)| {
-                    // TODO: Will this correctly handle missing thumbnails?
-                    let (texture, dimension) = render_model.get_texture(file_name)?;
+        .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
+        .filter_map(|(file_name, n)| {
+            // TODO: Will this correctly handle missing thumbnails?
+            let (texture, dimension) = render_model.get_texture(file_name)?;
 
-                    let egui_texture = create_egui_texture(
-                        egui_rpass,
-                        device,
-                        queue,
-                        texture,
-                        dimension,
-                        n.footer.width,
-                        n.footer.height,
-                        n.footer.depth,
-                    );
+            let egui_texture = create_egui_texture(
+                egui_rpass,
+                device,
+                queue,
+                texture,
+                dimension,
+                n.footer.width,
+                n.footer.height,
+                n.footer.depth,
+            );
 
-                    Some((file_name.clone(), egui_texture, dimension.into()))
-                })
-                .collect()
+            Some((file_name.clone(), egui_texture, dimension.into()))
         })
         .collect()
 }
@@ -542,17 +567,20 @@ pub fn animate_models(app: &mut SsbhApp) {
             &app.render_state.queue,
             animations,
             model
+                .model
                 .skels
                 .iter()
                 .find(|(f, _)| f == "model.nusktb")
                 .and_then(|(_, m)| m.as_ref().ok()),
             model
+                .model
                 .matls
                 .iter()
                 .find(|(f, _)| f == "model.numatb")
                 .and_then(|(_, m)| m.as_ref().ok()),
             if app.enable_helper_bones {
                 model
+                    .model
                     .hlpbs
                     .iter()
                     .find(|(f, _)| f == "model.nuhlpb")

@@ -1,12 +1,11 @@
 use std::path::Path;
 
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
-use ssbh_wgpu::ModelFolder;
 
 use crate::{
     app::{folder_display_name, is_model_folder, SsbhApp},
     widgets::EyeCheckBox,
-    AnimationIndex, AnimationSlot,
+    AnimationIndex, AnimationSlot, ModelFolderState,
 };
 
 pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
@@ -20,7 +19,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         let mut slots_to_remove = Vec::new();
 
         let id = ui.make_persistent_id("animlist").with(model_index);
-        CollapsingHeader::new(folder_display_name(model).to_string_lossy())
+        CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
             .id_source(id)
             .default_open(true)
             .show(ui, |ui| {
@@ -66,8 +65,8 @@ fn show_anim_slot(
     ctx: &Context,
     ui: &mut Ui,
     anim_slot: &mut AnimationSlot,
-    models: &[ModelFolder],
-    available_anims: &[(usize, &ModelFolder)],
+    models: &[ModelFolderState],
+    available_anims: &[(usize, &ModelFolderState)],
     model_index: usize,
     slot: usize,
     slots_to_remove: &mut Vec<usize>,
@@ -149,7 +148,7 @@ fn show_anim_slot(
 
 fn anim_combo_box(
     ui: &mut Ui,
-    anim_folders: &[(usize, &ModelFolder)],
+    anim_folders: &[(usize, &ModelFolderState)],
     id: egui::Id,
     name: &str,
     anim_slot: &mut AnimationSlot,
@@ -167,12 +166,13 @@ fn anim_combo_box(
             for (folder_index, folder) in anim_folders.iter().rev() {
                 ui.add(
                     Label::new(
-                        RichText::new(folder_display_name(folder).to_string_lossy()).heading(),
+                        RichText::new(folder_display_name(&folder.model).to_string_lossy())
+                            .heading(),
                     )
                     .wrap(false),
                 );
 
-                for (anim_index, (name, _)) in folder.anims.iter().enumerate() {
+                for (anim_index, (name, _)) in folder.model.anims.iter().enumerate() {
                     let available_anim = AnimationIndex {
                         folder_index: *folder_index,
                         anim_index,
@@ -190,13 +190,13 @@ fn anim_combo_box(
 }
 
 fn find_anim_folders<'a>(
-    model: &ModelFolder,
-    anim_folders: &'a [ModelFolder],
-) -> Vec<(usize, &'a ModelFolder)> {
+    model: &ModelFolderState,
+    anim_folders: &'a [ModelFolderState],
+) -> Vec<(usize, &'a ModelFolderState)> {
     let mut folders: Vec<_> = anim_folders
         .iter()
         .enumerate()
-        .filter(|(_, m)| !m.anims.is_empty())
+        .filter(|(_, m)| !m.model.anims.is_empty())
         .collect();
 
     // Sort in increasing order of affinity with the model folder.
@@ -204,10 +204,10 @@ fn find_anim_folders<'a>(
         // The animation folder affinity is the number of matching path components.
         // Consider the model folder "/mario/model/body/c00".
         // The folder "/mario/motion/body/c00" scores higher than "/mario/motion/pump/c00".
-        Path::new(&model.folder_name)
+        Path::new(&model.model.folder_name)
             .components()
             .rev()
-            .zip(Path::new(&a.folder_name).components().rev())
+            .zip(Path::new(&a.model.folder_name).components().rev())
             .take_while(|(a, b)| a == b)
             .count()
     });
@@ -216,45 +216,55 @@ fn find_anim_folders<'a>(
 
 #[cfg(test)]
 mod tests {
+    use crate::validation::ModelValidationErrors;
     use ssbh_data::anim_data::AnimData;
+    use ssbh_wgpu::ModelFolder;
 
     use super::*;
 
-    fn model_folder(name: &str) -> ModelFolder {
-        ModelFolder {
-            folder_name: name.to_owned(),
-            meshes: Vec::new(),
-            skels: Vec::new(),
-            matls: Vec::new(),
-            modls: Vec::new(),
-            adjs: Vec::new(),
-            anims: Vec::new(),
-            hlpbs: Vec::new(),
-            nutexbs: Vec::new(),
-            meshexes: Vec::new(),
+    fn model_folder(name: &str) -> ModelFolderState {
+        ModelFolderState {
+            model: ModelFolder {
+                folder_name: name.to_owned(),
+                meshes: Vec::new(),
+                skels: Vec::new(),
+                matls: Vec::new(),
+                modls: Vec::new(),
+                adjs: Vec::new(),
+                anims: Vec::new(),
+                hlpbs: Vec::new(),
+                nutexbs: Vec::new(),
+                meshexes: Vec::new(),
+            },
+            thumbnails: Vec::new(),
+            validation: ModelValidationErrors::default(),
         }
     }
 
-    fn anim_folder(name: &str) -> ModelFolder {
-        ModelFolder {
-            folder_name: name.to_owned(),
-            meshes: Vec::new(),
-            skels: Vec::new(),
-            matls: Vec::new(),
-            modls: Vec::new(),
-            adjs: Vec::new(),
-            anims: vec![(
-                String::new(),
-                Ok(AnimData {
-                    major_version: 2,
-                    minor_version: 0,
-                    final_frame_index: 0.0,
-                    groups: Vec::new(),
-                }),
-            )],
-            hlpbs: Vec::new(),
-            nutexbs: Vec::new(),
-            meshexes: Vec::new(),
+    fn anim_folder(name: &str) -> ModelFolderState {
+        ModelFolderState {
+            model: ModelFolder {
+                folder_name: name.to_owned(),
+                meshes: Vec::new(),
+                skels: Vec::new(),
+                matls: Vec::new(),
+                modls: Vec::new(),
+                adjs: Vec::new(),
+                anims: vec![(
+                    String::new(),
+                    Ok(AnimData {
+                        major_version: 2,
+                        minor_version: 0,
+                        final_frame_index: 0.0,
+                        groups: Vec::new(),
+                    }),
+                )],
+                hlpbs: Vec::new(),
+                nutexbs: Vec::new(),
+                meshexes: Vec::new(),
+            },
+            thumbnails: Vec::new(),
+            validation: ModelValidationErrors::default(),
         }
     }
 

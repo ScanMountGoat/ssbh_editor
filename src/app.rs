@@ -14,10 +14,10 @@ use crate::{
     },
     path::last_update_check_file,
     preferences::AppPreferences,
-    validation::{MatlValidationErrorKind, ModelValidationErrors},
+    validation::MatlValidationErrorKind,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, RenderState,
-    Thumbnail,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, ModelFolderState,
+    RenderState, Thumbnail,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -92,10 +92,8 @@ pub struct SsbhApp {
 
     pub ui_state: UiState,
     // TODO: Is parallel list with models the best choice here?
-    pub models: Vec<ModelFolder>,
+    pub models: Vec<ModelFolderState>,
     pub render_models: Vec<RenderModel>,
-    pub thumbnails: Vec<Vec<Thumbnail>>,
-    pub validation_errors: Vec<ModelValidationErrors>,
 
     pub default_thumbnails: Vec<Thumbnail>,
     pub animation_state: AnimationState,
@@ -280,7 +278,8 @@ impl SsbhApp {
                 self.hide_expressions();
             }
 
-            self.models.extend(new_models);
+            self.models
+                .extend(new_models.into_iter().map(ModelFolderState::from_model));
             self.sort_files();
 
             // TODO: Only validate the models that were added?
@@ -292,7 +291,7 @@ impl SsbhApp {
     pub fn reload_workspace(&mut self) {
         // This also reloads animations since animations are stored as indices.
         for model in &mut self.models {
-            *model = ModelFolder::load_folder(&model.folder_name);
+            model.model = ModelFolder::load_folder(&model.model.folder_name);
         }
         self.sort_files();
 
@@ -304,22 +303,22 @@ impl SsbhApp {
     pub fn clear_workspace(&mut self) {
         self.models = Vec::new();
         self.render_models = Vec::new();
-        self.thumbnails = Vec::new();
         self.animation_state.animations = Vec::new();
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }
 
     fn sort_files(&mut self) {
+        // Don't sort the files themselves so render models and animations stay in sync.
         for model in &mut self.models {
             // Sort by file name for consistent ordering in the UI.
-            model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-            model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-            model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-            model.meshes.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-            model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-            model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-            model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.anims.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.matls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.meshes.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
+            model.model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
         }
     }
 
@@ -567,10 +566,10 @@ impl SsbhApp {
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
-                    if let Some((name, Ok(skel))) = model.skels.get_mut(skel_index) {
+                    if let Some((name, Ok(skel))) = model.model.skels.get_mut(skel_index) {
                         let (open, changed) = skel_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             skel,
                             &mut self.ui_state.skel_editor,
@@ -585,20 +584,14 @@ impl SsbhApp {
                 }
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
-                    if let Some((name, Ok(mesh))) = model.meshes.get_mut(mesh_index) {
-                        let validation_errors = self
-                            .validation_errors
-                            .get(folder_index)
-                            .map(|v| v.mesh_errors.as_slice())
-                            .unwrap_or_default();
-
+                    if let Some((name, Ok(mesh))) = model.model.meshes.get_mut(mesh_index) {
                         let (open, changed) = mesh_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             mesh,
-                            find_file(&model.skels, "model.nusktb"),
-                            validation_errors,
+                            find_file(&model.model.skels, "model.nusktb"),
+                            &model.validation.mesh_errors,
                             &mut self.ui_state,
                         );
                         file_changed |= changed;
@@ -620,23 +613,16 @@ impl SsbhApp {
 
                 // TODO: Make all this code a function?
                 if let Some(matl_index) = self.ui_state.selected_matl_index {
-                    if let Some((name, Ok(matl))) = model.matls.get_mut(matl_index) {
-                        // TODO: Make this a method to simplify arguments.
-                        let validation_errors = self
-                            .validation_errors
-                            .get(folder_index)
-                            .map(|v| v.matl_errors.as_slice())
-                            .unwrap_or_default();
-
+                    if let Some((name, Ok(matl))) = model.model.matls.get_mut(matl_index) {
                         let (open, changed) = matl_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             &mut self.ui_state,
                             matl,
-                            find_file_mut(&mut model.modls, "model.numdlb"),
-                            validation_errors,
-                            self.thumbnails.get(folder_index).unwrap_or(&Vec::new()),
+                            find_file_mut(&mut model.model.modls, "model.numdlb"),
+                            &model.validation.matl_errors,
+                            &model.thumbnails,
                             &self.default_thumbnails,
                             self.render_state.shared_data.database(),
                             &mut self.material_presets,
@@ -661,7 +647,9 @@ impl SsbhApp {
                                         &matl.entries,
                                         &self.render_state.shared_data,
                                     );
-                                    if let Some(modl) = find_file(&model.modls, "model.numdlb") {
+                                    if let Some(modl) =
+                                        find_file(&model.model.modls, "model.numdlb")
+                                    {
                                         // Reassign materials in case material or shader labels changed.
                                         // This is necessary for error checkerboards to display properly.
                                         render_model.reassign_materials(modl, Some(matl))
@@ -673,23 +661,17 @@ impl SsbhApp {
                 }
 
                 if let Some(modl_index) = self.ui_state.selected_modl_index {
-                    if let Some((name, Ok(modl))) = model.modls.get_mut(modl_index) {
-                        let validation_errors = self
-                            .validation_errors
-                            .get(folder_index)
-                            .map(|v| v.modl_errors.as_slice())
-                            .unwrap_or_default();
-
+                    if let Some((name, Ok(modl))) = model.model.modls.get_mut(modl_index) {
                         // TODO: Make a WindowResponse struct?
-                        let matl = find_file(&model.matls, "model.numatb");
+                        let matl = find_file(&model.model.matls, "model.numatb");
                         let (open, changed) = modl_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             modl,
-                            find_file(&model.meshes, "model.numshb"),
+                            find_file(&model.model.meshes, "model.numshb"),
                             matl,
-                            validation_errors,
+                            &model.validation.modl_errors,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         );
                         file_changed |= changed;
@@ -708,13 +690,13 @@ impl SsbhApp {
                 }
 
                 if let Some(hlpb_index) = self.ui_state.selected_hlpb_index {
-                    if let Some((name, Ok(hlpb))) = model.hlpbs.get_mut(hlpb_index) {
+                    if let Some((name, Ok(hlpb))) = model.model.hlpbs.get_mut(hlpb_index) {
                         let (open, changed) = hlpb_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             hlpb,
-                            find_file(&model.skels, "model.nusktb"),
+                            find_file(&model.model.skels, "model.nusktb"),
                         );
                         file_changed |= changed;
 
@@ -731,21 +713,14 @@ impl SsbhApp {
                 }
 
                 if let Some(adj_index) = self.ui_state.selected_adj_index {
-                    if let Some((name, Ok(adj))) = model.adjs.get_mut(adj_index) {
-                        // TODO: Make this a method to simplify arguments.
-                        let validation_errors = self
-                            .validation_errors
-                            .get(folder_index)
-                            .map(|v| v.adj_errors.as_slice())
-                            .unwrap_or_default();
-
+                    if let Some((name, Ok(adj))) = model.model.adjs.get_mut(adj_index) {
                         let (open, changed) = adj_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             adj,
-                            find_file(&model.meshes, "model.numshb"),
-                            validation_errors,
+                            find_file(&model.model.meshes, "model.numshb"),
+                            &model.validation.adj_errors,
                         );
                         file_changed |= changed;
 
@@ -757,10 +732,10 @@ impl SsbhApp {
                 }
 
                 if let Some(anim_index) = self.ui_state.selected_anim_index {
-                    if let Some((name, Ok(anim))) = model.anims.get_mut(anim_index) {
+                    if let Some((name, Ok(anim))) = model.model.anims.get_mut(anim_index) {
                         let (open, changed) = anim_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             anim,
                             &mut self.ui_state.anim_editor,
@@ -780,13 +755,13 @@ impl SsbhApp {
                 }
 
                 if let Some(meshex_index) = self.ui_state.selected_meshex_index {
-                    if let Some((name, Ok(meshex))) = model.meshexes.get_mut(meshex_index) {
+                    if let Some((name, Ok(meshex))) = model.model.meshexes.get_mut(meshex_index) {
                         let (open, changed) = meshex_editor(
                             ctx,
-                            &model.folder_name,
+                            &model.model.folder_name,
                             name,
                             meshex,
-                            find_file(&model.meshes, "model.numshb"),
+                            find_file(&model.model.meshes, "model.numshb"),
                         );
                         file_changed |= changed;
 
@@ -798,10 +773,10 @@ impl SsbhApp {
                 }
 
                 if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
-                    if let Some((name, Ok(nutexb))) = model.nutexbs.get(nutexb_index) {
+                    if let Some((name, Ok(nutexb))) = model.model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(
                             ctx,
-                            &folder_editor_title(&model.folder_name, name),
+                            &folder_editor_title(&model.model.folder_name, name),
                             nutexb,
                             &mut self.render_state.texture_render_settings,
                         ) {
@@ -905,26 +880,18 @@ impl SsbhApp {
             .show(ui, |ui| {
                 let mut folder_to_remove = None;
 
-                for (folder_index, (model, validation)) in self
+                for (folder_index, model) in self
                     .models
                     .iter_mut()
-                    .zip(self.validation_errors.iter())
                     .enumerate()
-                    .filter(|(_, (model, _))| !model.is_empty())
+                    .filter(|(_, model)| !model.model.is_empty())
                 {
                     // TODO: Show full path on hover?
-                    CollapsingHeader::new(folder_display_name(model).to_string_lossy())
+                    CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
                         .id_source(format!("folder.{}", folder_index))
                         .default_open(true)
                         .show(ui, |ui| {
-                            show_folder_files(
-                                &mut self.ui_state,
-                                model,
-                                ui,
-                                folder_index,
-                                validation,
-                                &self.thumbnails,
-                            );
+                            show_folder_files(&mut self.ui_state, model, ui, folder_index);
                         })
                         .header_response
                         .context_menu(|ui| {
@@ -1103,6 +1070,7 @@ impl SsbhApp {
             });
 
             egui::menu::menu_button(ui, "Meshes", |ui| {
+                // TODO: Add show and hide all.
                 if ui.button("Hide Expressions").clicked() {
                     ui.close_menu();
                     self.hide_expressions();
@@ -1155,11 +1123,9 @@ impl SsbhApp {
 
 fn show_folder_files(
     ui_state: &mut UiState,
-    model: &mut ModelFolder,
+    model: &mut ModelFolderState,
     ui: &mut Ui,
     folder_index: usize,
-    validation: &ModelValidationErrors,
-    thumbnails: &[Vec<Thumbnail>],
 ) {
     // Avoid a confusing missing file error for animation or texture folders.
     let is_model = is_model_folder(model);
@@ -1169,84 +1135,84 @@ fn show_folder_files(
     // TODO: Should the index be cleared when reloading models?
     list_files(
         ui,
-        &model.meshes,
+        &model.model.meshes,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_mesh_index,
         required_file("model.numshb"),
         Some("model.numshb"),
-        &validation.mesh_errors,
+        &model.validation.mesh_errors,
     );
     list_files(
         ui,
-        &model.skels,
+        &model.model.skels,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_skel_index,
         required_file("model.nusktb"),
         Some("model.nusktb"),
-        &validation.skel_errors,
+        &model.validation.skel_errors,
     );
     list_files(
         ui,
-        &model.hlpbs,
+        &model.model.hlpbs,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_hlpb_index,
         None,
         Some("model.nuhlpb"),
-        &validation.hlpb_errors,
+        &model.validation.hlpb_errors,
     );
     list_files(
         ui,
-        &model.matls,
+        &model.model.matls,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_matl_index,
         required_file("model.numatb"),
         Some("model.numatb"),
-        &validation.matl_errors,
+        &model.validation.matl_errors,
     );
     list_files(
         ui,
-        &model.modls,
+        &model.model.modls,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_modl_index,
         required_file("model.numdlb"),
         Some("model.numdlb"),
-        &validation.modl_errors,
+        &model.validation.modl_errors,
     );
     list_files(
         ui,
-        &model.adjs,
+        &model.model.adjs,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_adj_index,
         None,
         Some("model.adjb"),
-        &validation.adj_errors,
+        &model.validation.adj_errors,
     );
     list_files(
         ui,
-        &model.anims,
+        &model.model.anims,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_anim_index,
         None,
         None,
-        &validation.anim_errors,
+        &model.validation.anim_errors,
     );
     // TODO: Is the model.numshexb required?
     list_files(
         ui,
-        &model.meshexes,
+        &model.model.meshexes,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_meshex_index,
         None,
         Some("model.numshexb"),
-        &validation.meshex_errors,
+        &model.validation.meshex_errors,
     );
     // TODO: Create a single function that takes thumbnails?
     list_nutexb_files(
@@ -1255,16 +1221,15 @@ fn show_folder_files(
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_nutexb_index,
-        thumbnails,
-        validation,
     );
 }
 
-fn is_model_folder(model: &ModelFolder) -> bool {
-    !model.meshes.is_empty()
-        || !model.modls.is_empty()
-        || !model.skels.is_empty()
-        || !model.matls.is_empty()
+fn is_model_folder(model: &ModelFolderState) -> bool {
+    // Check for files used for mesh rendering.
+    !model.model.meshes.is_empty()
+        || !model.model.modls.is_empty()
+        || !model.model.skels.is_empty()
+        || !model.model.matls.is_empty()
 }
 
 // TODO: Move path formatting to its own module?
@@ -1359,33 +1324,31 @@ fn list_files<T, E: std::fmt::Display>(
 
 fn list_nutexb_files(
     ui: &mut Ui,
-    model: &ModelFolder,
+    model: &ModelFolderState,
     folder_index: usize,
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
-    thumbnails: &[Vec<Thumbnail>],
-    validation: &ModelValidationErrors,
 ) {
     // Show missing textures required by the matl.
-    for e in &validation.matl_errors {
+    for e in &model.validation.matl_errors {
         if let MatlValidationErrorKind::MissingTextures { textures, .. } = &e.kind {
             for texture in textures {
                 missing_nutexb(ui, texture);
             }
         }
     }
-    for (i, (file, _)) in model.nutexbs.iter().enumerate() {
+    for (i, (file, _)) in model.model.nutexbs.iter().enumerate() {
         // TODO: Avoid collect?
-        let validation_errors: Vec<_> = validation
+        let validation_errors: Vec<_> = model
+            .validation
             .nutexb_errors
             .iter()
             .filter(|e| e.name() == file)
             .collect();
 
         ui.horizontal(|ui| {
-            if let Some((_, thumbnail, _)) = thumbnails
-                .get(folder_index)
-                .and_then(|thumbnails| thumbnails.iter().find(|(name, _, _)| name == file))
+            if let Some((_, thumbnail, _)) =
+                model.thumbnails.iter().find(|(name, _, _)| name == file)
             {
                 ui.image(*thumbnail, egui::Vec2::new(ICON_SIZE, ICON_SIZE));
             } else {
@@ -1498,7 +1461,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     // Don't show non model folders like animation or texture folders.
     for (i, folder) in app
         .models
-        .iter()
+        .iter_mut()
         .enumerate()
         .filter(|(_, folder)| is_model_folder(folder))
     {
@@ -1510,7 +1473,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     render_model.is_selected = ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
-                            folder_display_name(folder).to_string_lossy(),
+                            folder_display_name(&folder.model).to_string_lossy(),
                         ))
                         .hovered();
                 }
