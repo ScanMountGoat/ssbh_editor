@@ -21,7 +21,7 @@ pub fn hlpb_editor(
     skel: Option<&SkelData>,
 ) -> (bool, bool) {
     let mut open = true;
-    let mut changed = true;
+    let mut changed = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Hlpb Editor ({title})"))
