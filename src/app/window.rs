@@ -73,7 +73,7 @@ pub fn stage_lighting_window(
         .resizable(false)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("Open render folder...").clicked() {
                         if let Some(folder) = FileDialog::new().pick_folder() {
                             // Attempt to load supported lighting files based on naming conventions.
@@ -165,7 +165,7 @@ pub fn preferences_window(
         .resizable(false)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui
                         .add(egui::Button::new("Open preferences directory...").wrap(false))
                         .clicked()

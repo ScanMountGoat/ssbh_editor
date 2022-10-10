@@ -21,7 +21,7 @@ pub fn meshex_editor(
         .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
@@ -45,7 +45,7 @@ pub fn meshex_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "MeshEx", |ui| {
+                ui.menu_button("MeshEx", |ui| {
                     if ui
                         .add_enabled(mesh.is_some(), egui::Button::new("Rebuild From Mesh"))
                         .clicked()
@@ -60,7 +60,7 @@ pub fn meshex_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Help", |ui| {
+                ui.menu_button("Help", |ui| {
                     if ui.button("MeshEx Editor Wiki").clicked() {
                         ui.close_menu();
 

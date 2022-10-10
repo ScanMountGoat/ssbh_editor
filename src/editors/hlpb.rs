@@ -29,7 +29,7 @@ pub fn hlpb_editor(
         .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
@@ -53,7 +53,7 @@ pub fn hlpb_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Constraint", |ui| {
+                ui.menu_button("Constraint", |ui| {
                     if ui.button("Add Aim Constraint").clicked() {
                         ui.close_menu();
 
@@ -109,7 +109,7 @@ pub fn hlpb_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Help", |ui| {
+                ui.menu_button("Help", |ui| {
                     if ui.button("Hlpb Editor Wiki").clicked() {
                         ui.close_menu();
 

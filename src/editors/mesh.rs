@@ -34,7 +34,7 @@ pub fn mesh_editor(
         .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button( "File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
@@ -58,7 +58,7 @@ pub fn mesh_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Mesh", |ui| {
+                ui.menu_button( "Mesh", |ui| {
                     if ui
                         .add(Button::new("Match reference mesh order...").wrap(false))
                         .clicked()
@@ -77,7 +77,7 @@ pub fn mesh_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Help", |ui| {
+                ui.menu_button( "Help", |ui| {
                     if ui.button("Mesh Editor Wiki").clicked() {
                         ui.close_menu();
 

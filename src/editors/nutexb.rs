@@ -15,7 +15,7 @@ pub fn nutexb_viewer(
         .resizable(false)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "Help", |ui| {
+                ui.menu_button("Help", |ui| {
                     if ui.button("Nutexb Editor Wiki").clicked() {
                         ui.close_menu();
 

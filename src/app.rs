@@ -969,7 +969,7 @@ impl SsbhApp {
 
     fn menu_bar(&mut self, ui: &mut Ui) {
         egui::menu::bar(ui, |ui| {
-            egui::menu::menu_button(ui, "File", |ui| {
+            ui.menu_button("File", |ui| {
                 let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
 
                 // TODO: Store keyboard shortcuts in a single place?
@@ -990,6 +990,12 @@ impl SsbhApp {
                     self.add_folder_to_workspace(true);
                 }
 
+                ui.menu_button("Open Recent", |ui| {
+                    if ui.button("test").clicked() {
+                        
+                    }
+                });
+
                 if button(ui, format!("Add Folder to Workspace...    {ctrl_shift} O")).clicked() {
                     ui.close_menu();
                     self.add_folder_to_workspace(false);
@@ -1007,7 +1013,7 @@ impl SsbhApp {
             });
 
             // TODO: Add icons?
-            egui::menu::menu_button(ui, "Menu", |ui| {
+            ui.menu_button("Menu", |ui| {
                 if ui.button("Render Settings").clicked() {
                     ui.close_menu();
                     self.ui_state.render_settings_open = true;
@@ -1029,7 +1035,7 @@ impl SsbhApp {
                 }
             });
 
-            egui::menu::menu_button(ui, "Viewport", |ui| {
+            ui.menu_button("Viewport", |ui| {
                 if ui.button("Camera Settings").clicked() {
                     ui.close_menu();
                     self.ui_state.camera_settings_open = true;
@@ -1069,7 +1075,7 @@ impl SsbhApp {
                 }
             });
 
-            egui::menu::menu_button(ui, "Meshes", |ui| {
+            ui.menu_button("Meshes", |ui| {
                 // TODO: Add show and hide all.
                 if ui.button("Hide Expressions").clicked() {
                     ui.close_menu();
@@ -1077,13 +1083,13 @@ impl SsbhApp {
                 }
             });
 
-            egui::menu::menu_button(ui, "View", |ui| {
+            ui.menu_button("View", |ui| {
                 ui.checkbox(&mut self.show_left_panel, "Left Panel");
                 ui.checkbox(&mut self.show_right_panel, "Right Panel");
                 ui.checkbox(&mut self.show_bottom_panel, "Bottom Panel");
             });
 
-            egui::menu::menu_button(ui, "Help", |ui| {
+            ui.menu_button("Help", |ui| {
                 if ui.button("Wiki").clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";

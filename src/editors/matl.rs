@@ -102,7 +102,7 @@ pub fn preset_editor(
         .open(&mut ui_state.preset_editor_open)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
@@ -111,7 +111,7 @@ pub fn preset_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Import", |ui| {
+                ui.menu_button("Import", |ui| {
                     // Import presets from external formats.
                     if ui
                         .add(Button::new("JSON Presets (ssbh_data_json)").wrap(false))
@@ -142,7 +142,7 @@ pub fn preset_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Material", |ui| {
+                ui.menu_button("Material", |ui| {
                     if ui.button("Remove Duplicates").clicked() {
                         ui.close_menu();
 
@@ -358,7 +358,7 @@ fn menu_bar(
     file_name: &str,
 ) {
     egui::menu::bar(ui, |ui| {
-        egui::menu::menu_button(ui, "File", |ui| {
+        ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
                 ui.close_menu();
 
@@ -382,7 +382,7 @@ fn menu_bar(
             }
         });
 
-        egui::menu::menu_button(ui, "Material", |ui| {
+        ui.menu_button("Material", |ui| {
             let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
             if ui.button("Add New Material").clicked() {
                 ui.close_menu();
@@ -439,7 +439,7 @@ fn menu_bar(
 }
 
 fn help_menu(ui: &mut Ui) {
-    egui::menu::menu_button(ui, "Help", |ui| {
+    ui.menu_button( "Help", |ui| {
         let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
 
         if button(ui, "Material Parameter Reference (GitHub)").clicked() {

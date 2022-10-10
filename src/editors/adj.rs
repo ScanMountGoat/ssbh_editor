@@ -22,7 +22,7 @@ pub fn adj_editor(
         .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu_button(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
@@ -45,7 +45,7 @@ pub fn adj_editor(
                     }
                 });
 
-                egui::menu::menu_button(ui, "Help", |ui| {
+                ui.menu_button("Help", |ui| {
                     if ui.button("Adj Editor Wiki").clicked() {
                         ui.close_menu();
 
