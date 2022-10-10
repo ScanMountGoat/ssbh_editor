@@ -230,61 +230,71 @@ impl Default for PanelTab {
 }
 
 impl SsbhApp {
-    pub fn add_folder_to_workspace(&mut self, clear_workspace: bool) {
+    pub fn add_folder_to_workspace_from_dialog(&mut self, clear_workspace: bool) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            // Don't clear existing files if the user cancels the dialog.
-            if clear_workspace {
-                self.clear_workspace();
-            }
+            self.add_folder_to_workspace(folder, clear_workspace);
+        }
+    }
 
-            // TODO: Check for duplicate folders?
+    pub fn add_folder_to_workspace<P: AsRef<Path>>(&mut self, folder: P, clear_workspace: bool) {
+        // Don't clear existing files if the user cancels the dialog.
+        if clear_workspace {
+            self.clear_workspace();
+        }
 
-            // Load recursively for nested folders like stages.
-            let mut new_models = ssbh_wgpu::load_model_folders(&folder);
-            new_models.sort_by_key(|m| m.folder_name.clone());
+        // TODO: Check for duplicate folders?
 
-            self.animation_state
-                .animations
-                .extend(new_models.iter().enumerate().map(|(i, model)| {
-                    if let Some(anim_index) =
-                        model.anims.iter().position(|(f, _)| f == "model.nuanmb")
-                    {
-                        // The model.nuanmb always plays, so assign it automatically.
-                        vec![AnimationSlot {
-                            is_enabled: true,
-                            animation: Some(AnimationIndex {
-                                folder_index: self.models.len() + i,
-                                anim_index,
-                            }),
-                        }]
-                    } else {
-                        // Add a dummy animation to prompt the user to select one.
-                        vec![AnimationSlot::new()]
-                    }
-                }));
+        // Load recursively for nested folders like stages.
+        let mut new_models = ssbh_wgpu::load_model_folders(&folder);
+        new_models.sort_by_key(|m| m.folder_name.clone());
 
-            // Only load new render models for better performance.
-            // TODO: Handle this with models to update?
-            self.render_models.extend(new_models.iter().map(|model| {
-                RenderModel::from_folder(
-                    &self.render_state.device,
-                    &self.render_state.queue,
-                    model,
-                    &self.render_state.shared_data,
-                )
+        self.animation_state
+            .animations
+            .extend(new_models.iter().enumerate().map(|(i, model)| {
+                if let Some(anim_index) = model.anims.iter().position(|(f, _)| f == "model.nuanmb")
+                {
+                    // The model.nuanmb always plays, so assign it automatically.
+                    vec![AnimationSlot {
+                        is_enabled: true,
+                        animation: Some(AnimationIndex {
+                            folder_index: self.models.len() + i,
+                            anim_index,
+                        }),
+                    }]
+                } else {
+                    // Add a dummy animation to prompt the user to select one.
+                    vec![AnimationSlot::new()]
+                }
             }));
 
-            if self.preferences.autohide_expressions {
-                self.hide_expressions();
-            }
+        // Only load new render models for better performance.
+        // TODO: Handle this with models to update?
+        self.render_models.extend(new_models.iter().map(|model| {
+            RenderModel::from_folder(
+                &self.render_state.device,
+                &self.render_state.queue,
+                model,
+                &self.render_state.shared_data,
+            )
+        }));
 
-            self.models
-                .extend(new_models.into_iter().map(ModelFolderState::from_model));
-            self.sort_files();
+        if self.preferences.autohide_expressions {
+            self.hide_expressions();
+        }
 
-            // TODO: Only validate the models that were added?
-            self.should_validate_models = true;
-            self.should_update_thumbnails = true;
+        self.models
+            .extend(new_models.into_iter().map(ModelFolderState::from_model));
+        self.sort_files();
+
+        // TODO: Only validate the models that were added?
+        self.should_validate_models = true;
+        self.should_update_thumbnails = true;
+
+        // Only keep track of a limited number of recent folders.
+        let new_folder = folder.as_ref().to_string_lossy().to_string();
+        if !self.preferences.recent_folders.contains(&new_folder) {
+            self.preferences.recent_folders.insert(0, new_folder);
+            self.preferences.recent_folders.truncate(10);
         }
     }
 
@@ -969,8 +979,9 @@ impl SsbhApp {
 
     fn menu_bar(&mut self, ui: &mut Ui) {
         egui::menu::bar(ui, |ui| {
+            // TODO: Improve alignment of menu options.
             ui.menu_button("File", |ui| {
-                let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+                let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
 
                 // TODO: Store keyboard shortcuts in a single place?
                 let ctrl = if cfg!(target_os = "macos") {
@@ -985,28 +996,65 @@ impl SsbhApp {
                     "Ctrl Shift"
                 };
 
-                if button(ui, format!("Open Folder...    {ctrl} O")).clicked() {
+                if button(ui, &format!("Open Folder...    {ctrl} O")).clicked() {
                     ui.close_menu();
-                    self.add_folder_to_workspace(true);
+                    if let Some(folder) = FileDialog::new().pick_folder() {
+                        self.add_folder_to_workspace(folder, true);
+                    }
                 }
 
-                ui.menu_button("Open Recent", |ui| {
-                    if ui.button("test").clicked() {
-                        
+                // TODO: Find a cleaner way to write this.
+                // TODO: Add an option to clear the recently opened?
+                let mut recent = None;
+                ui.menu_button("Open Recent Folder", |ui| {
+                    for folder in &self.preferences.recent_folders {
+                        if button(ui, folder).clicked() {
+                            ui.close_menu();
+                            recent = Some(folder.clone());
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Clear Recently Opened").clicked() {
+                        self.preferences.recent_folders.clear();
                     }
                 });
+                if let Some(recent) = recent {
+                    self.add_folder_to_workspace(Path::new(&recent), true);
+                }
+                ui.separator();
 
-                if button(ui, format!("Add Folder to Workspace...    {ctrl_shift} O")).clicked() {
+                if button(ui, &format!("Add Folder to Workspace...    {ctrl_shift} O")).clicked() {
                     ui.close_menu();
-                    self.add_folder_to_workspace(false);
+                    if let Some(folder) = FileDialog::new().pick_folder() {
+                        self.add_folder_to_workspace(folder, false);
+                    }
                 }
 
-                if button(ui, format!("Reload Workspace    {ctrl} R")).clicked() {
+                // TODO: Find a cleaner way to write this.
+                let mut recent = None;
+                ui.menu_button("Add Recent Folder to Workspace", |ui| {
+                    for folder in &self.preferences.recent_folders {
+                        if button(ui, folder).clicked() {
+                            ui.close_menu();
+                            recent = Some(folder.clone());
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Clear Recently Opened").clicked() {
+                        self.preferences.recent_folders.clear();
+                    }
+                });
+                if let Some(recent) = recent {
+                    self.add_folder_to_workspace(Path::new(&recent), false);
+                }
+                ui.separator();
+
+                if button(ui, &format!("Reload Workspace    {ctrl} R")).clicked() {
                     ui.close_menu();
                     self.reload_workspace();
                 }
 
-                if button(ui, "Clear Workspace".to_owned()).clicked() {
+                if button(ui, "Clear Workspace").clicked() {
                     ui.close_menu();
                     self.clear_workspace();
                 }

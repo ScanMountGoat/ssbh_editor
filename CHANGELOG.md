@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### unreleased
+### Added
+* Added an option to open or add recently opened folders under File > Open Recent Folder and File > Add Recent Folder to Workspace.
+
+### Fixed
+* Fixed an issue where the application would perform unecessary work while the Hlpb Editor is open.
+
 ### 0.6.3 - 2022-10-09
 ### Added
 * Added an option to add and delete constraints to the Hlpb Editor

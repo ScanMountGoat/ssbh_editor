@@ -970,8 +970,8 @@ fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app:
         if !is_synthetic {
             if let Some(key) = input.virtual_keycode {
                 match (modifiers, key) {
-                    (CTRL, VirtualKeyCode::O) => app.add_folder_to_workspace(true),
-                    (CTRL_SHIFT, VirtualKeyCode::O) => app.add_folder_to_workspace(false),
+                    (CTRL, VirtualKeyCode::O) => app.add_folder_to_workspace_from_dialog(true),
+                    (CTRL_SHIFT, VirtualKeyCode::O) => app.add_folder_to_workspace_from_dialog(false),
                     (CTRL, VirtualKeyCode::R) => app.reload_workspace(),
                     _ => (),
                 }
