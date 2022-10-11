@@ -161,6 +161,7 @@ pub fn render_settings_window(
                 "Enable Vertex Skinning",
             );
             ui.checkbox(enable_helper_bones, "Enable Helper Bones");
+            horizontal_separator_empty(ui);
 
             ui.heading("Skeleton");
             ui.checkbox(draw_skeletons, "Draw Bones");
