@@ -1099,28 +1099,30 @@ impl SsbhApp {
                     }
                 }
 
-                if ui
-                    .add(Button::new("Render Animation to Image Sequence...").wrap(false))
-                    .clicked()
-                {
-                    ui.close_menu();
-                    if let Some(file) = FileDialog::new()
-                        .add_filter("Image", &["png", "jpg", "tif", "bmp"])
-                        .save_file()
-                    {
-                        self.animation_image_sequence_to_render = Some(file);
-                    }
-                }
+                ui.menu_button("Render Animation", |ui| {
+                            if ui
+                                .add(Button::new("Render to Image Sequence...").wrap(false))
+                                .clicked()
+                            {
+                                ui.close_menu();
+                                if let Some(file) = FileDialog::new()
+                                    .add_filter("Image", &["png", "jpg", "tif", "bmp"])
+                                    .save_file()
+                                {
+                                    self.animation_image_sequence_to_render = Some(file);
+                                }
+                            }
 
-                if ui
-                    .add(Button::new("Render Animation to GIF...").wrap(false))
-                    .clicked()
-                {
-                    ui.close_menu();
-                    if let Some(file) = FileDialog::new().add_filter("GIF", &["gif"]).save_file() {
-                        self.animation_gif_to_render = Some(file);
-                    }
-                }
+                            if ui
+                                .add(Button::new("Render to GIF...").wrap(false))
+                                .clicked()
+                            {
+                                ui.close_menu();
+                                if let Some(file) = FileDialog::new().add_filter("GIF", &["gif"]).save_file() {
+                                    self.animation_gif_to_render = Some(file);
+                                }
+                            }
+                        });
             });
 
             ui.menu_button("Meshes", |ui| {
