@@ -47,12 +47,16 @@ pub fn camera_settings_window(
                 );
                 ui.end_row();
 
-                ui.label("FOV");
-                ui.add(
-                    egui::DragValue::new(&mut camera_state.fov_y_radians)
-                        .speed(0.01)
-                        .clamp_range(0.0..=2.0 * PI),
-                );
+                ui.label("FOV").on_hover_text("The vertical field of view in degrees.");
+                let mut fov_degrees = camera_state.fov_y_radians.to_degrees();
+                if ui.add(
+                    egui::DragValue::new(&mut fov_degrees)
+                        .speed(1.0)
+                        .clamp_range(0.0..=180.0),
+                ).changed() {
+                    camera_state.fov_y_radians = fov_degrees.to_radians();
+                }
+
                 ui.end_row();
 
                 if ui.button("Reset").clicked() {

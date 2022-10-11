@@ -38,6 +38,7 @@ fn calculate_mvp(
     rotation_xyz_radians: glam::Vec3,
     fov_y_radians: f32,
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
+    // TODO: Rework this to use the camera format from Smash (quaternion).
     let aspect = size.width as f32 / size.height as f32;
     let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
         * glam::Mat4::from_rotation_x(rotation_xyz_radians.x)
