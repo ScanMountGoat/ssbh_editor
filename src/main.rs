@@ -173,7 +173,7 @@ fn main() {
 
     // TODO: Avoid unwrap.
     let app_data_dir = PROJECT_DIR.data_local_dir();
-    std::fs::create_dir_all(&app_data_dir).unwrap();
+    std::fs::create_dir_all(app_data_dir).unwrap();
 
     let last_update_check_file = last_update_check_file();
 
@@ -208,8 +208,8 @@ fn main() {
     let mut surface_config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format: surface_format,
-        width: size.width as u32,
-        height: size.height as u32,
+        width: size.width,
+        height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
     };
     surface.configure(&device, &surface_config);
@@ -679,11 +679,11 @@ fn render_animation_to_image_sequence(
                 .with_extension("")
                 .file_name()
                 .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or("img".to_owned());
+                .unwrap_or_else(|| "img".to_owned());
             let extension = file
                 .extension()
                 .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or("png".to_owned());
+                .unwrap_or_else(|| "png".to_owned());
             let output = file
                 .with_file_name(file_name + &i.to_string())
                 .with_extension(extension);
@@ -972,7 +972,9 @@ fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app:
             if let Some(key) = input.virtual_keycode {
                 match (modifiers, key) {
                     (CTRL, VirtualKeyCode::O) => app.add_folder_to_workspace_from_dialog(true),
-                    (CTRL_SHIFT, VirtualKeyCode::O) => app.add_folder_to_workspace_from_dialog(false),
+                    (CTRL_SHIFT, VirtualKeyCode::O) => {
+                        app.add_folder_to_workspace_from_dialog(false)
+                    }
                     (CTRL, VirtualKeyCode::R) => app.reload_workspace(),
                     _ => (),
                 }

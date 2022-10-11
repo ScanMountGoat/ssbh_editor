@@ -379,13 +379,13 @@ impl SsbhApp {
                 'pattern_search: for pattern in patterns {
                     //Default expressions
                     for pattern_exception in pattern_exceptions {
-                        if name.contains(&pattern_exception) {
+                        if name.contains(pattern_exception) {
                             continue 'pattern_search;
                         }
                     }
 
                     //Make all other expressions invisible
-                    if name.contains(&pattern) {
+                    if name.contains(pattern) {
                         mesh.is_visible = false;
                     }
                 }
@@ -1100,29 +1100,31 @@ impl SsbhApp {
                 }
 
                 ui.menu_button("Render Animation", |ui| {
-                            if ui
-                                .add(Button::new("Render to Image Sequence...").wrap(false))
-                                .clicked()
-                            {
-                                ui.close_menu();
-                                if let Some(file) = FileDialog::new()
-                                    .add_filter("Image", &["png", "jpg", "tif", "bmp"])
-                                    .save_file()
-                                {
-                                    self.animation_image_sequence_to_render = Some(file);
-                                }
-                            }
+                    if ui
+                        .add(Button::new("Render to Image Sequence...").wrap(false))
+                        .clicked()
+                    {
+                        ui.close_menu();
+                        if let Some(file) = FileDialog::new()
+                            .add_filter("Image", &["png", "jpg", "tif", "bmp"])
+                            .save_file()
+                        {
+                            self.animation_image_sequence_to_render = Some(file);
+                        }
+                    }
 
-                            if ui
-                                .add(Button::new("Render to GIF...").wrap(false))
-                                .clicked()
-                            {
-                                ui.close_menu();
-                                if let Some(file) = FileDialog::new().add_filter("GIF", &["gif"]).save_file() {
-                                    self.animation_gif_to_render = Some(file);
-                                }
-                            }
-                        });
+                    if ui
+                        .add(Button::new("Render to GIF...").wrap(false))
+                        .clicked()
+                    {
+                        ui.close_menu();
+                        if let Some(file) =
+                            FileDialog::new().add_filter("GIF", &["gif"]).save_file()
+                        {
+                            self.animation_gif_to_render = Some(file);
+                        }
+                    }
+                });
             });
 
             ui.menu_button("Meshes", |ui| {
@@ -1184,7 +1186,7 @@ fn show_folder_files(
     folder_index: usize,
 ) {
     // Avoid a confusing missing file error for animation or texture folders.
-    let is_model = is_model_folder(model);
+    let is_model = model.is_model_folder();
     let required_file = |name| if is_model { Some(name) } else { None };
     // Clicking a file opens the corresponding editor.
     // Set selected index so the editor remains open for the file.
@@ -1278,14 +1280,6 @@ fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_nutexb_index,
     );
-}
-
-fn is_model_folder(model: &ModelFolderState) -> bool {
-    // Check for files used for mesh rendering.
-    !model.model.meshes.is_empty()
-        || !model.model.modls.is_empty()
-        || !model.model.skels.is_empty()
-        || !model.model.matls.is_empty()
 }
 
 // TODO: Move path formatting to its own module?
@@ -1519,7 +1513,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         .models
         .iter_mut()
         .enumerate()
-        .filter(|(_, folder)| is_model_folder(folder))
+        .filter(|(_, folder)| folder.is_model_folder())
     {
         let id = ui.make_persistent_id("meshlist").with(i);
 

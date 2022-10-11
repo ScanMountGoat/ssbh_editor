@@ -27,12 +27,12 @@ pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
 type FileResult<T> = Result<T, Box<dyn Error>>;
 
-// TODO: Move functions that take a reference to be methods for better organization.
 pub struct ModelFolderState {
     pub model: ModelFolder,
     pub thumbnails: Vec<Thumbnail>,
     pub validation: ModelValidationErrors,
     // TODO: Add animation slots
+    // TODO: Add change tracking.
 }
 
 impl ModelFolderState {
@@ -54,6 +54,14 @@ impl ModelFolderState {
                 .iter()
                 .map(|(f, _, d)| (f, d.into())),
         );
+    }
+
+    pub fn is_model_folder(&self) -> bool {
+        // Check for files used for mesh rendering.
+        !self.model.meshes.is_empty()
+            || !self.model.modls.is_empty()
+            || !self.model.skels.is_empty()
+            || !self.model.matls.is_empty()
     }
 }
 

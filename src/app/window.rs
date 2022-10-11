@@ -47,13 +47,17 @@ pub fn camera_settings_window(
                 );
                 ui.end_row();
 
-                ui.label("FOV").on_hover_text("The vertical field of view in degrees.");
+                ui.label("FOV")
+                    .on_hover_text("The vertical field of view in degrees.");
                 let mut fov_degrees = camera_state.fov_y_radians.to_degrees();
-                if ui.add(
-                    egui::DragValue::new(&mut fov_degrees)
-                        .speed(1.0)
-                        .clamp_range(0.0..=180.0),
-                ).changed() {
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut fov_degrees)
+                            .speed(1.0)
+                            .clamp_range(0.0..=180.0),
+                    )
+                    .changed()
+                {
                     camera_state.fov_y_radians = fov_degrees.to_radians();
                 }
 
@@ -177,7 +181,7 @@ pub fn preferences_window(
                         ui.close_menu();
 
                         let path = application_dir();
-                        if let Err(e) = open::that(&path) {
+                        if let Err(e) = open::that(path) {
                             log::error!("Failed to open {path:?}: {e}");
                         }
                     }

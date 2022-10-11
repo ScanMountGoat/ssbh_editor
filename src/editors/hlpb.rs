@@ -66,7 +66,7 @@ pub fn hlpb_editor(
                                 .map(|a| &a.name)
                                 .max()
                                 .map(|n| n.to_owned() + "1")
-                                .unwrap_or("nuHelperBoneRotateAim1".to_owned()),
+                                .unwrap_or_else(|| "nuHelperBoneRotateAim1".to_owned()),
                             aim_bone_name1: String::new(),
                             aim_bone_name2: String::new(),
                             aim_type1: "DEFAULT".to_owned(),
@@ -94,7 +94,7 @@ pub fn hlpb_editor(
                                 .map(|o| &o.name)
                                 .max()
                                 .map(|n| n.to_owned() + "1")
-                                .unwrap_or("nuHelperBoneRotateInterp1".to_owned()),
+                                .unwrap_or_else(|| "nuHelperBoneRotateInterp1".to_owned()),
                             parent_bone_name1: String::new(),
                             parent_bone_name2: String::new(),
                             source_bone_name: String::new(),

@@ -3,7 +3,7 @@ use std::path::Path;
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
 
 use crate::{
-    app::{folder_display_name, is_model_folder, SsbhApp},
+    app::{folder_display_name, SsbhApp},
     widgets::EyeCheckBox,
     AnimationIndex, AnimationSlot, ModelFolderState,
 };
@@ -14,7 +14,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         .models
         .iter()
         .enumerate()
-        .filter(|(_, model)| is_model_folder(model))
+        .filter(|(_, model)| model.is_model_folder())
     {
         let mut slots_to_remove = Vec::new();
 

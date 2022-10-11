@@ -403,7 +403,7 @@ fn validate_wrap_mode_tiling(
 
                     // Ignore additional UV layers for now.
                     // This prevents unwanted errors for iris textures using uvSet.
-                    if uv_name != "" {
+                    if !uv_name.is_empty() {
                         // Only check the corresponding UV coordinates for each sampler.
                         for a in o.texture_coordinates.iter().filter(|a| a.name == uv_name) {
                             // It's normal to have UVs slightly outside the first quadrant.
