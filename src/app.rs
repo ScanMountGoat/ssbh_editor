@@ -1141,7 +1141,28 @@ impl SsbhApp {
             });
 
             ui.menu_button("Meshes", |ui| {
-                // TODO: Add show and hide all.
+                if ui.button("Show All").clicked() {
+                    ui.close_menu();
+
+                    for model in &mut self.render_models {
+                        model.is_visible = true;
+                        for mesh in &mut model.meshes {
+                            mesh.is_visible = true;
+                        }
+                    }
+                }
+
+                if ui.button("Hide All").clicked() {
+                    ui.close_menu();
+
+                    for model in &mut self.render_models {
+                        model.is_visible = false;
+                        for mesh in &mut model.meshes {
+                            mesh.is_visible = false;
+                        }
+                    }
+                }
+
                 if ui.button("Hide Expressions").clicked() {
                     ui.close_menu();
                     self.hide_expressions();
