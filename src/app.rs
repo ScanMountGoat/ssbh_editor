@@ -16,8 +16,8 @@ use crate::{
     preferences::AppPreferences,
     validation::MatlValidationErrorKind,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileResult, ModelFolderState,
-    RenderState, Thumbnail,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileChanged, FileResult,
+    ModelFolderState, RenderState, Thumbnail,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -301,7 +301,9 @@ impl SsbhApp {
     pub fn reload_workspace(&mut self) {
         // This also reloads animations since animations are stored as indices.
         for model in &mut self.models {
+            // Make sure the ModelFolder is loaded first.
             model.model = ModelFolder::load_folder(&model.model.folder_name);
+            model.changed = FileChanged::from_model(&model.model);
         }
         self.sort_files();
 
@@ -584,6 +586,9 @@ impl SsbhApp {
                             skel,
                             &mut self.ui_state.skel_editor,
                         );
+                        // TODO: Create window response struct that also tracks saving to reset changed.
+                        // TODO: window_response.set_changed(&mut model.changed.skels)?
+                        model.changed.skels[skel_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -604,6 +609,7 @@ impl SsbhApp {
                             &model.validation.mesh_errors,
                             &mut self.ui_state,
                         );
+                        model.changed.meshes[mesh_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -639,6 +645,8 @@ impl SsbhApp {
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         );
+                        // TODO: This modifies the model.numdlb when reassigning materials.
+                        model.changed.matls[matl_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -684,6 +692,7 @@ impl SsbhApp {
                             &model.validation.modl_errors,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         );
+                        model.changed.modls[modl_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -708,6 +717,7 @@ impl SsbhApp {
                             hlpb,
                             find_file(&model.model.skels, "model.nusktb"),
                         );
+                        model.changed.hlpbs[hlpb_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -732,6 +742,7 @@ impl SsbhApp {
                             find_file(&model.model.meshes, "model.numshb"),
                             &model.validation.adj_errors,
                         );
+                        model.changed.adjs[adj_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -750,6 +761,7 @@ impl SsbhApp {
                             anim,
                             &mut self.ui_state.anim_editor,
                         );
+                        model.changed.anims[anim_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -773,6 +785,7 @@ impl SsbhApp {
                             meshex,
                             find_file(&model.model.meshes, "model.numshb"),
                         );
+                        model.changed.meshexes[meshex_index] |= changed;
                         file_changed |= changed;
 
                         if !open {
@@ -1194,6 +1207,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.meshes,
+        &model.changed.meshes,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_mesh_index,
@@ -1204,6 +1218,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.skels,
+        &model.changed.skels,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_skel_index,
@@ -1214,6 +1229,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.hlpbs,
+        &model.changed.hlpbs,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_hlpb_index,
@@ -1224,6 +1240,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.matls,
+        &model.changed.matls,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_matl_index,
@@ -1234,6 +1251,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.modls,
+        &model.changed.modls,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_modl_index,
@@ -1244,6 +1262,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.adjs,
+        &model.changed.adjs,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_adj_index,
@@ -1254,6 +1273,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.anims,
+        &model.changed.anims,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_anim_index,
@@ -1265,6 +1285,7 @@ fn show_folder_files(
     list_files(
         ui,
         &model.model.meshexes,
+        &model.changed.meshexes,
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.selected_meshex_index,
@@ -1323,6 +1344,7 @@ fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) ->
 fn list_files<T, E: std::fmt::Display>(
     ui: &mut Ui,
     files: &[(String, FileResult<T>)],
+    changed: &[bool],
     folder_index: usize,
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
@@ -1350,6 +1372,11 @@ fn list_files<T, E: std::fmt::Display>(
                     if response.clicked() {
                         *selected_folder_index = Some(folder_index);
                         *selected_file_index = Some(i);
+                    }
+
+                    // TODO: Investigate different ways of displaying this.
+                    if let Some(true) = changed.get(i) {
+                        ui.label("[Modified]");
                     }
                 }
                 Err(_) => {

@@ -787,11 +787,13 @@ fn edit_shader(
                     shader.clone() + "_sort",
                     shader.clone() + "_near",
                 ] {
-                    ui.selectable_value(
-                        &mut entry.shader_label,
-                        pass.clone(),
-                        pass.get(25..).unwrap_or(""),
-                    );
+                    changed |= ui
+                        .selectable_value(
+                            &mut entry.shader_label,
+                            pass.clone(),
+                            pass.get(25..).unwrap_or(""),
+                        )
+                        .changed();
                 }
             });
         ui.end_row();

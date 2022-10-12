@@ -216,7 +216,7 @@ fn find_anim_folders<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::validation::ModelValidationErrors;
+    use crate::{validation::ModelValidationErrors, FileChanged};
     use ssbh_data::anim_data::AnimData;
     use ssbh_wgpu::ModelFolder;
 
@@ -238,6 +238,7 @@ mod tests {
             },
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
+            changed: FileChanged::default(),
         }
     }
 
@@ -265,6 +266,7 @@ mod tests {
             },
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
+            changed: FileChanged::default(),
         }
     }
 

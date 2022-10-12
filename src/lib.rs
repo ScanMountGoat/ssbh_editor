@@ -31,17 +31,19 @@ pub struct ModelFolderState {
     pub model: ModelFolder,
     pub thumbnails: Vec<Thumbnail>,
     pub validation: ModelValidationErrors,
+    pub changed: FileChanged,
     // TODO: Add animation slots
-    // TODO: Add change tracking.
 }
 
 impl ModelFolderState {
     pub fn from_model(model: ModelFolder) -> Self {
         // TODO: Initialize validation here?
+        let changed = FileChanged::from_model(&model);
         Self {
             model,
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
+            changed,
         }
     }
 
@@ -62,6 +64,35 @@ impl ModelFolderState {
             || !self.model.modls.is_empty()
             || !self.model.skels.is_empty()
             || !self.model.matls.is_empty()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct FileChanged {
+    pub meshes: Vec<bool>,
+    pub meshexes: Vec<bool>,
+    pub skels: Vec<bool>,
+    pub matls: Vec<bool>,
+    pub modls: Vec<bool>,
+    pub adjs: Vec<bool>,
+    pub anims: Vec<bool>,
+    pub hlpbs: Vec<bool>,
+    pub nutexbs: Vec<bool>,
+}
+
+impl FileChanged {
+    pub fn from_model(model: &ssbh_wgpu::ModelFolder) -> Self {
+        Self {
+            meshes: vec![false; model.meshes.len()],
+            meshexes: vec![false; model.meshexes.len()],
+            skels: vec![false; model.skels.len()],
+            matls: vec![false; model.matls.len()],
+            modls: vec![false; model.modls.len()],
+            adjs: vec![false; model.adjs.len()],
+            anims: vec![false; model.anims.len()],
+            hlpbs: vec![false; model.hlpbs.len()],
+            nutexbs: vec![false; model.nutexbs.len()],
+        }
     }
 }
 
