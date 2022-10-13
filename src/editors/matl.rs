@@ -821,20 +821,16 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
             let id = egui::Id::new(param.param_id.to_string());
 
             Grid::new(id).show(ui, |ui| {
-                changed |= enum_combo_box(
-                    ui,
-                    "Source Color",
-                    id.with("srccolor"),
-                    &mut param.data.source_color,
-                );
+                ui.label("Source Color")
+                    .on_hover_text("The blend factor for this mesh's rendered color.");
+                changed |= enum_combo_box(ui, id.with("srccolor"), &mut param.data.source_color);
                 ui.end_row();
 
-                changed |= enum_combo_box(
-                    ui,
-                    "Destination Color",
-                    id.with("dstcolor"),
-                    &mut param.data.destination_color,
+                ui.label("Destination Color").on_hover_text(
+                    "The blend factor for the previously rendered background color.",
                 );
+                changed |=
+                    enum_combo_box(ui, id.with("dstcolor"), &mut param.data.destination_color);
                 ui.end_row();
 
                 changed |= ui
@@ -842,6 +838,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
                         &mut param.data.alpha_sample_to_coverage,
                         "Alpha Sample to Coverage",
                     )
+                    .on_hover_text("Simulates transparency using a dithering pattern when enabled.")
                     .changed();
                 ui.end_row();
                 // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
@@ -859,18 +856,18 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
         let id = egui::Id::new(param.param_id.to_string());
 
         Grid::new(id).show(ui, |ui| {
-            changed |= enum_combo_box(
-                ui,
-                "Polygon Fill",
-                id.with("fill"),
-                &mut param.data.fill_mode,
-            );
+            ui.label("Polygon Fill")
+                .on_hover_text("The polygon mode for shading triangles.");
+            changed |= enum_combo_box(ui, id.with("fill"), &mut param.data.fill_mode);
             ui.end_row();
 
-            changed |= enum_combo_box(ui, "Cull Mode", id.with("cull"), &mut param.data.cull_mode);
+            ui.label("Cull Mode")
+                .on_hover_text("The side of each face to cull from rendering.");
+            changed |= enum_combo_box(ui, id.with("cull"), &mut param.data.cull_mode);
             ui.end_row();
 
-            ui.label("Depth Bias");
+            ui.label("Depth Bias")
+                .on_hover_text("The offset to the mesh's depth value for depth testing.");
             ui.add(DragValue::new(&mut param.data.depth_bias).speed(0.1));
             ui.end_row();
         });
@@ -975,41 +972,46 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
         // TODO: List which wrap modes are the problem on error?
         Grid::new(id).show(ui, |ui| {
+            ui.label("Wrap S")
+                .on_hover_text("The wrap mode for the S or U coordinate.");
             changed |= enum_combo_box(
                 ui,
-                "Wrap S",
                 id.with("wraps{:?}"),
                 &mut param.data.wraps,
             );
             ui.end_row();
 
+            ui.label("Wrap T")
+                .on_hover_text("The wrap mode for the T or V coordinate.");
             changed |= enum_combo_box(
                 ui,
-                "Wrap T",
                 id.with("wrapt{:?}"),
                 &mut param.data.wrapt,
             );
             ui.end_row();
 
+            ui.label("Wrap R")
+                .on_hover_text("The wrap mode for the R coordinate for cube maps.");
             changed |= enum_combo_box(
                 ui,
-                "Wrap R",
                 id.with("wrapr{:?}"),
                 &mut param.data.wrapr,
             );
             ui.end_row();
 
+            ui.label("Min Filter")
+                .on_hover_text("The filter mode when minifying the texture. Affects mipmapping.");
             changed |= enum_combo_box(
                 ui,
-                "Min Filter",
                 id.with("minfilter{:?}"),
                 &mut param.data.min_filter,
             );
             ui.end_row();
 
+            ui.label("Mag Filter")
+                .on_hover_text("The filter mode when magnifying the texture.");
             changed |= enum_combo_box(
                 ui,
-                "Mag Filter",
                 id.with("magfilter{:?}"),
                 &mut param.data.mag_filter,
             );
@@ -1018,17 +1020,19 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
             // TODO: What color space to use?
             // TODO: Add tooltips to other labels?
             // TODO: Only show tooltips after a delay?
-            ui.label("Border Color").on_hover_text(
-                "The color when sampling UVs outside the range 0.0 to 1.0. Only affects ClampToBorder.",
+            ui.label("Border Color")
+                .on_hover_text(
+                "The color when sampling UVs outside the range 0.0 to 1.0. Only affects ClampToBorder."
             );
             changed |= edit_color4f_rgba(ui, &mut param.data.border_color);
             ui.end_row();
 
-            ui.label("Lod Bias");
+            ui.label("Lod Bias")
+                .on_hover_text("The offset added to the mip level. Lower values use higher resolution mipmaps more often.");
             changed |= ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1)).changed();
             ui.end_row();
 
-            ui.label("Max Anisotropy");
+            ui.label("Max Anisotropy").on_hover_text("The amount of anisotropic filtering. Improves texture quality at extreme angles.");
             egui::ComboBox::from_id_source(id.with("anis{:?}"))
                 .selected_text(
                     anisotropy_label(param

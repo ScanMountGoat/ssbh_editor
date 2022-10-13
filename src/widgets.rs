@@ -83,20 +83,11 @@ impl<'a> Widget for EyeCheckBox<'a> {
     }
 }
 
-pub fn enum_combo_box<V>(
-    ui: &mut egui::Ui,
-    label: &str,
-    id_source: impl std::hash::Hash,
-    value: &mut V,
-) -> bool
+pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl std::hash::Hash, value: &mut V) -> bool
 where
     V: PartialEq + strum::VariantNames + ToString + FromStr,
     <V as FromStr>::Err: std::fmt::Debug,
 {
-    if !label.is_empty() {
-        ui.label(label);
-    }
-
     // TODO: Return response and union instead?
     let mut changed = false;
     egui::ComboBox::from_id_source(id_source)

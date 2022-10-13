@@ -75,12 +75,8 @@ pub fn render_settings_window(
                 ui.end_row();
 
                 if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
-                    enum_combo_box(
-                        ui,
-                        "Transition Material",
-                        "Transition Material",
-                        &mut settings.transition_material,
-                    );
+                    ui.label("Transition Material");
+                    enum_combo_box(ui, "Transition Material", &mut settings.transition_material);
                     ui.end_row();
 
                     ui.label("Transition Factor");

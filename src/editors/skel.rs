@@ -147,7 +147,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
                     }
                 });
 
-            changed |= enum_combo_box(ui, "", i + other_bones.len(), &mut bone.billboard_type);
+            changed |= enum_combo_box(ui, i + other_bones.len(), &mut bone.billboard_type);
 
             ui.horizontal(|ui| {
                 if ui.button("⏶").clicked() {
