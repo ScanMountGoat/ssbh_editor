@@ -1,4 +1,3 @@
-// TODO: Share vectors between ssbh_data types?
 use crate::presets::default_presets;
 use log::error;
 use ssbh_data::{matl_data::*, Vector4};
@@ -194,7 +193,6 @@ pub fn unused_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec<
 }
 
 pub fn add_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
-    // TODO: More intelligently pick defaults
     for param_id in parameters.iter().copied() {
         if is_blend(param_id) {
             entry.blend_states.push(BlendStateParam {
@@ -499,7 +497,7 @@ pub fn default_texture(p: ParamId) -> &'static str {
         ParamId::Texture5 => "/common/shader/sfxpbs/default_black",
         ParamId::Texture6 => "/common/shader/sfxpbs/fighter/default_params",
         ParamId::Texture7 => "#replace_cubemap",
-        ParamId::Texture8 => "#replace_cubemap", // TODO: Better default cube map?
+        ParamId::Texture8 => "#replace_cubemap",
         ParamId::Texture9 => "/common/shader/sfxpbs/default_black",
         ParamId::Texture10 => "/common/shader/sfxpbs/default_white",
         ParamId::Texture11 => "/common/shader/sfxpbs/default_white",
@@ -589,7 +587,6 @@ pub fn param_description(p: ParamId) -> &'static str {
 
 // TODO: Add toggleable tooltips to preferences?
 pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
-    // TODO: Research which parameters are unused.
     match p {
         ParamId::CustomVector1
         | ParamId::CustomVector2
@@ -619,7 +616,6 @@ pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
 }
 
 pub fn vector4_labels_long(p: ParamId) -> [&'static str; 4] {
-    // TODO: Research which parameters are unused.
     match p {
         ParamId::CustomVector1
         | ParamId::CustomVector2

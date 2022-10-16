@@ -344,9 +344,6 @@ fn attribute(node: &Element, name: &str) -> anyhow::Result<String> {
 }
 
 pub fn load_xml_presets(xml_text: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
-    // TODO: Log errors?
-    // TODO: Fail if any files fail to parse?
-    // TODO: Avoid unwrap.
     let element = Element::parse(xml_text)?;
     if element.name != "MaterialLibrary" {
         return Err(anyhow!(

@@ -171,9 +171,7 @@ fn main() {
         .block_on()
         .unwrap();
 
-    // TODO: Avoid unwrap.
-    let app_data_dir = PROJECT_DIR.data_local_dir();
-    std::fs::create_dir_all(app_data_dir).unwrap();
+    create_app_data_directory();
 
     let last_update_check_file = last_update_check_file();
 
@@ -637,6 +635,13 @@ fn main() {
             }
         },
     );
+}
+
+fn create_app_data_directory() {
+    let app_data_dir = PROJECT_DIR.data_local_dir();
+    if let Err(e) = std::fs::create_dir_all(app_data_dir) {
+        error!("Failed to create application directory at {app_data_dir:?}: {e}")
+    }
 }
 
 fn render_animation_to_gif(

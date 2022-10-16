@@ -531,7 +531,6 @@ fn material_combo_box(
                         .on_hover_text(format!("{error_count} validation errors detected."));
                 }
 
-                // TODO: Show number of errors on hover?
                 if response.hovered() {
                     // Used for material mask rendering.
                     *hovered_index = Some(i);
@@ -901,12 +900,11 @@ fn edit_texture(
         .find(|t| {
             // Texture parameters don't include the file extension since it's implied.
             // Texture names aren't case sensitive.
-            // TODO: Avoid allocating here.
             // TODO: Don't store the extension with the thumbnail at all?
             // TODO: Should this functionality be part of ssbh_wgpu?
             Path::new(&t.0)
                 .with_extension("")
-                .to_string_lossy()
+                .as_os_str()
                 .eq_ignore_ascii_case(&param.data)
         })
         .map(|t| t.1)
@@ -1019,7 +1017,6 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
             // TODO: What color space to use?
             // TODO: Add tooltips to other labels?
-            // TODO: Only show tooltips after a delay?
             ui.label("Border Color")
                 .on_hover_text(
                 "The color when sampling UVs outside the range 0.0 to 1.0. Only affects ClampToBorder."

@@ -286,8 +286,7 @@ fn validate_required_attributes(
     // Both the modl and mesh should be present to determine material assignments.
     if let (Some(modl), Some(mesh)) = (modl, mesh) {
         for (entry_index, entry) in matl.entries.iter().enumerate() {
-            // TODO: make this a method of the database?
-            if let Some(program) = shader_database.get(entry.shader_label.get(..24).unwrap_or("")) {
+            if let Some(program) = shader_database.get(&entry.shader_label) {
                 for (i, o) in mesh.objects.iter().enumerate().filter(|(_, o)| {
                     modl.entries
                         .iter()
@@ -341,11 +340,7 @@ fn validate_shader_labels(
     shader_database: &ShaderDatabase,
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
-        // TODO: make this a method of the database?
-        if shader_database
-            .get(entry.shader_label.get(..24).unwrap_or(""))
-            .is_none()
-        {
+        if shader_database.get(&entry.shader_label).is_none() {
             let error = MatlValidationError {
                 entry_index,
                 kind: MatlValidationErrorKind::InvalidShaderLabel {
