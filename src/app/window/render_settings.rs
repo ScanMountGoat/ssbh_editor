@@ -126,7 +126,11 @@ pub fn render_settings_window(
             horizontal_separator_empty(ui);
 
             ui.heading("Materials");
-            ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color");
+            ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color")
+                .on_hover_text("Render vertex color attributes like colorSet3 or colorSet5.");
+            ui.checkbox(&mut settings.scale_vertex_color, "Scale Vertex Color")
+                .on_hover_text("Scale color sets by their in game scaling values. Disabling this will use the raw color values." );
+
             egui::Grid::new("enable_texture_channels").show(ui, |ui| {
                 ui.label("Enable Nor Channels");
                 ui.horizontal(|ui| {

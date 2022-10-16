@@ -13,7 +13,7 @@ egui-wgpu = "0.19.0"
 egui-winit = "0.19.0"
 wgpu = "0.13.1"
 winit = "0.27.2"
-glam = { version = "0.20.2", features = ["mint", "bytemuck"] }
+glam = { version = "0.21.3", features = ["mint", "bytemuck"] }
 rfd = "0.10.0"
 ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
 nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
