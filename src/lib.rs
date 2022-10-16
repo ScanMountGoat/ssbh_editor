@@ -27,6 +27,19 @@ pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
 type FileResult<T> = Result<T, Box<dyn Error>>;
 
+pub struct EditorResponse {
+    pub open: bool,
+    pub changed: bool,
+    pub saved: bool,
+}
+
+impl EditorResponse {
+    pub fn set_changed(&self, changed: &mut bool) {
+        // Saving should always clear the changed flag.
+        *changed = (*changed || self.changed) && !self.saved;
+    }
+}
+
 pub struct ModelFolderState {
     pub model: ModelFolder,
     pub thumbnails: Vec<Thumbnail>,
@@ -37,7 +50,6 @@ pub struct ModelFolderState {
 
 impl ModelFolderState {
     pub fn from_model(model: ModelFolder) -> Self {
-        // TODO: Initialize validation here?
         let changed = FileChanged::from_model(&model);
         Self {
             model,

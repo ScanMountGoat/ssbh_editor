@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::{
     app::folder_editor_title,
     widgets::{bone_combo_box, DragSlider},
+    EditorResponse,
 };
 use egui::{CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
 use log::error;
@@ -19,9 +20,10 @@ pub fn hlpb_editor(
     file_name: &str,
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Hlpb Editor ({title})"))
@@ -36,6 +38,8 @@ pub fn hlpb_editor(
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = hlpb.write_to_file(&file) {
                             error!("Failed to save {:?}: {}", file, e);
+                        } else {
+                            saved = true;
                         }
                     }
 
@@ -137,7 +141,11 @@ pub fn hlpb_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }
 
 fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) -> bool {

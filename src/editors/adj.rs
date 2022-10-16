@@ -1,4 +1,4 @@
-use crate::{app::folder_editor_title, validation::AdjValidationError};
+use crate::{app::folder_editor_title, validation::AdjValidationError, EditorResponse};
 use egui::ScrollArea;
 use log::error;
 use rfd::FileDialog;
@@ -12,9 +12,10 @@ pub fn adj_editor(
     adj: &mut AdjData,
     mesh: Option<&MeshData>,
     validation_errors: &[AdjValidationError],
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Adj Editor ({title})"))
@@ -29,6 +30,8 @@ pub fn adj_editor(
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = adj.write_to_file(&file) {
                             error!("Failed to save {:?}: {}", file, e);
+                        } else {
+                            saved = true;
                         }
                     }
 
@@ -109,5 +112,9 @@ pub fn adj_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }

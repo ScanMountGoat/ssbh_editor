@@ -117,8 +117,6 @@ pub enum ItemsToUpdate {
 
 #[derive(Default)]
 pub struct UiState {
-    // TODO: Add a changed flag and clear on save?
-    // This would allow showing an indication for which files need to be saved.
     // TODO: Allow more than one open editor of each type?
     pub material_editor_open: bool,
     pub render_settings_open: bool,
@@ -630,7 +628,7 @@ impl SsbhApp {
                 // TODO: Make all this code a function?
                 if let Some(matl_index) = self.ui_state.selected_matl_index {
                     if let Some((name, Ok(matl))) = model.model.matls.get_mut(matl_index) {
-                        let (open, changed) = matl_editor(
+                        let response = matl_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
@@ -646,16 +644,16 @@ impl SsbhApp {
                             self.yellow_checkerboard,
                         );
                         // TODO: This modifies the model.numdlb when reassigning materials.
-                        model.changed.matls[matl_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.matls[matl_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_matl_index = None;
                         }
 
                         // Update on change to avoid costly state changes every frame.
-                        if changed {
+                        if response.changed {
                             if let Some(render_model) = self.render_models.get_mut(folder_index) {
                                 // Only the model.numatb is rendered in the viewport for now.
                                 // TODO: Move rendering code out of app.rs.
@@ -680,9 +678,8 @@ impl SsbhApp {
 
                 if let Some(modl_index) = self.ui_state.selected_modl_index {
                     if let Some((name, Ok(modl))) = model.model.modls.get_mut(modl_index) {
-                        // TODO: Make a WindowResponse struct?
                         let matl = find_file(&model.model.matls, "model.numatb");
-                        let (open, changed) = modl_editor(
+                        let response = modl_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
@@ -692,15 +689,15 @@ impl SsbhApp {
                             &model.validation.modl_errors,
                             &mut self.ui_state.modl_editor_advanced_mode,
                         );
-                        model.changed.modls[modl_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.modls[modl_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_modl_index = None;
                         }
 
-                        if changed {
+                        if response.changed {
                             if let Some(render_model) = self.render_models.get_mut(folder_index) {
                                 render_model.reassign_materials(modl, matl);
                             }
@@ -710,22 +707,22 @@ impl SsbhApp {
 
                 if let Some(hlpb_index) = self.ui_state.selected_hlpb_index {
                     if let Some((name, Ok(hlpb))) = model.model.hlpbs.get_mut(hlpb_index) {
-                        let (open, changed) = hlpb_editor(
+                        let response = hlpb_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
                             hlpb,
                             find_file(&model.model.skels, "model.nusktb"),
                         );
-                        model.changed.hlpbs[hlpb_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.hlpbs[hlpb_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_hlpb_index = None;
                         }
 
-                        if changed {
+                        if response.changed {
                             // Reapply the animation constraints in the viewport.
                             self.animation_state.should_update_animations = true;
                         }
@@ -734,7 +731,7 @@ impl SsbhApp {
 
                 if let Some(adj_index) = self.ui_state.selected_adj_index {
                     if let Some((name, Ok(adj))) = model.model.adjs.get_mut(adj_index) {
-                        let (open, changed) = adj_editor(
+                        let response = adj_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
@@ -742,10 +739,10 @@ impl SsbhApp {
                             find_file(&model.model.meshes, "model.numshb"),
                             &model.validation.adj_errors,
                         );
-                        model.changed.adjs[adj_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.adjs[adj_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_adj_index = None;
                         }
@@ -754,22 +751,22 @@ impl SsbhApp {
 
                 if let Some(anim_index) = self.ui_state.selected_anim_index {
                     if let Some((name, Ok(anim))) = model.model.anims.get_mut(anim_index) {
-                        let (open, changed) = anim_editor(
+                        let response = anim_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
                             anim,
                             &mut self.ui_state.anim_editor,
                         );
-                        model.changed.anims[anim_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.anims[anim_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_anim_index = None;
                         }
 
-                        if changed {
+                        if response.changed {
                             // Reapply the animations in the viewport.
                             self.animation_state.should_update_animations = true;
                         }
@@ -778,17 +775,17 @@ impl SsbhApp {
 
                 if let Some(meshex_index) = self.ui_state.selected_meshex_index {
                     if let Some((name, Ok(meshex))) = model.model.meshexes.get_mut(meshex_index) {
-                        let (open, changed) = meshex_editor(
+                        let response = meshex_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
                             meshex,
                             find_file(&model.model.meshes, "model.numshb"),
                         );
-                        model.changed.meshexes[meshex_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.meshexes[meshex_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_meshex_index = None;
                         }

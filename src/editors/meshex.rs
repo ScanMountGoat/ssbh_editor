@@ -1,4 +1,4 @@
-use crate::app::folder_editor_title;
+use crate::{app::folder_editor_title, EditorResponse};
 use egui::{Grid, ScrollArea};
 use log::error;
 use rfd::FileDialog;
@@ -11,9 +11,10 @@ pub fn meshex_editor(
     file_name: &str,
     meshex: &mut MeshExData,
     mesh: Option<&MeshData>,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("MeshEx Editor ({title})"))
@@ -28,6 +29,8 @@ pub fn meshex_editor(
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = meshex.write_to_file(&file) {
                             error!("Failed to save {:?}: {}", file, e);
+                        } else {
+                            saved = true;
                         }
                     }
 
@@ -96,5 +99,9 @@ pub fn meshex_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }

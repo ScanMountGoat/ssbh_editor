@@ -12,7 +12,7 @@ use crate::{
     presets::{load_json_presets, load_xml_presets},
     validation::{MatlValidationError, MatlValidationErrorKind},
     widgets::*,
-    TextureDimension, Thumbnail,
+    EditorResponse, TextureDimension, Thumbnail,
 };
 use egui::{
     Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, RichText, ScrollArea,
@@ -44,9 +44,10 @@ pub fn matl_editor(
     material_presets: &mut Vec<MatlEntryData>,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     Window::new(format!("Matl Editor ({title})"))
@@ -54,7 +55,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            menu_bar(ui, matl, ui_state, material_presets, folder_name, file_name);
+            saved |= menu_bar(ui, matl, ui_state, material_presets, folder_name, file_name);
             ui.separator();
 
             // TODO: Simplify logic for closing window.
@@ -85,7 +86,11 @@ pub fn matl_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }
 
 // TODO: Validate presets?
@@ -356,7 +361,9 @@ fn menu_bar(
     material_presets: &mut Vec<MatlEntryData>,
     folder_name: &str,
     file_name: &str,
-) {
+) -> bool {
+    let mut saved = false;
+
     egui::menu::bar(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
@@ -365,6 +372,8 @@ fn menu_bar(
                 let file = Path::new(folder_name).join(file_name);
                 if let Err(e) = matl.write_to_file(&file) {
                     error!("Failed to save {:?}: {}", file, e);
+                } else {
+                    saved = true;
                 }
             }
 
@@ -436,6 +445,8 @@ fn menu_bar(
 
         help_menu(ui);
     });
+
+    saved
 }
 
 fn help_menu(ui: &mut Ui) {

@@ -1,4 +1,7 @@
-use crate::app::{folder_editor_title, AnimEditorState, AnimEditorTab};
+use crate::{
+    app::{folder_editor_title, AnimEditorState, AnimEditorTab},
+    EditorResponse,
+};
 use egui::{
     plot::{Legend, Line, Plot, PlotPoint},
     CentralPanel, CollapsingHeader, RichText, ScrollArea, SidePanel,
@@ -17,9 +20,10 @@ pub fn anim_editor(
     file_name: &str,
     anim: &mut AnimData,
     state: &mut AnimEditorState,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Anim Editor ({title})"))
@@ -86,7 +90,11 @@ pub fn anim_editor(
             };
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }
 
 fn editor_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorState) -> bool {

@@ -1,6 +1,7 @@
 use crate::{
     app::{folder_editor_title, warning_icon_text},
     validation::{ModlValidationError, ModlValidationErrorKind},
+    EditorResponse,
 };
 use egui::{RichText, ScrollArea};
 use log::error;
@@ -17,9 +18,10 @@ pub fn modl_editor(
     matl: Option<&MatlData>,
     validation_errors: &[ModlValidationError],
     advanced_mode: &mut bool,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Modl Editor ({title})"))
@@ -34,6 +36,8 @@ pub fn modl_editor(
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = modl.write_to_file(&file) {
                             error!("Failed to save {:?}: {}", file, e);
+                        } else {
+                            saved = true;
                         }
                     }
 
@@ -181,7 +185,11 @@ pub fn modl_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }
 
 // TODO: Create a function that handles displaying combo box errors?
