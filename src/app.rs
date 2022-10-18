@@ -24,7 +24,7 @@ use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Label,
     Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
-use log::Log;
+use log::{error, Log};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
@@ -394,9 +394,10 @@ impl SsbhApp {
     }
 
     pub fn write_state_to_disk(&self, update_check_time: DateTime<Utc>) {
-        // TODO: Handle errors and write to log file?
         let path = last_update_check_file();
-        std::fs::write(path, update_check_time.to_string()).unwrap();
+        if let Err(e) = std::fs::write(&path, update_check_time.to_string()) {
+            error!("Failed to write update check time to {path:?}: {e}");
+        }
 
         self.preferences.write_to_file();
     }
@@ -643,7 +644,7 @@ impl SsbhApp {
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         );
-                        // TODO: This modifies the model.numdlb when reassigning materials.
+                        // TODO: This modifies the model.numdlb when renaming materials.
                         response.set_changed(&mut model.changed.matls[matl_index]);
                         file_changed |= response.changed;
 

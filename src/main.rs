@@ -113,7 +113,7 @@ fn get_latest_release() -> Option<Release> {
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .unwrap()
+        .ok()?
         .block_on(
             octocrab
                 .repos("ScanMountGoat", "ssbh_editor")
@@ -656,12 +656,14 @@ fn render_animation_to_gif(
     let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
 
     // TODO: Add progress indication.
-    std::thread::spawn(move || {
-        let file_out = std::fs::File::create(&file).unwrap();
-        let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
-        if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
-            error!("Error saving GIF to {:?}: {}", file, e);
+    std::thread::spawn(move || match std::fs::File::create(&file) {
+        Ok(file_out) => {
+            let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
+            if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
+                error!("Error saving GIF to {file:?}: {e}");
+            }
         }
+        Err(e) => error!("Error creating file {file:?}: {e}"),
     });
 }
 
