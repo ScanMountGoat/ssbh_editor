@@ -2,7 +2,7 @@ use super::{log_level_icon, StageLightingState, LOGGER};
 use crate::{path::application_dir, preferences::AppPreferences, CameraInputState};
 use egui::{Context, Grid, Label, ScrollArea, Ui, Window};
 use rfd::FileDialog;
-use std::{f32::consts::PI, path::PathBuf};
+use std::path::PathBuf;
 
 mod render_settings;
 pub use render_settings::render_settings_window;
@@ -32,22 +32,32 @@ pub fn camera_settings_window(
                 // TODO: This will need to use quaternions to work with camera anims.
                 // TODO: Add an option for radians or degrees?
                 ui.label("Rotation X");
-                ui.add(
-                    egui::DragValue::new(&mut camera_state.rotation_xyz_radians.x)
-                        .speed(0.01)
-                        .clamp_range(-2.0 * PI..=2.0 * PI),
-                );
+                let mut rotation_x_degrees = camera_state.rotation_xyz_radians.x.to_degrees();
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut rotation_x_degrees)
+                            .speed(1.0)
+                    )
+                    .changed()
+                {
+                    camera_state.rotation_xyz_radians.x = rotation_x_degrees.to_radians();
+                }
                 ui.end_row();
 
                 ui.label("Rotation Y");
-                ui.add(
-                    egui::DragValue::new(&mut camera_state.rotation_xyz_radians.y)
-                        .speed(0.01)
-                        .clamp_range(-2.0 * PI..=2.0 * PI),
-                );
+                let mut rotation_y_degrees = camera_state.rotation_xyz_radians.y.to_degrees();
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut rotation_y_degrees)
+                            .speed(1.0)
+                    )
+                    .changed()
+                {
+                    camera_state.rotation_xyz_radians.y = rotation_y_degrees.to_radians();
+                }
                 ui.end_row();
 
-                ui.label("FOV")
+                ui.label("Field of View")
                     .on_hover_text("The vertical field of view in degrees.");
                 let mut fov_degrees = camera_state.fov_y_radians.to_degrees();
                 if ui
