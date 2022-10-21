@@ -814,7 +814,7 @@ fn edit_shader(
             ui.end_row();
 
             ui.label("Vertex Attributes");
-            ui.add(Label::new(program.vertex_attributes.join(", ")).wrap(true));
+            ui.add(Label::new(program.vertex_attributes.join(", ")));
             ui.end_row();
         }
     });
