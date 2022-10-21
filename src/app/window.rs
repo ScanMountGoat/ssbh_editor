@@ -34,10 +34,7 @@ pub fn camera_settings_window(
                 ui.label("Rotation X");
                 let mut rotation_x_degrees = camera_state.rotation_xyz_radians.x.to_degrees();
                 if ui
-                    .add(
-                        egui::DragValue::new(&mut rotation_x_degrees)
-                            .speed(1.0)
-                    )
+                    .add(egui::DragValue::new(&mut rotation_x_degrees).speed(1.0))
                     .changed()
                 {
                     camera_state.rotation_xyz_radians.x = rotation_x_degrees.to_radians();
@@ -47,10 +44,7 @@ pub fn camera_settings_window(
                 ui.label("Rotation Y");
                 let mut rotation_y_degrees = camera_state.rotation_xyz_radians.y.to_degrees();
                 if ui
-                    .add(
-                        egui::DragValue::new(&mut rotation_y_degrees)
-                            .speed(1.0)
-                    )
+                    .add(egui::DragValue::new(&mut rotation_y_degrees).speed(1.0))
                     .changed()
                 {
                     camera_state.rotation_xyz_radians.y = rotation_y_degrees.to_radians();

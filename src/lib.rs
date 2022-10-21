@@ -298,7 +298,7 @@ impl AnimationIndex {
 pub type Thumbnail = (String, egui::TextureId, TextureDimension);
 
 pub fn generate_model_thumbnails(
-    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    egui_rpass: &mut egui_wgpu::renderer::Renderer,
     model: &ssbh_wgpu::ModelFolder,
     render_model: &ssbh_wgpu::RenderModel,
     device: &wgpu::Device,
@@ -329,7 +329,7 @@ pub fn generate_model_thumbnails(
 }
 
 fn create_egui_texture(
-    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    egui_rpass: &mut egui_wgpu::renderer::Renderer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     texture: &wgpu::Texture,
@@ -375,7 +375,7 @@ fn create_egui_texture(
 pub fn checkerboard_texture(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    egui_rpass: &mut egui_wgpu::renderer::Renderer,
     color: [u8; 4],
 ) -> egui::TextureId {
     let texture_size = wgpu::Extent3d {
@@ -421,7 +421,7 @@ pub fn checkerboard_texture(
 }
 
 pub fn generate_default_thumbnails(
-    egui_rpass: &mut egui_wgpu::renderer::RenderPass,
+    egui_rpass: &mut egui_wgpu::renderer::Renderer,
     default_textures: &[(String, wgpu::Texture, wgpu::TextureViewDimension)],
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -487,23 +487,20 @@ pub fn default_fonts() -> egui::FontDefinitions {
 pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
     // Modified from the default theme.
     let mut text_styles = BTreeMap::new();
-    text_styles.insert(
-        TextStyle::Small,
-        FontId::new(12.0, FontFamily::Proportional),
-    );
-    text_styles.insert(TextStyle::Body, FontId::new(18.0, FontFamily::Proportional));
+    text_styles.insert(TextStyle::Small, FontId::new(9.0, FontFamily::Proportional));
+    text_styles.insert(TextStyle::Body, FontId::new(12.5, FontFamily::Proportional));
     text_styles.insert(
         TextStyle::Button,
-        FontId::new(18.0, FontFamily::Proportional),
+        FontId::new(12.5, FontFamily::Proportional),
     );
     text_styles.insert(
         TextStyle::Heading,
-        FontId::new(24.0, FontFamily::Proportional),
+        FontId::new(18.0, FontFamily::Proportional),
     );
     // Use a consistent font for sliders and drag values.
     text_styles.insert(
         TextStyle::Monospace,
-        FontId::new(18.0, FontFamily::Proportional),
+        FontId::new(12.5, FontFamily::Proportional),
     );
     text_styles
 }

@@ -209,12 +209,13 @@ fn main() {
         width: size.width,
         height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
+        alpha_mode: wgpu::CompositeAlphaMode::Auto,
     };
     surface.configure(&device, &surface_config);
 
     // Initialize egui and winit state.
     let ctx = egui::Context::default();
-    let mut egui_rpass = egui_wgpu::renderer::RenderPass::new(&device, surface_format, 1);
+    let mut egui_renderer = egui_wgpu::renderer::Renderer::new(&device, surface_format, None, 1);
     let mut winit_state = egui_winit::State::new(&event_loop);
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
     winit_state.set_pixels_per_point(window.scale_factor() as f32);
@@ -244,10 +245,12 @@ fn main() {
     // Make sure the texture preview is ready for accessed by the app.
     // State is stored in a type map because of lifetime requirements.
     // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
-    egui_rpass.paint_callback_resources.insert(TexturePainter {
-        renderer: texture_renderer,
-        texture: None,
-    });
+    egui_renderer
+        .paint_callback_resources
+        .insert(TexturePainter {
+            renderer: texture_renderer,
+            texture: None,
+        });
 
     // TODO: Camera framing?
     let camera_state = CameraInputState::default();
@@ -263,13 +266,14 @@ fn main() {
     let presets_file = presets_file();
     let material_presets = load_material_presets(presets_file);
 
-    let red_checkerboard = checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 0, 0, 255]);
+    let red_checkerboard =
+        checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 0, 0, 255]);
     let yellow_checkerboard =
-        checkerboard_texture(&device, &queue, &mut egui_rpass, [255, 255, 0, 255]);
+        checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 255, 0, 255]);
 
     let render_state = RenderState::new(device, queue, surface_format);
     let default_thumbnails = generate_default_thumbnails(
-        &mut egui_rpass,
+        &mut egui_renderer,
         render_state.shared_data.default_textures(),
         &render_state.device,
         &render_state.queue,
@@ -392,7 +396,7 @@ fn main() {
                         }
 
                         // TODO: Load models on a separate thread to avoid freezing the UI.
-                        reload_models(&mut app, &mut egui_rpass);
+                        reload_models(&mut app, &mut egui_renderer);
 
                         if app.should_refresh_render_settings {
                             renderer.update_render_settings(
@@ -436,7 +440,7 @@ fn main() {
                         // Prepare the nutexb for rendering.
                         // TODO: Avoid doing this each frame.
                         let painter: &mut TexturePainter =
-                            egui_rpass.paint_callback_resources.get_mut().unwrap();
+                            egui_renderer.paint_callback_resources.get_mut().unwrap();
                         if let Some((texture, dimension, size)) = get_nutexb_to_render(&app) {
                             painter.renderer.update(
                                 &app.render_state.device,
@@ -485,13 +489,20 @@ fn main() {
                         // TODO: Avoid calculating the MVP matrix every frame.
                         // Overlay egui on the final pass to avoid a costly LoadOp::Load.
                         // This improves performance on weak integrated graphics.
+                        // TODO: Why does this need a command encoder?
+                        let mut egui_encoder = app.render_state.device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor {
+                                label: Some("egui Encoder"),
+                            },
+                        );
                         egui_render_pass(
                             &ctx,
                             full_output,
+                            &mut egui_encoder,
                             &mut winit_state,
                             &window,
                             &surface_config,
-                            &mut egui_rpass,
+                            &mut egui_renderer,
                             &app,
                             &mut final_pass,
                         );
@@ -525,7 +536,7 @@ fn main() {
                         // Submit the commands.
                         app.render_state
                             .queue
-                            .submit(std::iter::once(encoder.finish()));
+                            .submit([encoder.finish(), egui_encoder.finish()]);
                         if let Some(bone_text_commands) = bone_text_commands {
                             app.render_state
                                 .queue
@@ -769,7 +780,7 @@ fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path
     }
 }
 
-fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::RenderPass) {
+fn reload_models(app: &mut SsbhApp, egui_renderer: &mut egui_wgpu::renderer::Renderer) {
     // Only load render models that need to change to improve performance.
     match app.models_to_update {
         ItemsToUpdate::None => (),
@@ -798,7 +809,7 @@ fn reload_models(app: &mut SsbhApp, egui_rpass: &mut egui_wgpu::renderer::Render
     if app.should_update_thumbnails {
         for (model, render_model) in app.models.iter_mut().zip(app.render_models.iter()) {
             model.thumbnails = generate_model_thumbnails(
-                egui_rpass,
+                egui_renderer,
                 &model.model,
                 render_model,
                 &app.render_state.device,
@@ -904,10 +915,11 @@ fn get_nutexb_to_render(
 fn egui_render_pass<'a>(
     ctx: &egui::Context,
     full_output: egui::FullOutput,
+    encoder: &mut wgpu::CommandEncoder,
     winit_state: &mut egui_winit::State,
     window: &winit::window::Window,
     surface_config: &wgpu::SurfaceConfiguration,
-    egui_rpass: &'a mut egui_wgpu::renderer::RenderPass,
+    egui_renderer: &'a mut egui_wgpu::renderer::Renderer,
     app: &SsbhApp,
     rpass: &mut wgpu::RenderPass<'a>,
 ) {
@@ -921,26 +933,28 @@ fn egui_render_pass<'a>(
         pixels_per_point: window.scale_factor() as f32,
     };
     for (id, image_delta) in &full_output.textures_delta.set {
-        egui_rpass.update_texture(
+        egui_renderer.update_texture(
             &app.render_state.device,
             &app.render_state.queue,
             *id,
             image_delta,
         );
     }
-    egui_rpass.update_buffers(
+    egui_renderer.update_buffers(
         &app.render_state.device,
         &app.render_state.queue,
+        encoder,
         &clipped_primitives,
         &screen_descriptor,
     );
 
+    // TODO: This should technically go after painting.
     for id in &full_output.textures_delta.free {
-        egui_rpass.free_texture(id);
+        egui_renderer.free_texture(id);
     }
 
     // Record all render passes.
-    egui_rpass.execute_with_renderpass(rpass, &clipped_primitives, &screen_descriptor);
+    egui_renderer.render(rpass, &clipped_primitives, &screen_descriptor);
 }
 
 fn request_adapter(

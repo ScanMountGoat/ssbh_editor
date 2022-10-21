@@ -121,7 +121,7 @@ pub fn nutexb_viewer(
                 let (_, rect) = ui.allocate_space(dimensions);
 
                 let cb = egui_wgpu::CallbackFn::new()
-                    .prepare(move |_device, _queue, _paint_callback_resources| {})
+                    .prepare(move |_device, _queue, _encoder, _paint_callback_resources| {})
                     .paint(move |_info, rpass, paint_callback_resources| {
                         let resources: &TexturePainter = paint_callback_resources.get().unwrap();
                         resources.paint(rpass);
