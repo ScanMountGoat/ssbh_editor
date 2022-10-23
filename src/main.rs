@@ -9,6 +9,7 @@ use nutexb_wgpu::TextureRenderer;
 use octocrab::models::repos::Release;
 use pollster::FutureExt;
 use ssbh_data::prelude::*;
+use ssbh_editor::Thumbnail;
 // TODO: is this redundant with tokio?
 use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
@@ -30,6 +31,233 @@ use winit::{
 };
 
 // TODO: Split up this file into modules.
+
+fn main() {
+    // Initialize logging first in case app startup has warnings.
+    // TODO: Also log to a file?
+    log::set_logger(&*ssbh_editor::app::LOGGER)
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .unwrap();
+
+    let icon = image::load_from_memory_with_format(
+        include_bytes!("icons/ssbh_editor32.png"),
+        image::ImageFormat::Png,
+    )
+    .unwrap();
+
+    let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
+    let window = build_window(icon, &event_loop);
+
+    // Use DX12 as a separate fallback to fix initialization on some Windows systems.
+    let start = std::time::Instant::now();
+    let (surface, adapter) =
+        request_adapter(&window, wgpu::Backends::VULKAN | wgpu::Backends::METAL)
+            .or_else(|| request_adapter(&window, wgpu::Backends::DX12))
+            .unwrap();
+    println!("Request compatible adapter: {:?}", start.elapsed());
+
+    let (device, queue) = adapter
+        .request_device(
+            &wgpu::DeviceDescriptor {
+                features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
+                limits: wgpu::Limits::default(),
+                label: None,
+            },
+            None,
+        )
+        .block_on()
+        .unwrap();
+
+    create_app_data_directory();
+
+    let (update_check_time, new_release_tag, should_show_update) = check_for_updates();
+
+    let mut size = window.inner_size();
+
+    // Use the ssbh_wgpu format to ensure compatibility.
+    let surface_format = ssbh_wgpu::RGBA_COLOR_FORMAT;
+    let mut surface_config = wgpu::SurfaceConfiguration {
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        format: surface_format,
+        width: size.width,
+        height: size.height,
+        present_mode: wgpu::PresentMode::Fifo,
+        alpha_mode: wgpu::CompositeAlphaMode::Auto,
+    };
+    surface.configure(&device, &surface_config);
+
+    // Initialize egui and winit state.
+    let ctx = egui::Context::default();
+    let mut egui_renderer = egui_wgpu::renderer::Renderer::new(&device, surface_format, None, 1);
+    let mut winit_state = egui_winit::State::new(&event_loop);
+    winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
+    winit_state.set_pixels_per_point(window.scale_factor() as f32);
+
+    ctx.set_style(egui::style::Style {
+        text_styles: default_text_styles(),
+        visuals: egui::style::Visuals {
+            widgets: widgets_dark(),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    ctx.set_fonts(default_fonts());
+
+    let mut renderer = SsbhRenderer::new(
+        &device,
+        &queue,
+        size.width,
+        size.height,
+        window.scale_factor(),
+        [0.0; 3],
+        ssbh_editor::FONT_BYTES,
+    );
+
+    // TODO: Use this to generate thumbnails for cube maps and 3d textures.
+    let texture_renderer = TextureRenderer::new(&device, &queue, surface_format);
+    // Make sure the texture preview is ready for accessed by the app.
+    // State is stored in a type map because of lifetime requirements.
+    // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
+    egui_renderer
+        .paint_callback_resources
+        .insert(TexturePainter {
+            renderer: texture_renderer,
+            texture: None,
+        });
+
+    // TODO: Camera framing?
+    let camera_state = CameraInputState::default();
+
+    update_camera(
+        &mut renderer,
+        &queue,
+        size,
+        &camera_state,
+        window.scale_factor(),
+    );
+
+    let presets_file = presets_file();
+    let material_presets = load_material_presets(presets_file);
+
+    let red_checkerboard =
+        checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 0, 0, 255]);
+    let yellow_checkerboard =
+        checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 255, 0, 255]);
+
+    let render_state = RenderState::new(device, queue, surface_format);
+    let default_thumbnails = generate_default_thumbnails(
+        &mut egui_renderer,
+        render_state.shared_data.default_textures(),
+        &render_state.device,
+        &render_state.queue,
+    );
+
+    let preferences = AppPreferences::load_from_file();
+
+    // Track if keys like ctrl or alt are being pressed.
+    let mut modifiers = ModifiersState::default();
+
+    let mut app = create_app(
+        default_thumbnails,
+        should_show_update,
+        new_release_tag,
+        material_presets,
+        red_checkerboard,
+        yellow_checkerboard,
+        render_state,
+        camera_state,
+        preferences,
+    );
+
+    // Make sure the theme updates if changed from preferences.
+    // TODO: This is redundant with the initialization above?
+    update_color_theme(&app, &ctx);
+    let mut previous_dark_mode = false;
+
+    // TODO: Does the T in the the event type matter here?
+    event_loop.run(
+        move |event: winit::event::Event<'_, usize>, _, control_flow| {
+            match event {
+                winit::event::Event::RedrawRequested(..) => {
+                    // Don't render if the application window is minimized.
+                    if window.inner_size().width > 0 && window.inner_size().height > 0 {
+                        update_and_render_app(
+                            &mut app,
+                            &mut winit_state,
+                            &mut renderer,
+                            &mut egui_renderer,
+                            &mut previous_dark_mode,
+                            &window,
+                            &ctx,
+                            &surface,
+                            size,
+                            &surface_config,
+                        );
+                    }
+                }
+                winit::event::Event::WindowEvent { event, .. } => {
+                    if !winit_state.on_event(&ctx, &event).consumed {
+                        match event {
+                            winit::event::WindowEvent::Resized(_) => {
+                                // The dimensions must both be non-zero before resizing.
+                                if window.inner_size().width > 0 && window.inner_size().height > 0 {
+                                    // Use the window size to avoid a potential error from size mismatches.
+                                    size = window.inner_size();
+
+                                    resize(
+                                        &mut renderer,
+                                        &mut surface_config,
+                                        &size,
+                                        window.scale_factor(),
+                                        &surface,
+                                        &app,
+                                        &app.camera_state,
+                                    );
+                                }
+                            }
+                            winit::event::WindowEvent::CloseRequested => {
+                                app.write_state_to_disk(update_check_time);
+                                *control_flow = ControlFlow::Exit;
+                            }
+                            winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
+                                modifiers = new_modifiers;
+                            }
+                            _ => {
+                                // TODO: Is this the best place to handle keyboard shortcuts?
+                                hande_keyboard_shortcuts(&event, modifiers, &mut app);
+
+                                if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
+                                    // It's possible to interact with the UI with the mouse over the viewport.
+                                    // Disable tracking the mouse in this case to prevent unwanted camera rotations.
+                                    // This mostly affects resizing the left and right side panels.
+                                    app.camera_state.is_mouse_left_clicked = false;
+                                    app.camera_state.is_mouse_right_clicked = false;
+                                } else {
+                                    // Only update the viewport camera if the user isn't interacting with the UI.
+                                    if handle_input(&mut app.camera_state, &event, size) {
+                                        update_camera(
+                                            &mut renderer,
+                                            &app.render_state.queue,
+                                            size,
+                                            &app.camera_state,
+                                            window.scale_factor(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                winit::event::Event::MainEventsCleared => {
+                    window.request_redraw();
+                }
+                // TODO: Why does this need to be here?
+                winit::event::Event::UserEvent(_) => (),
+                _ => (),
+            }
+        },
+    );
+}
 
 // TODO: Separate module for camera + input handling?
 fn calculate_mvp(
@@ -123,56 +351,8 @@ fn get_latest_release() -> Option<Release> {
         .ok()
 }
 
-fn main() {
-    // Initialize logging first in case app startup has warnings.
-    log::set_logger(&*ssbh_editor::app::LOGGER)
-        .map(|()| log::set_max_level(log::LevelFilter::Info))
-        .unwrap();
-
-    let icon = image::load_from_memory_with_format(
-        include_bytes!("icons/ssbh_editor32.png"),
-        image::ImageFormat::Png,
-    )
-    .unwrap();
-
-    let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
-    let window = winit::window::WindowBuilder::new()
-        .with_decorations(true)
-        .with_resizable(true)
-        .with_transparent(false)
-        .with_title(concat!("SSBH Editor ", env!("CARGO_PKG_VERSION")))
-        .with_window_icon(Some(
-            winit::window::Icon::from_rgba(icon.into_bytes(), 32, 32).unwrap(),
-        ))
-        .with_inner_size(winit::dpi::Size::Logical(winit::dpi::LogicalSize::new(
-            // Set a small initial size so the window doesn't overflow the screen.
-            1280.0, 720.0,
-        )))
-        .build(&event_loop)
-        .unwrap();
-
-    // Use DX12 as a separate fallback to fix initialization on some Windows systems.
-    let start = std::time::Instant::now();
-    let (surface, adapter) =
-        request_adapter(&window, wgpu::Backends::VULKAN | wgpu::Backends::METAL)
-            .or_else(|| request_adapter(&window, wgpu::Backends::DX12))
-            .unwrap();
-    println!("Request compatible adapter: {:?}", start.elapsed());
-
-    let (device, queue) = adapter
-        .request_device(
-            &wgpu::DeviceDescriptor {
-                features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
-                limits: wgpu::Limits::default(),
-                label: None,
-            },
-            None,
-        )
-        .block_on()
-        .unwrap();
-
-    create_app_data_directory();
-
+// TODO: Create struct for return type.
+fn check_for_updates() -> (DateTime<Utc>, Option<String>, bool) {
     let last_update_check_file = last_update_check_file();
 
     let previous_update_check_time: Option<DateTime<Utc>> =
@@ -180,6 +360,7 @@ fn main() {
             .unwrap_or_default()
             .parse()
             .ok();
+
     let update_check_time = Utc::now();
 
     // TODO: Add logging for update check?
@@ -199,93 +380,22 @@ fn main() {
     };
     println!("Check for new release: {:?}", start.elapsed());
 
-    let mut size = window.inner_size();
+    (update_check_time, new_release_tag, should_show_update)
+}
 
-    // Use the ssbh_wgpu format to ensure compatibility.
-    let surface_format = ssbh_wgpu::RGBA_COLOR_FORMAT;
-    let mut surface_config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: surface_format,
-        width: size.width,
-        height: size.height,
-        present_mode: wgpu::PresentMode::Fifo,
-        alpha_mode: wgpu::CompositeAlphaMode::Auto,
-    };
-    surface.configure(&device, &surface_config);
-
-    // Initialize egui and winit state.
-    let ctx = egui::Context::default();
-    let mut egui_renderer = egui_wgpu::renderer::Renderer::new(&device, surface_format, None, 1);
-    let mut winit_state = egui_winit::State::new(&event_loop);
-    winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
-    winit_state.set_pixels_per_point(window.scale_factor() as f32);
-
-    ctx.set_style(egui::style::Style {
-        text_styles: default_text_styles(),
-        visuals: egui::style::Visuals {
-            widgets: widgets_dark(),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
-    ctx.set_fonts(default_fonts());
-
-    let mut renderer = SsbhRenderer::new(
-        &device,
-        &queue,
-        size.width,
-        size.height,
-        window.scale_factor(),
-        [0.0; 3],
-        ssbh_editor::FONT_BYTES,
-    );
-
-    // TODO: Use this to generate thumbnails for cube maps and 3d textures.
-    let texture_renderer = TextureRenderer::new(&device, &queue, surface_format);
-    // Make sure the texture preview is ready for accessed by the app.
-    // State is stored in a type map because of lifetime requirements.
-    // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
-    egui_renderer
-        .paint_callback_resources
-        .insert(TexturePainter {
-            renderer: texture_renderer,
-            texture: None,
-        });
-
-    // TODO: Camera framing?
-    let camera_state = CameraInputState::default();
-
-    update_camera(
-        &mut renderer,
-        &queue,
-        size,
-        &camera_state,
-        window.scale_factor(),
-    );
-
-    let presets_file = presets_file();
-    let material_presets = load_material_presets(presets_file);
-
-    let red_checkerboard =
-        checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 0, 0, 255]);
-    let yellow_checkerboard =
-        checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 255, 0, 255]);
-
-    let render_state = RenderState::new(device, queue, surface_format);
-    let default_thumbnails = generate_default_thumbnails(
-        &mut egui_renderer,
-        render_state.shared_data.default_textures(),
-        &render_state.device,
-        &render_state.queue,
-    );
-
-    let preferences = AppPreferences::load_from_file();
-
-    // Track if keys like ctrl or alt are being pressed.
-    let mut modifiers = ModifiersState::default();
-
-    // TODO: Move this to a function.
-    let mut app = SsbhApp {
+// TODO: Make this a method.
+fn create_app(
+    default_thumbnails: Vec<Thumbnail>,
+    should_show_update: bool,
+    new_release_tag: Option<String>,
+    material_presets: Vec<ssbh_data::matl_data::MatlEntryData>,
+    red_checkerboard: egui::TextureId,
+    yellow_checkerboard: egui::TextureId,
+    render_state: RenderState,
+    camera_state: CameraInputState,
+    preferences: AppPreferences,
+) -> SsbhApp {
+    SsbhApp {
         models: Vec::new(),
         render_models: Vec::new(),
         default_thumbnails,
@@ -315,337 +425,266 @@ fn main() {
         screenshot_to_render: None,
         animation_gif_to_render: None,
         animation_image_sequence_to_render: None,
+    }
+}
+
+fn build_window(
+    icon: image::DynamicImage,
+    event_loop: &winit::event_loop::EventLoop<usize>,
+) -> winit::window::Window {
+    winit::window::WindowBuilder::new()
+        .with_decorations(true)
+        .with_resizable(true)
+        .with_transparent(false)
+        .with_title(concat!("SSBH Editor ", env!("CARGO_PKG_VERSION")))
+        .with_window_icon(Some(
+            winit::window::Icon::from_rgba(icon.into_bytes(), 32, 32).unwrap(),
+        ))
+        .with_inner_size(winit::dpi::Size::Logical(winit::dpi::LogicalSize::new(
+            // Set a small initial size so the window doesn't overflow the screen.
+            1280.0, 720.0,
+        )))
+        .build(event_loop)
+        .unwrap()
+}
+
+fn update_and_render_app(
+    app: &mut SsbhApp,
+    winit_state: &mut egui_winit::State,
+    renderer: &mut SsbhRenderer,
+    egui_renderer: &mut egui_wgpu::Renderer,
+    previous_dark_mode: &mut bool,
+    window: &winit::window::Window,
+    ctx: &egui::Context,
+    surface: &wgpu::Surface,
+    size: PhysicalSize<u32>,
+    surface_config: &wgpu::SurfaceConfiguration,
+) {
+    let raw_input = winit_state.take_egui_input(window);
+
+    // Always update the frame times even if no animation is playing.
+    // This avoids skipping when resuming playback.
+    let current_frame_start = std::time::Instant::now();
+    let final_frame_index = app.max_final_frame_index();
+
+    if app.should_update_clear_color {
+        // Assume an sRGB framebuffer, so convert sRGB to linear.
+        let clear_color = app
+            .preferences
+            .viewport_color
+            .map(|c| linear_f32_from_gamma_u8(c) as f64);
+        renderer.set_clear_color(clear_color);
+        app.should_update_clear_color = false;
+    }
+
+    if *previous_dark_mode != app.preferences.dark_mode {
+        update_color_theme(app, ctx);
+        *previous_dark_mode = app.preferences.dark_mode;
+    }
+
+    if app.animation_state.is_playing {
+        app.animation_state.current_frame = next_frame(
+            app.animation_state.current_frame,
+            app.animation_state.previous_frame_start,
+            current_frame_start,
+            final_frame_index,
+            app.animation_state.playback_speed,
+            app.animation_state.should_loop,
+        );
+    }
+    app.animation_state.previous_frame_start = current_frame_start;
+
+    let output_frame = match surface.get_current_texture() {
+        Ok(frame) => frame,
+        Err(e) => {
+            eprintln!("Dropped frame with error: {}", e);
+            return;
+        }
     };
 
-    // Make sure the theme updates if changed from preferences.
-    // TODO: This is redundant with the initialization above?
-    update_color_theme(&app, &ctx);
-    let mut previous_dark_mode = false;
+    let output_view = output_frame
+        .texture
+        .create_view(&wgpu::TextureViewDescriptor::default());
 
-    // TODO: Does the T in the the event type matter here?
-    event_loop.run(
-        move |event: winit::event::Event<'_, usize>, _, control_flow| {
-            match event {
-                winit::event::Event::RedrawRequested(..) => {
-                    // Don't render if the application window is minimized.
-                    if window.inner_size().width > 0 && window.inner_size().height > 0 {
-                        let raw_input = winit_state.take_egui_input(&window);
+    // Update the app to set the viewport rect before setting the scissor rect.
+    // This prevents black bars when resizing the window.
+    let full_output = ctx.run(raw_input, |ctx| {
+        app.update(ctx);
+    });
 
-                        // Always update the frame times even if no animation is playing.
-                        // This avoids skipping when resuming playback.
-                        let current_frame_start = std::time::Instant::now();
+    // TODO: Only update scale factor variable when changed?
+    let scissor_rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+    renderer.set_scissor_rect(scissor_rect);
 
-                        let final_frame_index = app.max_final_frame_index();
+    if app.should_update_lighting {
+        update_lighting(renderer, app);
+        app.should_update_lighting = false;
+    }
 
-                        if app.should_update_clear_color {
-                            // Assume an sRGB framebuffer, so convert sRGB to linear.
-                            let clear_color = app
-                                .preferences
-                                .viewport_color
-                                .map(|c| linear_f32_from_gamma_u8(c) as f64);
-                            renderer.set_clear_color(clear_color);
-                            app.should_update_clear_color = false;
-                        }
+    // TODO: Load models on a separate thread to avoid freezing the UI.
+    reload_models(app, egui_renderer);
 
-                        if previous_dark_mode != app.preferences.dark_mode {
-                            update_color_theme(&app, &ctx);
-                        }
+    if app.should_refresh_render_settings {
+        renderer.update_render_settings(&app.render_state.queue, &app.render_state.render_settings);
+        renderer
+            .update_skinning_settings(&app.render_state.queue, &app.render_state.skinning_settings);
+        app.should_refresh_render_settings = false;
+    }
 
-                        previous_dark_mode = app.preferences.dark_mode;
+    if app.should_refresh_camera_settings {
+        update_camera(
+            renderer,
+            &app.render_state.queue,
+            size,
+            &app.camera_state,
+            window.scale_factor(),
+        );
+        app.should_refresh_camera_settings = false;
+    }
 
-                        if app.animation_state.is_playing {
-                            app.animation_state.current_frame = next_frame(
-                                app.animation_state.current_frame,
-                                app.animation_state.previous_frame_start,
-                                current_frame_start,
-                                final_frame_index,
-                                app.animation_state.playback_speed,
-                                app.animation_state.should_loop,
-                            );
-                        }
-                        app.animation_state.previous_frame_start = current_frame_start;
+    if app.should_validate_models {
+        // Folders can be validated independently from one another.
+        for model in &mut app.models {
+            model.validate(&app.render_state.shared_data)
+        }
+        app.should_validate_models = false;
+    }
 
-                        let output_frame = match surface.get_current_texture() {
-                            Ok(frame) => frame,
-                            Err(e) => {
-                                eprintln!("Dropped frame with error: {}", e);
-                                return;
-                            }
-                        };
-                        let output_view = output_frame
-                            .texture
-                            .create_view(&wgpu::TextureViewDescriptor::default());
+    if app.animation_state.is_playing || app.animation_state.should_update_animations {
+        animate_models(app);
+        app.animation_state.should_update_animations = false;
+    }
 
-                        // Update the app to set the viewport rect before setting the scissor rect.
-                        // This prevents black bars when resizing the window.
-                        let full_output = ctx.run(raw_input, |ctx| {
-                            app.update(ctx);
-                        });
+    // Prepare the nutexb for rendering.
+    // TODO: Avoid doing this each frame.
+    let painter: &mut TexturePainter = egui_renderer.paint_callback_resources.get_mut().unwrap();
+    if let Some((texture, dimension, size)) = get_nutexb_to_render(app) {
+        painter.renderer.update(
+            &app.render_state.device,
+            &app.render_state.queue,
+            texture,
+            *dimension,
+            size,
+            &app.render_state.texture_render_settings,
+        );
+    }
 
-                        // TODO: Only update scale factor variable when changed?
-                        let scissor_rect = app.viewport_rect(
-                            size.width,
-                            size.height,
-                            window.scale_factor() as f32,
-                        );
-                        renderer.set_scissor_rect(scissor_rect);
+    let mut encoder =
+        app.render_state
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
 
-                        if app.should_update_lighting {
-                            update_lighting(&mut renderer, &mut app);
-                            app.should_update_lighting = false;
-                        }
+    // TODO: Support opening editors from more than one folder?
 
-                        // TODO: Load models on a separate thread to avoid freezing the UI.
-                        reload_models(&mut app, &mut egui_renderer);
+    // First we draw the 3D viewport.
+    // TODO: This doesn't need to be updated every frame?
+    // TODO: Rework these fields to use Option<T>.
+    let mask_model_index = app.ui_state.selected_folder_index.unwrap_or(0);
+    app.render_state.model_render_options.mask_model_index = mask_model_index;
+    app.render_state.model_render_options.mask_material_label =
+        get_hovered_material_label(app, mask_model_index)
+            .unwrap_or("")
+            .to_owned();
 
-                        if app.should_refresh_render_settings {
-                            renderer.update_render_settings(
-                                &app.render_state.queue,
-                                &app.render_state.render_settings,
-                            );
-                            renderer.update_skinning_settings(
-                                &app.render_state.queue,
-                                &app.render_state.skinning_settings,
-                            );
-                            app.should_refresh_render_settings = false;
-                        }
-
-                        if app.should_refresh_camera_settings {
-                            update_camera(
-                                &mut renderer,
-                                &app.render_state.queue,
-                                size,
-                                &app.camera_state,
-                                window.scale_factor(),
-                            );
-                            app.should_refresh_camera_settings = false;
-                        }
-
-                        if app.should_validate_models {
-                            // Folders can be validated independently from one another.
-                            for model in &mut app.models {
-                                model.validate(&app.render_state.shared_data)
-                            }
-
-                            app.should_validate_models = false;
-                        }
-
-                        if app.animation_state.is_playing
-                            || app.animation_state.should_update_animations
-                        {
-                            animate_models(&mut app);
-                            app.animation_state.should_update_animations = false;
-                        }
-
-                        // Prepare the nutexb for rendering.
-                        // TODO: Avoid doing this each frame.
-                        let painter: &mut TexturePainter =
-                            egui_renderer.paint_callback_resources.get_mut().unwrap();
-                        if let Some((texture, dimension, size)) = get_nutexb_to_render(&app) {
-                            painter.renderer.update(
-                                &app.render_state.device,
-                                &app.render_state.queue,
-                                texture,
-                                *dimension,
-                                size,
-                                &app.render_state.texture_render_settings,
-                            );
-                        }
-
-                        let mut encoder = app.render_state.device.create_command_encoder(
-                            &wgpu::CommandEncoderDescriptor {
-                                label: Some("Render Encoder"),
-                            },
-                        );
-
-                        // TODO: Support opening editors from more than one folder?
-
-                        // First we draw the 3D viewport.
-                        // TODO: This doesn't need to be updated every frame?
-                        // TODO: Rework these fields to use Option<T>.
-                        let mask_model_index = app.ui_state.selected_folder_index.unwrap_or(0);
-                        app.render_state.model_render_options.mask_model_index = mask_model_index;
-                        app.render_state.model_render_options.mask_material_label =
-                            get_hovered_material_label(&app, mask_model_index)
-                                .unwrap_or("")
-                                .to_owned();
-
-                        let mut final_pass = renderer.render_models(
-                            &mut encoder,
-                            &output_view,
-                            &app.render_models,
-                            app.models.iter().map(|m| {
-                                // TODO: Find a cleaner way to disable bone rendering.
-                                if app.draw_skeletons {
-                                    m.model.find_skel()
-                                } else {
-                                    None
-                                }
-                            }),
-                            app.render_state.shared_data.database(),
-                            &app.render_state.model_render_options,
-                        );
-
-                        // TODO: Avoid calculating the MVP matrix every frame.
-                        // Overlay egui on the final pass to avoid a costly LoadOp::Load.
-                        // This improves performance on weak integrated graphics.
-                        // TODO: Why does this need a command encoder?
-                        let mut egui_encoder = app.render_state.device.create_command_encoder(
-                            &wgpu::CommandEncoderDescriptor {
-                                label: Some("egui Encoder"),
-                            },
-                        );
-                        egui_render_pass(
-                            &ctx,
-                            full_output,
-                            &mut egui_encoder,
-                            &mut winit_state,
-                            &window,
-                            &surface_config,
-                            &mut egui_renderer,
-                            &app,
-                            &mut final_pass,
-                        );
-                        drop(final_pass);
-
-                        let (_, _, mvp) = calculate_mvp(
-                            size,
-                            app.camera_state.translation_xyz,
-                            app.camera_state.rotation_xyz_radians,
-                            app.camera_state.fov_y_radians,
-                        );
-
-                        // TODO: Make the font size configurable.
-                        // TODO: Fix bone names appearing on top of the UI.
-                        let bone_text_commands = if app.draw_skeletons && app.draw_bone_names {
-                            renderer.render_skeleton_names(
-                                &app.render_state.device,
-                                &app.render_state.queue,
-                                &output_view,
-                                app.render_models.iter(),
-                                app.models.iter().map(|m| m.model.find_skel()),
-                                size.width,
-                                size.height,
-                                mvp,
-                                18.0 * window.scale_factor() as f32,
-                            )
-                        } else {
-                            None
-                        };
-
-                        // Submit the commands.
-                        app.render_state
-                            .queue
-                            .submit([encoder.finish(), egui_encoder.finish()]);
-                        if let Some(bone_text_commands) = bone_text_commands {
-                            app.render_state
-                                .queue
-                                .submit(iter::once(bone_text_commands));
-                        }
-                        // Present the final rendered image.
-                        output_frame.present();
-
-                        if let Some(file) = &app.screenshot_to_render {
-                            let rect = app.viewport_rect(
-                                size.width,
-                                size.height,
-                                window.scale_factor() as f32,
-                            );
-                            let image = render_screenshot(
-                                &mut renderer,
-                                &app,
-                                size.width,
-                                size.height,
-                                rect,
-                            );
-                            if let Err(e) = image.save(file) {
-                                error!("Error saving screenshot to {:?}: {}", file, e);
-                            }
-                            app.screenshot_to_render = None;
-                        }
-
-                        // TODO: Avoid clone?
-                        if let Some(file) = app.animation_gif_to_render.clone() {
-                            // TODO: Run this on another thread?
-                            render_animation_to_gif(&mut app, size, &window, &mut renderer, file);
-                            app.animation_gif_to_render = None;
-                        }
-
-                        if let Some(file) = app.animation_image_sequence_to_render.clone() {
-                            // TODO: Run this on another thread?
-                            render_animation_to_image_sequence(
-                                &mut app,
-                                size,
-                                &window,
-                                &mut renderer,
-                                file,
-                            );
-                            app.animation_image_sequence_to_render = None;
-                        }
-                    }
-                }
-                winit::event::Event::WindowEvent { event, .. } => {
-                    winit_state.on_event(&ctx, &event);
-
-                    match event {
-                        winit::event::WindowEvent::Resized(_) => {
-                            // The dimensions must both be non-zero before resizing.
-                            if window.inner_size().width > 0 && window.inner_size().height > 0 {
-                                // Use the window size to avoid a potential error from size mismatches.
-                                size = window.inner_size();
-
-                                resize(
-                                    &mut renderer,
-                                    &mut surface_config,
-                                    &size,
-                                    window.scale_factor(),
-                                    &surface,
-                                    &app,
-                                    &app.camera_state,
-                                );
-                            }
-                        }
-                        winit::event::WindowEvent::CloseRequested => {
-                            app.write_state_to_disk(update_check_time);
-                            *control_flow = ControlFlow::Exit;
-                        }
-                        winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
-                            modifiers = new_modifiers;
-                        }
-                        _ => {
-                            // TODO: Is this the best place to handle keyboard shortcuts?
-                            hande_keyboard_shortcuts(&event, modifiers, &mut app);
-
-                            if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
-                                // It's possible to interact with the UI with the mouse over the viewport.
-                                // Disable tracking the mouse in this case to prevent unwanted camera rotations.
-                                // This mostly affects resizing the left and right side panels.
-                                app.camera_state.is_mouse_left_clicked = false;
-                                app.camera_state.is_mouse_right_clicked = false;
-                            } else {
-                                // Only update the viewport camera if the user isn't interacting with the UI.
-                                if handle_input(&mut app.camera_state, &event, size) {
-                                    update_camera(
-                                        &mut renderer,
-                                        &app.render_state.queue,
-                                        size,
-                                        &app.camera_state,
-                                        window.scale_factor(),
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-                winit::event::Event::MainEventsCleared => {
-                    window.request_redraw();
-                }
-                // TODO: Why does this need to be here?
-                winit::event::Event::UserEvent(_) => (),
-                _ => (),
+    let mut final_pass = renderer.render_models(
+        &mut encoder,
+        &output_view,
+        &app.render_models,
+        app.models.iter().map(|m| {
+            // TODO: Find a cleaner way to disable bone rendering.
+            if app.draw_skeletons {
+                m.model.find_skel()
+            } else {
+                None
             }
-        },
+        }),
+        app.render_state.shared_data.database(),
+        &app.render_state.model_render_options,
     );
+
+    // TODO: Avoid calculating the MVP matrix every frame.
+    // Overlay egui on the final pass to avoid a costly LoadOp::Load.
+    // This improves performance on weak integrated graphics.
+    // TODO: Why does this need a command encoder?
+    let mut egui_encoder =
+        app.render_state
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("egui Encoder"),
+            });
+    egui_render_pass(
+        ctx,
+        full_output,
+        &mut egui_encoder,
+        winit_state,
+        window,
+        surface_config,
+        egui_renderer,
+        app,
+        &mut final_pass,
+    );
+    drop(final_pass);
+
+    let (_, _, mvp) = calculate_mvp(
+        size,
+        app.camera_state.translation_xyz,
+        app.camera_state.rotation_xyz_radians,
+        app.camera_state.fov_y_radians,
+    );
+
+    // TODO: Make the font size configurable.
+    // TODO: Fix bone names appearing on top of the UI.
+    let bone_text_commands = if app.draw_skeletons && app.draw_bone_names {
+        renderer.render_skeleton_names(
+            &app.render_state.device,
+            &app.render_state.queue,
+            &output_view,
+            app.render_models.iter(),
+            app.models.iter().map(|m| m.model.find_skel()),
+            size.width,
+            size.height,
+            mvp,
+            18.0 * window.scale_factor() as f32,
+        )
+    } else {
+        None
+    };
+
+    // Submit the commands.
+    app.render_state
+        .queue
+        .submit([encoder.finish(), egui_encoder.finish()]);
+    if let Some(bone_text_commands) = bone_text_commands {
+        app.render_state
+            .queue
+            .submit(iter::once(bone_text_commands));
+    }
+
+    // Present the final rendered image.
+    output_frame.present();
+    if let Some(file) = &app.screenshot_to_render {
+        let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+        let image = render_screenshot(renderer, app, size.width, size.height, rect);
+        if let Err(e) = image.save(file) {
+            error!("Error saving screenshot to {:?}: {}", file, e);
+        }
+        app.screenshot_to_render = None;
+    }
+
+    // TODO: Avoid clone?
+    if let Some(file) = app.animation_gif_to_render.clone() {
+        // TODO: Run this on another thread?
+        render_animation_to_gif(app, size, window, renderer, file);
+        app.animation_gif_to_render = None;
+    }
+
+    if let Some(file) = app.animation_image_sequence_to_render.clone() {
+        // TODO: Run this on another thread?
+        render_animation_to_image_sequence(app, size, window, renderer, file);
+        app.animation_image_sequence_to_render = None;
+    }
 }
 
 fn create_app_data_directory() {
