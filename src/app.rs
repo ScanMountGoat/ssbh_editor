@@ -216,6 +216,7 @@ pub struct AnimEditorState {
 }
 
 const ICON_SIZE: f32 = 18.0;
+const ICON_TEXT_SIZE: f32 = 14.0;
 pub const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(240, 80, 80);
 pub const WARNING_COLOR: egui::Color32 = egui::Color32::from_rgb(255, 210, 0);
 
@@ -1520,7 +1521,7 @@ pub fn empty_icon(ui: &mut Ui) {
 pub fn missing_icon(ui: &mut Ui) -> Response {
     ui.add_sized(
         [ICON_SIZE, ICON_SIZE],
-        Label::new(RichText::new("⚠").size(ICON_SIZE)),
+        Label::new(RichText::new("⚠").size(ICON_TEXT_SIZE)),
     )
 }
 
@@ -1531,7 +1532,7 @@ pub fn warning_icon(ui: &mut Ui) -> Response {
             RichText::new("⚠")
                 .strong()
                 .color(WARNING_COLOR)
-                .size(ICON_SIZE),
+                .size(ICON_TEXT_SIZE),
         ),
     )
 }
@@ -1553,7 +1554,7 @@ pub fn error_icon(ui: &mut Ui) -> Response {
             RichText::new("⚠")
                 .strong()
                 .color(ERROR_COLOR)
-                .size(ICON_SIZE),
+                .size(ICON_TEXT_SIZE),
         ),
     )
 }
