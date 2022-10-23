@@ -1,9 +1,10 @@
 use crate::{
-    app::{folder_editor_title, warning_icon_text},
+    app::{folder_editor_title, warning_icon_text, ModlEditorState},
+    horizontal_separator_empty,
     validation::{ModlValidationError, ModlValidationErrorKind},
     EditorResponse,
 };
-use egui::{RichText, ScrollArea};
+use egui::{Grid, Label, RichText, ScrollArea, TextEdit};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
@@ -17,7 +18,7 @@ pub fn modl_editor(
     mesh: Option<&MeshData>,
     matl: Option<&MatlData>,
     validation_errors: &[ModlValidationError],
-    advanced_mode: &mut bool,
+    editor_state: &mut ModlEditorState,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -55,6 +56,23 @@ pub fn modl_editor(
                     }
                 });
 
+                ui.menu_button("Modl", |ui| {
+                    if ui.button("Add Entry").clicked() {
+                        changed = true;
+
+                        // Pick an arbitrary material to make the mesh visible in the viewport.
+                        let default_material = matl
+                            .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
+                            .unwrap_or_else(|| String::from("PLACEHOLDER"));
+
+                        modl.entries.push(ModlEntryData {
+                            mesh_object_name: String::from("PLACEHOLDER"),
+                            mesh_object_subindex: 0,
+                            material_label: default_material,
+                        });
+                    }
+                });
+
                 ui.menu_button("Help", |ui| {
                     if ui.button("Modl Editor Wiki").clicked() {
                         ui.close_menu();
@@ -69,23 +87,7 @@ pub fn modl_editor(
             ui.separator();
 
             // Advanced mode has more detailed information that most users won't want to edit.
-            ui.checkbox(advanced_mode, "Advanced Settings");
-
-            // Manually adding entries is error prone, so check for advanced mode.
-            if *advanced_mode && ui.button("Add Entry").clicked() {
-                changed = true;
-
-                // Pick an arbitrary material to make the mesh visible in the viewport.
-                let default_material = matl
-                    .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
-                    .unwrap_or_else(|| String::from("PLACEHOLDER"));
-
-                modl.entries.push(ModlEntryData {
-                    mesh_object_name: String::from("PLACEHOLDER"),
-                    mesh_object_subindex: 0,
-                    material_label: default_material,
-                });
-            }
+            ui.checkbox(&mut editor_state.advanced_mode, "Advanced Settings");
 
             if let Some(mesh) = mesh {
                 // TODO: Optimize this?
@@ -117,16 +119,40 @@ pub fn modl_editor(
                     }
                 }
             }
+            horizontal_separator_empty(ui);
 
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    egui::Grid::new("modl_grid").striped(true).show(ui, |ui| {
-                        // Header
-                        // TODO: There are three ways to display duplicate object names.
-                        // 1. "object.0", "object.1"
-                        // 2. "object", "object"
-                        // 3. hierarchy with "object0" and "object1" as children of "object"
+                    if editor_state.advanced_mode {
+                        ui.heading("Model Files");
+                        Grid::new("modl_files_grid").show(ui, |ui| {
+                            let size = [125.0, 20.0];
+                            ui.label("Model Name");
+                            ui.add_sized(size, TextEdit::singleline(&mut modl.model_name));
+                            ui.end_row();
+
+                            ui.label("Skeleton File Name");
+                            ui.add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name));
+                            ui.end_row();
+
+                            // TODO: Only a single material name should be editable..
+                            ui.label("Animation File Name");
+                            ui.add_sized(size, TextEdit::singleline(&mut String::new()));
+                            ui.end_row();
+
+                            // TODO: Edit the animation name.
+                            ui.label("Animation File Name");
+                            ui.add_sized(size, TextEdit::singleline(&mut String::new()));
+                            ui.end_row();
+
+                            ui.label("Mesh File Name");
+                            ui.add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name));
+                            ui.end_row();
+                        });
+                    }
+
+                    Grid::new("modl_entries_grid").striped(true).show(ui, |ui| {
                         ui.heading("Mesh Object");
                         ui.heading("Material Label");
                         ui.end_row();
@@ -149,19 +175,30 @@ pub fn modl_editor(
                                 }
                             }
 
-                            if *advanced_mode {
-                                changed |= mesh_name_combo_box(
-                                    ui,
-                                    &mut entry.mesh_object_name,
-                                    id.with("mesh"),
-                                    mesh,
-                                    valid_mesh,
-                                );
-                            } else if valid_mesh {
-                                ui.label(&entry.mesh_object_name);
+                            // Show errors for the selected mesh object for this entry.
+                            let mesh_text = if valid_mesh {
+                                RichText::new(&entry.mesh_object_name)
                             } else {
-                                ui.label(warning_icon_text(&entry.mesh_object_name));
-                            }
+                                warning_icon_text(&entry.mesh_object_name)
+                            };
+
+                            // TODO: Highlight the mesh in the viewport on hover.
+                            let name_response = if editor_state.advanced_mode {
+                                let (response, name_changed) =
+                                    mesh_combo_box(ui, entry, id.with("mesh"), mesh, mesh_text);
+                                changed |= name_changed;
+                                response
+                            } else {
+                                ui.add(Label::new(mesh_text).sense(egui::Sense::click()))
+                            };
+
+                            name_response.context_menu(|ui| {
+                                if ui.button("Delete").clicked() {
+                                    ui.close_menu();
+                                    entry_to_remove = Some(i);
+                                    changed = true;
+                                }
+                            });
 
                             changed |= material_label_combo_box(
                                 ui,
@@ -170,11 +207,6 @@ pub fn modl_editor(
                                 matl,
                                 valid_material,
                             );
-
-                            if *advanced_mode && ui.button("Delete").clicked() {
-                                changed = true;
-                                entry_to_remove = Some(i)
-                            }
                             ui.end_row();
                         }
 
@@ -193,33 +225,33 @@ pub fn modl_editor(
 }
 
 // TODO: Create a function that handles displaying combo box errors?
-fn mesh_name_combo_box(
+fn mesh_combo_box(
     ui: &mut egui::Ui,
-    mesh_name: &mut String,
+    entry: &mut ModlEntryData,
     id: impl std::hash::Hash,
     mesh: Option<&MeshData>,
-    is_valid: bool,
-) -> bool {
+    selected_text: RichText,
+) -> (egui::Response, bool) {
     let mut changed = false;
-    let text = if is_valid {
-        RichText::new(mesh_name.as_str())
-    } else {
-        warning_icon_text(mesh_name)
-    };
-    egui::ComboBox::from_id_source(id)
-        .selected_text(text)
+    let response = egui::ComboBox::from_id_source(id)
+        .selected_text(selected_text)
         .width(300.0)
         .show_ui(ui, |ui| {
             // TODO: Just use text boxes if the mesh is missing?
             if let Some(mesh) = mesh {
                 for mesh in &mesh.objects {
                     changed |= ui
-                        .selectable_value(mesh_name, mesh.name.to_string(), &mesh.name)
+                        .selectable_label(
+                            entry.mesh_object_name == mesh.name
+                                && entry.mesh_object_subindex == mesh.subindex,
+                            &mesh.name,
+                        )
                         .changed();
                 }
             }
-        });
-    changed
+        })
+        .response;
+    (response, changed)
 }
 
 fn material_label_combo_box(

@@ -124,7 +124,6 @@ pub struct UiState {
     pub stage_lighting_open: bool,
     pub preset_editor_open: bool,
     pub right_panel_tab: PanelTab,
-    pub modl_editor_advanced_mode: bool,
     pub mesh_editor_advanced_mode: bool,
     pub log_window_open: bool,
     pub preferences_window_open: bool,
@@ -153,6 +152,7 @@ pub struct UiState {
     pub preset_editor: MatlEditorState,
     pub anim_editor: AnimEditorState,
     pub skel_editor: SkelEditorState,
+    pub modl_editor: ModlEditorState,
     pub stage_lighting: StageLightingState,
 }
 
@@ -179,6 +179,11 @@ pub struct MatlEditorState {
     pub selected_material_index: usize,
     pub is_editing_material_label: bool,
     pub hovered_material_index: Option<usize>,
+}
+
+#[derive(Default)]
+pub struct ModlEditorState {
+    pub advanced_mode: bool,
 }
 
 #[derive(Default)]
@@ -688,7 +693,7 @@ impl SsbhApp {
                             find_file(&model.model.meshes, "model.numshb"),
                             matl,
                             &model.validation.modl_errors,
-                            &mut self.ui_state.modl_editor_advanced_mode,
+                            &mut self.ui_state.modl_editor,
                         );
                         response.set_changed(&mut model.changed.modls[modl_index]);
                         file_changed |= response.changed;
