@@ -417,6 +417,7 @@ fn menu_bar(
 
                 ui_state.matl_editor.selected_material_index = matl.entries.len() - 1;
             }
+            ui.separator();
 
             if ui.button("Add Material to Presets").clicked() {
                 ui.close_menu();
@@ -435,6 +436,7 @@ fn menu_bar(
 
                 ui_state.matl_preset_window_open = true;
             }
+            ui.separator();
 
             if ui.button("Remove Duplicates").clicked() {
                 ui.close_menu();
