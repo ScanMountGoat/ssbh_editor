@@ -1,24 +1,24 @@
-use std::path::Path;
-
-use egui::{Button, ComboBox, RichText, ScrollArea, Ui};
+use crate::{
+    app::{display_validation_errors, folder_editor_title, warning_icon_text, UiState},
+    validation::{MeshValidationError, MeshValidationErrorKind},
+    widgets::bone_combo_box,
+};
+use egui::{Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
     mesh_data::{AttributeData, MeshObjectData, VectorData},
     prelude::*,
 };
-
-use crate::{
-    app::{display_validation_errors, folder_editor_title, warning_icon, UiState, WARNING_COLOR},
-    validation::{MeshValidationError, MeshValidationErrorKind},
-    widgets::bone_combo_box,
-};
+use ssbh_wgpu::RenderModel;
+use std::path::Path;
 
 pub fn mesh_editor(
     ctx: &egui::Context,
     folder_name: &str,
     file_name: &str,
     mesh: &mut MeshData,
+    render_model: &mut Option<&mut RenderModel>,
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
     ui_state: &mut UiState,
@@ -26,15 +26,13 @@ pub fn mesh_editor(
     let mut open = true;
     let mut changed = false;
 
-    let advanced_mode = &mut ui_state.mesh_editor_advanced_mode;
-
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Mesh Editor ({title})"))
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                ui.menu_button( "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
 
@@ -58,7 +56,7 @@ pub fn mesh_editor(
                     }
                 });
 
-                ui.menu_button( "Mesh", |ui| {
+                ui.menu_button("Mesh", |ui| {
                     if ui
                         .add(Button::new("Match reference mesh order...").wrap(false))
                         .clicked()
@@ -77,7 +75,7 @@ pub fn mesh_editor(
                     }
                 });
 
-                ui.menu_button( "Help", |ui| {
+                ui.menu_button("Help", |ui| {
                     if ui.button("Mesh Editor Wiki").clicked() {
                         ui.close_menu();
 
@@ -93,185 +91,217 @@ pub fn mesh_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    if let Some(mesh_object) = ui_state
-                        .selected_mesh_influences_index
-                        .and_then(|index| mesh.objects.get(index))
-                    {
-                        let open = influences_window(ctx, mesh_object);
-                        if !open {
-                            ui_state.selected_mesh_influences_index = None;
-                        }
-                    }
-
-                    if let Some(mesh_object) = ui_state
-                        .selected_mesh_attributes_index
-                        .and_then(|index| mesh.objects.get_mut(index))
-                    {
-                        // TODO: Find a cleaner way to get the errors for the selected mesh.
-                        let missing_attributes = validation_errors
-                            .iter()
-                            .filter_map(|e| match &e.kind {
-                                MeshValidationErrorKind::MissingRequiredVertexAttributes {
-                                    missing_attributes,
-                                    ..
-                                } => {
-                                    if Some(e.mesh_object_index)
-                                        == ui_state.selected_mesh_attributes_index
-                                    {
-                                        Some(missing_attributes.as_slice())
-                                    } else {
-                                        None
-                                    }
-                                }
-                                _ => None,
-                            })
-                            .next()
-                            .unwrap_or_default();
-
-                        let (a_open, a_changed) =
-                            attributes_window(ctx, mesh_object, missing_attributes);
-
-                        changed |= a_changed;
-
-                        if !a_open {
-                            ui_state.selected_mesh_attributes_index = None;
-                        }
-                    }
-
-                    ui.checkbox(advanced_mode, "Advanced Settings");
-
-                    let mut meshes_to_remove = Vec::new();
-                    egui::Grid::new("mesh_grid").show(ui, |ui| {
-                        // TODO: Show tooltips for header names?
-                        ui.heading("Name");
-                        ui.heading("Subindex");
-                        ui.heading("Parent Bone");
-                        ui.heading("");
-                        ui.heading("");
-                        if *advanced_mode {
-                            ui.heading("Sort Bias");
-                            ui.heading("");
-                            ui.heading("");
-                        }
-                        ui.end_row();
-
-                        for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
-                            let id = egui::Id::new("mesh").with(i);
-
-                            // TODO: Avoid allocating here.
-                            let errors: Vec<_> = validation_errors
-                                .iter()
-                                .filter(|e| e.mesh_object_index == i)
-                                .collect();
-
-                            // TODO: Reorder mesh objects?
-                            ui.horizontal(|ui| {
-                                // TODO: Show errors on the appropriate field?
-                                if !errors.is_empty() {
-                                    warning_icon(ui).on_hover_ui(|ui| {
-                                        display_validation_errors(ui, &errors);
-                                    });
-                                }
-
-                                changed |= edit_name(ui, mesh_object, *advanced_mode);
-                            });
-
-                            if *advanced_mode {
-                                changed |= ui
-                                    .add(egui::DragValue::new(&mut mesh_object.subindex))
-                                    .changed();
-                            } else {
-                                ui.label(mesh_object.subindex.to_string());
-                            }
-
-                            // TODO: Are parent bones and influences mutually exclusive?
-                            // TODO: Is there a better way to indicate no parent than ""?
-                            changed |= bone_combo_box(
-                                ui,
-                                &mut mesh_object.parent_bone_name,
-                                id.with("parent_bone"),
-                                skel,
-                                &[""],
-                            );
-
-                            // Open in a separate window since they won't fit in the grid.
-                            ui.horizontal(|ui| {
-                                // TODO: Simplify this code?
-                                let attribute_error = errors.iter().find(|e| {
-                                    matches!(
-                                        e.kind,
-                                        MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
-                                    )
-                                });
-
-                                if let Some(attribute_error) = attribute_error {
-                                    if ui
-                                        .add_sized(
-                                            [140.0, 20.0],
-                                            Button::new(
-                                                RichText::new("⚠ Vertex Attributes...")
-                                                    .color(WARNING_COLOR),
-                                            ),
-                                        )
-                                        .on_hover_text(format!("{}", attribute_error))
-                                        .clicked()
-                                    {
-                                        ui_state.selected_mesh_attributes_index = Some(i);
-                                    }
-                                } else if ui
-                                    .add_sized([140.0, 20.0], Button::new("Vertex Attributes..."))
-                                    .clicked()
-                                {
-                                    ui_state.selected_mesh_attributes_index = Some(i);
-                                }
-                            });
-
-                            if !mesh_object.bone_influences.is_empty() {
-                                if ui.button("Bone Influences...").clicked() {
-                                    ui_state.selected_mesh_influences_index = Some(i);
-                                }
-                            } else {
-                                // TODO: How to handle gaps in grid?
-                                ui.allocate_space(egui::Vec2::new(1.0, 1.0));
-                            }
-
-                            if *advanced_mode {
-                                changed |= ui
-                                    .add(egui::DragValue::new(&mut mesh_object.sort_bias))
-                                    .changed();
-
-                                // TODO: Center these in the cell and omit the labels?
-                                changed |= ui
-                                    .checkbox(
-                                        &mut mesh_object.disable_depth_write,
-                                        "Disable Depth Write",
-                                    )
-                                    .changed();
-                                changed |= ui
-                                    .checkbox(
-                                        &mut mesh_object.disable_depth_test,
-                                        "Disable Depth Test",
-                                    )
-                                    .changed();
-
-                                if ui.button("Delete").clicked() {
-                                    changed = true;
-                                    meshes_to_remove.push(i);
-                                }
-                            }
-
-                            ui.end_row();
-                        }
-                    });
-
-                    // TODO: Only allow deleting one object at a time?
-                    for i in meshes_to_remove {
-                        mesh.objects.remove(i);
-                    }
+                    changed |= edit_mesh(
+                        ctx,
+                        ui,
+                        mesh,
+                        render_model,
+                        ui_state,
+                        validation_errors,
+                        skel,
+                    );
                 });
         });
 
     (open, changed)
+}
+
+fn edit_mesh(
+    ctx: &egui::Context,
+    ui: &mut Ui,
+    mesh: &mut MeshData,
+    render_model: &mut Option<&mut RenderModel>,
+    ui_state: &mut UiState,
+    validation_errors: &[MeshValidationError],
+    skel: Option<&SkelData>,
+) -> bool {
+    let mut changed = false;
+
+    if let Some(mesh_object) = ui_state
+        .selected_mesh_influences_index
+        .and_then(|index| mesh.objects.get(index))
+    {
+        let open = influences_window(ctx, mesh_object);
+        if !open {
+            ui_state.selected_mesh_influences_index = None;
+        }
+    }
+    if let Some(mesh_object) = ui_state
+        .selected_mesh_attributes_index
+        .and_then(|index| mesh.objects.get_mut(index))
+    {
+        // TODO: Find a cleaner way to get the errors for the selected mesh.
+        let missing_attributes = validation_errors
+            .iter()
+            .filter_map(|e| match &e.kind {
+                MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                    missing_attributes,
+                    ..
+                } => {
+                    if Some(e.mesh_object_index) == ui_state.selected_mesh_attributes_index {
+                        Some(missing_attributes.as_slice())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .next()
+            .unwrap_or_default();
+
+        let (a_open, a_changed) = attributes_window(ctx, mesh_object, missing_attributes);
+
+        changed |= a_changed;
+
+        if !a_open {
+            ui_state.selected_mesh_attributes_index = None;
+        }
+    }
+
+    // TODO: Remove advanced settings.
+    ui.checkbox(&mut ui_state.mesh_editor_advanced_mode, "Advanced Settings");
+    let mut mesh_to_remove = None;
+
+    for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
+        let id = egui::Id::new("mesh").with(i);
+
+        // TODO: Avoid allocating here.
+        let errors: Vec<_> = validation_errors
+            .iter()
+            .filter(|e| e.mesh_object_index == i)
+            .collect();
+
+        let text = if !errors.is_empty() {
+            warning_icon_text(&mesh_object.name)
+        } else {
+            RichText::new(&mesh_object.name)
+        };
+
+        let header_response = CollapsingHeader::new(text)
+            .id_source(id.with("name"))
+            .show(ui, |ui| {
+                // TODO: Reorder mesh objects?
+                // TODO: Show errors on the appropriate field?
+                Grid::new(id.with("grid")).show(ui, |ui| {
+                    ui.label("Name");
+                    changed |= edit_name(ui, mesh_object, ui_state.mesh_editor_advanced_mode);
+                    ui.end_row();
+
+                    // TODO: Is it possible to edit the subindex without messing up influence assignments?
+                    ui.label("Subindex");
+                    if ui_state.mesh_editor_advanced_mode {
+                        changed |= ui
+                            .add(egui::DragValue::new(&mut mesh_object.subindex))
+                            .changed();
+                    } else {
+                        ui.label(mesh_object.subindex.to_string());
+                    }
+                    ui.end_row();
+
+                    ui.label("Sort Bias");
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut mesh_object.sort_bias))
+                        .changed();
+                    ui.end_row();
+
+                    changed |= ui
+                        .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
+                        .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
+                        .changed();
+                    ui.end_row();
+
+                    changed |= ui
+                        .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
+                        .on_hover_text("Disabling depth testing causes the mesh to render on top of previous meshes.")
+                        .changed();
+                    ui.end_row();
+                });
+
+                // Meshes should have influences or a parent bone but not both.
+                // TODO: Is there a better way to indicate no parent than ""?
+                // TODO: Combine this with bone influences?
+                if mesh_object.bone_influences.is_empty() {
+                    changed |= bone_combo_box(
+                        ui,
+                        &mut mesh_object.parent_bone_name,
+                        id.with("parent_bone"),
+                        skel,
+                        &[""],
+                    );
+                } else {
+                    if ui
+                        .button("Use Parent Bone")
+                        .on_hover_text("Remove the vertex skin weights and assign a parent bone.")
+                        .clicked()
+                    {
+                        // TODO: Remove existing influences.
+                        changed = true;
+                    }
+                };
+
+                // Open in a separate window since they won't fit in the grid.
+                // TODO: Simplify this code?
+                let attribute_error = errors.iter().find(|e| {
+                    matches!(
+                        e.kind,
+                        MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
+                    )
+                });
+
+                // TODO: Combine the attributes with the mesh 
+                if let Some(attribute_error) = attribute_error {
+                    if ui
+                        .add_sized(
+                            [140.0, 20.0],
+                            Button::new(warning_icon_text("Vertex Attributes")),
+                        )
+                        .on_hover_text(format!("{}", attribute_error))
+                        .clicked()
+                    {
+                        ui_state.selected_mesh_attributes_index = Some(i);
+                    }
+                } else if ui
+                    .add_sized([140.0, 20.0], Button::new("Vertex Attributes..."))
+                    .clicked()
+                {
+                    ui_state.selected_mesh_attributes_index = Some(i);
+                }
+
+                if !mesh_object.bone_influences.is_empty() {
+                    if ui.button("Bone Influences...").clicked() {
+                        ui_state.selected_mesh_influences_index = Some(i);
+                    }
+                } else {
+                    // TODO: How to handle gaps in grid?
+                    ui.allocate_space(egui::Vec2::new(1.0, 1.0));
+                }
+            })
+            .header_response
+            .context_menu(|ui| {
+                if ui.button("Delete").clicked() {
+                    ui.close_menu();
+                    mesh_to_remove = Some(i);
+                    changed = true;
+                }
+            });
+
+        if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(i)) {
+            // Outline the selected mesh in the viewport.
+            render_mesh.is_selected |= header_response.hovered();
+        }
+
+        if !errors.is_empty() {
+            header_response.on_hover_ui(|ui| {
+                display_validation_errors(ui, validation_errors);
+            });
+        }
+    }
+
+    if let Some(i) = mesh_to_remove {
+        mesh.objects.remove(i);
+    }
+
+    changed
 }
 
 fn edit_name(ui: &mut egui::Ui, mesh_object: &mut MeshObjectData, advanced_mode: bool) -> bool {

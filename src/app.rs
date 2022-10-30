@@ -444,6 +444,10 @@ impl SsbhApp {
 
 impl SsbhApp {
     pub fn update(&mut self, ctx: &Context) {
+        // This can be set by the mesh list and mesh editor.
+        // Clear every frame so both sources can set is_selected to true.
+        self.clear_selected_meshes();
+
         // Set the region for the 3D viewport to reduce overdraw.
         self.render_state.viewport_top = Some(
             egui::TopBottomPanel::top("top_panel")
@@ -548,6 +552,15 @@ impl SsbhApp {
         };
     }
 
+    fn clear_selected_meshes(&mut self) {
+        for model in &mut self.render_models {
+            model.is_selected = false;
+            for mesh in &mut model.meshes {
+                mesh.is_selected = false;
+            }
+        }
+    }
+
     fn new_release_window(&mut self, ctx: &Context) {
         if let Some(new_release_tag) = &self.new_release_tag {
             Window::new("New Release Available")
@@ -610,6 +623,7 @@ impl SsbhApp {
                             &model.model.folder_name,
                             name,
                             mesh,
+                            &mut self.render_models.get_mut(folder_index),
                             find_file(&model.model.skels, "model.nusktb"),
                             &model.validation.mesh_errors,
                             &mut self.ui_state,
@@ -913,7 +927,6 @@ impl SsbhApp {
                     .enumerate()
                     .filter(|(_, model)| !model.model.is_empty())
                 {
-                    // TODO: Show full path on hover?
                     CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
                         .id_source(format!("folder.{}", folder_index))
                         .default_open(true)
@@ -921,6 +934,7 @@ impl SsbhApp {
                             show_folder_files(&mut self.ui_state, model, ui, folder_index);
                         })
                         .header_response
+                        .on_hover_text(&model.model.folder_name)
                         .context_menu(|ui| {
                             // Use "Remove" since this doesn't delete the folder on disk.
                             if ui.button("Remove").clicked() {
@@ -1572,7 +1586,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 if let Some(render_model) = app.render_models.get_mut(i) {
-                    render_model.is_selected = ui
+                    render_model.is_selected |= ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
                             folder_display_name(&folder.model).to_string_lossy(),
@@ -1589,7 +1603,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         ui.spacing_mut().indent = 24.0;
                         ui.indent("indent", |ui| {
                             for mesh in &mut render_model.meshes {
-                                mesh.is_selected = ui
+                                mesh.is_selected |= ui
                                     .add(EyeCheckBox::new(&mut mesh.is_visible, &mesh.name))
                                     .hovered();
                             }

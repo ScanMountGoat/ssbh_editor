@@ -327,6 +327,7 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
                     if ui.button("Delete").clicked() {
                         ui.close_menu();
                         entry_to_remove = Some(i);
+                        changed = true;
                     }
                 });
             }
