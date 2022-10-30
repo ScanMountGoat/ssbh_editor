@@ -296,10 +296,12 @@ impl SsbhApp {
 
         // Only keep track of a limited number of recent folders.
         let new_folder = folder.as_ref().to_string_lossy().to_string();
-        if !self.preferences.recent_folders.contains(&new_folder) {
-            self.preferences.recent_folders.insert(0, new_folder);
-            self.preferences.recent_folders.truncate(10);
+        if let Some(i) = self.preferences.recent_folders.iter().position(|f| f == &new_folder) {
+            self.preferences.recent_folders.remove(i);
         }
+        // Move a folder to the front if it was seen before.
+        self.preferences.recent_folders.insert(0, new_folder);
+        self.preferences.recent_folders.truncate(10);
     }
 
     pub fn reload_workspace(&mut self) {
@@ -927,6 +929,7 @@ impl SsbhApp {
                     .enumerate()
                     .filter(|(_, model)| !model.model.is_empty())
                 {
+                    // TODO: Use folder icons for open vs closed.
                     CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
                         .id_source(format!("folder.{}", folder_index))
                         .default_open(true)
@@ -1396,7 +1399,11 @@ fn list_files<T, E: std::fmt::Display>(
         ui.horizontal(|ui| {
             match file {
                 Ok(_) => {
-                    empty_icon(ui);
+                    // TODO: Add file specific icons.
+                    ui.add_sized(
+                        [ICON_SIZE, ICON_SIZE],
+                        Label::new(RichText::new("🗋").size(ICON_TEXT_SIZE)),
+                    );
 
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
