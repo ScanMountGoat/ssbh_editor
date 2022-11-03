@@ -62,10 +62,11 @@ pub fn matl_editor(
             let entry = matl
                 .entries
                 .get_mut(ui_state.matl_editor.selected_material_index);
-            let open = preset_window(ui_state, ctx, material_presets, entry);
+            let (open, preset_changed) = preset_window(ui_state, ctx, material_presets, entry);
             if !open {
                 ui_state.matl_preset_window_open = false;
             }
+            changed |= preset_changed;
 
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
@@ -322,8 +323,9 @@ fn preset_window(
     ctx: &egui::Context,
     material_presets: &[MatlEntryData],
     entry: Option<&mut MatlEntryData>,
-) -> bool {
+) -> (bool, bool) {
     let mut open = ui_state.matl_preset_window_open;
+    let mut changed = false;
     Window::new("Select Material Preset")
         .open(&mut ui_state.matl_preset_window_open)
         .resizable(false)
@@ -344,6 +346,7 @@ fn preset_window(
                     {
                         if let Some(entry) = entry {
                             *entry = apply_preset(entry, preset);
+                            changed = true;
                         }
                     }
 
@@ -351,7 +354,8 @@ fn preset_window(
                 }
             }
         });
-    open
+
+    (open, changed)
 }
 
 fn menu_bar(
