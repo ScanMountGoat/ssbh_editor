@@ -223,9 +223,6 @@ fn main() {
                                 modifiers = new_modifiers;
                             }
                             _ => {
-                                // TODO: Is this the best place to handle keyboard shortcuts?
-                                hande_keyboard_shortcuts(&event, modifiers, &mut app);
-
                                 if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
                                     // It's possible to interact with the UI with the mouse over the viewport.
                                     // Disable tracking the mouse in this case to prevent unwanted camera rotations.
@@ -1010,37 +1007,6 @@ fn request_adapter(
         })
         .block_on()?;
     Some((surface, adapter))
-}
-
-fn hande_keyboard_shortcuts(event: &WindowEvent, modifiers: ModifiersState, app: &mut SsbhApp) {
-    // Use command instead of ctrl on MacOS.
-    const CTRL: ModifiersState = if cfg!(target_os = "macos") {
-        ModifiersState::LOGO
-    } else {
-        ModifiersState::CTRL
-    };
-    const CTRL_SHIFT: ModifiersState = CTRL.union(ModifiersState::SHIFT);
-
-    if let WindowEvent::KeyboardInput {
-        input,
-        is_synthetic,
-        ..
-    } = event
-    {
-        // Check for synthetic keys to avoid triggering events twice.
-        if !is_synthetic {
-            if let Some(key) = input.virtual_keycode {
-                match (modifiers, key) {
-                    (CTRL, VirtualKeyCode::O) => app.add_folder_to_workspace_from_dialog(true),
-                    (CTRL_SHIFT, VirtualKeyCode::O) => {
-                        app.add_folder_to_workspace_from_dialog(false)
-                    }
-                    (CTRL, VirtualKeyCode::R) => app.reload_workspace(),
-                    _ => (),
-                }
-            }
-        }
-    }
 }
 
 fn update_camera(

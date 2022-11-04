@@ -741,7 +741,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#5e44c13b481d8bdcadde977f04ed3cd078975359"
+source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
 dependencies = [
  "ahash 0.8.0",
  "epaint",
@@ -752,7 +752,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#5e44c13b481d8bdcadde977f04ed3cd078975359"
+source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
 dependencies = [
  "bytemuck",
  "egui",
@@ -764,7 +764,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#5e44c13b481d8bdcadde977f04ed3cd078975359"
+source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
 dependencies = [
  "arboard",
  "egui",
@@ -784,7 +784,7 @@ checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 [[package]]
 name = "emath"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#5e44c13b481d8bdcadde977f04ed3cd078975359"
+source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
 dependencies = [
  "bytemuck",
 ]
@@ -801,7 +801,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#5e44c13b481d8bdcadde977f04ed3cd078975359"
+source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
 dependencies = [
  "ab_glyph",
  "ahash 0.8.0",
@@ -1861,26 +1861,13 @@ dependencies = [
 
 [[package]]
 name = "ndk"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2032c77e030ddee34a6787a64166008da93f6a352b629261d0fee232b8742dd4"
-dependencies = [
- "bitflags",
- "jni-sys",
- "ndk-sys 0.3.0",
- "num_enum",
- "thiserror",
-]
-
-[[package]]
-name = "ndk"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "451422b7e4718271c8b5b3aadf5adedba43dc76312454b387e98fae0fc951aa0"
 dependencies = [
  "bitflags",
  "jni-sys",
- "ndk-sys 0.4.0",
+ "ndk-sys",
  "num_enum",
  "raw-window-handle 0.5.0",
  "thiserror",
@@ -1894,31 +1881,16 @@ checksum = "27b02d87554356db9e9a873add8782d4ea6e3e58ea071a9adb9a2e8ddb884a8b"
 
 [[package]]
 name = "ndk-glue"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d0c4a7b83860226e6b4183edac21851f05d5a51756e97a1144b7f5a6b63e65f"
-dependencies = [
- "lazy_static",
- "libc",
- "log",
- "ndk 0.6.0",
- "ndk-context",
- "ndk-macro",
- "ndk-sys 0.3.0",
-]
-
-[[package]]
-name = "ndk-glue"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0434fabdd2c15e0aab768ca31d5b7b333717f03cf02037d5a0a3ff3c278ed67f"
 dependencies = [
  "libc",
  "log",
- "ndk 0.7.0",
+ "ndk",
  "ndk-context",
  "ndk-macro",
- "ndk-sys 0.4.0",
+ "ndk-sys",
  "once_cell",
  "parking_lot 0.12.1",
 ]
@@ -1934,15 +1906,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "ndk-sys"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e5a6ae77c8ee183dcbbba6150e2e6b9f3f4196a7666c02a715a95692ec1fa97"
-dependencies = [
- "jni-sys",
 ]
 
 [[package]]
@@ -3682,7 +3645,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01d62aa75495ab67cdc273d0b95cc76bcedfea2ba28338a4cf9b4137949dfac5"
 dependencies = [
  "jni",
- "ndk-glue 0.6.2",
+ "ndk-glue",
  "objc",
  "raw-window-handle 0.5.0",
  "url",
@@ -3707,7 +3670,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "raw-window-handle 0.5.0",
  "smallvec",
  "static_assertions",
@@ -3733,7 +3696,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle 0.5.0",
  "smallvec",
@@ -3769,7 +3732,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.0",
@@ -4021,8 +3984,8 @@ dependencies = [
  "libc",
  "log",
  "mio",
- "ndk 0.7.0",
- "ndk-glue 0.7.0",
+ "ndk",
+ "ndk-glue",
  "objc",
  "once_cell",
  "parking_lot 0.12.1",

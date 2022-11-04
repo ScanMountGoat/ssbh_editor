@@ -296,7 +296,12 @@ impl SsbhApp {
 
         // Only keep track of a limited number of recent folders.
         let new_folder = folder.as_ref().to_string_lossy().to_string();
-        if let Some(i) = self.preferences.recent_folders.iter().position(|f| f == &new_folder) {
+        if let Some(i) = self
+            .preferences
+            .recent_folders
+            .iter()
+            .position(|f| f == &new_folder)
+        {
             self.preferences.recent_folders.remove(i);
         }
         // Move a folder to the front if it was seen before.
@@ -1012,25 +1017,38 @@ impl SsbhApp {
     }
 
     fn menu_bar(&mut self, ui: &mut Ui) {
+        let open_shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::O);
+        let add_shortcut = egui::KeyboardShortcut::new(
+            egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+            egui::Key::O,
+        );
+        let reload_shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::R);
+
+        // Shortcuts need to be handled even while the menu is not open.
+        if ui.input_mut().consume_shortcut(&open_shortcut) {
+            self.add_folder_to_workspace_from_dialog(true);
+        }
+
+        if ui.input_mut().consume_shortcut(&add_shortcut) {
+            self.add_folder_to_workspace_from_dialog(false)
+        }
+
+        if ui.input_mut().consume_shortcut(&reload_shortcut) {
+            self.reload_workspace();
+        }
+
         egui::menu::bar(ui, |ui| {
-            // TODO: Improve alignment of menu options.
             ui.menu_button("File", |ui| {
                 let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
-
-                // TODO: Store keyboard shortcuts in a single place?
-                let ctrl = if cfg!(target_os = "macos") {
-                    "⌘"
-                } else {
-                    "Ctrl"
+                let shortcut_button = |ui: &mut Ui, text: &str, shortcut| {
+                    ui.add(
+                        Button::new(text)
+                            .wrap(false)
+                            .shortcut_text(ui.ctx().format_shortcut(shortcut)),
+                    )
                 };
 
-                let ctrl_shift = if cfg!(target_os = "macos") {
-                    "⇧ ⌘"
-                } else {
-                    "Ctrl Shift"
-                };
-
-                if button(ui, &format!("Open Folder...    {ctrl} O")).clicked() {
+                if shortcut_button(ui, &format!("Open Folder..."), &open_shortcut).clicked() {
                     ui.close_menu();
                     if let Some(folder) = FileDialog::new().pick_folder() {
                         self.add_folder_to_workspace(folder, true);
@@ -1038,7 +1056,6 @@ impl SsbhApp {
                 }
 
                 // TODO: Find a cleaner way to write this.
-                // TODO: Add an option to clear the recently opened?
                 let mut recent = None;
                 ui.menu_button("Open Recent Folder", |ui| {
                     for folder in &self.preferences.recent_folders {
@@ -1057,7 +1074,9 @@ impl SsbhApp {
                 }
                 ui.separator();
 
-                if button(ui, &format!("Add Folder to Workspace...    {ctrl_shift} O")).clicked() {
+                if shortcut_button(ui, &format!("Add Folder to Workspace..."), &add_shortcut)
+                    .clicked()
+                {
                     ui.close_menu();
                     if let Some(folder) = FileDialog::new().pick_folder() {
                         self.add_folder_to_workspace(folder, false);
@@ -1083,7 +1102,7 @@ impl SsbhApp {
                 }
                 ui.separator();
 
-                if button(ui, &format!("Reload Workspace    {ctrl} R")).clicked() {
+                if shortcut_button(ui, &format!("Reload Workspace"), &reload_shortcut).clicked() {
                     ui.close_menu();
                     self.reload_workspace();
                 }
