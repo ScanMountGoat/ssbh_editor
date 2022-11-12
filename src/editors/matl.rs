@@ -55,7 +55,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            saved |= menu_bar(ui, matl, ui_state, material_presets, folder_name, file_name);
+            saved |= menu_bar(ui, matl, &modl, ui_state, material_presets, folder_name, file_name);
             ui.separator();
 
             // TODO: Simplify logic for closing window.
@@ -192,6 +192,49 @@ fn remove_duplicates(entries: &mut Vec<MatlEntryData>) {
             true
         }
     });
+}
+
+fn remove_unused_materials(
+    matl_entries: &mut Vec<MatlEntryData>,
+    modl_entries: &Vec<ModlEntryData>,
+) {
+    let mut visited = vec![
+        //World of Light purple left eye
+        String::from("EyeLD"),
+        String::from("EyeLD1"),
+        String::from("EyeLD2"),
+
+        //World of Light purple right eye
+        String::from("EyeRD"),
+        String::from("EyeRD1"),
+        String::from("EyeRD2"),
+
+        //Final Smash left eye
+        String::from("EyeLG"),
+        String::from("EyeLG1"),
+        String::from("EyeLG2"),
+
+        //Final Smash right eye
+        String::from("EyeRG"),
+        String::from("EyeRG1"),
+        String::from("EyeRG2"),
+
+        //World of Light red left eye
+        String::from("EyeLL"),
+        String::from("EyeLL1"),
+        String::from("EyeLL2"),
+
+        //World of Light red right eye
+        String::from("EyeRL"),
+        String::from("EyeRL1"),
+        String::from("EyeRL2"),
+    ];
+
+    for modl_entry in modl_entries.iter() {
+        visited.push(modl_entry.material_label.clone());
+    }
+
+    matl_entries.retain(|item| visited.contains(&item.material_label));
 }
 
 fn load_presets_from_file<F: Fn(&[u8]) -> anyhow::Result<Vec<MatlEntryData>>>(
@@ -361,6 +404,7 @@ fn preset_window(
 fn menu_bar(
     ui: &mut Ui,
     matl: &mut MatlData,
+    modl: &Option<&mut ModlData>,
     ui_state: &mut UiState,
     material_presets: &mut Vec<MatlEntryData>,
     folder_name: &str,
@@ -446,6 +490,14 @@ fn menu_bar(
                 ui.close_menu();
 
                 remove_duplicates(&mut matl.entries);
+            }
+
+            if ui.add_enabled(modl.is_some(), Button::new("Remove Unused Materials")).clicked() {
+                ui.close_menu();
+
+                if let Some(modl) = modl {
+                    remove_unused_materials(&mut matl.entries, &modl.entries)
+                }
             }
         });
 
