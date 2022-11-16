@@ -585,7 +585,6 @@ pub fn param_description(p: ParamId) -> &'static str {
     }
 }
 
-// TODO: Add toggleable tooltips to preferences?
 pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
     match p {
         ParamId::CustomVector1

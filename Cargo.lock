@@ -46,12 +46,11 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.8.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57e6e951cfbb2db8de1828d49073a113a29fd7117b1596caa781a258c7e38d72"
+checksum = "bf6ccdb167abbf410dcb915cabd428929d7f6a04980b54a11f26a39f1c7f7107"
 dependencies = [
  "cfg-if",
- "getrandom",
  "once_cell",
  "version_check",
 ]
@@ -82,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "arboard"
-version = "3.1.1"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6702f4a0b562d352aa3d0e22d4142ea9241c44faa27635bb9d87047a08837d4d"
+checksum = "d6041616acea41d67c4a984709ddab1587fd0b10efe5cc563fee954d2f011854"
 dependencies = [
  "clipboard-win",
  "log",
@@ -741,9 +740,9 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
+source = "git+https://github.com/emilk/egui#f7019926dcc3ccef59e228c14fae98c08c727ae6"
 dependencies = [
- "ahash 0.8.0",
+ "ahash 0.8.2",
  "epaint",
  "nohash-hasher",
  "tracing",
@@ -752,7 +751,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
+source = "git+https://github.com/emilk/egui#f7019926dcc3ccef59e228c14fae98c08c727ae6"
 dependencies = [
  "bytemuck",
  "egui",
@@ -764,7 +763,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
+source = "git+https://github.com/emilk/egui#f7019926dcc3ccef59e228c14fae98c08c727ae6"
 dependencies = [
  "arboard",
  "egui",
@@ -784,7 +783,7 @@ checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 [[package]]
 name = "emath"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
+source = "git+https://github.com/emilk/egui#f7019926dcc3ccef59e228c14fae98c08c727ae6"
 dependencies = [
  "bytemuck",
 ]
@@ -801,10 +800,10 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.19.0"
-source = "git+https://github.com/emilk/egui#4d1e858a52ec5d4b4f243065774b3ad95413a5e2"
+source = "git+https://github.com/emilk/egui#f7019926dcc3ccef59e228c14fae98c08c727ae6"
 dependencies = [
  "ab_glyph",
- "ahash 0.8.0",
+ "ahash 0.8.2",
  "atomic_refcell",
  "bytemuck",
  "emath",
@@ -3670,7 +3669,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "raw-window-handle 0.5.0",
  "smallvec",
  "static_assertions",
@@ -3696,7 +3695,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle 0.5.0",
  "smallvec",
@@ -3732,7 +3731,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.0",
