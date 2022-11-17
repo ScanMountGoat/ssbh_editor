@@ -302,6 +302,25 @@ fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {
     }
 }
 
+fn swap_entries(a: usize, b: usize, entries: &[MatlEntryData]) -> Vec<MatlEntryData> {
+    entries
+        .iter()
+        .enumerate()
+        .map(|(i, entry)| {
+            // Swap material entries at positions a and b.
+            let new_entry = if i == a {
+                entries[b].clone()
+            } else if i == b {
+                entries[a].clone()
+            } else {
+                entry.clone()
+            };
+
+            new_entry
+        })
+        .collect()
+}
+
 fn edit_matl_entries(
     ctx: &Context,
     ui: &mut Ui,
@@ -318,6 +337,9 @@ fn edit_matl_entries(
     // Only display a single material at a time.
     // This avoids cluttering the UI.
     let entry = entries.get_mut(editor_state.selected_material_index);
+
+    let mut entries_to_swap = None;
+
     let mut modl_entries: Vec<_> = entry
         .and_then(|entry| {
             modl.map(|modl| {
@@ -351,17 +373,40 @@ fn edit_matl_entries(
                 validation_errors,
             );
         }
+    });
 
+    horizontal_separator_empty(ui);
+
+    ui.horizontal(|ui| {
         if !editor_state.is_editing_material_label && ui.button("Rename").clicked() {
             editor_state.is_editing_material_label = true;
         }
 
-        if editor_state.advanced_mode && ui.button("Delete").clicked() {
-            // TODO: Potential panic?
-            entries.remove(editor_state.selected_material_index);
-            changed = true;
+        if editor_state.advanced_mode {
+            if ui.button("Delete").clicked() {
+                // TODO: Potential panic?
+                entries.remove(editor_state.selected_material_index);
+                changed = true;
+            }
+            if ui.button("Move Up").clicked() {
+                if editor_state.selected_material_index > 0 {
+                    entries_to_swap = Some((editor_state.selected_material_index, editor_state.selected_material_index - 1));
+                    editor_state.selected_material_index -= 1;
+                }
+            }
+            if ui.button("Move Down").clicked() {
+                if !entries.is_empty() && editor_state.selected_material_index < entries.len() - 1 {
+                    entries_to_swap = Some((editor_state.selected_material_index, editor_state.selected_material_index + 1));
+                    editor_state.selected_material_index += 1;
+                }
+            }
+
+            if let Some((a, b)) = entries_to_swap {
+                *entries = swap_entries(a, b, &entries);
+            }
         }
     });
+
     horizontal_separator_empty(ui);
 
     // Advanced mode has more detailed information that most users won't want to edit.
