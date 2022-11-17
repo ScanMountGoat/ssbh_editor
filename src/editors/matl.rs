@@ -206,35 +206,64 @@ fn remove_unused_materials(
     matl_entries: &mut Vec<MatlEntryData>,
     modl_entries: &Vec<ModlEntryData>,
 ) {
-    let mut visited = vec![
-        //World of Light purple left eye
-        String::from("EyeLD"),
-        String::from("EyeLD1"),
-        String::from("EyeLD2"),
-        //World of Light purple right eye
-        String::from("EyeRD"),
-        String::from("EyeRD1"),
-        String::from("EyeRD2"),
-        //Final Smash left eye
-        String::from("EyeLG"),
-        String::from("EyeLG1"),
-        String::from("EyeLG2"),
-        //Final Smash right eye
-        String::from("EyeRG"),
-        String::from("EyeRG1"),
-        String::from("EyeRG2"),
-        //World of Light red left eye
-        String::from("EyeLL"),
-        String::from("EyeLL1"),
-        String::from("EyeLL2"),
-        //World of Light red right eye
-        String::from("EyeRL"),
-        String::from("EyeRL1"),
-        String::from("EyeRL2"),
-    ];
+    let mut visited = Vec::new();
 
     for modl_entry in modl_entries.iter() {
         visited.push(modl_entry.material_label.clone());
+    }
+
+    if visited.contains(&String::from("EyeL")) {
+        //World of Light purple
+        visited.push(String::from("EyeLD"));
+        //Final Smash
+        visited.push(String::from("EyeLG"));
+        //World of Light red
+        visited.push(String::from("EyeLL"));
+    }
+
+    if visited.contains(&String::from("EyeR")) {
+        //World of Light purple
+        visited.push(String::from("EyeRD"));
+        //Final Smash
+        visited.push(String::from("EyeRG"));
+        //World of Light red
+        visited.push(String::from("EyeRL"));
+    }
+
+    if visited.contains(&String::from("EyeL1")) {
+        //World of Light purple
+        visited.push(String::from("EyeLD1"));
+        //Final Smash
+        visited.push(String::from("EyeLG1"));
+        //World of Light red
+        visited.push(String::from("EyeLL1"));
+    }
+
+    if visited.contains(&String::from("EyeR1")) {
+        //World of Light purple
+        visited.push(String::from("EyeRD1"));
+        //Final Smash
+        visited.push(String::from("EyeRG1"));
+        //World of Light red
+        visited.push(String::from("EyeRL1"));
+    }
+
+    if visited.contains(&String::from("EyeL2")) {
+        //World of Light purple
+        visited.push(String::from("EyeLD2"));
+        //Final Smash
+        visited.push(String::from("EyeLG2"));
+        //World of Light red
+        visited.push(String::from("EyeLL2"));
+    }
+
+    if visited.contains(&String::from("EyeR2")) {
+        //World of Light purple
+        visited.push(String::from("EyeRD2"));
+        //Final Smash
+        visited.push(String::from("EyeRG2"));
+        //World of Light red
+        visited.push(String::from("EyeRL2"));
     }
 
     matl_entries.retain(|item| visited.contains(&item.material_label));
