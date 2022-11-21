@@ -240,13 +240,18 @@ fn mesh_combo_box(
             // TODO: Just use text boxes if the mesh is missing?
             if let Some(mesh) = mesh {
                 for mesh in &mesh.objects {
-                    changed |= ui
+                    if ui
                         .selectable_label(
                             entry.mesh_object_name == mesh.name
                                 && entry.mesh_object_subindex == mesh.subindex,
                             &mesh.name,
                         )
-                        .changed();
+                        .clicked()
+                    {
+                        entry.mesh_object_name = mesh.name.clone();
+                        entry.mesh_object_subindex = mesh.subindex;
+                        changed = true;
+                    }
                 }
             }
         })

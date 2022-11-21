@@ -154,9 +154,6 @@ fn main() {
 
     let preferences = AppPreferences::load_from_file();
 
-    // Track if keys like ctrl or alt are being pressed.
-    let mut modifiers = ModifiersState::default();
-
     let mut app = create_app(
         default_thumbnails,
         should_show_update,
@@ -218,9 +215,6 @@ fn main() {
                             winit::event::WindowEvent::CloseRequested => {
                                 app.write_state_to_disk(update_check_time);
                                 *control_flow = ControlFlow::Exit;
-                            }
-                            winit::event::WindowEvent::ModifiersChanged(new_modifiers) => {
-                                modifiers = new_modifiers;
                             }
                             _ => {
                                 if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
