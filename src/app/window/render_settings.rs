@@ -7,7 +7,6 @@ pub fn render_settings_window(
     options: &mut ModelRenderOptions,
     skinning_settings: &mut SkinningSettings,
     open: &mut bool,
-    draw_skeletons: &mut bool,
     draw_bone_names: &mut bool,
     enable_helper_bones: &mut bool,
 ) {
@@ -30,6 +29,7 @@ pub fn render_settings_window(
                         debug_mode(ui, settings, DebugMode::Normals);
                         debug_mode(ui, settings, DebugMode::Bitangents);
                         debug_mode(ui, settings, DebugMode::Albedo);
+                        debug_mode(ui, settings, DebugMode::ShaderComplexity);
                         ui.separator();
 
                         ui.heading("Vertex Attributes");
@@ -164,13 +164,14 @@ pub fn render_settings_window(
             horizontal_separator_empty(ui);
 
             ui.heading("Skeleton");
-            ui.checkbox(draw_skeletons, "Draw Bones");
+            ui.checkbox(&mut options.draw_bones, "Draw Bones");
             ui.checkbox(&mut options.draw_bone_axes, "Draw Bone Axes");
             ui.checkbox(draw_bone_names, "Draw Bone Names");
         });
 }
 
 fn debug_mode(ui: &mut egui::Ui, settings: &mut RenderSettings, mode: DebugMode) {
+    // TODO: Add tooltips to give more explanations.
     ui.selectable_value(&mut settings.debug_mode, mode, debug_mode_label(mode));
 }
 

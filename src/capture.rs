@@ -72,14 +72,6 @@ pub fn render_screenshot(
         &mut encoder,
         &screenshot_view,
         &app.render_models,
-        app.models.iter().map(|m| {
-            // TODO: Find a cleaner way to disable bone rendering.
-            if app.draw_skeletons {
-                m.model.find_skel()
-            } else {
-                None
-            }
-        }),
         app.render_state.shared_data.database(),
         &app.render_state.model_render_options,
     );

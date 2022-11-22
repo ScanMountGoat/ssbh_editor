@@ -686,6 +686,7 @@ mod tests {
                     "Sampler0".to_owned(),
                     "Texture0".to_owned(),
                 ],
+                complexity: 0.0,
             },
         );
         add_parameters(&mut entry, &required_parameters);
@@ -769,6 +770,7 @@ mod tests {
                 discard: false,
                 vertex_attributes: Vec::new(),
                 material_parameters: Vec::new(),
+                complexity: 0.0,
             },
         );
         remove_parameters(&mut entry, &unused_parameters);

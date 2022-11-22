@@ -193,13 +193,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
+name = "bimap"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc0455254eb5c6964c4545d8bac815e1a1be4f3afe0ae695ea539c12d728d44b"
+
+[[package]]
 name = "binrw"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a13d2fa8772b88ee64a0d84602c636ad2bae9c176873f6c440e2b0a1df4c8c43"
 dependencies = [
  "array-init",
- "binrw_derive",
+ "binrw_derive 0.8.4",
+]
+
+[[package]]
+name = "binrw"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4abb4fd60add897b9e8827e0d5fa6c2ca129ece2432d9aa13454b21ac2ecc18f"
+dependencies = [
+ "array-init",
+ "binrw_derive 0.9.0",
 ]
 
 [[package]]
@@ -207,6 +223,18 @@ name = "binrw_derive"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193bcff2709da50edf2e9a89e0f9a2118eea70f257b1f4380ccf27d3d8578302"
+dependencies = [
+ "owo-colors",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "binrw_derive"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a36ff195a3a1a82d5eeb98e0069bdf3ea076042d28591396d9020fac763bf66f"
 dependencies = [
  "owo-colors",
  "proc-macro2",
@@ -672,6 +700,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c972679f83bdf9c42bd905396b6c3588a843a17f0f16dfcfa3e2c5d57441835"
 dependencies = [
  "darling_core",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "diff-struct"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f30a0f0aafc8da0d598388b1897310646f45f47f17e31d581b4390f9dd88e826"
+dependencies = [
+ "diff_derive",
+ "serde",
+]
+
+[[package]]
+name = "diff_derive"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56f9c37d395456d9c1785499421c6288931b6e3dbc2500acb95b8adaa0e69db3"
+dependencies = [
+ "proc-macro2",
  "quote",
  "syn",
 ]
@@ -1336,6 +1385,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad6a9459c9c30b177b925162351f97e7d967c7ea8bab3b8352805327daf45554"
 dependencies = [
  "crunchy",
+]
+
+[[package]]
+name = "hash40"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ff4fc068d9263d802eb9b764adb47cbbf9712831eab2fd5e11da05904778331"
+dependencies = [
+ "bimap",
+ "binrw 0.9.2",
+ "byteorder",
+ "diff-struct",
+ "lazy_static",
+ "serde",
 ]
 
 [[package]]
@@ -2031,14 +2094,14 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05699c1c3e22d5227708f45297920e775621899cbf8fa97df540b217cb2bbe74"
 dependencies = [
- "binrw",
+ "binrw 0.8.4",
  "tegra_swizzle",
 ]
 
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#786bd29af4a101d4d9a3f087458f651a5932a378"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#59ee8a24a37c81c300319edca1b77ce5f5e33056"
 dependencies = [
  "bytemuck",
  "log",
@@ -2346,6 +2409,30 @@ name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
+
+[[package]]
+name = "prc-rs"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bf5979eda2a2fb28e8d69c5feb2100a0c18a21998c985165a316d1784f0e62f"
+dependencies = [
+ "byteorder",
+ "hash40",
+ "indexmap",
+ "prc-rs-derive",
+ "serde",
+]
+
+[[package]]
+name = "prc-rs-derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46ab1a7f9a27a36dc4e8e7532689f0bc9d1a27b46a3cf153c3ecfe86d9591e11"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "prettyplease"
@@ -2915,10 +3002,10 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#bc29de478e2fcc722dcb4fd0cf56d01506c3d873"
+source = "git+https://github.com/ultimate-research/ssbh_lib#4ea026c7903a2eff155681021542d98ba043c1d7"
 dependencies = [
  "ahash 0.7.6",
- "binrw",
+ "binrw 0.8.4",
  "bitvec",
  "geometry_tools",
  "glam",
@@ -2970,9 +3057,9 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#bc29de478e2fcc722dcb4fd0cf56d01506c3d873"
+source = "git+https://github.com/ultimate-research/ssbh_lib#4ea026c7903a2eff155681021542d98ba043c1d7"
 dependencies = [
- "binrw",
+ "binrw 0.8.4",
  "modular-bitfield",
  "serde",
  "serde_bytes",
@@ -2984,7 +3071,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#786bd29af4a101d4d9a3f087458f651a5932a378"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#59ee8a24a37c81c300319edca1b77ce5f5e33056"
 dependencies = [
  "bytemuck",
  "glam",
@@ -2992,10 +3079,12 @@ dependencies = [
  "image",
  "log",
  "nutexb_wgpu",
+ "prc-rs",
  "rayon",
  "serde_json",
  "ssbh_data",
  "strum",
+ "topological-sort",
  "walkdir",
  "wgpu",
  "wgpu_text",
@@ -3005,7 +3094,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#bc29de478e2fcc722dcb4fd0cf56d01506c3d873"
+source = "git+https://github.com/ultimate-research/ssbh_lib#4ea026c7903a2eff155681021542d98ba043c1d7"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -3013,7 +3102,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#bc29de478e2fcc722dcb4fd0cf56d01506c3d873"
+source = "git+https://github.com/ultimate-research/ssbh_lib#4ea026c7903a2eff155681021542d98ba043c1d7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3285,6 +3374,12 @@ checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "topological-sort"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea68304e134ecd095ac6c3574494fc62b909f416c4fca77e440530221e549d3d"
 
 [[package]]
 name = "tower-service"
@@ -3669,7 +3764,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "raw-window-handle 0.5.0",
  "smallvec",
  "static_assertions",
@@ -3695,7 +3790,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle 0.5.0",
  "smallvec",
@@ -3731,7 +3826,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.0",

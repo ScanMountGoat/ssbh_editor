@@ -86,7 +86,6 @@ pub struct SsbhApp {
     pub red_checkerboard: egui::TextureId,
     pub yellow_checkerboard: egui::TextureId,
 
-    pub draw_skeletons: bool,
     pub draw_bone_names: bool,
     pub enable_helper_bones: bool,
 
@@ -472,7 +471,6 @@ impl SsbhApp {
             &mut self.render_state.model_render_options,
             &mut self.render_state.skinning_settings,
             &mut self.ui_state.render_settings_open,
-            &mut self.draw_skeletons,
             &mut self.draw_bone_names,
             &mut self.enable_helper_bones,
         );
@@ -1039,6 +1037,7 @@ impl SsbhApp {
 
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
+                // TODO: Fix the shortcut_text not formatting properly.
                 let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
                 let shortcut_button = |ui: &mut Ui, text: &str, shortcut| {
                     ui.add(

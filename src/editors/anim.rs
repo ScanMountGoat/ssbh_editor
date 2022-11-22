@@ -345,10 +345,6 @@ fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) ->
             .changed();
 
         changed |= ui
-            .checkbox(&mut track.scale_options.inherit_scale, "Inherit Scale")
-            .changed();
-
-        changed |= ui
             .checkbox(
                 &mut track.transform_flags.override_translation,
                 "Override Translation",

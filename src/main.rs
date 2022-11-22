@@ -402,7 +402,6 @@ fn create_app(
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
-        draw_skeletons: false,
         draw_bone_names: false,
         ui_state: UiState::default(),
         render_state,
@@ -583,14 +582,6 @@ fn update_and_render_app(
         &mut encoder,
         &output_view,
         &app.render_models,
-        app.models.iter().map(|m| {
-            // TODO: Find a cleaner way to disable bone rendering.
-            if app.draw_skeletons {
-                m.model.find_skel()
-            } else {
-                None
-            }
-        }),
         app.render_state.shared_data.database(),
         &app.render_state.model_render_options,
     );
@@ -627,21 +618,22 @@ fn update_and_render_app(
 
     // TODO: Make the font size configurable.
     // TODO: Fix bone names appearing on top of the UI.
-    let bone_text_commands = if app.draw_skeletons && app.draw_bone_names {
-        renderer.render_skeleton_names(
-            &app.render_state.device,
-            &app.render_state.queue,
-            &output_view,
-            app.render_models.iter(),
-            app.models.iter().map(|m| m.model.find_skel()),
-            size.width,
-            size.height,
-            mvp,
-            18.0 * window.scale_factor() as f32,
-        )
-    } else {
-        None
-    };
+    let bone_text_commands =
+        if app.render_state.model_render_options.draw_bones && app.draw_bone_names {
+            renderer.render_skeleton_names(
+                &app.render_state.device,
+                &app.render_state.queue,
+                &output_view,
+                app.render_models.iter(),
+                app.models.iter().map(|m| m.model.find_skel()),
+                size.width,
+                size.height,
+                mvp,
+                18.0 * window.scale_factor() as f32,
+            )
+        } else {
+            None
+        };
 
     // Submit the commands.
     app.render_state
