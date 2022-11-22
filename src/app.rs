@@ -21,8 +21,8 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue, Label,
-    Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
+    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue,
+    KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
 use log::{error, Log};
 use once_cell::sync::Lazy;
@@ -1037,13 +1037,12 @@ impl SsbhApp {
 
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
-                // TODO: Fix the shortcut_text not formatting properly.
                 let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
                 let shortcut_button = |ui: &mut Ui, text: &str, shortcut| {
                     ui.add(
                         Button::new(text)
                             .wrap(false)
-                            .shortcut_text(ui.ctx().format_shortcut(shortcut)),
+                            .shortcut_text(format_shortcut(shortcut)),
                     )
                 };
 
@@ -1249,6 +1248,34 @@ impl SsbhApp {
                 }
             });
         });
+    }
+}
+
+fn format_shortcut(shortcut: &KeyboardShortcut) -> String {
+    // egui has this method but doesn't format shortcut symbols.
+    // TODO: This function might not be needed on newer versions.
+    // TODO: Store keyboard shortcuts in a single place?
+    let ctrl = if cfg!(target_os = "macos") {
+        "⌘"
+    } else {
+        "Ctrl+"
+    };
+
+    let ctrl_shift = if cfg!(target_os = "macos") {
+        "⇧ ⌘"
+    } else {
+        "Ctrl+Shift+"
+    };
+
+    let key = shortcut.key.name();
+    if shortcut.modifiers.command {
+        if shortcut.modifiers.shift {
+            format!("{ctrl_shift}{key}")
+        } else {
+            format!("{ctrl}{key}")
+        }
+    } else {
+        key.to_owned()
     }
 }
 
