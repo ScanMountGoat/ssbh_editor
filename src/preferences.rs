@@ -1,6 +1,21 @@
 use crate::{path::preferences_file, widgets_dark};
 use log::error;
 use serde::{Deserialize, Serialize};
+use strum::{Display, EnumString, EnumVariantNames};
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, EnumVariantNames, Display, EnumString)]
+pub enum GraphicsBackend {
+    Auto,
+    Vulkan,
+    Metal,
+    Dx12,
+}
+
+impl Default for GraphicsBackend {
+    fn default() -> Self {
+        GraphicsBackend::Auto
+    }
+}
 
 // Use defaults for missing values to avoid most version conflicts.
 #[derive(Debug, Serialize, Deserialize)]
@@ -10,6 +25,7 @@ pub struct AppPreferences {
     pub autohide_expressions: bool,
     pub viewport_color: [u8; 3],
     pub recent_folders: Vec<String>,
+    pub graphics_backend: GraphicsBackend,
 }
 
 impl AppPreferences {
@@ -54,6 +70,7 @@ impl Default for AppPreferences {
             autohide_expressions: false,
             viewport_color: [color.r(), color.g(), color.b()],
             recent_folders: Vec::new(),
+            graphics_backend: GraphicsBackend::default(),
         }
     }
 }

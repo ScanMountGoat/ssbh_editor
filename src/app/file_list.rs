@@ -1,9 +1,9 @@
 use super::{
     display_validation_errors, empty_icon, missing_icon, warning_icon, warning_icon_text, UiState,
-    ERROR_COLOR, ICON_SIZE, ICON_TEXT_SIZE,
+    ERROR_COLOR, ICON_SIZE,
 };
 use crate::{validation::MatlValidationErrorKind, FileResult, ModelFolderState};
-use egui::{Button, Label, Response, RichText, Ui};
+use egui::{Button, Response, RichText, Ui};
 
 pub fn show_folder_files(
     ui_state: &mut UiState,

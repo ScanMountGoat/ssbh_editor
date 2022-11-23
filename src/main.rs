@@ -14,7 +14,7 @@ use ssbh_editor::Thumbnail;
 use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
-use ssbh_editor::preferences::AppPreferences;
+use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
 use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
     generate_default_thumbnails, generate_model_thumbnails,
@@ -33,6 +33,8 @@ use winit::{
 // TODO: Split up this file into modules.
 
 fn main() {
+    let mut args = pico_args::Arguments::from_env();
+
     // Initialize logging first in case app startup has warnings.
     // TODO: Also log to a file?
     log::set_logger(&*ssbh_editor::app::LOGGER)
@@ -48,12 +50,37 @@ fn main() {
     let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
     let window = build_window(icon, &event_loop);
 
-    // Use DX12 as a separate fallback to fix initialization on some Windows systems.
+    let mut preferences = AppPreferences::load_from_file();
+
+    // Some Windows systems don't properly support Vulkan.
+    // Add an option to force a backend so the application can open.
+    if let Some(backend_arg) = args.opt_value_from_str::<_, String>("--backend").unwrap() {
+        match backend_arg.to_lowercase().as_str() {
+            "vulkan" => preferences.graphics_backend = GraphicsBackend::Vulkan,
+            "metal" => preferences.graphics_backend = GraphicsBackend::Metal,
+            "dx12" => preferences.graphics_backend = GraphicsBackend::Dx12,
+            _ => (),
+        }
+    }
+
     let start = std::time::Instant::now();
-    let (surface, adapter) =
-        request_adapter(&window, wgpu::Backends::VULKAN | wgpu::Backends::METAL)
-            .or_else(|| request_adapter(&window, wgpu::Backends::DX12))
-            .unwrap();
+
+    let preferred_backends = match preferences.graphics_backend {
+        GraphicsBackend::Auto => wgpu::Backends::PRIMARY,
+        GraphicsBackend::Vulkan => wgpu::Backends::VULKAN,
+        GraphicsBackend::Metal => wgpu::Backends::METAL,
+        GraphicsBackend::Dx12 => wgpu::Backends::DX12,
+    };
+
+    // Try the other backends in case the user sets the wrong preferred backend.
+    // Try DX12 last to fix Vulkan not working on some Windows systems.
+    // TODO: Get adapter info and display in GPU preferences?
+    // TODO: Enumerate available adapters?
+    let (surface, adapter) = request_adapter(&window, preferred_backends)
+        .or_else(|| request_adapter(&window, wgpu::Backends::VULKAN | wgpu::Backends::METAL))
+        .or_else(|| request_adapter(&window, wgpu::Backends::DX12))
+        .unwrap();
+
     println!("Request compatible adapter: {:?}", start.elapsed());
 
     let (device, queue) = adapter
@@ -151,8 +178,6 @@ fn main() {
         &render_state.device,
         &render_state.queue,
     );
-
-    let preferences = AppPreferences::load_from_file();
 
     let mut app = create_app(
         default_thumbnails,
@@ -985,6 +1010,7 @@ fn request_adapter(
 ) -> Option<(wgpu::Surface, wgpu::Adapter)> {
     let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(window) };
+
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
