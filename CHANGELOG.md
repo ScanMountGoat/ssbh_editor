@@ -7,9 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added an option to open or add recently opened folders under File > Open Recent Folder and File > Add Recent Folder to Workspace.
 * Added an option in Matl Editor to delete materials unused by model.numdlb.
+* Added a visual indication in the files list for files with unsaved changes.
+* Added an option to hide or show all meshes in the viewport under the Meshes menu.
+* Added a toggle for scaling vertex colors by their scale value like 2.0 for colorSet1.
+* Added the ShaderComplexity debug mode for viewing estimated performance costs of materials.
+* Added an option to change the preferred GPU backend from preferences or the `--backend` commandline flag. 
+
+### Changed
+* Modified the Camera Settings window to use degrees instead of radians for FOV.
+* Improved tooltips for various editors.
+* Reworked the Mesh Editor to be more compact and outline the selected mesh in the viewport.
+* Reworked the Modl editor to outline the selected mesh in the viewport.
+* Adjusted tooltips to only display when the mouse is not moving.
+* Adjusted formatting of displayed keyboard shortcuts on menu buttons.
 
 ### Fixed
 * Fixed an issue where the application would perform unecessary work while the Hlpb Editor is open.
+* Fixed an issue assigning mesh objects with repeated names in the Modl Editor in advanced mode.
+* Fixed an issue where colorSet5 texture blending didn't work properly on some stages.
+* Fixed an issue where applying a material preset would not update immmediately in the viewport.
 
 ### 0.6.3 - 2022-10-09
 ### Added
