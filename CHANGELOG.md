@@ -20,12 +20,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Reworked the Modl editor to outline the selected mesh in the viewport.
 * Adjusted tooltips to only display when the mouse is not moving.
 * Adjusted formatting of displayed keyboard shortcuts on menu buttons.
+* Improved accuracy for animation scaling.
+* Removed the incorrectly named inherit_scale field from the Anim Editor.
 
 ### Fixed
 * Fixed an issue where the application would perform unecessary work while the Hlpb Editor is open.
 * Fixed an issue assigning mesh objects with repeated names in the Modl Editor in advanced mode.
 * Fixed an issue where colorSet5 texture blending didn't work properly on some stages.
 * Fixed an issue where applying a material preset would not update immmediately in the viewport.
+* Fixed an issue reading some custom anim files with uniform scaling.
 
 ### 0.6.3 - 2022-10-09
 ### Added
