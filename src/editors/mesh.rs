@@ -92,15 +92,7 @@ pub fn mesh_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    changed |= edit_mesh(
-                        ctx,
-                        ui,
-                        mesh,
-                        render_model,
-                        ui_state,
-                        validation_errors,
-                        skel,
-                    );
+                    changed |= edit_mesh(ui, mesh, render_model, ui_state, validation_errors, skel);
                 });
         });
 
@@ -108,7 +100,6 @@ pub fn mesh_editor(
 }
 
 fn edit_mesh(
-    ctx: &egui::Context,
     ui: &mut Ui,
     mesh: &mut MeshData,
     render_model: &mut Option<&mut RenderModel>,
@@ -117,16 +108,6 @@ fn edit_mesh(
     skel: Option<&SkelData>,
 ) -> bool {
     let mut changed = false;
-
-    if let Some(mesh_object) = ui_state
-        .selected_mesh_influences_index
-        .and_then(|index| mesh.objects.get(index))
-    {
-        let open = influences_window(ctx, mesh_object);
-        if !open {
-            ui_state.selected_mesh_influences_index = None;
-        }
-    }
 
     // TODO: Remove advanced settings.
     ui.checkbox(&mut ui_state.mesh_editor_advanced_mode, "Advanced Settings");
@@ -181,114 +162,16 @@ fn edit_mesh_object(
     let header_response = CollapsingHeader::new(text)
         .id_source(id.with("name"))
         .show(ui, |ui| {
-            // TODO: Reorder mesh objects?
-            // TODO: Show errors on the appropriate field?
-            Grid::new(id.with("mesh_grid")).show(ui, |ui| {
-                ui.label("Name");
-                *changed |= edit_name(ui, mesh_object, ui_state.mesh_editor_advanced_mode);
-                ui.end_row();
-
-                // TODO: Is it possible to edit the subindex without messing up influence assignments?
-                ui.label("Subindex");
-                if ui_state.mesh_editor_advanced_mode {
-                    *changed |= ui
-                        .add(egui::DragValue::new(&mut mesh_object.subindex))
-                        .changed();
-                } else {
-                    ui.label(mesh_object.subindex.to_string());
-                }
-                ui.end_row();
-
-                ui.label("Sort Bias");
-                *changed |= ui
-                    .add(egui::DragValue::new(&mut mesh_object.sort_bias))
-                    .changed();
-                ui.end_row();
-
-                *changed |= ui
-                    .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
-                    .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
-                    .changed();
-                ui.end_row();
-
-                *changed |= ui
-                    .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
-                    .on_hover_text("Disabling depth testing causes the mesh to render on top of previous meshes.")
-                    .changed();
-                ui.end_row();
-            });
-            horizontal_separator_empty(ui);
-
-
-            // Meshes should have influences or a parent bone but not both.
-            // TODO: Is there a better way to indicate no parent than ""?
-            // TODO: Combine this with bone influences?
-            if mesh_object.bone_influences.is_empty() {
-                *changed |= bone_combo_box(
-                    ui,
-                    &mut mesh_object.parent_bone_name,
-                    id.with("parent_bone"),
-                    skel,
-                    &[""],
-                );
-            } else {
-                if ui
-                    .button("Remove Bone Influences")
-                    .on_hover_text("Remove the vertex skin weights and assign a parent bone.")
-                    .clicked()
-                {
-                    mesh_object.bone_influences.clear();
-                    *changed = true;
-                }
-            };
-
-            if !mesh_object.bone_influences.is_empty() {
-                if ui.button("Bone Influences...").clicked() {
-                    ui_state.selected_mesh_influences_index = Some(i);
-                }
-            } else {
-                // TODO: How to handle gaps in grid?
-                ui.allocate_space(egui::Vec2::new(1.0, 1.0));
-            }
-            horizontal_separator_empty(ui);
-
-            // TODO: Simplify this code?
-            let attribute_error = errors.iter().find(|e| {
-                matches!(
-                    e.kind,
-                    MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
-                )
-            });
-
-            // TODO: Show the details of the error on hover.
-            let header_text = if  attribute_error.is_some() {
-                warning_icon_text("Vertex Attributes")
-            } else {
-                RichText::new("Vertex Attributes")
-            };
-
-            CollapsingHeader::new(header_text).id_source(id.with("attributes")).show(ui, |ui| {
-                // TODO: Find a cleaner way to get the errors for the selected mesh.
-                let missing_attributes = validation_errors
-                .iter()
-                .filter_map(|e| match &e.kind {
-                    MeshValidationErrorKind::MissingRequiredVertexAttributes {
-                        missing_attributes,
-                        ..
-                    } => {
-                        if e.mesh_object_index == i {
-                            Some(missing_attributes.as_slice())
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None,
-                })
-                .next()
-                .unwrap_or_default();
-
-                *changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
-            });
+            *changed |= edit_mesh_object_inner(
+                id,
+                ui,
+                mesh_object,
+                ui_state,
+                skel,
+                i,
+                &errors,
+                validation_errors,
+            );
         })
         .header_response
         .context_menu(|ui| {
@@ -310,6 +193,139 @@ fn edit_mesh_object(
             display_validation_errors(ui, validation_errors);
         });
     }
+}
+
+fn edit_mesh_object_inner(
+    id: egui::Id,
+    ui: &mut Ui,
+    mesh_object: &mut MeshObjectData,
+    ui_state: &mut UiState,
+    skel: Option<&SkelData>,
+    i: usize,
+    errors: &Vec<&MeshValidationError>,
+    validation_errors: &[MeshValidationError],
+) -> bool {
+    let mut changed = false;
+
+    // TODO: Reorder mesh objects?
+    // TODO: Show errors on the appropriate field?
+    Grid::new(id.with("mesh_grid")).show(ui, |ui| {
+        ui.label("Name");
+        changed |= edit_name(ui, mesh_object, ui_state.mesh_editor_advanced_mode);
+        ui.end_row();
+
+        // TODO: Is it possible to edit the subindex without messing up influence assignments?
+        ui.label("Subindex");
+        if ui_state.mesh_editor_advanced_mode {
+            changed |= ui
+                .add(egui::DragValue::new(&mut mesh_object.subindex))
+                .changed();
+        } else {
+            ui.label(mesh_object.subindex.to_string());
+        }
+        ui.end_row();
+
+        ui.label("Sort Bias");
+        changed |= ui
+            .add(egui::DragValue::new(&mut mesh_object.sort_bias))
+            .changed();
+        ui.end_row();
+
+        changed |= ui
+            .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
+            .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
+            .changed();
+        ui.end_row();
+
+        changed |= ui
+            .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
+            .on_hover_text("Disabling depth testing causes the mesh to render on top of previous meshes.")
+            .changed();
+        ui.end_row();
+    });
+    horizontal_separator_empty(ui);
+
+    CollapsingHeader::new("Bone Influences")
+        .id_source(id.with("bone_influences"))
+        .show(ui, |ui| {
+            // Meshes should have influences or a parent bone but not both.
+            // TODO: Is there a better way to indicate no parent than ""?
+            if mesh_object.bone_influences.is_empty() {
+                changed |= bone_combo_box(
+                    ui,
+                    &mut mesh_object.parent_bone_name,
+                    id.with("parent_bone"),
+                    skel,
+                    &[""],
+                );
+
+                // TODO: Add an option to apply the parent transform or inverse parent transform?
+
+                if ui
+                    .button("Use Skin Weights")
+                    .on_hover_text("Convert the parent bone to vertex skin weights.")
+                    .clicked()
+                {
+                    // TODO: Add an option to convert to skin weights.
+                    // 1. Transform the vertices based on the parent world transform.
+                    // 2. Add bone influences for the parent bone.
+                    // 3. Clear the parent bone to an empty string.
+                }
+            } else {
+                if ui
+                    .button("Remove Bone Influences")
+                    .on_hover_text("Remove the vertex skin weights and assign a parent bone.")
+                    .clicked()
+                {
+                    mesh_object.bone_influences.clear();
+                    changed = true;
+                }
+
+                show_influences(ui, mesh_object);
+            }
+        });
+
+    // TODO: Simplify this code?
+    let attribute_error = errors.iter().find(|e| {
+        matches!(
+            e.kind,
+            MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
+        )
+    });
+
+    // TODO: Show the details of the error on hover.
+    let header_text = if attribute_error.is_some() {
+        warning_icon_text("Vertex Attributes")
+    } else {
+        RichText::new("Vertex Attributes")
+    };
+
+    CollapsingHeader::new(header_text)
+        .id_source(id.with("attributes"))
+        .show(ui, |ui| {
+            // TODO: Find a cleaner way to get the errors for the selected mesh.
+            let missing_attributes = validation_errors
+                .iter()
+                .filter_map(|e| match &e.kind {
+                    MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                        missing_attributes,
+                        ..
+                    } => {
+                        if e.mesh_object_index == i {
+                            Some(missing_attributes.as_slice())
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .next()
+                .unwrap_or_default();
+
+            changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
+        });
+
+    changed
 }
 
 fn edit_name(ui: &mut egui::Ui, mesh_object: &mut MeshObjectData, advanced_mode: bool) -> bool {
@@ -335,26 +351,20 @@ fn match_mesh_order(mesh: &mut MeshData, reference: &MeshData) {
     })
 }
 
-fn influences_window(ctx: &egui::Context, mesh_object: &MeshObjectData) -> bool {
-    let mut open = true;
-    egui::Window::new(format!("Bone Influences ({})", mesh_object.name))
-        .open(&mut open)
-        .show(ctx, |ui| {
-            // TODO: Add an option to show this per vertex instead of per bone?
-            // Use a simple layout for now to avoid performance overhead of doing it per vertex.
-            egui::Grid::new("bone_influences_grid").show(ui, |ui| {
-                ui.heading("Bone Name");
-                ui.heading("Vertex Count");
-                ui.end_row();
+fn show_influences(ui: &mut Ui, mesh_object: &MeshObjectData) -> egui::InnerResponse<()> {
+    // TODO: Add an option to show this per vertex instead of per bone?
+    // Use a simple layout for now to avoid performance overhead of doing it per vertex.
+    egui::Grid::new("bone_influences_grid").show(ui, |ui| {
+        ui.label(RichText::new("Bone Name").size(16.0));
+        ui.label(RichText::new("Vertex Count").size(16.0));
+        ui.end_row();
 
-                for influence in &mesh_object.bone_influences {
-                    ui.label(&influence.bone_name);
-                    ui.label(influence.vertex_weights.len().to_string());
-                    ui.end_row();
-                }
-            })
-        });
-    open
+        for influence in &mesh_object.bone_influences {
+            ui.label(&influence.bone_name);
+            ui.label(influence.vertex_weights.len().to_string());
+            ui.end_row();
+        }
+    })
 }
 
 fn edit_attribute_name(ui: &mut Ui, name: &mut String, id: egui::Id, valid_names: &[&str]) {
@@ -389,9 +399,9 @@ fn edit_mesh_attributes(
 
     egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
         // TODO: Create a size between heading and label?
-        ui.label("Name");
-        ui.label("Usage");
-        ui.label("Vertex Count");
+        ui.label(RichText::new("Name").size(16.0));
+        ui.label(RichText::new("Usage").size(16.0));
+        ui.label(RichText::new("Vertex Count").size(16.0));
         ui.end_row();
 
         // Vertex buffer 0.

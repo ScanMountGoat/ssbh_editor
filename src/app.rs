@@ -141,8 +141,6 @@ pub struct UiState {
     pub selected_anim_index: Option<usize>,
     pub selected_meshex_index: Option<usize>,
 
-    pub selected_mesh_influences_index: Option<usize>,
-
     pub matl_preset_window_open: bool,
     pub selected_material_preset_index: usize,
 
