@@ -1256,13 +1256,13 @@ fn format_shortcut(shortcut: &KeyboardShortcut) -> String {
     // TODO: This function might not be needed on newer versions.
     // TODO: Store keyboard shortcuts in a single place?
     let ctrl = if cfg!(target_os = "macos") {
-        "⌘"
+        "⌘ "
     } else {
         "Ctrl+"
     };
 
     let ctrl_shift = if cfg!(target_os = "macos") {
-        "⇧ ⌘"
+        "⇧ ⌘ "
     } else {
         "Ctrl+Shift+"
     };
