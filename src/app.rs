@@ -1,4 +1,4 @@
-use self::window::*;
+use self::{file_list::show_folder_files, window::*};
 use crate::{
     app::anim_list::anim_list,
     editors::{
@@ -14,7 +14,6 @@ use crate::{
     },
     path::last_update_check_file,
     preferences::AppPreferences,
-    validation::MatlValidationErrorKind,
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileChanged, FileResult,
     ModelFolderState, RenderState, Thumbnail,
@@ -35,6 +34,7 @@ use std::{
 };
 
 mod anim_list;
+mod file_list;
 mod window;
 
 pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
@@ -1046,7 +1046,7 @@ impl SsbhApp {
                     )
                 };
 
-                if shortcut_button(ui, &format!("Open Folder..."), &open_shortcut).clicked() {
+                if shortcut_button(ui, "Open Folder...", &open_shortcut).clicked() {
                     ui.close_menu();
                     if let Some(folder) = FileDialog::new().pick_folder() {
                         self.add_folder_to_workspace(folder, true);
@@ -1072,9 +1072,7 @@ impl SsbhApp {
                 }
                 ui.separator();
 
-                if shortcut_button(ui, &format!("Add Folder to Workspace..."), &add_shortcut)
-                    .clicked()
-                {
+                if shortcut_button(ui, "Add Folder to Workspace...", &add_shortcut).clicked() {
                     ui.close_menu();
                     if let Some(folder) = FileDialog::new().pick_folder() {
                         self.add_folder_to_workspace(folder, false);
@@ -1100,7 +1098,7 @@ impl SsbhApp {
                 }
                 ui.separator();
 
-                if shortcut_button(ui, &format!("Reload Workspace"), &reload_shortcut).clicked() {
+                if shortcut_button(ui, "Reload Workspace", &reload_shortcut).clicked() {
                     ui.close_menu();
                     self.reload_workspace();
                 }
@@ -1279,117 +1277,6 @@ fn format_shortcut(shortcut: &KeyboardShortcut) -> String {
     }
 }
 
-fn show_folder_files(
-    ui_state: &mut UiState,
-    model: &mut ModelFolderState,
-    ui: &mut Ui,
-    folder_index: usize,
-) {
-    // Avoid a confusing missing file error for animation or texture folders.
-    let is_model = model.is_model_folder();
-    let required_file = |name| if is_model { Some(name) } else { None };
-    // Clicking a file opens the corresponding editor.
-    // Set selected index so the editor remains open for the file.
-    // TODO: Should the index be cleared when reloading models?
-    list_files(
-        ui,
-        &model.model.meshes,
-        &model.changed.meshes,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_mesh_index,
-        required_file("model.numshb"),
-        Some("model.numshb"),
-        &model.validation.mesh_errors,
-    );
-    list_files(
-        ui,
-        &model.model.skels,
-        &model.changed.skels,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_skel_index,
-        required_file("model.nusktb"),
-        Some("model.nusktb"),
-        &model.validation.skel_errors,
-    );
-    list_files(
-        ui,
-        &model.model.hlpbs,
-        &model.changed.hlpbs,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_hlpb_index,
-        None,
-        Some("model.nuhlpb"),
-        &model.validation.hlpb_errors,
-    );
-    list_files(
-        ui,
-        &model.model.matls,
-        &model.changed.matls,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_matl_index,
-        required_file("model.numatb"),
-        Some("model.numatb"),
-        &model.validation.matl_errors,
-    );
-    list_files(
-        ui,
-        &model.model.modls,
-        &model.changed.modls,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_modl_index,
-        required_file("model.numdlb"),
-        Some("model.numdlb"),
-        &model.validation.modl_errors,
-    );
-    list_files(
-        ui,
-        &model.model.adjs,
-        &model.changed.adjs,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_adj_index,
-        None,
-        Some("model.adjb"),
-        &model.validation.adj_errors,
-    );
-    list_files(
-        ui,
-        &model.model.anims,
-        &model.changed.anims,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_anim_index,
-        None,
-        None,
-        &model.validation.anim_errors,
-    );
-    // TODO: Is the model.numshexb required?
-    list_files(
-        ui,
-        &model.model.meshexes,
-        &model.changed.meshexes,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_meshex_index,
-        None,
-        Some("model.numshexb"),
-        &model.validation.meshex_errors,
-    );
-    // TODO: Create a single function that takes thumbnails?
-    list_nutexb_files(
-        ui,
-        model,
-        folder_index,
-        &mut ui_state.selected_folder_index,
-        &mut ui_state.selected_nutexb_index,
-    );
-}
-
 // TODO: Move path formatting to its own module?
 pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
     // Show a simplified version of the path.
@@ -1428,156 +1315,8 @@ fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) ->
         .and_then(|(_, m)| m.as_mut().ok())
 }
 
-fn list_files<T, E: std::fmt::Display>(
-    ui: &mut Ui,
-    files: &[(String, FileResult<T>)],
-    changed: &[bool],
-    folder_index: usize,
-    selected_folder_index: &mut Option<usize>,
-    selected_file_index: &mut Option<usize>,
-    required_file: Option<&'static str>,
-    validation_file: Option<&'static str>,
-    validation_errors: &[E],
-) {
-    // TODO: Should this be a grid instead?
-    for (i, (name, file)) in files.iter().enumerate() {
-        ui.horizontal(|ui| {
-            match file {
-                Ok(_) => {
-                    // TODO: Add file specific icons.
-                    ui.add_sized(
-                        [ICON_SIZE, ICON_SIZE],
-                        Label::new(RichText::new("🗋").size(ICON_TEXT_SIZE)),
-                    );
-
-                    // Assume only the required file is validated for now.
-                    // This excludes files like metamon_model.numatb.
-                    let response = if !validation_errors.is_empty()
-                        && Some(name.as_str()) == validation_file
-                    {
-                        file_button_with_errors(ui, name, validation_errors)
-                    } else {
-                        ui.button(name)
-                    };
-
-                    if response.clicked() {
-                        *selected_folder_index = Some(folder_index);
-                        *selected_file_index = Some(i);
-                    }
-
-                    // TODO: Investigate different ways of displaying this.
-                    if let Some(true) = changed.get(i) {
-                        ui.label("[Modified]");
-                    }
-                }
-                Err(_) => {
-                    // TODO: Investigate a cleaner way to summarize errors.
-                    // Don't show the full error for now to avoid showing lots of text.
-                    empty_icon(ui);
-                    ui.label(RichText::new("⚠ ".to_string() + name).color(ERROR_COLOR))
-                        .on_hover_text(format!(
-                            "Error reading {}. Check the application logs for details.",
-                            name
-                        ));
-                }
-            }
-        });
-    }
-    if let Some(required_file) = required_file {
-        if !files.iter().any(|(f, _)| f == required_file) {
-            missing_file(ui, required_file);
-        }
-    }
-}
-
-fn list_nutexb_files(
-    ui: &mut Ui,
-    model: &ModelFolderState,
-    folder_index: usize,
-    selected_folder_index: &mut Option<usize>,
-    selected_file_index: &mut Option<usize>,
-) {
-    // Show missing textures required by the matl.
-    for e in &model.validation.matl_errors {
-        if let MatlValidationErrorKind::MissingTextures { textures, .. } = &e.kind {
-            for texture in textures {
-                missing_nutexb(ui, texture);
-            }
-        }
-    }
-    for (i, (file, _)) in model.model.nutexbs.iter().enumerate() {
-        // TODO: Avoid collect?
-        let validation_errors: Vec<_> = model
-            .validation
-            .nutexb_errors
-            .iter()
-            .filter(|e| e.name() == file)
-            .collect();
-
-        ui.horizontal(|ui| {
-            if let Some((_, thumbnail, _)) =
-                model.thumbnails.iter().find(|(name, _, _)| name == file)
-            {
-                ui.image(*thumbnail, egui::Vec2::new(ICON_SIZE, ICON_SIZE));
-            } else {
-                warning_icon(ui).on_hover_text(
-                    "Failed to generate GPU texture. Check the application log for details.",
-                );
-            }
-
-            let response = if !validation_errors.is_empty() {
-                file_button_with_errors(ui, file, &validation_errors)
-            } else {
-                ui.button(file)
-            };
-
-            if response.clicked() {
-                *selected_folder_index = Some(folder_index);
-                *selected_file_index = Some(i);
-            }
-        });
-    }
-}
-
-fn file_button_with_errors<E: std::fmt::Display>(
-    ui: &mut Ui,
-    name: &str,
-    validation_errors: &[E],
-) -> Response {
-    // TODO: Only color the icon itself?
-    // TODO: Show top few errors and ... N others on hover?
-    // TODO: Display the validation errors as a separate window on click?
-    ui.add(Button::new(warning_icon_text(name)))
-        .on_hover_ui(|ui| {
-            display_validation_errors(ui, validation_errors);
-        })
-}
-
 pub fn warning_icon_text(name: &str) -> RichText {
     RichText::new("⚠ ".to_string() + name).color(WARNING_COLOR)
-}
-
-fn missing_file(ui: &mut Ui, name: &str) {
-    ui.horizontal(|ui| {
-        missing_icon(ui);
-        ui.add_enabled(false, Button::new(RichText::new(name).strikethrough()));
-    })
-    .response
-    .on_hover_text(format!("Missing required file {name}."));
-}
-
-fn missing_nutexb(ui: &mut Ui, name: &str) {
-    ui.horizontal(|ui| {
-        missing_icon(ui);
-        ui.add_enabled(
-            false,
-            Button::new(RichText::new(name.to_owned() + ".nutexb").strikethrough()),
-        );
-    })
-    .response
-    .on_hover_text(format!(
-        "Missing texture {name:?} required by model.numatb. Include this file or fix the texture assignment."
-    ));
 }
 
 pub fn empty_icon(ui: &mut Ui) {

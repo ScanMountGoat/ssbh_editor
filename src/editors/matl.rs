@@ -202,10 +202,7 @@ fn remove_duplicates(entries: &mut Vec<MatlEntryData>) {
     });
 }
 
-fn remove_unused_materials(
-    matl_entries: &mut Vec<MatlEntryData>,
-    modl_entries: &Vec<ModlEntryData>,
-) {
+fn remove_unused_materials(matl_entries: &mut Vec<MatlEntryData>, modl_entries: &[ModlEntryData]) {
     let mut visited = Vec::new();
 
     for modl_entry in modl_entries.iter() {
