@@ -1,5 +1,6 @@
 use crate::{
     app::{display_validation_errors, folder_editor_title, warning_icon_text, UiState},
+    horizontal_separator_empty,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
 };
@@ -126,175 +127,23 @@ fn edit_mesh(
             ui_state.selected_mesh_influences_index = None;
         }
     }
-    if let Some(mesh_object) = ui_state
-        .selected_mesh_attributes_index
-        .and_then(|index| mesh.objects.get_mut(index))
-    {
-        // TODO: Find a cleaner way to get the errors for the selected mesh.
-        let missing_attributes = validation_errors
-            .iter()
-            .filter_map(|e| match &e.kind {
-                MeshValidationErrorKind::MissingRequiredVertexAttributes {
-                    missing_attributes,
-                    ..
-                } => {
-                    if Some(e.mesh_object_index) == ui_state.selected_mesh_attributes_index {
-                        Some(missing_attributes.as_slice())
-                    } else {
-                        None
-                    }
-                }
-                _ => None,
-            })
-            .next()
-            .unwrap_or_default();
-
-        let (a_open, a_changed) = attributes_window(ctx, mesh_object, missing_attributes);
-
-        changed |= a_changed;
-
-        if !a_open {
-            ui_state.selected_mesh_attributes_index = None;
-        }
-    }
 
     // TODO: Remove advanced settings.
     ui.checkbox(&mut ui_state.mesh_editor_advanced_mode, "Advanced Settings");
     let mut mesh_to_remove = None;
 
     for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
-        let id = egui::Id::new("mesh").with(i);
-
-        // TODO: Avoid allocating here.
-        let errors: Vec<_> = validation_errors
-            .iter()
-            .filter(|e| e.mesh_object_index == i)
-            .collect();
-
-        let text = if !errors.is_empty() {
-            warning_icon_text(&mesh_object.name)
-        } else {
-            RichText::new(&mesh_object.name)
-        };
-
-        let header_response = CollapsingHeader::new(text)
-            .id_source(id.with("name"))
-            .show(ui, |ui| {
-                // TODO: Reorder mesh objects?
-                // TODO: Show errors on the appropriate field?
-                Grid::new(id.with("grid")).show(ui, |ui| {
-                    ui.label("Name");
-                    changed |= edit_name(ui, mesh_object, ui_state.mesh_editor_advanced_mode);
-                    ui.end_row();
-
-                    // TODO: Is it possible to edit the subindex without messing up influence assignments?
-                    ui.label("Subindex");
-                    if ui_state.mesh_editor_advanced_mode {
-                        changed |= ui
-                            .add(egui::DragValue::new(&mut mesh_object.subindex))
-                            .changed();
-                    } else {
-                        ui.label(mesh_object.subindex.to_string());
-                    }
-                    ui.end_row();
-
-                    ui.label("Sort Bias");
-                    changed |= ui
-                        .add(egui::DragValue::new(&mut mesh_object.sort_bias))
-                        .changed();
-                    ui.end_row();
-
-                    changed |= ui
-                        .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
-                        .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
-                        .changed();
-                    ui.end_row();
-
-                    changed |= ui
-                        .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
-                        .on_hover_text("Disabling depth testing causes the mesh to render on top of previous meshes.")
-                        .changed();
-                    ui.end_row();
-                });
-
-                // Meshes should have influences or a parent bone but not both.
-                // TODO: Is there a better way to indicate no parent than ""?
-                // TODO: Combine this with bone influences?
-                if mesh_object.bone_influences.is_empty() {
-                    changed |= bone_combo_box(
-                        ui,
-                        &mut mesh_object.parent_bone_name,
-                        id.with("parent_bone"),
-                        skel,
-                        &[""],
-                    );
-                } else {
-                    if ui
-                        .button("Use Parent Bone")
-                        .on_hover_text("Remove the vertex skin weights and assign a parent bone.")
-                        .clicked()
-                    {
-                        // TODO: Remove existing influences.
-                        changed = true;
-                    }
-                };
-
-                // Open in a separate window since they won't fit in the grid.
-                // TODO: Simplify this code?
-                let attribute_error = errors.iter().find(|e| {
-                    matches!(
-                        e.kind,
-                        MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
-                    )
-                });
-
-                // TODO: Combine the attributes with the mesh 
-                if let Some(attribute_error) = attribute_error {
-                    if ui
-                        .add_sized(
-                            [140.0, 20.0],
-                            Button::new(warning_icon_text("Vertex Attributes")),
-                        )
-                        .on_hover_text(format!("{}", attribute_error))
-                        .clicked()
-                    {
-                        ui_state.selected_mesh_attributes_index = Some(i);
-                    }
-                } else if ui
-                    .add_sized([140.0, 20.0], Button::new("Vertex Attributes..."))
-                    .clicked()
-                {
-                    ui_state.selected_mesh_attributes_index = Some(i);
-                }
-
-                if !mesh_object.bone_influences.is_empty() {
-                    if ui.button("Bone Influences...").clicked() {
-                        ui_state.selected_mesh_influences_index = Some(i);
-                    }
-                } else {
-                    // TODO: How to handle gaps in grid?
-                    ui.allocate_space(egui::Vec2::new(1.0, 1.0));
-                }
-            })
-            .header_response
-            .context_menu(|ui| {
-                if ui.button("Delete").clicked() {
-                    ui.close_menu();
-                    mesh_to_remove = Some(i);
-                    changed = true;
-                }
-            });
-
-        if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(i)) {
-            // Outline the selected mesh in the viewport.
-            render_mesh.is_selected |= header_response.hovered();
-        }
-
-        if !errors.is_empty() {
-            header_response.on_hover_ui(|ui| {
-                display_validation_errors(ui, validation_errors);
-            });
-        }
+        edit_mesh_object(
+            ui,
+            i,
+            mesh_object,
+            validation_errors,
+            &mut changed,
+            ui_state,
+            skel,
+            &mut mesh_to_remove,
+            render_model,
+        );
     }
 
     if let Some(i) = mesh_to_remove {
@@ -302,6 +151,165 @@ fn edit_mesh(
     }
 
     changed
+}
+
+fn edit_mesh_object(
+    ui: &mut Ui,
+    i: usize,
+    mesh_object: &mut MeshObjectData,
+    validation_errors: &[MeshValidationError],
+    changed: &mut bool,
+    ui_state: &mut UiState,
+    skel: Option<&SkelData>,
+    mesh_to_remove: &mut Option<usize>,
+    render_model: &mut Option<&mut RenderModel>,
+) {
+    let id = egui::Id::new("mesh").with(i);
+
+    // TODO: Avoid allocating here.
+    let errors: Vec<_> = validation_errors
+        .iter()
+        .filter(|e| e.mesh_object_index == i)
+        .collect();
+
+    let text = if !errors.is_empty() {
+        warning_icon_text(&mesh_object.name)
+    } else {
+        RichText::new(&mesh_object.name)
+    };
+
+    let header_response = CollapsingHeader::new(text)
+        .id_source(id.with("name"))
+        .show(ui, |ui| {
+            // TODO: Reorder mesh objects?
+            // TODO: Show errors on the appropriate field?
+            Grid::new(id.with("mesh_grid")).show(ui, |ui| {
+                ui.label("Name");
+                *changed |= edit_name(ui, mesh_object, ui_state.mesh_editor_advanced_mode);
+                ui.end_row();
+
+                // TODO: Is it possible to edit the subindex without messing up influence assignments?
+                ui.label("Subindex");
+                if ui_state.mesh_editor_advanced_mode {
+                    *changed |= ui
+                        .add(egui::DragValue::new(&mut mesh_object.subindex))
+                        .changed();
+                } else {
+                    ui.label(mesh_object.subindex.to_string());
+                }
+                ui.end_row();
+
+                ui.label("Sort Bias");
+                *changed |= ui
+                    .add(egui::DragValue::new(&mut mesh_object.sort_bias))
+                    .changed();
+                ui.end_row();
+
+                *changed |= ui
+                    .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
+                    .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
+                    .changed();
+                ui.end_row();
+
+                *changed |= ui
+                    .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
+                    .on_hover_text("Disabling depth testing causes the mesh to render on top of previous meshes.")
+                    .changed();
+                ui.end_row();
+            });
+            horizontal_separator_empty(ui);
+
+
+            // Meshes should have influences or a parent bone but not both.
+            // TODO: Is there a better way to indicate no parent than ""?
+            // TODO: Combine this with bone influences?
+            if mesh_object.bone_influences.is_empty() {
+                *changed |= bone_combo_box(
+                    ui,
+                    &mut mesh_object.parent_bone_name,
+                    id.with("parent_bone"),
+                    skel,
+                    &[""],
+                );
+            } else {
+                if ui
+                    .button("Remove Bone Influences")
+                    .on_hover_text("Remove the vertex skin weights and assign a parent bone.")
+                    .clicked()
+                {
+                    mesh_object.bone_influences.clear();
+                    *changed = true;
+                }
+            };
+
+            if !mesh_object.bone_influences.is_empty() {
+                if ui.button("Bone Influences...").clicked() {
+                    ui_state.selected_mesh_influences_index = Some(i);
+                }
+            } else {
+                // TODO: How to handle gaps in grid?
+                ui.allocate_space(egui::Vec2::new(1.0, 1.0));
+            }
+            horizontal_separator_empty(ui);
+
+            // TODO: Simplify this code?
+            let attribute_error = errors.iter().find(|e| {
+                matches!(
+                    e.kind,
+                    MeshValidationErrorKind::MissingRequiredVertexAttributes { .. }
+                )
+            });
+
+            // TODO: Show the details of the error on hover.
+            let header_text = if  attribute_error.is_some() {
+                warning_icon_text("Vertex Attributes")
+            } else {
+                RichText::new("Vertex Attributes")
+            };
+
+            CollapsingHeader::new(header_text).id_source(id.with("attributes")).show(ui, |ui| {
+                // TODO: Find a cleaner way to get the errors for the selected mesh.
+                let missing_attributes = validation_errors
+                .iter()
+                .filter_map(|e| match &e.kind {
+                    MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                        missing_attributes,
+                        ..
+                    } => {
+                        if e.mesh_object_index == i {
+                            Some(missing_attributes.as_slice())
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .next()
+                .unwrap_or_default();
+
+                *changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
+            });
+        })
+        .header_response
+        .context_menu(|ui| {
+            if ui.button("Delete").clicked() {
+                ui.close_menu();
+                *mesh_to_remove = Some(i);
+                *changed = true;
+            }
+        });
+
+    // TODO: Move this out of the function?
+    if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(i)) {
+        // Outline the selected mesh in the viewport.
+        render_mesh.is_selected |= header_response.hovered();
+    }
+
+    if !errors.is_empty() {
+        header_response.on_hover_ui(|ui| {
+            display_validation_errors(ui, validation_errors);
+        });
+    }
 }
 
 fn edit_name(ui: &mut egui::Ui, mesh_object: &mut MeshObjectData, advanced_mode: bool) -> bool {
@@ -359,102 +367,97 @@ fn edit_attribute_name(ui: &mut Ui, name: &mut String, id: egui::Id, valid_names
         });
 }
 
-fn attributes_window(
-    ctx: &egui::Context,
+fn edit_mesh_attributes(
+    ui: &mut Ui,
     mesh_object: &mut MeshObjectData,
     missing_attributes: &[String],
-) -> (bool, bool) {
-    // TODO: Return changed.
-    let mut open = true;
+) -> bool {
     let mut changed = false;
 
-    egui::Window::new(format!("Vertex Attributes ({})", mesh_object.name))
-        .open(&mut open)
-        .show(ctx, |ui| {
-            // TODO: Add button to remove unused attributes to save memory.
-            if !missing_attributes.is_empty()
-                && ui
-                    .button(format!(
-                        "Add {} Missing Attributes",
-                        missing_attributes.len()
-                    ))
-                    .clicked()
-            {
-                add_missing_attributes(mesh_object, missing_attributes);
-                changed = true;
-            }
+    // TODO: Add button to remove unused attributes to save memory.
+    if !missing_attributes.is_empty()
+        && ui
+            .button(format!(
+                "Add {} Missing Attributes",
+                missing_attributes.len()
+            ))
+            .clicked()
+    {
+        add_missing_attributes(mesh_object, missing_attributes);
+        changed = true;
+    }
 
-            egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
-                ui.heading("Name");
-                ui.heading("Usage");
-                ui.heading("Vertex Count");
-                ui.end_row();
+    egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
+        // TODO: Create a size between heading and label?
+        ui.label("Name");
+        ui.label("Usage");
+        ui.label("Vertex Count");
+        ui.end_row();
 
-                // Vertex buffer 0.
-                let id = ui.make_persistent_id("attr");
-                for (i, a) in mesh_object.positions.iter_mut().enumerate() {
-                    edit_attribute_name(ui, &mut a.name, id.with("pos").with(i), &["Position0"]);
-                    ui.label("Position");
-                    ui.label(a.data.len().to_string());
-                    ui.end_row();
-                }
-                for (i, a) in mesh_object.normals.iter_mut().enumerate() {
-                    edit_attribute_name(ui, &mut a.name, id.with("nrm").with(i), &["Normal0"]);
-                    ui.label("Normal");
-                    ui.label(a.data.len().to_string());
-                    ui.end_row();
-                }
-                for (i, a) in mesh_object.tangents.iter_mut().enumerate() {
-                    edit_attribute_name(ui, &mut a.name, id.with("tan").with(i), &["Tangent0"]);
-                    ui.label("Tangent");
-                    ui.label(a.data.len().to_string());
-                    ui.end_row();
-                }
-                for (i, a) in mesh_object.binormals.iter_mut().enumerate() {
-                    edit_attribute_name(ui, &mut a.name, id.with("binrm").with(i), &["Binormal0"]);
-                    ui.label("Binormal (Bitangent)");
-                    ui.label(a.data.len().to_string());
-                    ui.end_row();
-                }
+        // Vertex buffer 0.
+        let id = ui.make_persistent_id("attr");
+        for (i, a) in mesh_object.positions.iter_mut().enumerate() {
+            edit_attribute_name(ui, &mut a.name, id.with("pos").with(i), &["Position0"]);
+            ui.label("Position");
+            ui.label(a.data.len().to_string());
+            ui.end_row();
+        }
+        for (i, a) in mesh_object.normals.iter_mut().enumerate() {
+            edit_attribute_name(ui, &mut a.name, id.with("nrm").with(i), &["Normal0"]);
+            ui.label("Normal");
+            ui.label(a.data.len().to_string());
+            ui.end_row();
+        }
+        for (i, a) in mesh_object.tangents.iter_mut().enumerate() {
+            edit_attribute_name(ui, &mut a.name, id.with("tan").with(i), &["Tangent0"]);
+            ui.label("Tangent");
+            ui.label(a.data.len().to_string());
+            ui.end_row();
+        }
+        for (i, a) in mesh_object.binormals.iter_mut().enumerate() {
+            edit_attribute_name(ui, &mut a.name, id.with("binrm").with(i), &["Binormal0"]);
+            ui.label("Binormal (Bitangent)");
+            ui.label(a.data.len().to_string());
+            ui.end_row();
+        }
 
-                // Vertex buffer 1.
-                for (i, a) in mesh_object.texture_coordinates.iter_mut().enumerate() {
-                    edit_attribute_name(
-                        ui,
-                        &mut a.name,
-                        id.with("uv").with(i),
-                        &["map1", "bake1", "uvSet", "uvSet1", "uvSet2"],
-                    );
-                    ui.label("Texture Coordinate (UV)");
-                    ui.label(a.data.len().to_string());
-                    ui.end_row();
-                }
-                for (i, a) in mesh_object.color_sets.iter_mut().enumerate() {
-                    edit_attribute_name(
-                        ui,
-                        &mut a.name,
-                        id.with("color").with(i),
-                        &[
-                            "colorSet1",
-                            "colorSet2",
-                            "colorSet2_1",
-                            "colorSet2_2",
-                            "colorSet2_3",
-                            "colorSet3",
-                            "colorSet4",
-                            "colorSet5",
-                            "colorSet6",
-                            "colorSet7",
-                        ],
-                    );
-                    ui.label("Color Set (Vertex Color)");
-                    ui.label(a.data.len().to_string());
-                    ui.end_row();
-                }
-            })
-        });
+        // Vertex buffer 1.
+        for (i, a) in mesh_object.texture_coordinates.iter_mut().enumerate() {
+            edit_attribute_name(
+                ui,
+                &mut a.name,
+                id.with("uv").with(i),
+                &["map1", "bake1", "uvSet", "uvSet1", "uvSet2"],
+            );
+            ui.label("Texture Coordinate (UV)");
+            ui.label(a.data.len().to_string());
+            ui.end_row();
+        }
+        for (i, a) in mesh_object.color_sets.iter_mut().enumerate() {
+            edit_attribute_name(
+                ui,
+                &mut a.name,
+                id.with("color").with(i),
+                &[
+                    "colorSet1",
+                    "colorSet2",
+                    "colorSet2_1",
+                    "colorSet2_2",
+                    "colorSet2_3",
+                    "colorSet3",
+                    "colorSet4",
+                    "colorSet5",
+                    "colorSet6",
+                    "colorSet7",
+                ],
+            );
+            ui.label("Color Set (Vertex Color)");
+            ui.label(a.data.len().to_string());
+            ui.end_row();
+        }
+    });
 
-    (open, changed)
+    changed
 }
 
 fn add_uv(mesh_object: &mut MeshObjectData, name: &str, count: usize) {
