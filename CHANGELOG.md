@@ -11,13 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added an option to hide or show all meshes in the viewport under the Meshes menu.
 * Added a toggle for scaling vertex colors by their scale value like 2.0 for colorSet1.
 * Added the ShaderComplexity debug mode for viewing estimated performance costs of materials.
-* Added an option to change the preferred GPU backend from preferences or the `--backend` commandline flag. 
+* Added an option to change the preferred GPU backend from preferences or the `--backend` commandline flag.
+* Added an option to edit model file names to the Modl Editor.
 
 ### Changed
 * Modified the Camera Settings window to use degrees instead of radians for FOV.
 * Improved tooltips for various editors.
 * Reworked the Mesh Editor to be more compact and outline the selected mesh in the viewport.
-* Reworked the Modl editor to outline the selected mesh in the viewport.
+* Reworked the Modl editor layout.
 * Adjusted tooltips to only display when the mouse is not moving.
 * Adjusted formatting of displayed keyboard shortcuts on menu buttons.
 * Improved accuracy for animation scaling.
