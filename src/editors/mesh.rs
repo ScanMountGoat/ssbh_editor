@@ -249,35 +249,34 @@ fn edit_mesh_object_inner(
         .id_source(id.with("bone_influences"))
         .show(ui, |ui| {
             // Meshes should have influences or a parent bone but not both.
-            // TODO: Is there a better way to indicate no parent than ""?
             if mesh_object.bone_influences.is_empty() {
-                changed |= bone_combo_box(
-                    ui,
-                    &mut mesh_object.parent_bone_name,
-                    id.with("parent_bone"),
-                    skel,
-                    &[""],
-                );
+                ui.horizontal(|ui| {
+                    ui.label("Parent Bone").on_hover_text(
+                        "Inherit the transformation of the specified bone while animating.",
+                    );
+
+                    changed |= bone_combo_box(
+                        ui,
+                        &mut mesh_object.parent_bone_name,
+                        id.with("parent_bone"),
+                        skel,
+                        &[""],
+                    );
+                });
 
                 // TODO: Add an option to apply the parent transform or inverse parent transform?
-
-                if ui
-                    .button("Use Skin Weights")
-                    .on_hover_text("Convert the parent bone to vertex skin weights.")
-                    .clicked()
-                {
-                    // TODO: Add an option to convert to skin weights.
-                    // 1. Transform the vertices based on the parent world transform.
-                    // 2. Add bone influences for the parent bone.
-                    // 3. Clear the parent bone to an empty string.
-                }
+                // TODO: Add an option to convert to skin weights.
+                // 1. Transform the vertices based on the parent world transform.
+                // 2. Add bone influences for the parent bone.
+                // 3. Clear the parent bone to an empty string.
             } else {
                 if ui
                     .button("Remove Bone Influences")
-                    .on_hover_text("Remove the vertex skin weights and assign a parent bone.")
+                    .on_hover_text("Remove the vertex skin weights to assign a parent bone.")
                     .clicked()
                 {
-                    mesh_object.bone_influences.clear();
+                    // TODO: What happens if there is a parent bone and influences?
+                    mesh_object.parent_bone_name = String::new();
                     changed = true;
                 }
 
