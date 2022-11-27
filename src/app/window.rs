@@ -181,7 +181,7 @@ pub fn preferences_window(
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui
-                        .add(egui::Button::new("Open preferences directory...").wrap(false))
+                        .add(egui::Button::new("Open Preferences Directory...").wrap(false))
                         .clicked()
                     {
                         ui.close_menu();
@@ -189,6 +189,17 @@ pub fn preferences_window(
                         let path = application_dir();
                         if let Err(e) = open::that(path) {
                             log::error!("Failed to open {path:?}: {e}");
+                        }
+                    }
+                });
+
+                ui.menu_button("Help", |ui| {
+                    if ui.button("Preferences Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Preferences";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
                         }
                     }
                 });

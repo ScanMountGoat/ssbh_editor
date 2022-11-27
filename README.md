@@ -73,9 +73,7 @@ Check the application log if any error messages appear. SSBH Editor only support
 Most errors can be fixed by exporting the .numatb file to XML or JSON again using most recent version of the programs.
 
 ## Application Configuration Files
-SSBH Editor stores its configuration files and material presets in a dedicated directory in the user folder. All versions of SSBH Editor after 0.5.0 use the same shared location for application files. The application will only overwrite existing config file if you explicitly save changes from within the application, so downloading a new version of SSBH Editor will not change preferences or material presets. All configuration settings are editable from within the application itself, so manually editing these files usually isn't necessary.
-
-The exact location depends on the operating system. For Windows, this is typically `C:\Users\username\AppData\Local\ssbh_editor\data` where `username` is your user name. A quick way to find the directory on Windows is to type `%localappdata%` into the path in File Explorer, hit enter, and search for the `ssbh_editor` folder.
+SSBH Editor stores its configuration files and material presets in a dedicated directory in the user folder. See the [Preferences Wiki page](https://github.com/ScanMountGoat/ssbh_editor/wiki/Preferences) for details.
 
 ## Building
 Prebuilt binaries are only provided for Windows and MacOS at this time. Users on Linux will need to compile from source. With version 1.60 or later of the Rust toolchain installed, run `cargo build --release`.

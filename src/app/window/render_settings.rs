@@ -14,6 +14,20 @@ pub fn render_settings_window(
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("Help", |ui| {
+                    if ui.button("Render Settings Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Render-Settings";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
+                        }
+                    }
+                });
+            });
+            ui.separator();
+        
             ui.heading("Debug Shading");
             egui::Grid::new("debug_shading_grid").show(ui, |ui| {
                 // TODO: Add descriptions.
