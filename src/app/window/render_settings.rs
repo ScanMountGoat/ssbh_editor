@@ -27,64 +27,13 @@ pub fn render_settings_window(
                 });
             });
             ui.separator();
-        
+
             ui.heading("Debug Shading");
             egui::Grid::new("debug_shading_grid").show(ui, |ui| {
                 // TODO: Add descriptions.
                 ui.label("Debug Mode");
-                egui::ComboBox::from_id_source("Debug Mode")
-                    .width(200.0)
-                    .selected_text(debug_mode_label(settings.debug_mode))
-                    .show_ui(ui, |ui| {
-                        // Group modes for improved clarity.
-                        ui.heading("Shading");
-                        debug_mode(ui, settings, DebugMode::Shaded);
-                        debug_mode(ui, settings, DebugMode::Basic);
-                        debug_mode(ui, settings, DebugMode::Normals);
-                        debug_mode(ui, settings, DebugMode::Bitangents);
-                        debug_mode(ui, settings, DebugMode::Albedo);
-                        debug_mode(ui, settings, DebugMode::ShaderComplexity);
-                        ui.separator();
 
-                        ui.heading("Vertex Attributes");
-                        debug_mode(ui, settings, DebugMode::Position0);
-                        debug_mode(ui, settings, DebugMode::Normal0);
-                        debug_mode(ui, settings, DebugMode::Tangent0);
-                        debug_mode(ui, settings, DebugMode::Map1);
-                        debug_mode(ui, settings, DebugMode::Bake1);
-                        debug_mode(ui, settings, DebugMode::UvSet);
-                        debug_mode(ui, settings, DebugMode::UvSet1);
-                        debug_mode(ui, settings, DebugMode::UvSet2);
-                        ui.separator();
-
-                        ui.heading("Vertex Color");
-                        debug_mode(ui, settings, DebugMode::ColorSet1);
-                        debug_mode(ui, settings, DebugMode::ColorSet2);
-                        debug_mode(ui, settings, DebugMode::ColorSet3);
-                        debug_mode(ui, settings, DebugMode::ColorSet4);
-                        debug_mode(ui, settings, DebugMode::ColorSet5);
-                        debug_mode(ui, settings, DebugMode::ColorSet6);
-                        debug_mode(ui, settings, DebugMode::ColorSet7);
-                        ui.separator();
-
-                        ui.heading("Textures");
-                        debug_mode(ui, settings, DebugMode::Texture0);
-                        debug_mode(ui, settings, DebugMode::Texture1);
-                        debug_mode(ui, settings, DebugMode::Texture2);
-                        debug_mode(ui, settings, DebugMode::Texture3);
-                        debug_mode(ui, settings, DebugMode::Texture4);
-                        debug_mode(ui, settings, DebugMode::Texture5);
-                        debug_mode(ui, settings, DebugMode::Texture6);
-                        debug_mode(ui, settings, DebugMode::Texture7);
-                        debug_mode(ui, settings, DebugMode::Texture8);
-                        debug_mode(ui, settings, DebugMode::Texture9);
-                        debug_mode(ui, settings, DebugMode::Texture10);
-                        debug_mode(ui, settings, DebugMode::Texture11);
-                        debug_mode(ui, settings, DebugMode::Texture12);
-                        debug_mode(ui, settings, DebugMode::Texture13);
-                        debug_mode(ui, settings, DebugMode::Texture14);
-                        debug_mode(ui, settings, DebugMode::Texture16);
-                    });
+                edit_debug_mode(settings, ui);
 
                 ui.end_row();
 
@@ -101,29 +50,9 @@ pub fn render_settings_window(
                     ui.end_row();
                 }
             });
+
             if settings.debug_mode != DebugMode::Shaded {
-                ui.horizontal(|ui| {
-                    ui.toggle_value(&mut settings.render_rgba[0], "R");
-                    ui.toggle_value(&mut settings.render_rgba[1], "G");
-                    ui.toggle_value(&mut settings.render_rgba[2], "B");
-                    ui.toggle_value(&mut settings.render_rgba[3], "A");
-                });
-
-                ui.checkbox(&mut options.draw_wireframe, "Wireframe");
-
-                if matches!(
-                    settings.debug_mode,
-                    DebugMode::Map1
-                        | DebugMode::Bake1
-                        | DebugMode::UvSet
-                        | DebugMode::UvSet1
-                        | DebugMode::UvSet2
-                ) {
-                    ui.horizontal(|ui| {
-                        ui.radio_value(&mut settings.use_uv_pattern, false, "UV Coords");
-                        ui.radio_value(&mut settings.use_uv_pattern, true, "UV Test Pattern");
-                    });
-                }
+                debug_mode_options(ui, settings, options);
             }
             horizontal_separator_empty(ui);
 
@@ -166,15 +95,18 @@ pub fn render_settings_window(
             horizontal_separator_empty(ui);
 
             ui.heading("Animation");
+
             ui.checkbox(
                 &mut skinning_settings.enable_parenting,
                 "Enable Mesh Parenting",
-            );
+            ).on_hover_text("Apply the mesh object's parent bone transform");
+
             ui.checkbox(
                 &mut skinning_settings.enable_skinning,
                 "Enable Vertex Skinning",
-            );
-            ui.checkbox(enable_helper_bones, "Enable Helper Bones");
+            ).on_hover_text("Deform the vertices based on the vertex skin weights");
+
+            ui.checkbox(enable_helper_bones, "Enable Helper Bones").on_hover_text("Apply helper bone constraints from the .nuhlpb file");
             horizontal_separator_empty(ui);
 
             ui.heading("Skeleton");
@@ -184,9 +116,103 @@ pub fn render_settings_window(
         });
 }
 
+fn debug_mode_options(
+    ui: &mut egui::Ui,
+    settings: &mut RenderSettings,
+    options: &mut ModelRenderOptions,
+) {
+    ui.horizontal(|ui| {
+        ui.toggle_value(&mut settings.render_rgba[0], "R");
+        ui.toggle_value(&mut settings.render_rgba[1], "G");
+        ui.toggle_value(&mut settings.render_rgba[2], "B");
+        ui.toggle_value(&mut settings.render_rgba[3], "A");
+    });
+    ui.checkbox(&mut options.draw_wireframe, "Wireframe");
+    if matches!(
+        settings.debug_mode,
+        DebugMode::Map1
+            | DebugMode::Bake1
+            | DebugMode::UvSet
+            | DebugMode::UvSet1
+            | DebugMode::UvSet2
+    ) {
+        ui.horizontal(|ui| {
+            ui.radio_value(&mut settings.use_uv_pattern, false, "UV Coords");
+            ui.radio_value(&mut settings.use_uv_pattern, true, "UV Test Pattern");
+        });
+    }
+}
+
+fn edit_debug_mode(settings: &mut RenderSettings, ui: &mut egui::Ui) {
+    let mode_response = egui::ComboBox::from_id_source("Debug Mode")
+        .width(200.0)
+        .selected_text(debug_mode_label(settings.debug_mode))
+        .show_ui(ui, |ui| {
+            // Group modes for improved clarity.
+            ui.heading("Shading");
+            debug_mode(ui, settings, DebugMode::Shaded);
+            debug_mode(ui, settings, DebugMode::Basic);
+            debug_mode(ui, settings, DebugMode::Normals);
+            debug_mode(ui, settings, DebugMode::Bitangents);
+            debug_mode(ui, settings, DebugMode::Albedo);
+            debug_mode(ui, settings, DebugMode::ShaderComplexity);
+            ui.separator();
+
+            ui.heading("Vertex Attributes");
+            debug_mode(ui, settings, DebugMode::Position0);
+            debug_mode(ui, settings, DebugMode::Normal0);
+            debug_mode(ui, settings, DebugMode::Tangent0);
+            debug_mode(ui, settings, DebugMode::Map1);
+            debug_mode(ui, settings, DebugMode::Bake1);
+            debug_mode(ui, settings, DebugMode::UvSet);
+            debug_mode(ui, settings, DebugMode::UvSet1);
+            debug_mode(ui, settings, DebugMode::UvSet2);
+            ui.separator();
+
+            ui.heading("Vertex Color");
+            debug_mode(ui, settings, DebugMode::ColorSet1);
+            debug_mode(ui, settings, DebugMode::ColorSet2);
+            debug_mode(ui, settings, DebugMode::ColorSet3);
+            debug_mode(ui, settings, DebugMode::ColorSet4);
+            debug_mode(ui, settings, DebugMode::ColorSet5);
+            debug_mode(ui, settings, DebugMode::ColorSet6);
+            debug_mode(ui, settings, DebugMode::ColorSet7);
+            ui.separator();
+
+            ui.heading("Textures");
+            debug_mode(ui, settings, DebugMode::Texture0);
+            debug_mode(ui, settings, DebugMode::Texture1);
+            debug_mode(ui, settings, DebugMode::Texture2);
+            debug_mode(ui, settings, DebugMode::Texture3);
+            debug_mode(ui, settings, DebugMode::Texture4);
+            debug_mode(ui, settings, DebugMode::Texture5);
+            debug_mode(ui, settings, DebugMode::Texture6);
+            debug_mode(ui, settings, DebugMode::Texture7);
+            debug_mode(ui, settings, DebugMode::Texture8);
+            debug_mode(ui, settings, DebugMode::Texture9);
+            debug_mode(ui, settings, DebugMode::Texture10);
+            debug_mode(ui, settings, DebugMode::Texture11);
+            debug_mode(ui, settings, DebugMode::Texture12);
+            debug_mode(ui, settings, DebugMode::Texture13);
+            debug_mode(ui, settings, DebugMode::Texture14);
+            debug_mode(ui, settings, DebugMode::Texture16);
+        })
+        .response;
+
+    // Tooltips need to be added for both the expanded and collapsed state.
+    let tooltip = debug_tooltip(settings.debug_mode);
+    if !tooltip.is_empty() {
+        mode_response.on_hover_text(tooltip);
+    }
+}
+
 fn debug_mode(ui: &mut egui::Ui, settings: &mut RenderSettings, mode: DebugMode) {
-    // TODO: Add tooltips to give more explanations.
-    ui.selectable_value(&mut settings.debug_mode, mode, debug_mode_label(mode));
+    let response = ui.selectable_value(&mut settings.debug_mode, mode, debug_mode_label(mode));
+
+    let tooltip = debug_tooltip(mode);
+    if !tooltip.is_empty() {
+        response.on_hover_text(tooltip);
+    }
 }
 
 fn debug_mode_label(mode: DebugMode) -> String {
@@ -214,6 +240,18 @@ fn debug_description(mode: DebugMode) -> &'static str {
         DebugMode::Texture11 => "Diffuse Layer 2",
         DebugMode::Texture12 => "Diffuse Layer 3",
         DebugMode::Texture14 => "Emissive Layer 2",
+        _ => "",
+    }
+}
+
+fn debug_tooltip(mode: DebugMode) -> &'static str {
+    match mode {
+        DebugMode::Shaded => "All effects applied like lighting, shadows, and post processing",
+        DebugMode::Basic => "Lambertion diffuse lighting with normal maps applied",
+        DebugMode::Normals => "Calculated normals after applying tangents and normal maps",
+        DebugMode::Bitangents => "Bitangents calculated by the shaders for normal mapping and anisotropic specular",
+        DebugMode::Albedo => "Final albedo or base color after blending all col map layers and CustomVector11/CustomVector30",
+        DebugMode::ShaderComplexity => "Estimated shader complexity based on instruction count. Warmer colors are more expensive.",
         _ => "",
     }
 }
