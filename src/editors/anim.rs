@@ -261,11 +261,28 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                     shapes.push(Line::new(scale_z).name("scale.z"));
                 }
                 TrackValues::UvTransform(values) => {
+                    let mut scale_us = Vec::new();
+                    let mut scale_vs = Vec::new();
+                    let mut rotations = Vec::new();
                     let mut translate_us = Vec::new();
+                    let mut translate_vs = Vec::new();
+
                     for (i, v) in values.iter().enumerate() {
+                        scale_us.push([i as f64, v.scale_u as f64]);
+                        scale_vs.push([i as f64, v.scale_v as f64]);
+
+                        rotations.push([i as f64, v.rotation as f64]);
+
                         translate_us.push([i as f64, v.translate_u as f64]);
+                        translate_vs.push([i as f64, v.translate_v as f64]);
                     }
+                    shapes.push(Line::new(scale_us).name("scale_u"));
+                    shapes.push(Line::new(scale_vs).name("scale_v"));
+
+                    shapes.push(Line::new(rotations).name("rotation"));
+
                     shapes.push(Line::new(translate_us).name("translate_u"));
+                    shapes.push(Line::new(translate_vs).name("translate_v"));
                 }
                 TrackValues::Float(values) => {
                     let mut points = Vec::new();

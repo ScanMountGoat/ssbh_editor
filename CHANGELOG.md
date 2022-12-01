@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### unreleased
+### Fixed
+* Fixed an issue where some compressed UV transform animations failed to parse correctly.
+* Fixed the graph not showing all UV transform fields in the Anim Editor
+
 ### 0.7.0 - 2022-11-24
 ### Added
 * Added an option to open or add recently opened folders under File > Open Recent Folder and File > Add Recent Folder to Workspace.
