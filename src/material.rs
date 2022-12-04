@@ -43,6 +43,19 @@ pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryD
     // Preserve the material label to avoid messing up anim and modl data.
     MatlEntryData {
         material_label: entry.material_label.clone(),
+        samplers: preset
+            .samplers
+            .iter()
+            .map(|preset_sampler| SamplerParam {
+                param_id: preset_sampler.param_id,
+                data: entry
+                    .samplers
+                    .iter()
+                    .find(|t| t.param_id == preset_sampler.param_id)
+                    .map(|t| t.data.clone())
+                    .unwrap_or_else(|| SamplerData::default().to_owned()),
+            })
+            .collect(),
         textures: preset
             .textures
             .iter()
