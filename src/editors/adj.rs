@@ -67,23 +67,7 @@ pub fn adj_editor(
                     .button(format!("Add {} missing entries", validation_errors.len()))
                     .clicked()
             {
-                for e in validation_errors {
-                    match e {
-                        AdjValidationError::MissingRenormalEntry {
-                            mesh_object_index, ..
-                        } => {
-                            if let Some(mesh_object) =
-                                mesh.and_then(|mesh| mesh.objects.get(*mesh_object_index))
-                            {
-                                adj.entries.push(AdjEntryData::from_mesh_object(
-                                    *mesh_object_index,
-                                    mesh_object,
-                                ));
-                                changed = true;
-                            }
-                        }
-                    }
-                }
+                changed |= add_missing_adj_entries(adj, validation_errors, mesh);
             }
 
             ScrollArea::vertical()
@@ -117,4 +101,32 @@ pub fn adj_editor(
         changed,
         saved,
     }
+}
+
+pub fn add_missing_adj_entries(
+    adj: &mut AdjData,
+    validation_errors: &[AdjValidationError],
+    mesh: Option<&MeshData>,
+) -> bool {
+    let mut changed = false;
+
+    if let Some(mesh) = mesh {
+        for e in validation_errors {
+            match e {
+                AdjValidationError::MissingRenormalEntry {
+                    mesh_object_index, ..
+                } => {
+                    if let Some(mesh_object) = mesh.objects.get(*mesh_object_index) {
+                        adj.entries.push(AdjEntryData::from_mesh_object(
+                            *mesh_object_index,
+                            mesh_object,
+                        ));
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    changed
 }

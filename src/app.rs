@@ -2,7 +2,7 @@ use self::{file_list::show_folder_files, window::*};
 use crate::{
     app::anim_list::anim_list,
     editors::{
-        adj::adj_editor,
+        adj::{add_missing_adj_entries, adj_editor},
         anim::anim_editor,
         hlpb::hlpb_editor,
         matl::{matl_editor, preset_editor},
@@ -27,6 +27,7 @@ use log::{error, Log};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
+use ssbh_data::prelude::*;
 use ssbh_wgpu::{ModelFolder, RenderModel};
 use std::{
     path::{Path, PathBuf},
@@ -939,6 +940,59 @@ impl SsbhApp {
                         .header_response
                         .on_hover_text(&model.model.folder_name)
                         .context_menu(|ui| {
+                            // Prevent adding a file that already exists.
+                            let mesh = model.model.find_mesh();
+                            let should_add_adjb =
+                                mesh.is_some() && model.model.find_adj().is_none();
+
+                            if ui
+                                .add_enabled(should_add_adjb, Button::new("Add model.adjb"))
+                                .clicked()
+                            {
+                                ui.close_menu();
+
+                                // Add a missing adjb file based on the mesh.
+                                // TODO: Disable if the file isn't required?
+                                let mut new_adj = AdjData {
+                                    entries: Vec::new(),
+                                };
+                                add_missing_adj_entries(
+                                    &mut new_adj,
+                                    &model.validation.adj_errors,
+                                    mesh,
+                                );
+                                model
+                                    .model
+                                    .adjs
+                                    .push(("model.adjb".to_owned(), Ok(new_adj)));
+                                // Mark the new file as modified to prompt the user to save it.
+                                model.changed.adjs.push(true);
+                            }
+
+                            // Prevent adding a file that already exists.
+                            let mesh = model.model.find_mesh();
+                            let should_add_meshex =
+                                mesh.is_some() && model.model.find_meshex().is_none();
+
+                            if ui
+                                .add_enabled(should_add_meshex, Button::new("Add model.numshexb"))
+                                .clicked()
+                            {
+                                ui.close_menu();
+
+                                if let Some(mesh) = mesh {
+                                    let new_meshex = MeshExData::from_mesh_objects(&mesh.objects);
+                                    model
+                                        .model
+                                        .meshexes
+                                        .push(("model.numshexb".to_owned(), Ok(new_meshex)));
+                                    // Mark the new file as modified to prompt the user to save it.
+                                    model.changed.meshexes.push(true);
+                                }
+                            }
+
+                            ui.separator();
+
                             // Use "Remove" since this doesn't delete the folder on disk.
                             if ui.button("Remove").clicked() {
                                 ui.close_menu();
