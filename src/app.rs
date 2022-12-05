@@ -712,6 +712,7 @@ impl SsbhApp {
                             matl,
                             &model.validation.modl_errors,
                             &mut self.ui_state.modl_editor,
+                            &mut self.render_models.get_mut(folder_index),
                         );
                         response.set_changed(&mut model.changed.modls[modl_index]);
                         file_changed |= response.changed;

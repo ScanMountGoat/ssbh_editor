@@ -8,6 +8,7 @@ use egui::{Grid, Label, RichText, ScrollArea, TextEdit};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
+use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
 pub fn modl_editor(
@@ -19,6 +20,7 @@ pub fn modl_editor(
     matl: Option<&MatlData>,
     validation_errors: &[ModlValidationError],
     editor_state: &mut ModlEditorState,
+    render_model: &mut Option<&mut RenderModel>,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -192,7 +194,7 @@ pub fn modl_editor(
                                 ui.add(Label::new(mesh_text).sense(egui::Sense::click()))
                             };
 
-                            name_response.context_menu(|ui| {
+                            let name_response = name_response.context_menu(|ui| {
                                 if ui.button("Delete").clicked() {
                                     ui.close_menu();
                                     entry_to_remove = Some(i);
@@ -208,6 +210,13 @@ pub fn modl_editor(
                                 valid_material,
                             );
                             ui.end_row();
+
+                            if let Some(render_mesh) =
+                                render_model.as_mut().and_then(|m| m.meshes.get_mut(i))
+                            {
+                                // Outline the selected mesh in the viewport.
+                                render_mesh.is_selected |= name_response.hovered();
+                            }
                         }
 
                         if let Some(i) = entry_to_remove {
