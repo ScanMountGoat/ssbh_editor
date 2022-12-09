@@ -1189,6 +1189,11 @@ impl SsbhApp {
                     ui.close_menu();
                     self.ui_state.camera_settings_open = true;
                 }
+                if ui.button("Reset Camera").clicked() {
+                    ui.close_menu();
+                    self.camera_state = CameraInputState::default();
+                }
+                ui.separator();
 
                 if ui.button("Save Screenshot...").clicked() {
                     ui.close_menu();
