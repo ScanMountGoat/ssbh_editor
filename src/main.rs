@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use chrono::{DateTime, Utc};
-use egui::color::linear_f32_from_gamma_u8;
+use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
 use log::error;
 use nutexb::NutexbFile;
@@ -345,7 +345,7 @@ fn should_check_for_release(
 ) -> bool {
     if let Some(previous_update_check_time) = previous_update_check_time {
         // Check at most once per day.
-        current_time.date() > previous_update_check_time.date()
+        current_time.date_naive() > previous_update_check_time.date_naive()
     } else {
         true
     }
@@ -1035,15 +1035,15 @@ fn update_camera(
         camera_state.fov_y_radians,
     );
     let transforms = CameraTransforms {
-        model_view_matrix: model_view_matrix.to_cols_array_2d(),
-        mvp_matrix: mvp_matrix.to_cols_array_2d(),
-        camera_pos: camera_pos.to_array(),
-        screen_dimensions: [
+        model_view_matrix: model_view_matrix,
+        mvp_matrix: mvp_matrix,
+        camera_pos: camera_pos,
+        screen_dimensions: glam::Vec4::new(
             size.width as f32,
             size.height as f32,
             scale_factor as f32,
             0.0,
-        ],
+        ),
     };
     renderer.update_camera(queue, transforms);
 }

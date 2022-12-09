@@ -135,7 +135,7 @@ impl<'a> Widget for DragSlider<'a> {
                     inner_rect,
                     visuals.rounding,
                     ui.visuals().selection.bg_fill,
-                    Stroke::none(),
+                    Stroke::NONE,
                 );
 
                 // Center the text in the slider rect.
