@@ -512,7 +512,7 @@ fn update_and_render_app(
     let output_frame = match surface.get_current_texture() {
         Ok(frame) => frame,
         Err(e) => {
-            eprintln!("Dropped frame with error: {}", e);
+            eprintln!("Dropped frame with error: {e}");
             return;
         }
     };
@@ -1035,9 +1035,9 @@ fn update_camera(
         camera_state.fov_y_radians,
     );
     let transforms = CameraTransforms {
-        model_view_matrix: model_view_matrix,
-        mvp_matrix: mvp_matrix,
-        camera_pos: camera_pos,
+        model_view_matrix,
+        mvp_matrix,
+        camera_pos,
         screen_dimensions: glam::Vec4::new(
             size.width as f32,
             size.height as f32,

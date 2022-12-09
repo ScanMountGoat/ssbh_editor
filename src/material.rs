@@ -53,7 +53,7 @@ pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryD
                     .iter()
                     .find(|t| t.param_id == preset_sampler.param_id)
                     .map(|t| t.data.clone())
-                    .unwrap_or_else(|| SamplerData::default().to_owned()),
+                    .unwrap_or_else(SamplerData::default),
             })
             .collect(),
         textures: preset

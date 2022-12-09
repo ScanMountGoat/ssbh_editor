@@ -933,7 +933,7 @@ impl SsbhApp {
                 {
                     // TODO: Use folder icons for open vs closed.
                     CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
-                        .id_source(format!("folder.{}", folder_index))
+                        .id_source(format!("folder.{folder_index}"))
                         .default_open(true)
                         .show(ui, |ui| {
                             show_folder_files(&mut self.ui_state, model, ui, folder_index);
@@ -1399,7 +1399,7 @@ pub fn display_validation_errors<E: std::fmt::Display>(ui: &mut Ui, errors: &[E]
         ui.horizontal(|ui| {
             // TODO: Add severity levels?
             warning_icon(ui);
-            ui.label(format!("{}", error));
+            ui.label(format!("{error}"));
         });
     }
 }

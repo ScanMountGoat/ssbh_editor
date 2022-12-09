@@ -233,8 +233,7 @@ fn list_files<T, E: std::fmt::Display>(
                     empty_icon(ui);
                     ui.label(RichText::new("⚠ ".to_string() + name).color(ERROR_COLOR))
                         .on_hover_text(format!(
-                            "Error reading {}. Check the application logs for details.",
-                            name
+                            "Error reading {name}. Check the application logs for details."
                         ));
                 }
             }

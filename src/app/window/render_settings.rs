@@ -218,7 +218,7 @@ fn debug_mode(ui: &mut egui::Ui, settings: &mut RenderSettings, mode: DebugMode)
 fn debug_mode_label(mode: DebugMode) -> String {
     let description = debug_description(mode);
     if !description.is_empty() {
-        format!("{} ({})", mode, description)
+        format!("{mode} ({description})")
     } else {
         mode.to_string()
     }

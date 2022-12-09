@@ -662,7 +662,7 @@ fn edit_shader_label(
             changed |= ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED)).changed();
         })
         .response
-        .on_hover_text(format!("{} is not a valid shader label. Copy an existing shader label or apply a material preset.", shader_label));
+        .on_hover_text(format!("{shader_label} is not a valid shader label. Copy an existing shader label or apply a material preset."));
     }
 
     changed
@@ -1277,7 +1277,7 @@ fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
 fn param_label(p: ParamId) -> String {
     let description = param_description(p);
     if !description.is_empty() {
-        format!("{} ({})", p, description)
+        format!("{p} ({description})")
     } else {
         p.to_string()
     }

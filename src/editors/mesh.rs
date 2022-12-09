@@ -202,7 +202,7 @@ fn edit_mesh_object_inner(
     ui_state: &mut UiState,
     skel: Option<&SkelData>,
     i: usize,
-    errors: &Vec<&MeshValidationError>,
+    errors: &[&MeshValidationError],
     validation_errors: &[MeshValidationError],
 ) -> bool {
     let mut changed = false;
