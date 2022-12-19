@@ -689,6 +689,7 @@ mod tests {
             &entry,
             &ShaderProgram {
                 discard: false,
+                premultiplied: false,
                 vertex_attributes: Vec::new(),
                 material_parameters: vec![
                     "BlendState0".to_owned(),
@@ -781,6 +782,7 @@ mod tests {
             &entry,
             &ShaderProgram {
                 discard: false,
+                premultiplied: false,
                 vertex_attributes: Vec::new(),
                 material_parameters: Vec::new(),
                 complexity: 0.0,
