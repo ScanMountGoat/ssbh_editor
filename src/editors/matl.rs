@@ -899,11 +899,18 @@ fn edit_shader(
         ui.end_row();
 
         if let Some(program) = program {
-            ui.label("Alpha Testing");
+            ui.label("Alpha Testing")
+                .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
             ui.label(program.discard.to_string());
             ui.end_row();
 
-            ui.label("Vertex Attributes");
+            ui.label("Premultiplied Alpha")
+                .on_hover_text("Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.");
+            ui.label(program.premultiplied.to_string());
+            ui.end_row();
+
+            ui.label("Vertex Attributes")
+                .on_hover_text("The mesh attributes required by the shader. The XYZW suffixes indicate accessed components.");
             ui.add(Label::new(program.vertex_attributes.join(", ")));
             ui.end_row();
         }

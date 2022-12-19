@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added an option to add missing model.numshexb or model.adjb file by right clicking a folder.
 * Added an option to quickly reset the camera under Viewport > Reset Camera.
+* Added a heuristic for determining if a shader uses premultiplied alpha to the Matl Editor and viewport rendering.
 
 ### Changed
 * Improved tooltips for multiple editors and windows.
