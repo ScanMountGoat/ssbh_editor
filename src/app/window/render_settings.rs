@@ -54,6 +54,8 @@ pub fn render_settings_window(
             if settings.debug_mode != DebugMode::Shaded {
                 debug_mode_options(ui, settings, options);
             }
+            // TODO: Move this somewhere else.
+            // TODO: Add tabs or collapsing headers?
             ui.checkbox(&mut options.draw_floor_grid, "Floor Grid");
             horizontal_separator_empty(ui);
 

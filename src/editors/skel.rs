@@ -4,20 +4,17 @@ use crate::{
     app::{folder_editor_title, SkelEditorState, SkelMode},
     widgets::enum_combo_box,
 };
-use egui::{Button, CollapsingHeader, Grid, ScrollArea};
+use egui::{Button, CollapsingHeader, Grid, Label, ScrollArea};
 use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
 
-struct SkelItem<'a> {
-    index: usize,
-    bone: &'a mut BoneData,
-}
+struct SkelBoneIndex(usize);
 
-impl<'a> DragDropItem for SkelItem<'a> {
+impl DragDropItem for SkelBoneIndex {
     fn id(&self) -> egui::Id {
-        egui::Id::new("bone").with(self.index)
+        egui::Id::new("bone").with(self.0)
     }
 }
 
@@ -130,26 +127,29 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, state: &mut SkelEdito
     let other_bones = skel.bones.clone();
 
     // TODO: Avoid allocating here.
-    let mut items: Vec<_> = skel
-        .bones
-        .iter_mut()
-        .enumerate()
-        .map(|(index, bone)| SkelItem { index, bone })
+    let mut items: Vec<_> = (0..skel.bones.len())
+        .into_iter()
+        .map(|i| SkelBoneIndex(i))
         .collect();
 
     let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
         ui.horizontal(|ui| {
+            let bone = &mut skel.bones[item.0];
+
             handle.ui(ui, item, |ui| {
-                // Grids don't work with egui_dnd, so set the label size manually.
-                // Use a workaround for left aligning the text.
-                let (_, rect) = ui.allocate_space(egui::Vec2::new(120.0, 20.0));
-                ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
-                    .label(&item.bone.name);
+                // TODO: Come up with better icons for this.
+                ui.label(":::");
             });
 
-            let id = egui::Id::new("bone").with(item.index);
-            let parent_bone_name = item
-                .bone
+            // Grids don't work with egui_dnd, so set the label size manually.
+            // Use a workaround for left aligning the text.
+            // TODO: Highlight the selected bone on hover.
+            let (_, rect) = ui.allocate_space(egui::Vec2::new(120.0, 20.0));
+            ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
+                .add(Label::new(&bone.name).sense(egui::Sense::click()));
+
+            let id = egui::Id::new("bone").with(item.0);
+            let parent_bone_name = bone
                 .parent_index
                 .and_then(|i| other_bones.get(i))
                 .map(|p| p.name.as_str())
@@ -160,15 +160,15 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, state: &mut SkelEdito
                 .width(120.0)
                 .show_ui(ui, |ui| {
                     changed |= ui
-                        .selectable_value(&mut item.bone.parent_index, None, "None")
+                        .selectable_value(&mut bone.parent_index, None, "None")
                         .changed();
                     ui.separator();
                     // TODO: Is there a way to make this not O(N^2)?
                     for (other_i, other_bone) in other_bones.iter().enumerate() {
-                        if item.index != other_i {
+                        if item.0 != other_i {
                             changed |= ui
                                 .selectable_value(
-                                    &mut item.bone.parent_index,
+                                    &mut bone.parent_index,
                                     Some(other_i),
                                     &other_bone.name,
                                 )
@@ -177,7 +177,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, state: &mut SkelEdito
                     }
                 });
 
-            changed |= enum_combo_box(ui, id.with("billboard"), &mut item.bone.billboard_type);
+            changed |= enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
         });
     });
 

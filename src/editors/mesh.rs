@@ -1,10 +1,11 @@
 use crate::{
-    app::{display_validation_errors, folder_editor_title, warning_icon_text, UiState},
+    app::{display_validation_errors, folder_editor_title, warning_icon_text, MeshEditorState},
     horizontal_separator_empty,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
 };
 use egui::{Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui};
+use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
@@ -14,6 +15,14 @@ use ssbh_data::{
 use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
+struct MeshObjectIndex(usize);
+
+impl DragDropItem for MeshObjectIndex {
+    fn id(&self) -> egui::Id {
+        egui::Id::new("mesh").with(self.0)
+    }
+}
+
 pub fn mesh_editor(
     ctx: &egui::Context,
     folder_name: &str,
@@ -22,7 +31,7 @@ pub fn mesh_editor(
     render_model: &mut Option<&mut RenderModel>,
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
-    ui_state: &mut UiState,
+    state: &mut MeshEditorState,
 ) -> (bool, bool) {
     let mut open = true;
     let mut changed = false;
@@ -92,7 +101,7 @@ pub fn mesh_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    changed |= edit_mesh(ui, mesh, render_model, ui_state, validation_errors, skel);
+                    changed |= edit_mesh(ui, mesh, render_model, state, validation_errors, skel);
                 });
         });
 
@@ -103,103 +112,98 @@ fn edit_mesh(
     ui: &mut Ui,
     mesh: &mut MeshData,
     render_model: &mut Option<&mut RenderModel>,
-    ui_state: &mut UiState,
+    state: &mut MeshEditorState,
     validation_errors: &[MeshValidationError],
     skel: Option<&SkelData>,
 ) -> bool {
     let mut changed = false;
 
     // TODO: Remove advanced settings.
-    ui.checkbox(&mut ui_state.mesh_editor_advanced_mode, "Advanced Settings");
+    ui.checkbox(&mut state.advanced_mode, "Advanced Settings");
     let mut mesh_to_remove = None;
 
-    for (i, mesh_object) in mesh.objects.iter_mut().enumerate() {
-        edit_mesh_object(
-            ui,
-            i,
-            mesh_object,
-            validation_errors,
-            &mut changed,
-            ui_state,
-            skel,
-            &mut mesh_to_remove,
-            render_model,
-        );
-    }
+    // TODO: Avoid allocating here.
+    let mut items: Vec<_> = (0..mesh.objects.len())
+        .map(|i| MeshObjectIndex(i))
+        .collect();
+
+    let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
+        ui.horizontal(|ui| {
+            handle.ui(ui, item, |ui| {
+                // TODO: Come up with better icons for this.
+                ui.label(":::");
+            });
+
+            let mesh_object = &mut mesh.objects[item.0];
+            let id = egui::Id::new("mesh").with(item.0);
+
+            // TODO: Avoid allocating here.
+            let errors: Vec<_> = validation_errors
+                .iter()
+                .filter(|e| e.mesh_object_index == item.0)
+                .collect();
+
+            let text = if !errors.is_empty() {
+                warning_icon_text(&mesh_object.name)
+            } else {
+                RichText::new(&mesh_object.name)
+            };
+
+            let header_response = CollapsingHeader::new(text)
+                .id_source(id.with("name"))
+                .show(ui, |ui| {
+                    changed |= edit_mesh_object(
+                        id,
+                        ui,
+                        mesh_object,
+                        state.advanced_mode,
+                        skel,
+                        item.0,
+                        &errors,
+                        validation_errors,
+                    );
+                })
+                .header_response
+                .context_menu(|ui| {
+                    if ui.button("Delete").clicked() {
+                        ui.close_menu();
+                        mesh_to_remove = Some(item.0);
+                        changed = true;
+                    }
+                });
+
+            // TODO: Move this out of the function?
+            if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(item.0))
+            {
+                // Outline the selected mesh in the viewport.
+                render_mesh.is_selected |= header_response.hovered();
+            }
+
+            if !errors.is_empty() {
+                header_response.on_hover_ui(|ui| {
+                    display_validation_errors(ui, validation_errors);
+                });
+            }
+        });
+    });
 
     if let Some(i) = mesh_to_remove {
         mesh.objects.remove(i);
+    }
+
+    if let Some(response) = response.completed {
+        egui_dnd::utils::shift_vec(response.from, response.to, &mut mesh.objects);
+        changed = true;
     }
 
     changed
 }
 
 fn edit_mesh_object(
-    ui: &mut Ui,
-    i: usize,
-    mesh_object: &mut MeshObjectData,
-    validation_errors: &[MeshValidationError],
-    changed: &mut bool,
-    ui_state: &mut UiState,
-    skel: Option<&SkelData>,
-    mesh_to_remove: &mut Option<usize>,
-    render_model: &mut Option<&mut RenderModel>,
-) {
-    let id = egui::Id::new("mesh").with(i);
-
-    // TODO: Avoid allocating here.
-    let errors: Vec<_> = validation_errors
-        .iter()
-        .filter(|e| e.mesh_object_index == i)
-        .collect();
-
-    let text = if !errors.is_empty() {
-        warning_icon_text(&mesh_object.name)
-    } else {
-        RichText::new(&mesh_object.name)
-    };
-
-    let header_response = CollapsingHeader::new(text)
-        .id_source(id.with("name"))
-        .show(ui, |ui| {
-            *changed |= edit_mesh_object_inner(
-                id,
-                ui,
-                mesh_object,
-                ui_state,
-                skel,
-                i,
-                &errors,
-                validation_errors,
-            );
-        })
-        .header_response
-        .context_menu(|ui| {
-            if ui.button("Delete").clicked() {
-                ui.close_menu();
-                *mesh_to_remove = Some(i);
-                *changed = true;
-            }
-        });
-
-    // TODO: Move this out of the function?
-    if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(i)) {
-        // Outline the selected mesh in the viewport.
-        render_mesh.is_selected |= header_response.hovered();
-    }
-
-    if !errors.is_empty() {
-        header_response.on_hover_ui(|ui| {
-            display_validation_errors(ui, validation_errors);
-        });
-    }
-}
-
-fn edit_mesh_object_inner(
     id: egui::Id,
     ui: &mut Ui,
     mesh_object: &mut MeshObjectData,
-    ui_state: &mut UiState,
+    advanced_mode: bool,
     skel: Option<&SkelData>,
     i: usize,
     errors: &[&MeshValidationError],
@@ -211,12 +215,12 @@ fn edit_mesh_object_inner(
     // TODO: Show errors on the appropriate field?
     Grid::new(id.with("mesh_grid")).show(ui, |ui| {
         ui.label("Name");
-        changed |= edit_name(ui, mesh_object, ui_state.mesh_editor_advanced_mode);
+        changed |= edit_name(ui, mesh_object, advanced_mode);
         ui.end_row();
 
         // TODO: Is it possible to edit the subindex without messing up influence assignments?
         ui.label("Subindex");
-        if ui_state.mesh_editor_advanced_mode {
+        if advanced_mode {
             changed |= ui
                 .add(egui::DragValue::new(&mut mesh_object.subindex))
                 .changed();

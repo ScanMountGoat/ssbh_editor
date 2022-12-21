@@ -125,7 +125,6 @@ pub struct UiState {
     pub stage_lighting_open: bool,
     pub preset_editor_open: bool,
     pub right_panel_tab: PanelTab,
-    pub mesh_editor_advanced_mode: bool,
     pub log_window_open: bool,
     pub preferences_window_open: bool,
 
@@ -147,6 +146,7 @@ pub struct UiState {
     pub selected_material_preset_index: usize,
 
     pub matl_editor: MatlEditorState,
+    pub mesh_editor: MeshEditorState,
     pub preset_editor: MatlEditorState,
     pub anim_editor: AnimEditorState,
     pub skel_editor: SkelEditorState,
@@ -183,6 +183,12 @@ pub struct MatlEditorState {
 #[derive(Default)]
 pub struct ModlEditorState {
     pub advanced_mode: bool,
+}
+
+#[derive(Default)]
+pub struct MeshEditorState {
+    pub advanced_mode: bool,
+    pub dnd: DragDropUi,
 }
 
 #[derive(Default)]
@@ -631,7 +637,7 @@ impl SsbhApp {
                             &mut self.render_models.get_mut(folder_index),
                             find_file(&model.model.skels, "model.nusktb"),
                             &model.validation.mesh_errors,
-                            &mut self.ui_state,
+                            &mut self.ui_state.mesh_editor,
                         );
                         model.changed.meshes[mesh_index] |= changed;
                         file_changed |= changed;
