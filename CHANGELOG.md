@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### unreleased
+### Added
+* Added an option to Render Settings to toggle an infinite floor grid in the viewport.
+
+### Fixed
+* Fixed a crash when enabling Draw Bone Axes in Render Settings.
+
 ### 0.7.1 - 2022-12-19
 ### Added
 * Added an option to add missing model.numshexb or model.adjb file by right clicking a folder.

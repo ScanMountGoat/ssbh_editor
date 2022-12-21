@@ -1037,6 +1037,7 @@ fn update_camera(
     let transforms = CameraTransforms {
         model_view_matrix,
         mvp_matrix,
+        mvp_inv_matrix: mvp_matrix.inverse(),
         camera_pos,
         screen_dimensions: glam::Vec4::new(
             size.width as f32,

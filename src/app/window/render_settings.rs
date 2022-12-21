@@ -54,6 +54,7 @@ pub fn render_settings_window(
             if settings.debug_mode != DebugMode::Shaded {
                 debug_mode_options(ui, settings, options);
             }
+            ui.checkbox(&mut options.draw_floor_grid, "Floor Grid");
             horizontal_separator_empty(ui);
 
             ui.heading("Render Passes");
@@ -106,7 +107,8 @@ pub fn render_settings_window(
                 "Enable Vertex Skinning",
             ).on_hover_text("Deform the vertices based on the vertex skin weights");
 
-            ui.checkbox(enable_helper_bones, "Enable Helper Bones").on_hover_text("Apply helper bone constraints from the .nuhlpb file");
+            ui.checkbox(enable_helper_bones, "Enable Helper Bones")
+                .on_hover_text("Apply helper bone constraints from the .nuhlpb file");
             horizontal_separator_empty(ui);
 
             ui.heading("Skeleton");

@@ -2123,14 +2123,14 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#6d884f46b0e682f2647e9887bfde86e2d2e7fcac"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#20a44b4213045a9cb85e88cff9ae088cf4b7321b"
 dependencies = [
  "bytemuck",
  "log",
  "nutexb",
  "thiserror",
  "wgpu",
- "wgsl_to_wgpu",
+ "wgsl_to_wgpu 0.3.0",
 ]
 
 [[package]]
@@ -3099,7 +3099,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#6d884f46b0e682f2647e9887bfde86e2d2e7fcac"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#20a44b4213045a9cb85e88cff9ae088cf4b7321b"
 dependencies = [
  "bytemuck",
  "glam",
@@ -3116,7 +3116,7 @@ dependencies = [
  "walkdir",
  "wgpu",
  "wgpu_text",
- "wgsl_to_wgpu",
+ "wgsl_to_wgpu 0.3.1",
 ]
 
 [[package]]
@@ -3801,7 +3801,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "raw-window-handle 0.5.0",
  "smallvec",
  "static_assertions",
@@ -3827,7 +3827,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle 0.5.0",
  "smallvec",
@@ -3863,7 +3863,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.0",
@@ -3902,6 +3902,20 @@ name = "wgsl_to_wgpu"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7826306a89751c19c10b8c32ef84757679746d3140bb671a75618f2ad4ed0896"
+dependencies = [
+ "naga",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+ "wgpu-types",
+]
+
+[[package]]
+name = "wgsl_to_wgpu"
+version = "0.3.1"
+source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#11c0a2f25529960c6070207295dce04271d333a0"
 dependencies = [
  "naga",
  "prettyplease",
