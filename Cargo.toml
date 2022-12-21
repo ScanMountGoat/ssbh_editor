@@ -20,7 +20,7 @@ nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
 ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", features = ["strum", "serde"] }
 strum = "0.24.1"
 nutexb = "0.6.0"
-octocrab = "0.16.0"
+octocrab = "0.17.0"
 tokio = { version = "1", features = ["rt"] }
 open = "2.1.3"
 log = "0.4.17"
