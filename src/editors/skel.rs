@@ -5,9 +5,21 @@ use crate::{
     widgets::enum_combo_box,
 };
 use egui::{Button, CollapsingHeader, Grid, ScrollArea};
+use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
+
+struct SkelItem<'a> {
+    index: usize,
+    bone: &'a mut BoneData,
+}
+
+impl<'a> DragDropItem for SkelItem<'a> {
+    fn id(&self) -> egui::Id {
+        egui::Id::new("bone").with(self.index)
+    }
+}
 
 pub fn skel_editor(
     ctx: &egui::Context,
@@ -90,7 +102,7 @@ pub fn skel_editor(
 
                     match state.mode {
                         SkelMode::List => {
-                            changed |= edit_bones_list(ui, skel);
+                            changed |= edit_bones_list(ui, skel, state);
                         }
                         SkelMode::Hierarchy => {
                             changed |= edit_bones_hierarchy(ui, skel);
@@ -102,25 +114,42 @@ pub fn skel_editor(
     (open, changed)
 }
 
-fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
+fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, state: &mut SkelEditorState) -> bool {
     let mut changed = false;
 
+    // TODO: Find a way to get a grid layout working with egui_dnd.
     Grid::new("skel_grid").show(ui, |ui| {
         // Header
         ui.heading("Bone");
         ui.heading("Parent");
         ui.heading("Billboard Type");
         ui.end_row();
+    });
 
-        // TODO: Do this without clone?
-        let other_bones = skel.bones.clone();
+    // TODO: Do this without clone?
+    let other_bones = skel.bones.clone();
 
-        let mut bones_to_swap = None;
-        for (i, bone) in skel.bones.iter_mut().enumerate() {
-            let id = egui::Id::new("bone").with(i);
+    // TODO: Avoid allocating here.
+    let mut items: Vec<_> = skel
+        .bones
+        .iter_mut()
+        .enumerate()
+        .map(|(index, bone)| SkelItem { index, bone })
+        .collect();
 
-            ui.label(&bone.name);
-            let parent_bone_name = bone
+    let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
+        ui.horizontal(|ui| {
+            handle.ui(ui, item, |ui| {
+                // Grids don't work with egui_dnd, so set the label size manually.
+                // Use a workaround for left aligning the text.
+                let (_, rect) = ui.allocate_space(egui::Vec2::new(120.0, 20.0));
+                ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
+                    .label(&item.bone.name);
+            });
+
+            let id = egui::Id::new("bone").with(item.index);
+            let parent_bone_name = item
+                .bone
                 .parent_index
                 .and_then(|i| other_bones.get(i))
                 .map(|p| p.name.as_str())
@@ -128,17 +157,18 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
 
             egui::ComboBox::from_id_source(id)
                 .selected_text(parent_bone_name)
+                .width(120.0)
                 .show_ui(ui, |ui| {
                     changed |= ui
-                        .selectable_value(&mut bone.parent_index, None, "None")
+                        .selectable_value(&mut item.bone.parent_index, None, "None")
                         .changed();
                     ui.separator();
                     // TODO: Is there a way to make this not O(N^2)?
                     for (other_i, other_bone) in other_bones.iter().enumerate() {
-                        if i != other_i {
+                        if item.index != other_i {
                             changed |= ui
                                 .selectable_value(
-                                    &mut bone.parent_index,
+                                    &mut item.bone.parent_index,
                                     Some(other_i),
                                     &other_bone.name,
                                 )
@@ -147,32 +177,34 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
                     }
                 });
 
-            changed |= enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
-
-            ui.horizontal(|ui| {
-                if ui.button("⏶").clicked() {
-                    // Move bone up
-                    if i > 0 {
-                        bones_to_swap = Some((i, i - 1));
-                    }
-                }
-
-                if ui.button("⏷").clicked() {
-                    // Move bone down
-                    if !other_bones.is_empty() && i < other_bones.len() - 1 {
-                        bones_to_swap = Some((i, i + 1));
-                    }
-                }
-            });
-            ui.end_row();
-        }
-
-        if let Some((a, b)) = bones_to_swap {
-            skel.bones = swap_bones(a, b, &skel.bones);
-        }
+            changed |= enum_combo_box(ui, id.with("billboard"), &mut item.bone.billboard_type);
+        });
     });
 
+    if let Some(response) = response.completed {
+        skel.bones = move_bone(response.from, response.to, &skel.bones);
+        changed = true;
+    }
+
     changed
+}
+
+fn move_bone(from: usize, to: usize, bones: &[BoneData]) -> Vec<BoneData> {
+    // Create a mapping from old indices to new bone indices.
+    // This lets us update the bones and parents in one step.
+    let mut new_bone_indices: Vec<_> = (0..bones.len()).collect();
+    egui_dnd::utils::shift_vec(from, to, &mut new_bone_indices);
+
+    // TODO: Is there a better way to handle invalid parent indices?
+    new_bone_indices
+        .iter()
+        .map(|i| BoneData {
+            parent_index: bones[*i]
+                .parent_index
+                .and_then(|p| new_bone_indices.iter().position(|new_i| *new_i == p)),
+            ..bones[*i].clone()
+        })
+        .collect()
 }
 
 fn edit_bones_hierarchy(ui: &mut egui::Ui, skel: &mut SkelData) -> bool {
@@ -210,6 +242,7 @@ fn display_bones_recursive(ui: &mut egui::Ui, root_index: usize, bones: &[BoneDa
 
 fn match_skel_order(skel: &mut SkelData, reference: &SkelData) {
     // TODO: Sort by helper bones, swing bones, etc for added bones?
+    // TODO: This won't correctly handle added bones.
     skel.bones.sort_by_key(|o| {
         // The sort is stable, so unmatched bones will be placed at the end in the same order.
         reference
@@ -218,34 +251,6 @@ fn match_skel_order(skel: &mut SkelData, reference: &SkelData) {
             .position(|r| r.name == o.name)
             .unwrap_or(reference.bones.len())
     })
-}
-
-fn swap_bones(a: usize, b: usize, bones: &[BoneData]) -> Vec<BoneData> {
-    bones
-        .iter()
-        .enumerate()
-        .map(|(i, bone)| {
-            // Swap bones at positions a and b.
-            let mut new_bone = if i == a {
-                bones[b].clone()
-            } else if i == b {
-                bones[a].clone()
-            } else {
-                bone.clone()
-            };
-            new_bone.parent_index = if new_bone.parent_index == Some(a) {
-                // Parent anything parented to a to b.
-                Some(b)
-            } else if new_bone.parent_index == Some(b) {
-                // Parent anything parented to b to a.
-                Some(a)
-            } else {
-                new_bone.parent_index
-            };
-
-            new_bone
-        })
-        .collect()
 }
 
 #[cfg(test)]
@@ -356,7 +361,7 @@ mod tests {
             },
         ];
 
-        let after = swap_bones(0, 0, &before);
+        let after = move_bone(0, 0, &before);
         assert_eq!(before, after);
     }
 
@@ -377,7 +382,8 @@ mod tests {
             },
         ];
 
-        let after = swap_bones(0, 1, &before);
+        // The target index is 1 higher than expected when moving down.
+        let after = move_bone(0, 2, &before);
         assert_eq!(
             vec![
                 BoneData {
@@ -428,7 +434,7 @@ mod tests {
 
         // Swap b and c.
         // The bones should still point to the correct parents.
-        let after = swap_bones(1, 2, &before);
+        let after = move_bone(1, 3, &before);
         assert_eq!(
             vec![
                 BoneData {

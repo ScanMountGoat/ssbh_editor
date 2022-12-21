@@ -23,6 +23,7 @@ use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue,
     KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
 };
+use egui_dnd::DragDropUi;
 use log::{error, Log};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
@@ -156,6 +157,7 @@ pub struct UiState {
 #[derive(Default)]
 pub struct SkelEditorState {
     pub mode: SkelMode,
+    pub dnd: DragDropUi,
 }
 
 #[derive(PartialEq, Eq)]
