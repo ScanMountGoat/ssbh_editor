@@ -15,8 +15,8 @@ use crate::{
     EditorResponse, TextureDimension, Thumbnail,
 };
 use egui::{
-    Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, RichText, ScrollArea,
-    TextEdit, Ui, Window,
+    special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label,
+    RichText, ScrollArea, TextEdit, Ui, Window,
 };
 use log::error;
 use rfd::FileDialog;
@@ -540,10 +540,10 @@ fn menu_bar(
 }
 
 fn help_menu(ui: &mut Ui) {
-    ui.menu_button( "Help", |ui| {
-        let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+    ui.menu_button("Help", |ui| {
+        let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
 
-        if button(ui, "Material Parameter Reference (GitHub)").clicked() {
+        if button(ui, &format!("{GITHUB} Material Parameter Reference")).clicked() {
             ui.close_menu();
             let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
             if let Err(open_err) = open::that(link) {
@@ -559,7 +559,7 @@ fn help_menu(ui: &mut Ui) {
             }
         }
 
-        if ui.button("Matl Editor Wiki").clicked() {
+        if ui.button(format!("{GITHUB} Matl Editor Wiki")).clicked() {
             ui.close_menu();
 
             let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Matl-Editor";

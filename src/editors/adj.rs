@@ -1,5 +1,5 @@
 use crate::{app::folder_editor_title, validation::AdjValidationError, EditorResponse};
-use egui::ScrollArea;
+use egui::{special_emojis::GITHUB, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{adj_data::AdjEntryData, prelude::*};
@@ -49,7 +49,7 @@ pub fn adj_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Adj Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Adj Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Adj-Editor";

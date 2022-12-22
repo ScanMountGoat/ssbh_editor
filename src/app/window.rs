@@ -2,7 +2,10 @@ use super::{log_level_icon, StageLightingState, LOGGER};
 use crate::{
     path::application_dir, preferences::AppPreferences, widgets::enum_combo_box, CameraInputState,
 };
-use egui::{Context, Grid, Label, ScrollArea, Ui, Window};
+use egui::{
+    special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
+    Context, Grid, Label, ScrollArea, Ui, Window,
+};
 use rfd::FileDialog;
 use std::path::PathBuf;
 
@@ -224,7 +227,11 @@ pub fn preferences_window(
                 .changed();
             ui.horizontal(|ui| {
                 // TODO: Limit backends based on the current platform.
-                ui.label("Graphics Backend").on_hover_text("The preferred graphics backend. Requires an application restart to take effect.");
+                ui.label("Graphics Backend")
+                    .on_hover_text("The preferred graphics backend. Requires an application restart to take effect.");
+
+                // TODO: Add custom labels to the variants.
+                ui.label(format!("{OS_APPLE} {OS_WINDOWS} {OS_LINUX}"));
                 changed |=
                     enum_combo_box(ui, "graphics_backend", &mut preferences.graphics_backend);
             });

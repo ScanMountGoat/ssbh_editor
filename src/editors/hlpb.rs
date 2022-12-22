@@ -5,7 +5,7 @@ use crate::{
     widgets::{bone_combo_box, DragSlider},
     EditorResponse,
 };
-use egui::{CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
+use egui::{special_emojis::GITHUB, CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
@@ -114,7 +114,7 @@ pub fn hlpb_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Hlpb Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Hlpb Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Hlpb-Editor";

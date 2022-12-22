@@ -1,7 +1,7 @@
 use app::SsbhApp;
 use egui::{
     style::{WidgetVisuals, Widgets},
-    Color32, FontFamily, FontId, Rounding, Stroke, TextStyle,
+    Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle,
 };
 use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
@@ -462,8 +462,22 @@ pub fn default_fonts() -> egui::FontDefinitions {
         font_data: BTreeMap::from([
             ("noto".to_owned(), egui::FontData::from_static(FONT_BYTES)),
             (
+                "noto-emoji".to_owned(),
+                egui::FontData::from_static(include_bytes!("fonts/NotoEmoji-Regular.ttf")).tweak(
+                    FontTweak {
+                        scale: 0.81,           // make it smaller
+                        y_offset_factor: -0.2, // move it up
+                        y_offset: 0.0,
+                    },
+                ),
+            ),
+            (
                 "emoji".to_owned(),
-                egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")),
+                egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")).tweak(FontTweak {
+                    scale: 1.0,           // make it smaller
+                    y_offset_factor: 0.0, // move it down slightly
+                    y_offset: 2.0,
+                }),
             ),
         ]),
         families: BTreeMap::from([

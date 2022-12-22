@@ -195,17 +195,12 @@ fn list_files<T, E: std::fmt::Display>(
         ui.horizontal(|ui| {
             match file {
                 Ok(_) => {
-                    // TODO: Add file specific icons.
-                    // TODO: Use images so this can be automatically centered.
-                    let (_, rect) = ui.allocate_space(egui::vec2(ICON_SIZE, ICON_SIZE));
-                    let text = egui::WidgetText::RichText(RichText::new("🗋")).into_galley(
-                        ui,
-                        None,
-                        16.0,
-                        egui::TextStyle::Button,
-                    );
-                    let text_pos = egui::pos2(rect.min.x + 2.0, rect.min.y + 6.0);
-                    text.paint_with_visuals(ui.painter(), text_pos, &ui.visuals().widgets.active);
+                    // TODO: Add file specific image icons.
+                    if name.ends_with("numatb") {
+                        ui.label("");
+                    } else {
+                        ui.label("🗋");
+                    }
 
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.

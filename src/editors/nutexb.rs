@@ -1,5 +1,5 @@
 use crate::{horizontal_separator_empty, TexturePainter};
-use egui::DragValue;
+use egui::{special_emojis::GITHUB, DragValue};
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;
 
@@ -16,7 +16,7 @@ pub fn nutexb_viewer(
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Nutexb Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Nutexb Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link =

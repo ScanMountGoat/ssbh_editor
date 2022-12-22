@@ -20,8 +20,9 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, DragValue,
-    KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui, Window,
+    collapsing_header::CollapsingState, special_emojis::GITHUB, Button, CollapsingHeader, Context,
+    DragValue, KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel,
+    Ui, Window,
 };
 use egui_dnd::DragDropUi;
 use log::{error, Log};
@@ -940,7 +941,7 @@ impl SsbhApp {
                     .filter(|(_, model)| !model.model.is_empty())
                 {
                     // TODO: Use folder icons for open vs closed.
-                    CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
+                    CollapsingHeader::new(folder_display_name(&model.model))
                         .id_source(format!("folder.{folder_index}"))
                         .default_open(true)
                         .show(ui, |ui| {
@@ -1106,7 +1107,7 @@ impl SsbhApp {
                     )
                 };
 
-                if shortcut_button(ui, "Open Folder...", &open_shortcut).clicked() {
+                if shortcut_button(ui, "🗀 Open Folder...", &open_shortcut).clicked() {
                     ui.close_menu();
                     if let Some(folder) = FileDialog::new().pick_folder() {
                         self.add_folder_to_workspace(folder, true);
@@ -1132,7 +1133,7 @@ impl SsbhApp {
                 }
                 ui.separator();
 
-                if shortcut_button(ui, "Add Folder to Workspace...", &add_shortcut).clicked() {
+                if shortcut_button(ui, "🗀 Add Folder to Workspace...", &add_shortcut).clicked() {
                     ui.close_menu();
                     if let Some(folder) = FileDialog::new().pick_folder() {
                         self.add_folder_to_workspace(folder, false);
@@ -1181,12 +1182,12 @@ impl SsbhApp {
                     self.ui_state.stage_lighting_open = true;
                 }
 
-                if ui.button("Material Presets").clicked() {
+                if ui.button(" Material Presets").clicked() {
                     ui.close_menu();
                     self.ui_state.preset_editor_open = true;
                 }
 
-                if ui.button("Preferences").clicked() {
+                if ui.button("⛭ Preferences").clicked() {
                     ui.close_menu();
                     self.ui_state.preferences_window_open = true;
                 }
@@ -1277,7 +1278,7 @@ impl SsbhApp {
             });
 
             ui.menu_button("Help", |ui| {
-                if ui.button("Wiki").clicked() {
+                if ui.button(format!("{GITHUB} Wiki")).clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";
                     if let Err(e) = open::that(link) {
@@ -1285,7 +1286,7 @@ impl SsbhApp {
                     }
                 }
 
-                if ui.button("Discussion Forum").clicked() {
+                if ui.button(format!("{GITHUB} Discussion Forum")).clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/discussions";
                     if let Err(e) = open::that(link) {
@@ -1293,7 +1294,7 @@ impl SsbhApp {
                     }
                 }
 
-                if ui.button("Report Issue").clicked() {
+                if ui.button(format!("{GITHUB} Report Issue")).clicked() {
                     ui.close_menu();
                     let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
                     if let Err(e) = open::that(link) {
@@ -1301,7 +1302,7 @@ impl SsbhApp {
                     }
                 }
 
-                if ui.button("Changelog").clicked() {
+                if ui.button(format!("{GITHUB} Changelog")).clicked() {
                     ui.close_menu();
                     let link =
                         "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
@@ -1356,14 +1357,18 @@ pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
     )
 }
 
-fn folder_display_name(model: &ModelFolder) -> PathBuf {
+fn folder_display_name(model: &ModelFolder) -> String {
     // Get enough components to differentiate folder paths.
     // fighter/mario/motion/body/c00 -> mario/motion/body/c00
-    Path::new(&model.folder_name)
+    let path = Path::new(&model.folder_name)
         .components()
         .rev()
         .take(4)
-        .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc))
+        .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc));
+    let path = path.to_string_lossy();
+
+    // TODO: Change the icon when expanded.
+    format!("🗀 {path}")
 }
 
 fn find_file<'a, T>(files: &'a [(String, FileResult<T>)], name: &str) -> Option<&'a T> {
@@ -1445,7 +1450,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     render_model.is_selected |= ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
-                            folder_display_name(&folder.model).to_string_lossy(),
+                            folder_display_name(&folder.model),
                         ))
                         .hovered();
                 }

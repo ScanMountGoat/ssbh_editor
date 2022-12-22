@@ -4,7 +4,7 @@ use crate::{
     app::{folder_editor_title, SkelEditorState, SkelMode},
     widgets::enum_combo_box,
 };
-use egui::{Button, CollapsingHeader, Grid, Label, ScrollArea};
+use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Grid, Label, ScrollArea};
 use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
@@ -78,7 +78,7 @@ pub fn skel_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Skel Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Skel Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Skel-Editor";

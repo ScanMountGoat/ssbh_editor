@@ -4,7 +4,9 @@ use crate::{
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
 };
-use egui::{Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui};
+use egui::{
+    special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,
+};
 use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
@@ -86,7 +88,7 @@ pub fn mesh_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Mesh Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Mesh Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";

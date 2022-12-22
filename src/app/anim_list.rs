@@ -19,7 +19,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         let mut slots_to_remove = Vec::new();
 
         let id = ui.make_persistent_id("animlist").with(model_index);
-        CollapsingHeader::new(folder_display_name(&model.model).to_string_lossy())
+        CollapsingHeader::new(folder_display_name(&model.model))
             .id_source(id)
             .default_open(true)
             .show(ui, |ui| {
@@ -28,6 +28,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                 let available_anims = find_anim_folders(model, &app.models);
 
                 if available_anims.is_empty() {
+                    // TODO: Don't show the rest of the UI if this is the case.
                     let message = "No matching animations found for this folder. \
                         Add the matching animation folder(s) with File > Add Folder to Workspace.";
                     ui.label(message);
@@ -165,11 +166,8 @@ fn anim_combo_box(
             // Iterate in decreasing order of affinity with the model folder.
             for (folder_index, folder) in anim_folders.iter().rev() {
                 ui.add(
-                    Label::new(
-                        RichText::new(folder_display_name(&folder.model).to_string_lossy())
-                            .heading(),
-                    )
-                    .wrap(false),
+                    Label::new(RichText::new(folder_display_name(&folder.model)).heading())
+                        .wrap(false),
                 );
 
                 for (anim_index, (name, _)) in folder.model.anims.iter().enumerate() {

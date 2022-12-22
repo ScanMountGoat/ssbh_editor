@@ -1,5 +1,5 @@
 use crate::{app::folder_editor_title, EditorResponse};
-use egui::{Grid, ScrollArea};
+use egui::{special_emojis::GITHUB, Grid, ScrollArea};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
@@ -64,7 +64,7 @@ pub fn meshex_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("MeshEx Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} MeshEx Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link =

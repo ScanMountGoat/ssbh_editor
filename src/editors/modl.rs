@@ -4,7 +4,7 @@ use crate::{
     validation::{ModlValidationError, ModlValidationErrorKind},
     EditorResponse,
 };
-use egui::{Grid, Label, RichText, ScrollArea, TextEdit};
+use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
@@ -76,7 +76,7 @@ pub fn modl_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Modl Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Modl Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Modl-Editor";

@@ -4,6 +4,7 @@ use crate::{
 };
 use egui::{
     plot::{Legend, Line, Plot, PlotPoint},
+    special_emojis::GITHUB,
     CentralPanel, CollapsingHeader, RichText, ScrollArea, SidePanel,
 };
 use log::error;
@@ -58,7 +59,7 @@ pub fn anim_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Anim Editor Wiki").clicked() {
+                    if ui.button(format!("{GITHUB} Anim Editor Wiki")).clicked() {
                         ui.close_menu();
 
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Anim-Editor";
