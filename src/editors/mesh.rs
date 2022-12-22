@@ -1,5 +1,7 @@
 use crate::{
-    app::{display_validation_errors, folder_editor_title, warning_icon_text, MeshEditorState},
+    app::{
+        display_validation_errors, folder_editor_title, warning_icon_text, Icons, MeshEditorState,
+    },
     horizontal_separator_empty,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
@@ -34,6 +36,7 @@ pub fn mesh_editor(
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
     state: &mut MeshEditorState,
+    icons: &Icons,
 ) -> (bool, bool) {
     let mut open = true;
     let mut changed = false;
@@ -103,7 +106,15 @@ pub fn mesh_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    changed |= edit_mesh(ui, mesh, render_model, state, validation_errors, skel);
+                    changed |= edit_mesh(
+                        ui,
+                        mesh,
+                        render_model,
+                        state,
+                        validation_errors,
+                        skel,
+                        icons,
+                    );
                 });
         });
 
@@ -117,6 +128,7 @@ fn edit_mesh(
     state: &mut MeshEditorState,
     validation_errors: &[MeshValidationError],
     skel: Option<&SkelData>,
+    icons: &Icons,
 ) -> bool {
     let mut changed = false;
 
@@ -132,8 +144,7 @@ fn edit_mesh(
     let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
         ui.horizontal(|ui| {
             handle.ui(ui, item, |ui| {
-                // TODO: Come up with better icons for this.
-                ui.label(":::");
+                ui.add(icons.draggable(ui));
             });
 
             let mesh_object = &mut mesh.objects[item.0];

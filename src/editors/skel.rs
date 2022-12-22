@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    app::{folder_editor_title, SkelEditorState, SkelMode},
+    app::{folder_editor_title, Icons, SkelEditorState, SkelMode},
     widgets::enum_combo_box,
 };
 use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Grid, Label, ScrollArea};
@@ -24,6 +24,7 @@ pub fn skel_editor(
     file_name: &str,
     skel: &mut SkelData,
     state: &mut SkelEditorState,
+    icons: &Icons,
 ) -> (bool, bool) {
     let mut open = true;
     let mut changed = false;
@@ -99,7 +100,7 @@ pub fn skel_editor(
 
                     match state.mode {
                         SkelMode::List => {
-                            changed |= edit_bones_list(ui, skel, state);
+                            changed |= edit_bones_list(ui, skel, state, icons);
                         }
                         SkelMode::Hierarchy => {
                             changed |= edit_bones_hierarchy(ui, skel);
@@ -111,7 +112,12 @@ pub fn skel_editor(
     (open, changed)
 }
 
-fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, state: &mut SkelEditorState) -> bool {
+fn edit_bones_list(
+    ui: &mut egui::Ui,
+    skel: &mut SkelData,
+    state: &mut SkelEditorState,
+    icons: &Icons,
+) -> bool {
     let mut changed = false;
 
     // TODO: Find a way to get a grid layout working with egui_dnd.
@@ -137,8 +143,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, state: &mut SkelEdito
             let bone = &mut skel.bones[item.0];
 
             handle.ui(ui, item, |ui| {
-                // TODO: Come up with better icons for this.
-                ui.label(":::");
+                ui.add(icons.draggable(ui));
             });
 
             // Grids don't work with egui_dnd, so set the label size manually.

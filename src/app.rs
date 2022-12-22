@@ -21,10 +21,11 @@ use crate::{
 use chrono::{DateTime, Utc};
 use egui::{
     collapsing_header::CollapsingState, special_emojis::GITHUB, Button, CollapsingHeader, Context,
-    DragValue, KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel,
-    Ui, Window,
+    DragValue, Image, KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel,
+    TopBottomPanel, Ui, Window,
 };
 use egui_dnd::DragDropUi;
+use egui_extras::RetainedImage;
 use log::{error, Log};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
@@ -108,6 +109,30 @@ pub struct SsbhApp {
     pub camera_state: CameraInputState,
 
     pub preferences: AppPreferences,
+
+    pub icons: Icons,
+}
+
+pub struct Icons {
+    draggable: RetainedImage,
+}
+
+impl Icons {
+    pub fn new() -> Self {
+        let draggable = RetainedImage::from_svg_bytes(
+            "draggable",
+            include_bytes!("icons/carbon_draggable.svg"),
+        )
+        .unwrap();
+
+        Self { draggable }
+    }
+
+    pub fn draggable(&self, ui: &Ui) -> Image {
+        // TODO: Change the tint based on the color theme.
+        egui::Image::new(self.draggable.texture_id(ui.ctx()), egui::vec2(16.0, 16.0))
+            .tint(egui::Color32::from_rgb(200, 200, 200))
+    }
 }
 
 #[derive(PartialEq, Eq)]
@@ -184,6 +209,7 @@ pub struct MatlEditorState {
 #[derive(Default)]
 pub struct ModlEditorState {
     pub advanced_mode: bool,
+    pub dnd: DragDropUi,
 }
 
 #[derive(Default)]
@@ -615,6 +641,7 @@ impl SsbhApp {
                             name,
                             skel,
                             &mut self.ui_state.skel_editor,
+                            &self.icons,
                         );
                         // TODO: Create window response struct that also tracks saving to reset changed.
                         // TODO: window_response.set_changed(&mut model.changed.skels)?
@@ -639,6 +666,7 @@ impl SsbhApp {
                             find_file(&model.model.skels, "model.nusktb"),
                             &model.validation.mesh_errors,
                             &mut self.ui_state.mesh_editor,
+                            &self.icons,
                         );
                         model.changed.meshes[mesh_index] |= changed;
                         file_changed |= changed;
@@ -722,6 +750,7 @@ impl SsbhApp {
                             &model.validation.modl_errors,
                             &mut self.ui_state.modl_editor,
                             &mut self.render_models.get_mut(folder_index),
+                            &self.icons,
                         );
                         response.set_changed(&mut model.changed.modls[modl_index]);
                         file_changed |= response.changed;

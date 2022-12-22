@@ -1,15 +1,24 @@
 use crate::{
-    app::{folder_editor_title, warning_icon_text, ModlEditorState},
+    app::{folder_editor_title, warning_icon_text, Icons, ModlEditorState},
     horizontal_separator_empty,
     validation::{ModlValidationError, ModlValidationErrorKind},
     EditorResponse,
 };
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
+use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::RenderModel;
 use std::path::Path;
+
+struct ModlEntryIndex(usize);
+
+impl DragDropItem for ModlEntryIndex {
+    fn id(&self) -> egui::Id {
+        egui::Id::new("modl").with(self.0)
+    }
+}
 
 pub fn modl_editor(
     ctx: &egui::Context,
@@ -19,8 +28,9 @@ pub fn modl_editor(
     mesh: Option<&MeshData>,
     matl: Option<&MatlData>,
     validation_errors: &[ModlValidationError],
-    editor_state: &mut ModlEditorState,
+    state: &mut ModlEditorState,
     render_model: &mut Option<&mut RenderModel>,
+    icons: &Icons,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -89,7 +99,7 @@ pub fn modl_editor(
             ui.separator();
 
             // Advanced mode has more detailed information that most users won't want to edit.
-            ui.checkbox(&mut editor_state.advanced_mode, "Advanced Settings");
+            ui.checkbox(&mut state.advanced_mode, "Advanced Settings");
 
             if let Some(mesh) = mesh {
                 // TODO: Optimize this?
@@ -126,47 +136,29 @@ pub fn modl_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    if editor_state.advanced_mode {
-                        ui.heading("Model Files");
-                        Grid::new("modl_files_grid").show(ui, |ui| {
-                            let size = [125.0, 20.0];
-                            ui.label("Model Name");
-                            ui.add_sized(size, TextEdit::singleline(&mut modl.model_name));
-                            ui.end_row();
-
-                            ui.label("Skeleton File Name");
-                            ui.add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name));
-                            ui.end_row();
-
-                            // TODO: Only a single material name should be editable..
-                            ui.label("Animation File Name");
-                            ui.add_sized(size, TextEdit::singleline(&mut String::new()));
-                            ui.end_row();
-
-                            // TODO: Edit the animation name.
-                            ui.label("Animation File Name");
-                            ui.add_sized(size, TextEdit::singleline(&mut String::new()));
-                            ui.end_row();
-
-                            ui.label("Mesh File Name");
-                            ui.add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name));
-                            ui.end_row();
-                        });
+                    if state.advanced_mode {
+                        edit_modl_file_names(ui, modl);
                     }
 
-                    Grid::new("modl_entries_grid").striped(true).show(ui, |ui| {
-                        ui.heading("Mesh Object");
-                        ui.heading("Material Label");
-                        ui.end_row();
+                    let mut entry_to_remove = None;
 
-                        let mut entry_to_remove = None;
-                        for (i, entry) in modl.entries.iter_mut().enumerate() {
-                            let id = egui::Id::new("modl").with(i);
+                    // TODO: Avoid allocating here.
+                    let mut items: Vec<_> =
+                        (0..modl.entries.len()).map(|i| ModlEntryIndex(i)).collect();
+
+                    let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
+                        ui.horizontal(|ui| {
+                            let entry = &mut modl.entries[item.0];
+                            let id = egui::Id::new("modl").with(item.0);
+
+                            handle.ui(ui, item, |ui| {
+                                ui.add(icons.draggable(ui));
+                            });
 
                             // Check for assignment errors for the current entry.
                             let mut valid_mesh = true;
                             let mut valid_material = true;
-                            for e in validation_errors.iter().filter(|e| e.entry_index == i) {
+                            for e in validation_errors.iter().filter(|e| e.entry_index == item.0) {
                                 match &e.kind {
                                     ModlValidationErrorKind::InvalidMeshObject { .. } => {
                                         valid_mesh = false
@@ -184,8 +176,7 @@ pub fn modl_editor(
                                 warning_icon_text(&entry.mesh_object_name)
                             };
 
-                            // TODO: Highlight the mesh in the viewport on hover.
-                            let name_response = if editor_state.advanced_mode {
+                            let name_response = if state.advanced_mode {
                                 let (response, name_changed) =
                                     mesh_combo_box(ui, entry, id.with("mesh"), mesh, mesh_text);
                                 changed |= name_changed;
@@ -197,7 +188,7 @@ pub fn modl_editor(
                             let name_response = name_response.context_menu(|ui| {
                                 if ui.button("Delete").clicked() {
                                     ui.close_menu();
-                                    entry_to_remove = Some(i);
+                                    entry_to_remove = Some(item.0);
                                     changed = true;
                                 }
                             });
@@ -211,18 +202,30 @@ pub fn modl_editor(
                             );
                             ui.end_row();
 
-                            if let Some(render_mesh) =
-                                render_model.as_mut().and_then(|m| m.meshes.get_mut(i))
-                            {
-                                // Outline the selected mesh in the viewport.
-                                render_mesh.is_selected |= name_response.hovered();
+                            // TODO: Add a menu option to match the numshb order (in game convention?).
+                            // Outline the selected mesh in the viewport.
+                            // Check the response first to only have to search for one render mesh.
+                            if name_response.hovered() {
+                                if let Some(render_mesh) = render_model.as_mut().and_then(|model| {
+                                    model.meshes.iter_mut().find(|m| {
+                                        m.name == entry.mesh_object_name
+                                            && m.subindex == entry.mesh_object_subindex
+                                    })
+                                }) {
+                                    render_mesh.is_selected = true;
+                                }
                             }
-                        }
-
-                        if let Some(i) = entry_to_remove {
-                            modl.entries.remove(i);
-                        }
+                        });
                     });
+
+                    if let Some(i) = entry_to_remove {
+                        modl.entries.remove(i);
+                    }
+
+                    if let Some(response) = response.completed {
+                        egui_dnd::utils::shift_vec(response.from, response.to, &mut modl.entries);
+                        changed = true;
+                    }
                 });
         });
 
@@ -231,6 +234,34 @@ pub fn modl_editor(
         changed,
         saved,
     }
+}
+
+fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) {
+    ui.heading("Model Files");
+    Grid::new("modl_files_grid").show(ui, |ui| {
+        let size = [125.0, 20.0];
+        ui.label("Model Name");
+        ui.add_sized(size, TextEdit::singleline(&mut modl.model_name));
+        ui.end_row();
+
+        ui.label("Skeleton File Name");
+        ui.add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name));
+        ui.end_row();
+
+        // TODO: Only a single material name should be editable..
+        ui.label("Animation File Name");
+        ui.add_sized(size, TextEdit::singleline(&mut String::new()));
+        ui.end_row();
+
+        // TODO: Edit the animation name.
+        ui.label("Animation File Name");
+        ui.add_sized(size, TextEdit::singleline(&mut String::new()));
+        ui.end_row();
+
+        ui.label("Mesh File Name");
+        ui.add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name));
+        ui.end_row();
+    });
 }
 
 // TODO: Create a function that handles displaying combo box errors?

@@ -11,7 +11,7 @@ use pollster::FutureExt;
 use ssbh_data::prelude::*;
 use ssbh_editor::Thumbnail;
 // TODO: is this redundant with tokio?
-use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
+use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
@@ -440,6 +440,7 @@ fn create_app(
         screenshot_to_render: None,
         animation_gif_to_render: None,
         animation_image_sequence_to_render: None,
+        icons: Icons::new(),
     }
 }
 
