@@ -1,24 +1,22 @@
 #![windows_subsystem = "windows"]
 
-use chrono::{DateTime, Utc};
 use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
 use log::error;
 use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
-use octocrab::models::repos::Release;
 use pollster::FutureExt;
 use ssbh_data::prelude::*;
 use ssbh_editor::Thumbnail;
-// TODO: is this redundant with tokio?
 use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
+use ssbh_editor::update::check_for_updates;
 use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
     generate_default_thumbnails, generate_model_thumbnails,
-    path::{last_update_check_file, presets_file, PROJECT_DIR},
+    path::{presets_file, PROJECT_DIR},
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
 use ssbh_wgpu::{CameraTransforms, RenderModel, SsbhRenderer};
@@ -97,7 +95,7 @@ fn main() {
 
     create_app_data_directory();
 
-    let (update_check_time, new_release_tag, should_show_update) = check_for_updates();
+    let release_info = check_for_updates();
 
     let mut size = window.inner_size();
 
@@ -181,8 +179,8 @@ fn main() {
 
     let mut app = create_app(
         default_thumbnails,
-        should_show_update,
-        new_release_tag,
+        release_info.should_show_update,
+        release_info.new_release_tag,
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
@@ -238,7 +236,7 @@ fn main() {
                                 }
                             }
                             winit::event::WindowEvent::CloseRequested => {
-                                app.write_state_to_disk(update_check_time);
+                                app.write_state_to_disk(release_info.update_check_time);
                                 *control_flow = ControlFlow::Exit;
                             }
                             _ => {
@@ -336,67 +334,6 @@ pub fn next_frame(
     }
 
     next_frame
-}
-
-// TODO: Test this.
-fn should_check_for_release(
-    previous_update_check_time: Option<DateTime<Utc>>,
-    current_time: DateTime<Utc>,
-) -> bool {
-    if let Some(previous_update_check_time) = previous_update_check_time {
-        // Check at most once per day.
-        current_time.date_naive() > previous_update_check_time.date_naive()
-    } else {
-        true
-    }
-}
-
-// TODO: Display a changelog from the repository.
-fn get_latest_release() -> Option<Release> {
-    let octocrab = octocrab::instance();
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .ok()?
-        .block_on(
-            octocrab
-                .repos("ScanMountGoat", "ssbh_editor")
-                .releases()
-                .get_latest(),
-        )
-        .ok()
-}
-
-// TODO: Create struct for return type.
-fn check_for_updates() -> (DateTime<Utc>, Option<String>, bool) {
-    let last_update_check_file = last_update_check_file();
-
-    let previous_update_check_time: Option<DateTime<Utc>> =
-        std::fs::read_to_string(last_update_check_file)
-            .unwrap_or_default()
-            .parse()
-            .ok();
-
-    let update_check_time = Utc::now();
-
-    // TODO: Add logging for update check?
-    let start = std::time::Instant::now();
-    let should_check_for_update =
-        should_check_for_release(previous_update_check_time, update_check_time);
-    let new_release_tag = if should_check_for_update {
-        get_latest_release().map(|r| r.tag_name)
-    } else {
-        None
-    };
-
-    let should_show_update = if let Some(new_release_tag) = &new_release_tag {
-        new_release_tag.as_str() > env!("CARGO_PKG_VERSION")
-    } else {
-        false
-    };
-    println!("Check for new release: {:?}", start.elapsed());
-
-    (update_check_time, new_release_tag, should_show_update)
 }
 
 // TODO: Make this a method.

@@ -65,10 +65,10 @@ impl Editor for AdjData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
+        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        icons: &Icons,
+        _: &mut Self::EditorState,
+        _: &Icons,
     ) -> Option<EditorResponse> {
         let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
         Some(adj_editor(
@@ -92,10 +92,10 @@ impl Editor for HlpbData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
+        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        icons: &Icons,
+        _: &mut Self::EditorState,
+        _: &Icons,
     ) -> Option<EditorResponse> {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
         Some(hlpb_editor(
@@ -118,7 +118,7 @@ impl Editor for SkelData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
+        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
         icons: &Icons,
@@ -145,10 +145,10 @@ impl Editor for AnimData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
+        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        icons: &Icons,
+        _: &Icons,
     ) -> Option<EditorResponse> {
         let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
         Some(anim_editor(
@@ -171,10 +171,10 @@ impl Editor for MeshExData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
+        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        icons: &Icons,
+        _: &mut Self::EditorState,
+        _: &Icons,
     ) -> Option<EditorResponse> {
         let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
         Some(meshex_editor(
