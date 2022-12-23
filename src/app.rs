@@ -614,7 +614,7 @@ impl SsbhApp {
             if let Some(model) = self.models.get_mut(folder_index) {
                 if let Some(skel_index) = self.ui_state.selected_skel_index {
                     if let Some((name, Ok(skel))) = model.model.skels.get_mut(skel_index) {
-                        let (open, changed) = skel_editor(
+                        let response = skel_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
@@ -622,12 +622,10 @@ impl SsbhApp {
                             &mut self.ui_state.skel_editor,
                             &self.icons,
                         );
-                        // TODO: Create window response struct that also tracks saving to reset changed.
-                        // TODO: window_response.set_changed(&mut model.changed.skels)?
-                        model.changed.skels[skel_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.skels[skel_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_skel_index = None;
                         }
@@ -636,7 +634,7 @@ impl SsbhApp {
 
                 if let Some(mesh_index) = self.ui_state.selected_mesh_index {
                     if let Some((name, Ok(mesh))) = model.model.meshes.get_mut(mesh_index) {
-                        let (open, changed) = mesh_editor(
+                        let response = mesh_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
@@ -647,15 +645,15 @@ impl SsbhApp {
                             &mut self.ui_state.mesh_editor,
                             &self.icons,
                         );
-                        model.changed.meshes[mesh_index] |= changed;
-                        file_changed |= changed;
+                        response.set_changed(&mut model.changed.meshes[mesh_index]);
+                        file_changed |= response.changed;
 
-                        if !open {
+                        if !response.open {
                             // Close the window.
                             self.ui_state.selected_mesh_index = None;
                         }
 
-                        if changed {
+                        if response.changed {
                             // The mesh editor has no high frequency edits (sliders), so reload on any change.
                             // TODO: Add a mesh to update field instead with (folder, mesh)?
                             self.models_to_update = ItemsToUpdate::One(folder_index);

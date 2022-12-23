@@ -84,6 +84,7 @@ pub fn hlpb_editor(
                             quat1: Vector4::new(0.0, 0.0, 0.0, 1.0),
                             quat2: Vector4::new(0.0, 0.0, 0.0, 1.0),
                         });
+                        changed = true;
                     }
 
                     if ui.button("Add Orient Constraint").clicked() {
@@ -110,6 +111,7 @@ pub fn hlpb_editor(
                             range_min: Vector3::new(-180.0, -180.0, -180.0),
                             range_max: Vector3::new(180.0, 180.0, 180.0),
                         });
+                        changed = true;
                     }
                 });
 
@@ -229,7 +231,9 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
                     .context_menu(|ui| {
                         if ui.button("Delete").clicked() {
                             ui.close_menu();
+
                             entry_to_remove = Some(i);
+                            changed = true;
                         }
                     });
             }

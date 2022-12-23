@@ -4,6 +4,7 @@ use crate::{
     path::folder_editor_title,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
+    EditorResponse,
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,
@@ -36,9 +37,10 @@ pub fn mesh_editor(
     validation_errors: &[MeshValidationError],
     state: &mut MeshEditorState,
     icons: &Icons,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Mesh Editor ({title})"))
@@ -53,6 +55,8 @@ pub fn mesh_editor(
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = mesh.write_to_file(&file) {
                             error!("Failed to save {:?}: {}", file, e);
+                        } else {
+                            saved = true;
                         }
                     }
 
@@ -117,7 +121,11 @@ pub fn mesh_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }
 
 fn edit_mesh(

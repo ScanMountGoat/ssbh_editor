@@ -4,6 +4,7 @@ use crate::{
     app::{Icons, SkelEditorState, SkelMode},
     path::folder_editor_title,
     widgets::enum_combo_box,
+    EditorResponse,
 };
 use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Grid, Label, ScrollArea};
 use egui_dnd::DragDropItem;
@@ -26,9 +27,10 @@ pub fn skel_editor(
     skel: &mut SkelData,
     state: &mut SkelEditorState,
     icons: &Icons,
-) -> (bool, bool) {
+) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Skel Editor ({title})"))
@@ -43,6 +45,8 @@ pub fn skel_editor(
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = skel.write_to_file(&file) {
                             error!("Failed to save {:?}: {}", file, e);
+                        } else {
+                            saved = true;
                         }
                     }
 
@@ -110,7 +114,11 @@ pub fn skel_editor(
                 });
         });
 
-    (open, changed)
+    EditorResponse {
+        open,
+        changed,
+        saved,
+    }
 }
 
 fn edit_bones_list(
