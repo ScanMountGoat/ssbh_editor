@@ -12,19 +12,21 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
+    horizontal_separator_empty,
     log::AppLogger,
     path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
+    update::LatestReleaseInfo,
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, EditorResponse, FileChanged,
     FileResult, ModelFolderState, RenderState, Thumbnail,
 };
-use chrono::{DateTime, Utc};
 use egui::{
     collapsing_header::CollapsingState, special_emojis::GITHUB, Button, CollapsingHeader, Context,
     Image, KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
     Window,
 };
+use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use egui_dnd::DragDropUi;
 use egui_extras::RetainedImage;
 use log::error;
@@ -298,8 +300,7 @@ pub struct SsbhApp {
     pub should_update_lighting: bool,
     pub should_update_clear_color: bool,
     // TODO: Add a mesh_to_refresh index? Option<folder, mesh>
-    pub should_show_update: bool,
-    pub new_release_tag: Option<String>,
+    pub release_info: LatestReleaseInfo,
 
     pub screenshot_to_render: Option<PathBuf>,
     pub animation_gif_to_render: Option<PathBuf>,
@@ -331,6 +332,8 @@ pub struct SsbhApp {
     pub preferences: AppPreferences,
 
     pub icons: Icons,
+
+    pub markdown_cache: CommonMarkCache,
 }
 
 pub struct Icons {
@@ -657,9 +660,9 @@ impl SsbhApp {
         }
     }
 
-    pub fn write_state_to_disk(&self, update_check_time: DateTime<Utc>) {
+    pub fn write_state_to_disk(&self) {
         let path = last_update_check_file();
-        if let Err(e) = std::fs::write(&path, update_check_time.to_string()) {
+        if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
             error!("Failed to write update check time to {path:?}: {e}");
         }
 
@@ -764,7 +767,7 @@ impl SsbhApp {
         );
 
         // Don't reopen the window once closed.
-        if self.should_show_update {
+        if self.release_info.should_show_update {
             self.new_release_window(ctx);
         }
 
@@ -819,12 +822,13 @@ impl SsbhApp {
     }
 
     fn new_release_window(&mut self, ctx: &Context) {
-        if let Some(new_release_tag) = &self.new_release_tag {
+        // The show update flag will be permanently false once closed.
+        if let Some(new_release_tag) = &self.release_info.new_release_tag {
             Window::new("New Release Available")
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
                 .resizable(false)
                 .collapsible(false)
-                .open(&mut self.should_show_update)
+                .open(&mut self.release_info.should_show_update)
                 .show(ctx, |ui| {
                     ui.label("A new release of SSBH Editor is available!");
                     ui.label(format!(
@@ -839,8 +843,17 @@ impl SsbhApp {
                             log::error!("Failed to open {release_link}: {e}");
                         }
                     }
-                    // TODO: Show latest version and release notes.
-                    // TODO: Parse release notes from changelog.
+                    horizontal_separator_empty(ui);
+
+                    ScrollArea::vertical().show(ui, |ui| {
+                        if let Some(release_notes) = &self.release_info.release_notes {
+                            CommonMarkViewer::new("release_markdown").show(
+                                ui,
+                                &mut self.markdown_cache,
+                                release_notes,
+                            );
+                        }
+                    });
                 });
         }
     }

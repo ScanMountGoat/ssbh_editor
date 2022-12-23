@@ -1,18 +1,17 @@
-#![windows_subsystem = "windows"]
-
 use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
+use egui_commonmark::CommonMarkCache;
 use log::error;
 use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
 use pollster::FutureExt;
 use ssbh_data::prelude::*;
-use ssbh_editor::Thumbnail;
 use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
-use ssbh_editor::update::check_for_updates;
+use ssbh_editor::update::{check_for_updates, LatestReleaseInfo};
+use ssbh_editor::Thumbnail;
 use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
     generate_default_thumbnails, generate_model_thumbnails,
@@ -179,8 +178,7 @@ fn main() {
 
     let mut app = create_app(
         default_thumbnails,
-        release_info.should_show_update,
-        release_info.new_release_tag,
+        release_info,
         material_presets,
         red_checkerboard,
         yellow_checkerboard,
@@ -236,7 +234,7 @@ fn main() {
                                 }
                             }
                             winit::event::WindowEvent::CloseRequested => {
-                                app.write_state_to_disk(release_info.update_check_time);
+                                app.write_state_to_disk();
                                 *control_flow = ControlFlow::Exit;
                             }
                             _ => {
@@ -339,8 +337,7 @@ pub fn next_frame(
 // TODO: Make this a method.
 fn create_app(
     default_thumbnails: Vec<Thumbnail>,
-    should_show_update: bool,
-    new_release_tag: Option<String>,
+    release_info: LatestReleaseInfo,
     material_presets: Vec<ssbh_data::matl_data::MatlEntryData>,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
@@ -353,8 +350,7 @@ fn create_app(
         render_models: Vec::new(),
         default_thumbnails,
         models_to_update: ItemsToUpdate::None,
-        should_show_update,
-        new_release_tag,
+        release_info,
         should_update_lighting: false,
         should_refresh_render_settings: false,
         should_refresh_camera_settings: false,
@@ -378,6 +374,7 @@ fn create_app(
         animation_gif_to_render: None,
         animation_image_sequence_to_render: None,
         icons: Icons::new(),
+        markdown_cache: CommonMarkCache::default(),
     }
 }
 

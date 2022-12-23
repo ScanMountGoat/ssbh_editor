@@ -38,6 +38,8 @@ futures-intrusive = "0.4.0" # TODO: Avoid these dependencies?
 futures = "0.3"
 pico-args = "0.5.0"
 egui_dnd = "0.1.0"
+reqwest = { version = "0.11.13", features = ["blocking"] }
+egui_commonmark = "0.6.0"
 
 [profile.release]
 strip = "debuginfo"

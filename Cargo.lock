@@ -992,6 +992,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_commonmark"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e3d86a3c6a1834397352409480a239f9a4463b328a521ea4df13584c05f67fb"
+dependencies = [
+ "egui",
+ "image",
+ "pulldown-cmark",
+]
+
+[[package]]
 name = "egui_dnd"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2848,6 +2859,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74605f360ce573babfe43964cbe520294dcb081afbf8c108fc6e23036b4da2df"
 
 [[package]]
+name = "pulldown-cmark"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d9cc634bc78768157b5cbfe988ffcd1dcba95cd2b2f03a88316c08c6d00ed63"
+dependencies = [
+ "bitflags",
+ "memchr",
+ "unicase",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3486,6 +3508,7 @@ dependencies = [
  "egui",
  "egui-wgpu",
  "egui-winit",
+ "egui_commonmark",
  "egui_dnd",
  "egui_extras",
  "futures",
@@ -3500,6 +3523,7 @@ dependencies = [
  "open",
  "pico-args",
  "pollster",
+ "reqwest",
  "rfd",
  "serde",
  "serde_json",
@@ -3839,6 +3863,7 @@ dependencies = [
  "libc",
  "memchr",
  "mio",
+ "num_cpus",
  "pin-project-lite",
  "socket2",
  "windows-sys 0.42.0",

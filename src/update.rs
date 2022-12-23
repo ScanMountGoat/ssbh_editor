@@ -5,6 +5,7 @@ use octocrab::models::repos::Release;
 pub struct LatestReleaseInfo {
     pub update_check_time: DateTime<Utc>,
     pub new_release_tag: Option<String>,
+    pub release_notes: Option<String>,
     pub should_show_update: bool,
 }
 
@@ -31,17 +32,29 @@ pub fn check_for_updates() -> LatestReleaseInfo {
     };
 
     // Check if the latest github release is more recent than the current one.
+    let current_tag = env!("CARGO_PKG_VERSION");
     let should_show_update = if let Some(new_release_tag) = &new_release_tag {
-        new_release_tag.as_str() > env!("CARGO_PKG_VERSION")
+        new_release_tag.as_str() > current_tag
     } else {
         false
     };
+
+    // Only check for release notes if there is a new update.
+    let release_notes = if should_show_update {
+        new_release_tag
+            .as_ref()
+            .and_then(|new_release_tag| get_release_notes(current_tag, new_release_tag))
+    } else {
+        None
+    };
+
     // TODO: Log instead.
     println!("Check for new release: {:?}", start.elapsed());
 
     LatestReleaseInfo {
         update_check_time,
         new_release_tag,
+        release_notes,
         should_show_update,
     }
 }
@@ -73,4 +86,18 @@ fn get_latest_release() -> Option<Release> {
                 .get_latest(),
         )
         .ok()
+}
+
+fn get_release_notes(current_tag: &str, latest_tag: &str) -> Option<String> {
+    let changelog = reqwest::blocking::get(
+        "https://raw.githubusercontent.com/ScanMountGoat/ssbh_editor/main/CHANGELOG.md",
+    )
+    .ok()?
+    .text()
+    .ok()?;
+
+    // Find the sections after the current version.
+    let start = changelog.find(&format!("## {latest_tag}"))?;
+    let end = changelog.find(&format!("## {current_tag}"))?;
+    changelog.get(start..end).map(|s| s.to_string())
 }
