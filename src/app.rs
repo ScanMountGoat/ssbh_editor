@@ -16,8 +16,8 @@ use crate::{
     path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileChanged, FileResult,
-    ModelFolderState, RenderState, Thumbnail,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, EditorResponse, FileChanged,
+    FileResult, ModelFolderState, RenderState, Thumbnail,
 };
 use chrono::{DateTime, Utc};
 use egui::{
@@ -32,7 +32,7 @@ use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{ModelFolder, RenderModel};
+use ssbh_wgpu::{ModelFiles, ModelFolder, RenderModel};
 use std::{
     path::{Path, PathBuf},
     sync::Mutex,
@@ -42,6 +42,247 @@ mod anim_list;
 mod animation_bar;
 mod file_list;
 mod window;
+
+/// The logic required to open and close an editor window from an open file index.
+trait Editor {
+    type EditorState;
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse>;
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize);
+}
+
+impl Editor for AdjData {
+    type EditorState = ();
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
+        Some(adj_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            adj,
+            find_file(&model.model.meshes, "model.numshb"),
+            &model.validation.adj_errors,
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.adjs[index]);
+    }
+}
+
+impl Editor for HlpbData {
+    type EditorState = ();
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
+        Some(hlpb_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            hlpb,
+            find_file(&model.model.skels, "model.nusktb"),
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.hlpbs[index])
+    }
+}
+
+impl Editor for SkelData {
+    type EditorState = SkelEditorState;
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, skel) = get_file_to_edit(&mut model.model.skels, *open_file_index)?;
+        Some(skel_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            skel,
+            state,
+            icons,
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.skels[index])
+    }
+}
+
+impl Editor for AnimData {
+    type EditorState = AnimEditorState;
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
+        Some(anim_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            anim,
+            state,
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.anims[index])
+    }
+}
+
+impl Editor for MeshExData {
+    type EditorState = ();
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
+        Some(meshex_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            meshex,
+            find_file(&model.model.meshes, "model.numshb"),
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.meshexes[index])
+    }
+}
+
+impl Editor for MeshData {
+    type EditorState = MeshEditorState;
+
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
+        Some(mesh_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            mesh,
+            render_model,
+            find_file(&model.model.skels, "model.nusktb"),
+            &model.validation.mesh_errors,
+            state,
+            icons,
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.meshes[index])
+    }
+}
+
+impl Editor for ModlData {
+    type EditorState = ModlEditorState;
+    fn editor(
+        ctx: &Context,
+        model: &mut ModelFolderState,
+        render_model: &mut Option<&mut RenderModel>,
+        open_file_index: &mut Option<usize>,
+        state: &mut Self::EditorState,
+        icons: &Icons,
+    ) -> Option<EditorResponse> {
+        let (name, modl) = get_file_to_edit(&mut model.model.modls, *open_file_index)?;
+        Some(modl_editor(
+            ctx,
+            &model.model.folder_name,
+            name,
+            modl,
+            find_file(&model.model.meshes, "model.numshb"),
+            find_file(&model.model.matls, "model.numatb"),
+            &model.validation.modl_errors,
+            state,
+            render_model,
+            icons,
+        ))
+    }
+
+    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
+        response.set_changed(&mut changed.modls[index])
+    }
+}
+
+fn get_file_to_edit<T>(
+    files: &mut ModelFiles<T>,
+    index: Option<usize>,
+) -> Option<(&mut String, &mut T)> {
+    index
+        .and_then(|index| files.get_mut(index))
+        .and_then(|(name, file)| Some((name, file.as_mut().ok()?)))
+}
+
+fn open_editor<T: Editor>(
+    ctx: &Context,
+    model: &mut ModelFolderState,
+    render_model: &mut Option<&mut RenderModel>,
+    open_file_index: &mut Option<usize>,
+    state: &mut T::EditorState,
+    icons: &Icons,
+) -> bool {
+    if let Some(response) = T::editor(ctx, model, render_model, open_file_index, state, icons) {
+        if let Some(index) = open_file_index {
+            T::set_changed(&response, &mut model.changed, *index);
+        }
+
+        if !response.open {
+            // Close the window.
+            *open_file_index = None;
+        }
+
+        response.changed
+    } else {
+        false
+    }
+}
 
 pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
@@ -137,18 +378,15 @@ pub struct UiState {
     // Clicking an item in the file list sets the selected index.
     // If the index is not None, the corresponding editor stays open.
     pub selected_folder_index: Option<usize>,
-    pub selected_skel_index: Option<usize>,
-    pub selected_hlpb_index: Option<usize>,
-    pub selected_matl_index: Option<usize>,
-    pub selected_modl_index: Option<usize>,
-    pub selected_mesh_index: Option<usize>,
-    pub selected_nutexb_index: Option<usize>,
-    pub selected_adj_index: Option<usize>,
-    pub selected_anim_index: Option<usize>,
-    pub selected_meshex_index: Option<usize>,
-
-    pub matl_preset_window_open: bool,
-    pub selected_material_preset_index: usize,
+    pub open_skel: Option<usize>,
+    pub open_hlpb: Option<usize>,
+    pub open_matl: Option<usize>,
+    pub open_modl: Option<usize>,
+    pub open_mesh: Option<usize>,
+    pub open_nutexb: Option<usize>,
+    pub open_adj: Option<usize>,
+    pub open_anim: Option<usize>,
+    pub open_meshex: Option<usize>,
 
     pub matl_editor: MatlEditorState,
     pub mesh_editor: MeshEditorState,
@@ -183,6 +421,8 @@ pub struct MatlEditorState {
     pub selected_material_index: usize,
     pub is_editing_material_label: bool,
     pub hovered_material_index: Option<usize>,
+    pub matl_preset_window_open: bool,
+    pub selected_material_preset_index: usize,
 }
 
 #[derive(Default)]
@@ -612,65 +852,16 @@ impl SsbhApp {
         // The functions would take an additional ui parameter.
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
-                if let Some(skel_index) = self.ui_state.selected_skel_index {
-                    if let Some((name, Ok(skel))) = model.model.skels.get_mut(skel_index) {
-                        let response = skel_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            skel,
-                            &mut self.ui_state.skel_editor,
-                            &self.icons,
-                        );
-                        response.set_changed(&mut model.changed.skels[skel_index]);
-                        file_changed |= response.changed;
+                let render_model = &mut self.render_models.get_mut(folder_index);
 
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_skel_index = None;
-                        }
-                    }
-                }
-
-                if let Some(mesh_index) = self.ui_state.selected_mesh_index {
-                    if let Some((name, Ok(mesh))) = model.model.meshes.get_mut(mesh_index) {
-                        let response = mesh_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            mesh,
-                            &mut self.render_models.get_mut(folder_index),
-                            find_file(&model.model.skels, "model.nusktb"),
-                            &model.validation.mesh_errors,
-                            &mut self.ui_state.mesh_editor,
-                            &self.icons,
-                        );
-                        response.set_changed(&mut model.changed.meshes[mesh_index]);
-                        file_changed |= response.changed;
-
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_mesh_index = None;
-                        }
-
-                        if response.changed {
-                            // The mesh editor has no high frequency edits (sliders), so reload on any change.
-                            // TODO: Add a mesh to update field instead with (folder, mesh)?
-                            self.models_to_update = ItemsToUpdate::One(folder_index);
-                        }
-
-                        // TODO: Update pipeline depth settings on change.
-                    }
-                }
-
-                // TODO: Make all this code a function?
-                if let Some(matl_index) = self.ui_state.selected_matl_index {
+                // TODO: Group added state and implement the Editor trait.
+                if let Some(matl_index) = self.ui_state.open_matl {
                     if let Some((name, Ok(matl))) = model.model.matls.get_mut(matl_index) {
                         let response = matl_editor(
                             ctx,
                             &model.model.folder_name,
                             name,
-                            &mut self.ui_state,
+                            &mut self.ui_state.matl_editor,
                             matl,
                             find_file_mut(&mut model.model.modls, "model.numdlb"),
                             &model.validation.matl_errors,
@@ -687,12 +878,12 @@ impl SsbhApp {
 
                         if !response.open {
                             // Close the window.
-                            self.ui_state.selected_matl_index = None;
+                            self.ui_state.open_matl = None;
                         }
 
                         // Update on change to avoid costly state changes every frame.
                         if response.changed {
-                            if let Some(render_model) = self.render_models.get_mut(folder_index) {
+                            if let Some(render_model) = render_model {
                                 // Only the model.numatb is rendered in the viewport for now.
                                 // TODO: Move rendering code out of app.rs.
                                 if name == "model.numatb" {
@@ -714,125 +905,92 @@ impl SsbhApp {
                     }
                 }
 
-                if let Some(modl_index) = self.ui_state.selected_modl_index {
-                    if let Some((name, Ok(modl))) = model.model.modls.get_mut(modl_index) {
-                        let matl = find_file(&model.model.matls, "model.numatb");
-                        let response = modl_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            modl,
-                            find_file(&model.model.meshes, "model.numshb"),
-                            matl,
-                            &model.validation.modl_errors,
-                            &mut self.ui_state.modl_editor,
-                            &mut self.render_models.get_mut(folder_index),
-                            &self.icons,
-                        );
-                        response.set_changed(&mut model.changed.modls[modl_index]);
-                        file_changed |= response.changed;
-
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_modl_index = None;
-                        }
-
-                        if response.changed {
-                            if let Some(render_model) = self.render_models.get_mut(folder_index) {
-                                render_model.reassign_materials(modl, matl);
-                            }
-                        }
-                    }
+                if open_editor::<MeshData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_mesh,
+                    &mut self.ui_state.mesh_editor,
+                    &self.icons,
+                ) {
+                    // The mesh editor has no high frequency edits (sliders), so reload on any change.
+                    // TODO: Add a mesh to update field instead with (folder, mesh) indices.
+                    // This avoids reloading the entire folder.
+                    self.models_to_update = ItemsToUpdate::One(folder_index);
+                    file_changed = true;
                 }
 
-                if let Some(hlpb_index) = self.ui_state.selected_hlpb_index {
-                    if let Some((name, Ok(hlpb))) = model.model.hlpbs.get_mut(hlpb_index) {
-                        let response = hlpb_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            hlpb,
-                            find_file(&model.model.skels, "model.nusktb"),
-                        );
-                        response.set_changed(&mut model.changed.hlpbs[hlpb_index]);
-                        file_changed |= response.changed;
+                file_changed |= open_editor::<SkelData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_skel,
+                    &mut self.ui_state.skel_editor,
+                    &self.icons,
+                );
 
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_hlpb_index = None;
-                        }
-
-                        if response.changed {
-                            // Reapply the animation constraints in the viewport.
-                            self.animation_state.should_update_animations = true;
-                        }
-                    }
-                }
-
-                if let Some(adj_index) = self.ui_state.selected_adj_index {
-                    if let Some((name, Ok(adj))) = model.model.adjs.get_mut(adj_index) {
-                        let response = adj_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            adj,
-                            find_file(&model.model.meshes, "model.numshb"),
-                            &model.validation.adj_errors,
-                        );
-                        response.set_changed(&mut model.changed.adjs[adj_index]);
-                        file_changed |= response.changed;
-
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_adj_index = None;
+                if open_editor::<ModlData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_modl,
+                    &mut self.ui_state.modl_editor,
+                    &self.icons,
+                ) {
+                    // TODO: Pass an onchanged closure to avoid redundant lookups.
+                    if let (Some(modl), matl) = (model.model.find_modl(), model.model.find_matl()) {
+                        if let Some(render_model) = render_model {
+                            render_model.reassign_materials(modl, matl);
                         }
                     }
+                    file_changed = true;
                 }
 
-                if let Some(anim_index) = self.ui_state.selected_anim_index {
-                    if let Some((name, Ok(anim))) = model.model.anims.get_mut(anim_index) {
-                        let response = anim_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            anim,
-                            &mut self.ui_state.anim_editor,
-                        );
-                        response.set_changed(&mut model.changed.anims[anim_index]);
-                        file_changed |= response.changed;
-
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_anim_index = None;
-                        }
-
-                        if response.changed {
-                            // Reapply the animations in the viewport.
-                            self.animation_state.should_update_animations = true;
-                        }
-                    }
+                if open_editor::<HlpbData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_hlpb,
+                    &mut (),
+                    &self.icons,
+                ) {
+                    // Reapply the animation constraints in the viewport.
+                    self.animation_state.should_update_animations = true;
+                    file_changed = true;
                 }
 
-                if let Some(meshex_index) = self.ui_state.selected_meshex_index {
-                    if let Some((name, Ok(meshex))) = model.model.meshexes.get_mut(meshex_index) {
-                        let response = meshex_editor(
-                            ctx,
-                            &model.model.folder_name,
-                            name,
-                            meshex,
-                            find_file(&model.model.meshes, "model.numshb"),
-                        );
-                        response.set_changed(&mut model.changed.meshexes[meshex_index]);
-                        file_changed |= response.changed;
+                file_changed |= open_editor::<AdjData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_adj,
+                    &mut (),
+                    &self.icons,
+                );
 
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.selected_meshex_index = None;
-                        }
-                    }
+                if open_editor::<AnimData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_anim,
+                    &mut self.ui_state.anim_editor,
+                    &self.icons,
+                ) {
+                    // Reapply the animations in the viewport.
+                    self.animation_state.should_update_animations = true;
+                    file_changed = true;
                 }
 
-                if let Some(nutexb_index) = self.ui_state.selected_nutexb_index {
+                file_changed |= open_editor::<MeshExData>(
+                    ctx,
+                    model,
+                    render_model,
+                    &mut self.ui_state.open_meshex,
+                    &mut (),
+                    &self.icons,
+                );
+
+                if let Some(nutexb_index) = self.ui_state.open_nutexb {
                     if let Some((name, Ok(nutexb))) = model.model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(
                             ctx,
@@ -841,7 +999,7 @@ impl SsbhApp {
                             &mut self.render_state.texture_render_settings,
                         ) {
                             // Close the window.
-                            self.ui_state.selected_nutexb_index = None;
+                            self.ui_state.open_nutexb = None;
                         }
                     }
                 }

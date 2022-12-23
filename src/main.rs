@@ -942,10 +942,7 @@ fn get_nutexb_to_render(
     let render_model = app.render_models.get(folder_index)?;
 
     // Assume file names are unique, so use the name instead of the index.
-    let (name, nutexb) = model
-        .model
-        .nutexbs
-        .get(app.ui_state.selected_nutexb_index?)?;
+    let (name, nutexb) = model.model.nutexbs.get(app.ui_state.open_nutexb?)?;
     let nutexb = nutexb.as_ref().ok()?;
 
     render_model.get_texture(name).map(|(texture, dim)| {

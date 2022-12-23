@@ -29,7 +29,7 @@ pub fn matl_editor(
     ctx: &egui::Context,
     folder_name: &str,
     file_name: &str,
-    ui_state: &mut UiState,
+    state: &mut MatlEditorState,
     matl: &mut MatlData,
     modl: Option<&mut ModlData>,
     validation_errors: &[MatlValidationError],
@@ -54,7 +54,7 @@ pub fn matl_editor(
                 ui,
                 matl,
                 &modl,
-                ui_state,
+                state,
                 material_presets,
                 folder_name,
                 file_name,
@@ -62,12 +62,10 @@ pub fn matl_editor(
             ui.separator();
 
             // TODO: Simplify logic for closing window.
-            let entry = matl
-                .entries
-                .get_mut(ui_state.matl_editor.selected_material_index);
-            let (open, preset_changed) = preset_window(ui_state, ctx, material_presets, entry);
+            let entry = matl.entries.get_mut(state.selected_material_index);
+            let (open, preset_changed) = preset_window(state, ctx, material_presets, entry);
             if !open {
-                ui_state.matl_preset_window_open = false;
+                state.matl_preset_window_open = false;
             }
             changed |= preset_changed;
 
@@ -85,7 +83,7 @@ pub fn matl_editor(
                         shader_database,
                         red_checkerboard,
                         yellow_checkerboard,
-                        &mut ui_state.matl_editor,
+                        state,
                     );
                 });
         });
@@ -386,15 +384,15 @@ fn edit_matl_entries(
 }
 
 fn preset_window(
-    ui_state: &mut UiState,
+    state: &mut MatlEditorState,
     ctx: &egui::Context,
     material_presets: &[MatlEntryData],
     entry: Option<&mut MatlEntryData>,
 ) -> (bool, bool) {
-    let mut open = ui_state.matl_preset_window_open;
+    let mut open = state.matl_preset_window_open;
     let mut changed = false;
     Window::new("Select Material Preset")
-        .open(&mut ui_state.matl_preset_window_open)
+        .open(&mut state.matl_preset_window_open)
         .resizable(false)
         .show(ctx, |ui| {
             if material_presets.is_empty() {
@@ -402,14 +400,14 @@ fn preset_window(
             } else {
                 for (i, preset) in material_presets.iter().enumerate() {
                     ui.selectable_value(
-                        &mut ui_state.selected_material_preset_index,
+                        &mut state.selected_material_preset_index,
                         i,
                         &preset.material_label,
                     );
                 }
 
                 if ui.button("Apply").clicked() {
-                    if let Some(preset) = material_presets.get(ui_state.selected_material_preset_index)
+                    if let Some(preset) = material_presets.get(state.selected_material_preset_index)
                     {
                         if let Some(entry) = entry {
                             *entry = apply_preset(entry, preset);
@@ -429,7 +427,7 @@ fn menu_bar(
     ui: &mut Ui,
     matl: &mut MatlData,
     modl: &Option<&mut ModlData>,
-    ui_state: &mut UiState,
+    state: &mut MatlEditorState,
     material_presets: &mut Vec<MatlEntryData>,
     folder_name: &str,
     file_name: &str,
@@ -472,22 +470,19 @@ fn menu_bar(
                 let new_entry = default_material();
                 matl.entries.push(new_entry);
 
-                ui_state.matl_editor.selected_material_index = matl.entries.len() - 1;
+                state.selected_material_index = matl.entries.len() - 1;
             }
 
             if button(ui, "Duplicate Current Material").clicked() {
                 ui.close_menu();
 
-                if let Some(old_entry) = matl
-                    .entries
-                    .get(ui_state.matl_editor.selected_material_index)
-                {
+                if let Some(old_entry) = matl.entries.get(state.selected_material_index) {
                     let mut new_entry = old_entry.clone();
                     new_entry.material_label.push_str("_copy");
                     matl.entries.push(new_entry);
                 }
 
-                ui_state.matl_editor.selected_material_index = matl.entries.len() - 1;
+                state.selected_material_index = matl.entries.len() - 1;
             }
             ui.separator();
 
@@ -495,10 +490,7 @@ fn menu_bar(
                 ui.close_menu();
 
                 // TODO: Prompt for naming the preset?
-                if let Some(entry) = matl
-                    .entries
-                    .get(ui_state.matl_editor.selected_material_index)
-                {
+                if let Some(entry) = matl.entries.get(state.selected_material_index) {
                     material_presets.push(entry.clone());
                 }
             }
@@ -506,7 +498,7 @@ fn menu_bar(
             if ui.button("Apply Preset").clicked() {
                 ui.close_menu();
 
-                ui_state.matl_preset_window_open = true;
+                state.matl_preset_window_open = true;
             }
             ui.separator();
 
