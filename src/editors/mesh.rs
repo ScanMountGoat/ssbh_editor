@@ -1,8 +1,7 @@
 use crate::{
-    app::{
-        display_validation_errors, folder_editor_title, warning_icon_text, Icons, MeshEditorState,
-    },
+    app::{display_validation_errors, warning_icon_text, Icons, MeshEditorState},
     horizontal_separator_empty,
+    path::folder_editor_title,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
 };

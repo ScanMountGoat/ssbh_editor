@@ -854,6 +854,7 @@ fn reload_models(app: &mut SsbhApp, egui_renderer: &mut egui_wgpu::renderer::Ren
         }
     }
 
+    // TODO: Move this out of this function.
     if app.should_update_thumbnails {
         for (model, render_model) in app.models.iter_mut().zip(app.render_models.iter()) {
             model.thumbnails = generate_model_thumbnails(

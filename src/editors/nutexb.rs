@@ -94,7 +94,7 @@ pub fn nutexb_viewer(
                             .clamp_range(0..=nutexb.footer.layer_count - 1),
                     );
                 } else if nutexb.footer.depth > 1 {
-                    // TODO: Show this be "Slice" instead?
+                    // TODO: Should this be "Slice" instead?
                     ui.label("Depth");
                     ui.add(
                         DragValue::new(&mut settings.layer)

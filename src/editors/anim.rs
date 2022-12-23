@@ -1,5 +1,6 @@
 use crate::{
-    app::{folder_editor_title, AnimEditorState, AnimEditorTab},
+    app::{AnimEditorState, AnimEditorTab},
+    path::folder_editor_title,
     EditorResponse,
 };
 use egui::{
@@ -71,7 +72,6 @@ pub fn anim_editor(
             });
             ui.separator();
 
-            // TODO: Modes for edit, graph edit, and dope sheet?
             ui.horizontal(|ui| {
                 ui.selectable_value(
                     &mut state.editor_tab,
@@ -166,8 +166,6 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                                                 .default_open(true)
                                                 .show(ui, |ui| {
                                                     for (t, track) in tracks.iter().enumerate() {
-                                                        // TODO: Should multiple tracks be viewable at once?
-                                                        // TODO: Easier to just have a selected group, node, track?
                                                         let mut selected = state
                                                             .selected_group_index
                                                             == Some(g)
@@ -322,7 +320,6 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                         zs.push([i as f64, v.z as f64]);
                         ws.push([i as f64, v.w as f64]);
                     }
-                    // TODO: use the track name here as well?
                     shapes.push(Line::new(xs).name("x"));
                     shapes.push(Line::new(ys).name("y"));
                     shapes.push(Line::new(zs).name("z"));

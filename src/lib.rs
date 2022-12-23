@@ -16,6 +16,7 @@ use winit::dpi::PhysicalPosition;
 pub mod app;
 pub mod capture;
 pub mod editors;
+pub mod log;
 pub mod material;
 pub mod path;
 pub mod preferences;

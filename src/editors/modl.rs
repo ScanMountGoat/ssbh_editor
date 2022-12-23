@@ -1,6 +1,7 @@
 use crate::{
-    app::{folder_editor_title, warning_icon_text, Icons, ModlEditorState},
+    app::{warning_icon_text, Icons, ModlEditorState},
     horizontal_separator_empty,
+    path::folder_editor_title,
     validation::{ModlValidationError, ModlValidationErrorKind},
     EditorResponse,
 };

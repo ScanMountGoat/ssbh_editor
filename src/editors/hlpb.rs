@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    app::folder_editor_title,
+    path::folder_editor_title,
     widgets::{bone_combo_box, DragSlider},
     EditorResponse,
 };
@@ -129,8 +129,6 @@ pub fn hlpb_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    // TODO: Use a layout similar to the matl editor to support more fields.
-                    // TODO: Add and delete entries.
                     if !hlpb.aim_constraints.is_empty() {
                         changed |= aim_constraints(ui, hlpb, skel);
                     }

@@ -1,13 +1,8 @@
 use crate::{
-    app::{
-        display_validation_errors, folder_editor_title, warning_icon, warning_icon_text,
-        MatlEditorState, UiState,
-    },
+    app::{display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, UiState},
     horizontal_separator_empty,
-    material::{
-        add_parameters, apply_preset, default_material, missing_parameters, param_description,
-        remove_parameters, unused_parameters, vector4_labels_long, vector4_labels_short,
-    },
+    material::*,
+    path::folder_editor_title,
     path::presets_file,
     presets::{load_json_presets, load_xml_presets},
     validation::{MatlValidationError, MatlValidationErrorKind},

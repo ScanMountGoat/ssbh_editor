@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::{
-    app::{folder_editor_title, Icons, SkelEditorState, SkelMode},
+    app::{Icons, SkelEditorState, SkelMode},
+    path::folder_editor_title,
     widgets::enum_combo_box,
 };
 use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Grid, Label, ScrollArea};

@@ -1,4 +1,4 @@
-use self::{file_list::show_folder_files, window::*};
+use self::{animation_bar::display_animation_bar, file_list::show_folder_files, window::*};
 use crate::{
     app::anim_list::anim_list,
     editors::{
@@ -12,7 +12,8 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    path::last_update_check_file,
+    log::AppLogger,
+    path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, FileChanged, FileResult,
@@ -21,12 +22,12 @@ use crate::{
 use chrono::{DateTime, Utc};
 use egui::{
     collapsing_header::CollapsingState, special_emojis::GITHUB, Button, CollapsingHeader, Context,
-    DragValue, Image, KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel,
-    TopBottomPanel, Ui, Window,
+    Image, KeyboardShortcut, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
+    Window,
 };
 use egui_dnd::DragDropUi;
 use egui_extras::RetainedImage;
-use log::{error, Log};
+use log::error;
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
@@ -38,35 +39,13 @@ use std::{
 };
 
 mod anim_list;
+mod animation_bar;
 mod file_list;
 mod window;
 
 pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
 });
-
-pub struct AppLogger {
-    messages: Mutex<Vec<(log::Level, String)>>,
-}
-
-impl Log for AppLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        // TODO: Investigate why wgpu_text warns about cache resizing.
-        // Silence this error for now.
-        metadata.level() <= log::Level::Warn && metadata.target() != "wgpu_text"
-    }
-
-    fn log(&self, record: &log::Record) {
-        if self.enabled(record.metadata()) {
-            self.messages
-                .lock()
-                .unwrap()
-                .push((record.level(), format!("{}", record.args())));
-        }
-    }
-
-    fn flush(&self) {}
-}
 
 pub struct SsbhApp {
     pub should_refresh_render_settings: bool,
@@ -567,7 +546,7 @@ impl SsbhApp {
         self.render_state.viewport_bottom = if self.show_bottom_panel {
             Some(
                 TopBottomPanel::bottom("bottom panel")
-                    .show(ctx, |ui| self.animation_and_log(ui))
+                    .show(ctx, |ui| self.bottom_panel(ui))
                     .response
                     .rect
                     .top(),
@@ -874,71 +853,6 @@ impl SsbhApp {
         file_changed
     }
 
-    fn animation_bar(&mut self, ui: &mut Ui) {
-        let final_frame_index = self.max_final_frame_index();
-
-        // TODO: Find a better layout for this.
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                ui.label("Speed");
-                ui.add(
-                    DragValue::new(&mut self.animation_state.playback_speed)
-                        .min_decimals(2)
-                        .speed(0.01)
-                        .clamp_range(0.25..=2.0),
-                );
-
-                // TODO: Custom checkbox widget so label is on the left side.
-                ui.checkbox(&mut self.animation_state.should_loop, "Loop");
-            });
-            ui.horizontal_centered(|ui| {
-                // TODO: How to fill available space?
-                // TODO: Get the space that would normally be taken up by the central panel?
-                ui.spacing_mut().slider_width = (ui.available_width() - 520.0).max(0.0);
-                if ui
-                    .add(
-                        // TODO: Show ticks?
-                        egui::Slider::new(
-                            &mut self.animation_state.current_frame,
-                            0.0..=final_frame_index,
-                        )
-                        .step_by(1.0)
-                        .show_value(false),
-                    )
-                    .changed()
-                {
-                    // Manually trigger an update in case the playback is paused.
-                    self.animation_state.should_update_animations = true;
-                }
-
-                // Use a separate widget from the slider value to force the size.
-                // This reduces the chances of the widget resizing during animations.
-
-                let size = [60.0, 30.0];
-                if self.animation_state.is_playing {
-                    // Nest these conditions to avoid displaying both "Pause" and "Play" at once.
-                    if ui.add_sized(size, Button::new("Pause")).clicked() {
-                        self.animation_state.is_playing = false;
-                    }
-                } else if ui.add_sized(size, Button::new("Play")).clicked() {
-                    self.animation_state.is_playing = true;
-                }
-
-                if ui
-                    .add_sized(
-                        [60.0, 20.0],
-                        egui::DragValue::new(&mut self.animation_state.current_frame)
-                            .clamp_range(0.0..=final_frame_index),
-                    )
-                    .changed()
-                {
-                    // Manually trigger an update in case the playback is paused.
-                    self.animation_state.should_update_animations = true;
-                }
-            });
-        });
-    }
-
     pub fn max_final_frame_index(&mut self) -> f32 {
         // Find the minimum number of frames to cover all animations.
         let mut final_frame_index = 0.0;
@@ -1051,9 +965,10 @@ impl SsbhApp {
             });
     }
 
-    fn animation_and_log(&mut self, ui: &mut Ui) {
+    fn bottom_panel(&mut self, ui: &mut Ui) {
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-            self.animation_bar(ui);
+            let final_frame_index = self.max_final_frame_index();
+            display_animation_bar(ui, &mut self.animation_state, final_frame_index);
 
             // The next layout needs to be min since it's nested inside a centered layout.
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
@@ -1370,34 +1285,6 @@ fn format_shortcut(shortcut: &KeyboardShortcut) -> String {
     } else {
         key.to_owned()
     }
-}
-
-// TODO: Move path formatting to its own module?
-pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
-    // Show a simplified version of the path.
-    // fighter/mario/motion/body/c00/model.numatb -> c00/model.numatb
-    format!(
-        "{}/{}",
-        Path::new(folder_name)
-            .file_name()
-            .map(|f| f.to_string_lossy())
-            .unwrap_or_default(),
-        file_name
-    )
-}
-
-fn folder_display_name(model: &ModelFolder) -> String {
-    // Get enough components to differentiate folder paths.
-    // fighter/mario/motion/body/c00 -> mario/motion/body/c00
-    let path = Path::new(&model.folder_name)
-        .components()
-        .rev()
-        .take(4)
-        .fold(PathBuf::new(), |acc, x| Path::new(&x).join(acc));
-    let path = path.to_string_lossy();
-
-    // TODO: Change the icon when expanded.
-    format!("🗀 {path}")
 }
 
 fn find_file<'a, T>(files: &'a [(String, FileResult<T>)], name: &str) -> Option<&'a T> {

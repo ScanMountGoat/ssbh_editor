@@ -1,4 +1,4 @@
-use crate::{app::folder_editor_title, EditorResponse};
+use crate::{path::folder_editor_title, EditorResponse};
 use egui::{special_emojis::GITHUB, Grid, ScrollArea};
 use log::error;
 use rfd::FileDialog;

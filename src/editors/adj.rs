@@ -1,4 +1,4 @@
-use crate::{app::folder_editor_title, validation::AdjValidationError, EditorResponse};
+use crate::{path::folder_editor_title, validation::AdjValidationError, EditorResponse};
 use egui::{special_emojis::GITHUB, ScrollArea};
 use log::error;
 use rfd::FileDialog;
