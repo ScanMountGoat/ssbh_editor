@@ -144,9 +144,7 @@ fn edit_mesh(
     let mut mesh_to_remove = None;
 
     // TODO: Avoid allocating here.
-    let mut items: Vec<_> = (0..mesh.objects.len())
-        .map(|i| MeshObjectIndex(i))
-        .collect();
+    let mut items: Vec<_> = (0..mesh.objects.len()).map(MeshObjectIndex).collect();
 
     let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
         ui.horizontal(|ui| {

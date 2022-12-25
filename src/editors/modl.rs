@@ -144,8 +144,7 @@ pub fn modl_editor(
                     let mut entry_to_remove = None;
 
                     // TODO: Avoid allocating here.
-                    let mut items: Vec<_> =
-                        (0..modl.entries.len()).map(|i| ModlEntryIndex(i)).collect();
+                    let mut items: Vec<_> = (0..modl.entries.len()).map(ModlEntryIndex).collect();
 
                     let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
                         ui.horizontal(|ui| {
