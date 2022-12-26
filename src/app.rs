@@ -343,28 +343,40 @@ pub struct Icons {
     matl: RetainedImage,
     adj: RetainedImage,
     anim: RetainedImage,
-
 }
 
 impl Icons {
     pub fn new() -> Self {
-        let draggable = RetainedImage::from_svg_bytes(
+        // All the icons are designed to render properly at 16x16 pixels.
+        // Render at 32x32 to handle up to 200% display scaling.
+        let size = egui_extras::image::FitTo::Size(32, 32);
+
+        let draggable = RetainedImage::from_svg_bytes_with_size(
             "draggable",
             include_bytes!("icons/carbon_draggable.svg"),
+            size,
         )
         .unwrap();
 
-        let mesh = RetainedImage::from_svg_bytes("mesh", include_bytes!("icons/mesh.svg")).unwrap();
-        let matl = RetainedImage::from_svg_bytes("matl", include_bytes!("icons/matl.svg")).unwrap();
-        let adj = RetainedImage::from_svg_bytes("adj", include_bytes!("icons/adj.svg")).unwrap();
-        let anim = RetainedImage::from_svg_bytes("anim", include_bytes!("icons/anim.svg")).unwrap();
+        let mesh =
+            RetainedImage::from_svg_bytes_with_size("mesh", include_bytes!("icons/mesh.svg"), size)
+                .unwrap();
+        let matl =
+            RetainedImage::from_svg_bytes_with_size("matl", include_bytes!("icons/matl.svg"), size)
+                .unwrap();
+        let adj =
+            RetainedImage::from_svg_bytes_with_size("adj", include_bytes!("icons/adj.svg"), size)
+                .unwrap();
+        let anim =
+            RetainedImage::from_svg_bytes_with_size("anim", include_bytes!("icons/anim.svg"), size)
+                .unwrap();
 
         Self {
             draggable,
             mesh,
             matl,
             adj,
-            anim
+            anim,
         }
     }
 
