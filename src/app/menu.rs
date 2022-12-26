@@ -113,7 +113,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 app.ui_state.stage_lighting_open = true;
             }
 
-            if ui.button(" Material Presets").clicked() {
+            if ui.button("Material Presets").clicked() {
                 ui.close_menu();
                 app.ui_state.preset_editor_open = true;
             }

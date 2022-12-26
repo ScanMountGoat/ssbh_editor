@@ -40,7 +40,7 @@ pub fn show_folder_files(
         required_file("model.nusktb"),
         Some("model.nusktb"),
         &model.validation.skel_errors,
-        |ui| ui.label("🗋"),
+        |ui| ui.add(icons.skel(ui)),
     );
     list_files(
         ui,
@@ -52,7 +52,7 @@ pub fn show_folder_files(
         None,
         Some("model.nuhlpb"),
         &model.validation.hlpb_errors,
-        |ui| ui.label("🗋"),
+        |ui| ui.add(icons.hlpb(ui)),
     );
     list_files(
         ui,
@@ -76,7 +76,7 @@ pub fn show_folder_files(
         required_file("model.numdlb"),
         Some("model.numdlb"),
         &model.validation.modl_errors,
-        |ui| ui.label("🗋"),
+        |ui| ui.add(icons.mesh(ui)),
     );
     list_files(
         ui,
@@ -102,7 +102,6 @@ pub fn show_folder_files(
         &model.validation.anim_errors,
         |ui| ui.add(icons.anim(ui)),
     );
-    // TODO: Is the model.numshexb required?
     list_files(
         ui,
         &model.model.meshexes,
@@ -113,7 +112,7 @@ pub fn show_folder_files(
         None,
         Some("model.numshexb"),
         &model.validation.meshex_errors,
-        |ui| ui.label("🗋"),
+        |ui| ui.add(icons.mesh(ui)),
     );
     // TODO: Modify this to use the same function as above.
     list_nutexb_files(
