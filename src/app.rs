@@ -339,6 +339,11 @@ pub struct SsbhApp {
 
 pub struct Icons {
     draggable: RetainedImage,
+    mesh: RetainedImage,
+    matl: RetainedImage,
+    adj: RetainedImage,
+    anim: RetainedImage,
+
 }
 
 impl Icons {
@@ -349,14 +354,45 @@ impl Icons {
         )
         .unwrap();
 
-        Self { draggable }
+        let mesh = RetainedImage::from_svg_bytes("mesh", include_bytes!("icons/mesh.svg")).unwrap();
+        let matl = RetainedImage::from_svg_bytes("matl", include_bytes!("icons/matl.svg")).unwrap();
+        let adj = RetainedImage::from_svg_bytes("adj", include_bytes!("icons/adj.svg")).unwrap();
+        let anim = RetainedImage::from_svg_bytes("anim", include_bytes!("icons/anim.svg")).unwrap();
+
+        Self {
+            draggable,
+            mesh,
+            matl,
+            adj,
+            anim
+        }
     }
 
     pub fn draggable(&self, ui: &Ui) -> Image {
-        // TODO: Change the tint based on the color theme.
-        egui::Image::new(self.draggable.texture_id(ui.ctx()), egui::vec2(16.0, 16.0))
-            .tint(egui::Color32::from_rgb(200, 200, 200))
+        file_icon(ui, &self.draggable)
     }
+
+    pub fn mesh(&self, ui: &Ui) -> Image {
+        file_icon(ui, &self.mesh)
+    }
+
+    pub fn matl(&self, ui: &Ui) -> Image {
+        file_icon(ui, &self.matl)
+    }
+
+    pub fn adj(&self, ui: &Ui) -> Image {
+        file_icon(ui, &self.adj)
+    }
+
+    pub fn anim(&self, ui: &Ui) -> Image {
+        file_icon(ui, &self.anim)
+    }
+}
+
+fn file_icon(ui: &Ui, image: &RetainedImage) -> Image {
+    // TODO: Change the tint based on the color theme.
+    Image::new(image.texture_id(ui.ctx()), egui::vec2(16.0, 16.0))
+        .tint(egui::Color32::from_rgb(200, 200, 200))
 }
 
 #[derive(PartialEq, Eq)]
@@ -1021,7 +1057,13 @@ impl SsbhApp {
                         .id_source(format!("folder.{folder_index}"))
                         .default_open(true)
                         .show(ui, |ui| {
-                            show_folder_files(&mut self.ui_state, model, ui, folder_index);
+                            show_folder_files(
+                                &mut self.ui_state,
+                                model,
+                                ui,
+                                folder_index,
+                                &self.icons,
+                            );
                         })
                         .header_response
                         .on_hover_text(&model.model.folder_name)

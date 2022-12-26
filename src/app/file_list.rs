@@ -1,6 +1,6 @@
 use super::{
-    display_validation_errors, empty_icon, missing_icon, warning_icon, warning_icon_text, UiState,
-    ERROR_COLOR, ICON_SIZE,
+    display_validation_errors, empty_icon, missing_icon, warning_icon, warning_icon_text, Icons,
+    UiState, ERROR_COLOR, ICON_SIZE,
 };
 use crate::{validation::MatlValidationErrorKind, FileResult, ModelFolderState};
 use egui::{Button, Response, RichText, Ui};
@@ -10,13 +10,14 @@ pub fn show_folder_files(
     model: &mut ModelFolderState,
     ui: &mut Ui,
     folder_index: usize,
+    icons: &Icons,
 ) {
     // Avoid a confusing missing file error for animation or texture folders.
     let is_model = model.is_model_folder();
     let required_file = |name| if is_model { Some(name) } else { None };
+
     // Clicking a file opens the corresponding editor.
     // Set selected index so the editor remains open for the file.
-    // TODO: Should the index be cleared when reloading models?
     list_files(
         ui,
         &model.model.meshes,
@@ -27,6 +28,7 @@ pub fn show_folder_files(
         required_file("model.numshb"),
         Some("model.numshb"),
         &model.validation.mesh_errors,
+        |ui| ui.add(icons.mesh(ui)),
     );
     list_files(
         ui,
@@ -38,6 +40,7 @@ pub fn show_folder_files(
         required_file("model.nusktb"),
         Some("model.nusktb"),
         &model.validation.skel_errors,
+        |ui| ui.label("🗋"),
     );
     list_files(
         ui,
@@ -49,6 +52,7 @@ pub fn show_folder_files(
         None,
         Some("model.nuhlpb"),
         &model.validation.hlpb_errors,
+        |ui| ui.label("🗋"),
     );
     list_files(
         ui,
@@ -60,6 +64,7 @@ pub fn show_folder_files(
         required_file("model.numatb"),
         Some("model.numatb"),
         &model.validation.matl_errors,
+        |ui| ui.add(icons.matl(ui)),
     );
     list_files(
         ui,
@@ -71,6 +76,7 @@ pub fn show_folder_files(
         required_file("model.numdlb"),
         Some("model.numdlb"),
         &model.validation.modl_errors,
+        |ui| ui.label("🗋"),
     );
     list_files(
         ui,
@@ -82,6 +88,7 @@ pub fn show_folder_files(
         None,
         Some("model.adjb"),
         &model.validation.adj_errors,
+        |ui| ui.add(icons.adj(ui)),
     );
     list_files(
         ui,
@@ -93,6 +100,7 @@ pub fn show_folder_files(
         None,
         None,
         &model.validation.anim_errors,
+        |ui| ui.add(icons.anim(ui)),
     );
     // TODO: Is the model.numshexb required?
     list_files(
@@ -105,8 +113,9 @@ pub fn show_folder_files(
         None,
         Some("model.numshexb"),
         &model.validation.meshex_errors,
+        |ui| ui.label("🗋"),
     );
-    // TODO: Create a single function that takes thumbnails?
+    // TODO: Modify this to use the same function as above.
     list_nutexb_files(
         ui,
         model,
@@ -179,7 +188,7 @@ fn missing_nutexb(ui: &mut Ui, name: &str) {
     ));
 }
 
-fn list_files<T, E: std::fmt::Display>(
+fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
     ui: &mut Ui,
     files: &[(String, FileResult<T>)],
     changed: &[bool],
@@ -189,18 +198,14 @@ fn list_files<T, E: std::fmt::Display>(
     required_file: Option<&'static str>,
     validation_file: Option<&'static str>,
     validation_errors: &[E],
+    file_icon: F,
 ) {
     // TODO: Should this be a grid instead?
     for (i, (name, file)) in files.iter().enumerate() {
         ui.horizontal(|ui| {
             match file {
                 Ok(_) => {
-                    // TODO: Add file specific image icons.
-                    if name.ends_with("numatb") {
-                        ui.label("");
-                    } else {
-                        ui.label("🗋");
-                    }
+                    file_icon(ui);
 
                     // Assume only the required file is validated for now.
                     // This excludes files like metamon_model.numatb.
