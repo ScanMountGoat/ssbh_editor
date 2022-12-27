@@ -27,6 +27,7 @@ pub fn skel_editor(
     skel: &mut SkelData,
     state: &mut SkelEditorState,
     icons: &Icons,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -105,7 +106,7 @@ pub fn skel_editor(
 
                     match state.mode {
                         SkelMode::List => {
-                            changed |= edit_bones_list(ui, skel, state, icons);
+                            changed |= edit_bones_list(ui, skel, state, icons, dark_mode);
                         }
                         SkelMode::Hierarchy => {
                             changed |= edit_bones_hierarchy(ui, skel);
@@ -126,6 +127,7 @@ fn edit_bones_list(
     skel: &mut SkelData,
     state: &mut SkelEditorState,
     icons: &Icons,
+    dark_mode: bool,
 ) -> bool {
     let mut changed = false;
 
@@ -152,7 +154,7 @@ fn edit_bones_list(
             let bone = &mut skel.bones[item.0];
 
             handle.ui(ui, item, |ui| {
-                ui.add(icons.draggable(ui));
+                ui.add(icons.draggable(ui, dark_mode));
             });
 
             // Grids don't work with egui_dnd, so set the label size manually.

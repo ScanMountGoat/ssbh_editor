@@ -521,20 +521,23 @@ pub fn default_text_styles() -> BTreeMap<TextStyle, FontId> {
     text_styles
 }
 
+const TEXT_COLOR_DARK: Color32 = Color32::from_gray(200);
+const TEXT_COLOR_LIGHT: Color32 = Color32::from_gray(40);
+
 pub fn widgets_dark() -> Widgets {
     // Modified from the default theme to have higher text contrast.
     Widgets {
         noninteractive: WidgetVisuals {
             bg_fill: Color32::from_gray(27), // window background
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)), // separators, indentation lines, windows outlines
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(200)), // normal text color
+            fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK),        // normal text color
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
             bg_fill: Color32::from_gray(60), // button background
             bg_stroke: Default::default(),
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(200)), // button text
+            fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK), // button text
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
@@ -555,7 +558,7 @@ pub fn widgets_dark() -> Widgets {
         open: WidgetVisuals {
             bg_fill: Color32::from_gray(27),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)),
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(200)),
+            fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK),
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
@@ -568,14 +571,14 @@ pub fn widgets_light() -> Widgets {
         noninteractive: WidgetVisuals {
             bg_fill: Color32::from_gray(248), // window background - should be distinct from TextEdit background
             bg_stroke: Stroke::new(1.0, Color32::from_gray(190)), // separators, indentation lines, windows outlines
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(40)),  // normal text color
+            fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT),        // normal text color
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
             bg_fill: Color32::from_gray(230), // button background
             bg_stroke: Default::default(),
-            fg_stroke: Stroke::new(1.0, Color32::from_gray(40)), // button text
+            fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT), // button text
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
@@ -596,7 +599,7 @@ pub fn widgets_light() -> Widgets {
         open: WidgetVisuals {
             bg_fill: Color32::from_gray(220),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(160)),
-            fg_stroke: Stroke::new(1.0, Color32::BLACK),
+            fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT),
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },

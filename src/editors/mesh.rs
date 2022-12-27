@@ -37,6 +37,7 @@ pub fn mesh_editor(
     validation_errors: &[MeshValidationError],
     state: &mut MeshEditorState,
     icons: &Icons,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -117,6 +118,7 @@ pub fn mesh_editor(
                         validation_errors,
                         skel,
                         icons,
+                        dark_mode,
                     );
                 });
         });
@@ -136,6 +138,7 @@ fn edit_mesh(
     validation_errors: &[MeshValidationError],
     skel: Option<&SkelData>,
     icons: &Icons,
+    dark_mode: bool,
 ) -> bool {
     let mut changed = false;
 
@@ -149,7 +152,7 @@ fn edit_mesh(
     let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
         ui.horizontal(|ui| {
             handle.ui(ui, item, |ui| {
-                ui.add(icons.draggable(ui));
+                ui.add(icons.draggable(ui, dark_mode));
             });
 
             let mesh_object = &mut mesh.objects[item.0];

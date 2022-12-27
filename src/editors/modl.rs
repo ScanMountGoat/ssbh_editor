@@ -32,6 +32,7 @@ pub fn modl_editor(
     state: &mut ModlEditorState,
     render_model: &mut Option<&mut RenderModel>,
     icons: &Icons,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -152,7 +153,7 @@ pub fn modl_editor(
                             let id = egui::Id::new("modl").with(item.0);
 
                             handle.ui(ui, item, |ui| {
-                                ui.add(icons.draggable(ui));
+                                ui.add(icons.draggable(ui, dark_mode));
                             });
 
                             // Check for assignment errors for the current entry.
