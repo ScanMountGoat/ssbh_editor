@@ -1,7 +1,10 @@
 use super::{log_level_icon, StageLightingState, LOGGER};
 use crate::{
-    horizontal_separator_empty, path::application_dir, preferences::AppPreferences,
-    update::LatestReleaseInfo, widgets::enum_combo_box, CameraInputState,
+    horizontal_separator_empty,
+    path::application_dir,
+    preferences::{AppPreferences, GraphicsBackend},
+    update::LatestReleaseInfo,
+    CameraInputState,
 };
 use egui::{
     special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
@@ -9,7 +12,8 @@ use egui::{
 };
 use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use rfd::FileDialog;
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
+use strum::VariantNames;
 
 mod render_settings;
 pub use render_settings::render_settings_window;
@@ -228,14 +232,10 @@ pub fn preferences_window(
                 )
                 .changed();
             ui.horizontal(|ui| {
-                // TODO: Limit backends based on the current platform.
                 ui.label("Graphics Backend")
                     .on_hover_text("The preferred graphics backend. Requires an application restart to take effect.");
 
-                // TODO: Add custom labels to the variants.
-                ui.label(format!("{OS_APPLE} {OS_WINDOWS} {OS_LINUX}"));
-                changed |=
-                    enum_combo_box(ui, "graphics_backend", &mut preferences.graphics_backend);
+                changed |= edit_graphics_backend(&mut preferences.graphics_backend, ui);
             });
 
             if ui.button("Reset Preferences").clicked() {
@@ -243,6 +243,34 @@ pub fn preferences_window(
                 changed = true;
             }
         });
+    changed
+}
+
+fn edit_graphics_backend(graphics_backend: &mut GraphicsBackend, ui: &mut Ui) -> bool {
+    let backend_label = |b: &GraphicsBackend| match b {
+        GraphicsBackend::Auto => "Auto".to_owned(),
+        GraphicsBackend::Vulkan => format!("{OS_WINDOWS} {OS_LINUX} Vulkan"),
+        GraphicsBackend::Metal => format!("{OS_APPLE} Metal"),
+        GraphicsBackend::Dx12 => format!("{OS_WINDOWS} DX12"),
+    };
+
+    let mut changed = false;
+
+    // TODO: Create a helper function for custom variant labels on enums?
+    // TODO: Limit backends based on the current platform.
+    egui::ComboBox::from_id_source("graphics_backend")
+        .width(200.0)
+        .selected_text(backend_label(&graphics_backend))
+        .show_ui(ui, |ui| {
+            for v in GraphicsBackend::VARIANTS {
+                let variant = GraphicsBackend::from_str(v).unwrap();
+                let label = backend_label(&variant);
+                changed |= ui
+                    .selectable_value(graphics_backend, variant, label)
+                    .changed();
+            }
+        });
+
     changed
 }
 

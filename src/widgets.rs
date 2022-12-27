@@ -94,10 +94,10 @@ where
         .width(200.0)
         .selected_text(value.to_string())
         .show_ui(ui, |ui| {
-            // TODO: Does the performance cost here matter?
             for v in V::VARIANTS {
+                // TODO: Does the conversion cost here matter?
                 changed |= ui
-                    .selectable_value(value, V::from_str(v).unwrap(), v.to_string())
+                    .selectable_value(value, V::from_str(v).unwrap(), *v)
                     .changed();
             }
         });
