@@ -343,6 +343,7 @@ pub struct Icons {
     matl: RetainedImage,
     adj: RetainedImage,
     anim: RetainedImage,
+    skel: RetainedImage,
 
 }
 
@@ -358,13 +359,15 @@ impl Icons {
         let matl = RetainedImage::from_svg_bytes("matl", include_bytes!("icons/matl.svg")).unwrap();
         let adj = RetainedImage::from_svg_bytes("adj", include_bytes!("icons/adj.svg")).unwrap();
         let anim = RetainedImage::from_svg_bytes("anim", include_bytes!("icons/anim.svg")).unwrap();
+        let skel = RetainedImage::from_svg_bytes("anim", include_bytes!("icons/skel.svg")).unwrap();
 
         Self {
             draggable,
             mesh,
             matl,
             adj,
-            anim
+            anim,
+            skel
         }
     }
 
@@ -386,6 +389,10 @@ impl Icons {
 
     pub fn anim(&self, ui: &Ui) -> Image {
         file_icon(ui, &self.anim)
+    }
+
+    pub fn skel(&self, ui: &Ui) -> Image {
+        file_icon(ui, &self.skel)
     }
 }
 

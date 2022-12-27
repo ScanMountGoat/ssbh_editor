@@ -40,7 +40,7 @@ pub fn show_folder_files(
         required_file("model.nusktb"),
         Some("model.nusktb"),
         &model.validation.skel_errors,
-        |ui| ui.label("🗋"),
+        |ui| ui.add(icons.skel(ui)),
     );
     list_files(
         ui,
