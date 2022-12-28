@@ -140,6 +140,7 @@ pub fn modl_editor(
                 .show(ui, |ui| {
                     if state.advanced_mode {
                         edit_modl_file_names(ui, modl);
+                        horizontal_separator_empty(ui);
                     }
 
                     let mut entry_to_remove = None;
@@ -183,7 +184,10 @@ pub fn modl_editor(
                                 changed |= name_changed;
                                 response
                             } else {
-                                ui.add(Label::new(mesh_text).sense(egui::Sense::click()))
+                                // TODO: Find a way to get a grid layout working with egui_dnd.
+                                let (_, rect) = ui.allocate_space(egui::vec2(300.0, 20.0));
+                                ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
+                                    .add(Label::new(mesh_text).sense(egui::Sense::click()))
                             };
 
                             let name_response = name_response.context_menu(|ui| {

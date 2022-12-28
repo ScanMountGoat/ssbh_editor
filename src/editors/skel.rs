@@ -6,7 +6,7 @@ use crate::{
     widgets::enum_combo_box,
     EditorResponse,
 };
-use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Grid, Label, ScrollArea};
+use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Label, ScrollArea};
 use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
@@ -131,15 +131,6 @@ fn edit_bones_list(
 ) -> bool {
     let mut changed = false;
 
-    // TODO: Find a way to get a grid layout working with egui_dnd.
-    Grid::new("skel_grid").show(ui, |ui| {
-        // Header
-        ui.heading("Bone");
-        ui.heading("Parent");
-        ui.heading("Billboard Type");
-        ui.end_row();
-    });
-
     // TODO: Do this without clone?
     let other_bones = skel.bones.clone();
 
@@ -171,6 +162,7 @@ fn edit_bones_list(
                 .map(|p| p.name.as_str())
                 .unwrap_or("None");
 
+            ui.label("Parent Bone");
             egui::ComboBox::from_id_source(id)
                 .selected_text(parent_bone_name)
                 .width(120.0)
@@ -193,6 +185,7 @@ fn edit_bones_list(
                     }
                 });
 
+            ui.label("Billboard Type");
             changed |= enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
         });
     });
