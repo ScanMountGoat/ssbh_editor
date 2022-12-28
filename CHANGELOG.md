@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added an option to Render Settings to toggle an infinite floor grid in the viewport.
 * Added the ability to reorder entries in the Skel Editor, Mesh Editor, and Modl Editor using drag and drop.
 
+### Changed
+* Adjusted the new release window to display the changelog for the newer releases.
+* Adjusted the files list to show dedicated icons for different file formats.
+
 ### Fixed
 * Fixed a crash when enabling Draw Bone Axes in Render Settings.
 * Fixed an issue where hovering over an entry in the Modl Editor would sometimes outline the wrong mesh in the viewport.
