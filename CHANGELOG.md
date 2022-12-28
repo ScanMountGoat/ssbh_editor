@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### unreleased
+### 0.7.2 - 2022-12-28
 ### Added
 * Added an option to Render Settings to toggle an infinite floor grid in the viewport.
 * Added the ability to reorder entries in the Skel Editor, Mesh Editor, and Modl Editor using drag and drop.
