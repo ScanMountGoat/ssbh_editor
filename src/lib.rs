@@ -7,7 +7,8 @@ use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{
-    ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData, SkinningSettings,
+    swing::SwingPrc, ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData,
+    SkinningSettings,
 };
 use std::{collections::BTreeMap, error::Error};
 use validation::ModelValidationErrors;
@@ -47,17 +48,18 @@ pub struct ModelFolderState {
     pub thumbnails: Vec<Thumbnail>,
     pub validation: ModelValidationErrors,
     pub changed: FileChanged,
-    // TODO: Add animation slots
+    pub swing_prc: Option<SwingPrc>, // TODO: Add animation slots
 }
 
 impl ModelFolderState {
-    pub fn from_model(model: ModelFolder) -> Self {
+    pub fn from_model_and_swing(model: ModelFolder, swing_prc: Option<SwingPrc>) -> Self {
         let changed = FileChanged::from_model(&model);
         Self {
             model,
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
             changed,
+            swing_prc,
         }
     }
 
@@ -78,6 +80,12 @@ impl ModelFolderState {
             || !self.model.modls.is_empty()
             || !self.model.skels.is_empty()
             || !self.model.matls.is_empty()
+    }
+
+    pub fn reload(&mut self) {
+        // Make sure the ModelFolder is updated first.
+        self.model = ModelFolder::load_folder(&self.model.folder_name);
+        self.changed = FileChanged::from_model(&self.model);
     }
 }
 

@@ -3,6 +3,7 @@ use self::{
 };
 use crate::{
     app::anim_list::anim_list,
+    app::swing_list::swing_list,
     editors::{
         adj::{add_missing_adj_entries, adj_editor},
         anim::anim_editor,
@@ -34,7 +35,7 @@ use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{ModelFiles, ModelFolder, RenderModel};
+use ssbh_wgpu::{swing::SwingPrc, ModelFiles, RenderModel};
 use std::{
     path::{Path, PathBuf},
     sync::Mutex,
@@ -44,6 +45,7 @@ mod anim_list;
 mod animation_bar;
 mod file_list;
 mod menu;
+mod swing_list;
 mod window;
 
 /// The logic required to open and close an editor window from an open file index.
@@ -546,13 +548,14 @@ pub const WARNING_COLOR: egui::Color32 = egui::Color32::from_rgb(255, 210, 0);
 // Keep track of what UI should be displayed.
 #[derive(PartialEq, Eq)]
 pub enum PanelTab {
-    MeshList,
-    AnimList,
+    Mesh,
+    Anim,
+    Swing,
 }
 
 impl Default for PanelTab {
     fn default() -> Self {
-        Self::MeshList
+        Self::Mesh
     }
 }
 
@@ -609,35 +612,44 @@ impl SsbhApp {
             self.hide_expressions();
         }
 
-        self.models
-            .extend(new_models.into_iter().map(ModelFolderState::from_model));
+        self.models.extend(new_models.into_iter().map(|model| {
+            let swing_prc_path = Path::new(&model.folder_name).join("swing.prc");
+            let swing_prc = SwingPrc::from_file(swing_prc_path);
+            ModelFolderState::from_model_and_swing(model, swing_prc)
+        }));
+
         self.sort_files();
 
         // TODO: Only validate the models that were added?
         self.should_validate_models = true;
         self.should_update_thumbnails = true;
 
-        // Only keep track of a limited number of recent folders.
+        self.add_recent_folder(folder);
+    }
+
+    fn add_recent_folder<P: AsRef<Path>>(&mut self, folder: P) {
         let new_folder = folder.as_ref().to_string_lossy().to_string();
+
         if let Some(i) = self
             .preferences
             .recent_folders
             .iter()
             .position(|f| f == &new_folder)
         {
+            // Move a folder back to the front if it was seen before.
             self.preferences.recent_folders.remove(i);
         }
-        // Move a folder to the front if it was seen before.
+
         self.preferences.recent_folders.insert(0, new_folder);
+
+        // Only keep track of a limited number of recent folders.
         self.preferences.recent_folders.truncate(10);
     }
 
     pub fn reload_workspace(&mut self) {
         // This also reloads animations since animations are stored as indices.
         for model in &mut self.models {
-            // Make sure the ModelFolder is loaded first.
-            model.model = ModelFolder::load_folder(&model.model.folder_name);
-            model.changed = FileChanged::from_model(&model.model);
+            model.reload();
         }
         self.sort_files();
 
@@ -1216,21 +1228,27 @@ impl SsbhApp {
         ui.horizontal(|ui| {
             ui.selectable_value(
                 &mut self.ui_state.right_panel_tab,
-                PanelTab::MeshList,
+                PanelTab::Mesh,
                 RichText::new("Meshes").heading(),
             );
             ui.selectable_value(
                 &mut self.ui_state.right_panel_tab,
-                PanelTab::AnimList,
+                PanelTab::Anim,
                 RichText::new("Animations").heading(),
+            );
+            ui.selectable_value(
+                &mut self.ui_state.right_panel_tab,
+                PanelTab::Swing,
+                RichText::new("Swing").heading(),
             );
         });
 
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| match self.ui_state.right_panel_tab {
-                PanelTab::MeshList => mesh_list(ctx, self, ui),
-                PanelTab::AnimList => anim_list(ctx, self, ui),
+                PanelTab::Mesh => mesh_list(ctx, self, ui),
+                PanelTab::Anim => anim_list(ctx, self, ui),
+                PanelTab::Swing => swing_list(ctx, self, ui),
             });
     }
 }

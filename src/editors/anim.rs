@@ -353,10 +353,7 @@ fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) ->
     ui.label(&track.name);
     ui.indent("indent", |ui| {
         changed |= ui
-            .checkbox(
-                &mut track.scale_options.compensate_scale,
-                "Compensate Scale",
-            )
+            .checkbox(&mut track.compensate_scale, "Compensate Scale")
             .changed();
 
         changed |= ui
@@ -375,6 +372,14 @@ fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) ->
 
         changed |= ui
             .checkbox(&mut track.transform_flags.override_scale, "Override Scale")
+            .changed();
+
+        // TODO: Double check if this is accurately named.
+        changed |= ui
+            .checkbox(
+                &mut track.transform_flags.override_compensate_scale,
+                "Override Compensate Scale",
+            )
             .changed();
     });
 
