@@ -972,8 +972,6 @@ impl SsbhApp {
                     self.preferences.dark_mode,
                 ) {
                     // The mesh editor has no high frequency edits (sliders), so reload on any change.
-                    // TODO: Add a mesh to update field instead with (folder, mesh) indices.
-                    // This avoids reloading the entire folder.
                     self.models_to_update = ItemsToUpdate::One(folder_index);
                     file_changed = true;
                 }
@@ -1044,7 +1042,7 @@ impl SsbhApp {
                     file_changed = true;
                 }
 
-                file_changed |= open_editor::<MeshExData>(
+                if open_editor::<MeshExData>(
                     ctx,
                     model,
                     render_model,
@@ -1052,7 +1050,11 @@ impl SsbhApp {
                     &mut (),
                     &self.icons,
                     self.preferences.dark_mode,
-                );
+                ) {
+                    // MeshEx settings require reloading the render model.
+                    self.models_to_update = ItemsToUpdate::One(folder_index);
+                    file_changed = true;
+                }
 
                 if let Some(nutexb_index) = self.ui_state.open_nutexb {
                     if let Some((name, Ok(nutexb))) = model.model.nutexbs.get(nutexb_index) {

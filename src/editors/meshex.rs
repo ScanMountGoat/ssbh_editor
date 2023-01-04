@@ -13,7 +13,7 @@ pub fn meshex_editor(
     mesh: Option<&MeshData>,
 ) -> EditorResponse {
     let mut open = true;
-    let changed = false;
+    let mut changed = false;
     let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
@@ -59,6 +59,7 @@ pub fn meshex_editor(
                             // TODO: TODO: Only show this if the entries don't match up?
                             // TODO: Preserve existing flags?
                             *meshex = MeshExData::from_mesh_objects(&mesh.objects);
+                            changed = true;
                         }
                     }
                 });
@@ -90,8 +91,10 @@ pub fn meshex_editor(
                             for entry in &mut group.entry_flags {
                                 ui.label(&group.mesh_object_full_name);
                                 ui.label(&group.mesh_object_name);
-                                ui.checkbox(&mut entry.draw_model, "Draw Model");
-                                ui.checkbox(&mut entry.cast_shadow, "Cast Shadow");
+                                changed |=
+                                    ui.checkbox(&mut entry.draw_model, "Draw Model").changed();
+                                changed |=
+                                    ui.checkbox(&mut entry.cast_shadow, "Cast Shadow").changed();
                                 ui.end_row();
                             }
                         }
