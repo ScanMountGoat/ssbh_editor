@@ -3,15 +3,15 @@ use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle,
 };
+use model_folder::ModelFolderState;
 use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{
-    swing::SwingPrc, ModelFolder, ModelRenderOptions, RenderModel, RenderSettings,
-    SharedRenderData, SkinningSettings,
+    swing::SwingPrc, ModelRenderOptions, RenderModel, RenderSettings, SharedRenderData,
+    SkinningSettings,
 };
-use std::{collections::BTreeMap, error::Error};
-use validation::ModelValidationErrors;
+use std::{collections::BTreeMap, error::Error, path::Path};
 use winit::dpi::PhysicalPosition;
 
 pub mod app;
@@ -19,6 +19,7 @@ pub mod capture;
 pub mod editors;
 pub mod log;
 pub mod material;
+pub mod model_folder;
 pub mod path;
 pub mod preferences;
 pub mod presets;
@@ -40,81 +41,6 @@ impl EditorResponse {
     pub fn set_changed(&self, changed: &mut bool) {
         // Saving should always clear the changed flag.
         *changed = (*changed || self.changed) && !self.saved;
-    }
-}
-
-pub struct ModelFolderState {
-    pub model: ModelFolder,
-    pub thumbnails: Vec<Thumbnail>,
-    pub validation: ModelValidationErrors,
-    pub changed: FileChanged,
-    pub swing_prc: Option<SwingPrc>, // TODO: Add animation slots
-}
-
-impl ModelFolderState {
-    pub fn from_model_and_swing(model: ModelFolder, swing_prc: Option<SwingPrc>) -> Self {
-        let changed = FileChanged::from_model(&model);
-        Self {
-            model,
-            thumbnails: Vec::new(),
-            validation: ModelValidationErrors::default(),
-            changed,
-            swing_prc,
-        }
-    }
-
-    pub fn validate(&mut self, shared_data: &SharedRenderData) {
-        self.validation = ModelValidationErrors::from_model(
-            &self.model,
-            shared_data.database(),
-            shared_data
-                .default_textures()
-                .iter()
-                .map(|(f, _, d)| (f, d.into())),
-        );
-    }
-
-    pub fn is_model_folder(&self) -> bool {
-        // Check for files used for mesh rendering.
-        !self.model.meshes.is_empty()
-            || !self.model.modls.is_empty()
-            || !self.model.skels.is_empty()
-            || !self.model.matls.is_empty()
-    }
-
-    pub fn reload(&mut self) {
-        // Make sure the ModelFolder is updated first.
-        self.model = ModelFolder::load_folder(&self.model.folder_name);
-        self.changed = FileChanged::from_model(&self.model);
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct FileChanged {
-    pub meshes: Vec<bool>,
-    pub meshexes: Vec<bool>,
-    pub skels: Vec<bool>,
-    pub matls: Vec<bool>,
-    pub modls: Vec<bool>,
-    pub adjs: Vec<bool>,
-    pub anims: Vec<bool>,
-    pub hlpbs: Vec<bool>,
-    pub nutexbs: Vec<bool>,
-}
-
-impl FileChanged {
-    pub fn from_model(model: &ssbh_wgpu::ModelFolder) -> Self {
-        Self {
-            meshes: vec![false; model.meshes.len()],
-            meshexes: vec![false; model.meshexes.len()],
-            skels: vec![false; model.skels.len()],
-            matls: vec![false; model.matls.len()],
-            modls: vec![false; model.modls.len()],
-            adjs: vec![false; model.adjs.len()],
-            anims: vec![false; model.anims.len()],
-            hlpbs: vec![false; model.hlpbs.len()],
-            nutexbs: vec![false; model.nutexbs.len()],
-        }
     }
 }
 
@@ -681,7 +607,10 @@ fn load_model_render_model(
         &render_state.shared_data,
     );
 
-    let model_state = ModelFolderState::from_model_and_swing(model, None);
+    let swing_prc_path = Path::new(&model.folder_name).join("swing.prc");
+    let swing_prc = SwingPrc::from_file(swing_prc_path);
+
+    let model_state = ModelFolderState::from_model_and_swing(model, swing_prc);
 
     (render_model, model_state)
 }

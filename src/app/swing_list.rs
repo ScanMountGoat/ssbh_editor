@@ -1,28 +1,46 @@
 use crate::{
     app::{folder_display_name, SsbhApp},
+    model_folder::{find_swing_folders, ModelFolderState},
     widgets::EyeCheckBox,
 };
-use egui::{collapsing_header::CollapsingState, Context, Ui};
+use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
 use ssbh_wgpu::swing::*;
 
 pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     // TODO: Add state for tracking the visible and hovered items.
-    for (i, folder) in app.models.iter_mut().enumerate() {
-        // TODO: Filter to just animation folders instead?
-        if let Some(swing_prc) = &folder.swing_prc {
-            let id = ui.make_persistent_id("swinglist").with(i);
+    // Only assign swing.prc data to model folders.
+    for (i, model) in app
+        .models
+        .iter()
+        .enumerate()
+        .filter(|(_, model)| model.is_model_folder())
+    {
+        let id = ui.make_persistent_id("swinglist").with(i);
+        CollapsingHeader::new(folder_display_name(&model.model))
+            .id_source(id)
+            .default_open(true)
+            .show(ui, |ui| {
+                let available_folders = find_swing_folders(model, &app.models);
 
-            CollapsingState::load_with_default_open(ctx, id, true)
-                .show_header(ui, |ui| {
-                    ui.add(EyeCheckBox::new(
-                        &mut true,
-                        folder_display_name(&folder.model),
-                    ));
-                })
-                .body(|ui| {
-                    list_swing_bones(ctx, id, ui, swing_prc);
-                });
-        }
+                if available_folders.is_empty() {
+                    let message = "No matching swing.prc files found for this folder. \
+                        Add the matching folder with File > Add Folder to Workspace.";
+                    ui.label(message);
+                } else {
+                    ui.horizontal(|ui| {
+                        ui.label("Swing PRC");
+                        swing_combo_box(
+                            ui,
+                            &available_folders,
+                            ui.make_persistent_id("swingcombo").with(i),
+                        );
+                    });
+
+                    if let Some(swing_prc) = &model.swing_prc {
+                        list_swing_bones(ctx, id, ui, swing_prc);
+                    }
+                }
+            });
     }
 }
 
@@ -68,4 +86,30 @@ fn list_collisions(ui: &mut Ui, param: &Param) {
             ));
         }
     });
+}
+
+fn swing_combo_box(ui: &mut Ui, anim_folders: &[(usize, &ModelFolderState)], id: egui::Id) -> bool {
+    // TODO: Union the responses instead?
+    let mut changed = false;
+
+    egui::ComboBox::from_id_source(id)
+        .width(200.0)
+        .selected_text("todo")
+        .show_ui(ui, |ui| {
+            // Iterate in decreasing order of affinity with the model folder.
+            for (_, folder) in anim_folders.iter().rev() {
+                // TODO: Is it worth grouping by folder if there's only one swing?
+                // TODO: Just show the full path for each swing.prc?
+                ui.add(
+                    Label::new(RichText::new(folder_display_name(&folder.model)).heading())
+                        .wrap(false),
+                );
+                if folder.swing_prc.is_some() {
+                    // TODO: Store the selected prc so the render model can be updated later.
+                    changed |= ui.selectable_value(&mut 0, 0, "swing.prc").changed();
+                }
+            }
+        });
+
+    changed
 }

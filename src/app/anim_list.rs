@@ -1,12 +1,10 @@
-use std::path::Path;
-
-use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
-
 use crate::{
     app::{folder_display_name, SsbhApp},
+    model_folder::find_anim_folders,
     widgets::EyeCheckBox,
     AnimationIndex, AnimationSlot, ModelFolderState,
 };
+use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
 
 pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     // Only assign animations to folders with model files.
@@ -25,37 +23,37 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
             .show(ui, |ui| {
                 // Associate animations with the model folder by name.
                 // TODO: Is is it worth precomputing this list for performance?
-                let available_anims = find_anim_folders(model, &app.models);
+                let available_folders = find_anim_folders(model, &app.models);
 
-                if available_anims.is_empty() {
-                    // TODO: Don't show the rest of the UI if this is the case.
+                if available_folders.is_empty() {
                     let message = "No matching animations found for this folder. \
                         Add the matching animation folder(s) with File > Add Folder to Workspace.";
                     ui.label(message);
-                }
+                } else {
+                    // TODO: Disable the UI instead?
+                    let model_animations = app.animation_state.animations.get_mut(model_index);
+                    if let Some(model_animations) = model_animations {
+                        if ui.button("Add Slot").clicked() {
+                            model_animations.push(AnimationSlot::new());
+                        }
 
-                let model_animations = app.animation_state.animations.get_mut(model_index);
-                if let Some(model_animations) = model_animations {
-                    if ui.button("Add Slot").clicked() {
-                        model_animations.push(AnimationSlot::new());
-                    }
+                        for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
+                            app.animation_state.should_update_animations |= show_anim_slot(
+                                ctx,
+                                ui,
+                                anim_slot,
+                                &app.models,
+                                &available_folders,
+                                model_index,
+                                slot,
+                                &mut slots_to_remove,
+                            );
+                        }
 
-                    for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
-                        app.animation_state.should_update_animations |= show_anim_slot(
-                            ctx,
-                            ui,
-                            anim_slot,
-                            &app.models,
-                            &available_anims,
-                            model_index,
-                            slot,
-                            &mut slots_to_remove,
-                        );
-                    }
-
-                    // TODO: Force only one slot to be removed?
-                    for slot in slots_to_remove {
-                        model_animations.remove(slot);
+                        // TODO: Force only one slot to be removed?
+                        for slot in slots_to_remove {
+                            model_animations.remove(slot);
+                        }
                     }
                 }
             });
@@ -67,7 +65,7 @@ fn show_anim_slot(
     ui: &mut Ui,
     anim_slot: &mut AnimationSlot,
     models: &[ModelFolderState],
-    available_anims: &[(usize, &ModelFolderState)],
+    available_folders: &[(usize, &ModelFolderState)],
     model_index: usize,
     slot: usize,
     slots_to_remove: &mut Vec<usize>,
@@ -97,7 +95,7 @@ fn show_anim_slot(
                     update_animations = true;
                 }
 
-                if anim_combo_box(ui, available_anims, id.with("anim"), name, anim_slot) {
+                if anim_combo_box(ui, available_folders, id.with("anim"), name, anim_slot) {
                     // Reflect selecting a new animation in the viewport.
                     update_animations = true;
                 }
@@ -185,115 +183,4 @@ fn anim_combo_box(
         });
 
     changed
-}
-
-fn find_anim_folders<'a>(
-    model: &ModelFolderState,
-    anim_folders: &'a [ModelFolderState],
-) -> Vec<(usize, &'a ModelFolderState)> {
-    let mut folders: Vec<_> = anim_folders
-        .iter()
-        .enumerate()
-        .filter(|(_, m)| !m.model.anims.is_empty())
-        .collect();
-
-    // Sort in increasing order of affinity with the model folder.
-    folders.sort_by_key(|(_, a)| {
-        // The animation folder affinity is the number of matching path components.
-        // Consider the model folder "/mario/model/body/c00".
-        // The folder "/mario/motion/body/c00" scores higher than "/mario/motion/pump/c00".
-        Path::new(&model.model.folder_name)
-            .components()
-            .rev()
-            .zip(Path::new(&a.model.folder_name).components().rev())
-            .take_while(|(a, b)| a == b)
-            .count()
-    });
-    folders
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{validation::ModelValidationErrors, FileChanged};
-    use ssbh_data::anim_data::AnimData;
-    use ssbh_wgpu::ModelFolder;
-
-    use super::*;
-
-    fn model_folder(name: &str) -> ModelFolderState {
-        ModelFolderState {
-            model: ModelFolder {
-                folder_name: name.to_owned(),
-                meshes: Vec::new(),
-                skels: Vec::new(),
-                matls: Vec::new(),
-                modls: Vec::new(),
-                adjs: Vec::new(),
-                anims: Vec::new(),
-                hlpbs: Vec::new(),
-                nutexbs: Vec::new(),
-                meshexes: Vec::new(),
-            },
-            swing_prc: None,
-            thumbnails: Vec::new(),
-            validation: ModelValidationErrors::default(),
-            changed: FileChanged::default(),
-        }
-    }
-
-    fn anim_folder(name: &str) -> ModelFolderState {
-        ModelFolderState {
-            model: ModelFolder {
-                folder_name: name.to_owned(),
-                meshes: Vec::new(),
-                skels: Vec::new(),
-                matls: Vec::new(),
-                modls: Vec::new(),
-                adjs: Vec::new(),
-                anims: vec![(
-                    String::new(),
-                    Ok(AnimData {
-                        major_version: 2,
-                        minor_version: 0,
-                        final_frame_index: 0.0,
-                        groups: Vec::new(),
-                    }),
-                )],
-                hlpbs: Vec::new(),
-                nutexbs: Vec::new(),
-                meshexes: Vec::new(),
-            },
-            swing_prc: None,
-            thumbnails: Vec::new(),
-            validation: ModelValidationErrors::default(),
-            changed: FileChanged::default(),
-        }
-    }
-
-    #[test]
-    fn find_anim_folders_no_folders() {
-        assert!(find_anim_folders(&model_folder("/model/body/c00"), &[]).is_empty());
-    }
-
-    #[test]
-    fn find_anim_folders_empty_folders() {
-        // Folders without animations should be excluded.
-        assert!(find_anim_folders(
-            &model_folder("/model/body/c00"),
-            &[model_folder("/motion/body/c00")]
-        )
-        .is_empty());
-    }
-
-    #[test]
-    fn find_anim_folders_compare_matches() {
-        // The second folder is the best match.
-        let anim_folders = vec![
-            anim_folder("/motion/pump/c00"),
-            anim_folder("/motion/body/c00"),
-            anim_folder("/motion/body/c01"),
-        ];
-        let folders = find_anim_folders(&model_folder("/model/body/c00"), &anim_folders);
-        assert!(matches!(folders.as_slice(), [(2, _), (0, _), (1, _)]));
-    }
 }

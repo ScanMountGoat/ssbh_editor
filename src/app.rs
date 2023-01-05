@@ -17,12 +17,13 @@ use crate::{
     },
     hide_expressions, load_model_render_model,
     log::AppLogger,
+    model_folder::{FileChanged, ModelFolderState},
     path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
     update::LatestReleaseInfo,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, EditorResponse, FileChanged,
-    FileResult, ModelFolderState, RenderState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
+    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, EditorResponse, FileResult,
+    RenderState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, Image, Label, Response,
