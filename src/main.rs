@@ -11,13 +11,13 @@ use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
 use ssbh_editor::update::{check_for_updates, LatestReleaseInfo};
-use ssbh_editor::Thumbnail;
 use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
     generate_default_thumbnails, generate_model_thumbnails,
     path::{presets_file, PROJECT_DIR},
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
+use ssbh_editor::{SwingState, Thumbnail};
 use ssbh_wgpu::{CameraTransforms, RenderModel, SsbhRenderer};
 use std::iter;
 use std::path::Path;
@@ -363,7 +363,8 @@ fn create_app(
         draw_bone_names: false,
         ui_state: UiState::default(),
         render_state,
-        animation_state: AnimationState::new(),
+        animation_state: AnimationState::default(),
+        swing_state: SwingState::default(),
         show_left_panel: true,
         show_right_panel: true,
         show_bottom_panel: true,

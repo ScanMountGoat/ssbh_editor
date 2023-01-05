@@ -2,6 +2,7 @@ use crate::{
     app::{folder_display_name, SsbhApp},
     model_folder::{find_swing_folders, ModelFolderState},
     widgets::EyeCheckBox,
+    SwingState,
 };
 use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
 use ssbh_wgpu::swing::*;
@@ -29,19 +30,31 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                 } else {
                     ui.horizontal(|ui| {
                         ui.label("Swing PRC");
-                        swing_combo_box(
-                            ui,
-                            &available_folders,
-                            ui.make_persistent_id("swingcombo").with(i),
-                        );
+                        if let Some(prc_index) = app.swing_state.selected_swing_folders.get_mut(i) {
+                            swing_combo_box(
+                                ui,
+                                &available_folders,
+                                ui.make_persistent_id("swingcombo").with(i),
+                                prc_index,
+                            );
+                        }
                     });
 
-                    if let Some(swing_prc) = &model.swing_prc {
+                    if let Some(swing_prc) = get_swing_prc(i, &app.swing_state, &app.models) {
                         list_swing_bones(ctx, id, ui, swing_prc);
                     }
                 }
             });
     }
+}
+
+fn get_swing_prc<'a>(
+    model_index: usize,
+    state: &SwingState,
+    models: &'a [ModelFolderState],
+) -> Option<&'a SwingPrc> {
+    let prc_index = state.selected_swing_folders.get(model_index)?.as_ref()?;
+    models.get(*prc_index)?.swing_prc.as_ref()
 }
 
 fn list_swing_bones(ctx: &Context, id: egui::Id, ui: &mut Ui, swing_prc: &SwingPrc) {
@@ -88,16 +101,23 @@ fn list_collisions(ui: &mut Ui, param: &Param) {
     });
 }
 
-fn swing_combo_box(ui: &mut Ui, anim_folders: &[(usize, &ModelFolderState)], id: egui::Id) -> bool {
+fn swing_combo_box(
+    ui: &mut Ui,
+    anim_folders: &[(usize, &ModelFolderState)],
+    id: egui::Id,
+    prc_index: &mut Option<usize>,
+) -> bool {
     // TODO: Union the responses instead?
     let mut changed = false;
 
+    let name = if prc_index.is_some() { "swing.prc" } else { "" };
+
     egui::ComboBox::from_id_source(id)
         .width(200.0)
-        .selected_text("todo")
+        .selected_text(name)
         .show_ui(ui, |ui| {
             // Iterate in decreasing order of affinity with the model folder.
-            for (_, folder) in anim_folders.iter().rev() {
+            for (i, folder) in anim_folders.iter().rev() {
                 // TODO: Is it worth grouping by folder if there's only one swing?
                 // TODO: Just show the full path for each swing.prc?
                 ui.add(
@@ -105,8 +125,9 @@ fn swing_combo_box(ui: &mut Ui, anim_folders: &[(usize, &ModelFolderState)], id:
                         .wrap(false),
                 );
                 if folder.swing_prc.is_some() {
-                    // TODO: Store the selected prc so the render model can be updated later.
-                    changed |= ui.selectable_value(&mut 0, 0, "swing.prc").changed();
+                    changed |= ui
+                        .selectable_value(prc_index, Some(*i), "swing.prc")
+                        .changed();
                 }
             }
         });

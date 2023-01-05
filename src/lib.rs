@@ -158,6 +158,11 @@ impl RenderState {
     }
 }
 
+#[derive(Default)]
+pub struct SwingState {
+    pub selected_swing_folders: Vec<Option<usize>>,
+}
+
 pub struct AnimationState {
     pub current_frame: f32,
     pub is_playing: bool,
@@ -170,8 +175,8 @@ pub struct AnimationState {
     pub previous_frame_start: std::time::Instant,
 }
 
-impl AnimationState {
-    pub fn new() -> Self {
+impl Default for AnimationState {
+    fn default() -> Self {
         Self {
             animations: Vec::new(),
             is_playing: false,
@@ -183,12 +188,6 @@ impl AnimationState {
             should_loop: true,
             playback_speed: 1.0,
         }
-    }
-}
-
-impl Default for AnimationState {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

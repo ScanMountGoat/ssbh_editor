@@ -23,7 +23,7 @@ use crate::{
     update::LatestReleaseInfo,
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraInputState, EditorResponse, FileResult,
-    RenderState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
+    RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
     collapsing_header::CollapsingState, Button, CollapsingHeader, Context, Image, Label, Response,
@@ -348,6 +348,8 @@ pub struct SsbhApp {
 
     pub default_thumbnails: Vec<Thumbnail>,
     pub animation_state: AnimationState,
+    pub swing_state: SwingState,
+
     pub render_state: RenderState,
 
     pub show_left_panel: bool,
@@ -599,6 +601,10 @@ impl SsbhApp {
                 }
             }));
 
+        self.swing_state
+            .selected_swing_folders
+            .extend(std::iter::repeat(None).take(new_models.len()));
+
         // Only load new render models for better performance.
         // TODO: Handle this with models to update?
         for model in new_models {
@@ -661,6 +667,7 @@ impl SsbhApp {
         self.models = Vec::new();
         self.render_models = Vec::new();
         self.animation_state.animations = Vec::new();
+        self.swing_state.selected_swing_folders = Vec::new();
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }

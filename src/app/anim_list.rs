@@ -14,7 +14,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         .enumerate()
         .filter(|(_, model)| model.is_model_folder())
     {
-        let mut slots_to_remove = Vec::new();
+        let mut slot_to_remove = None;
 
         let id = ui.make_persistent_id("animlist").with(model_index);
         CollapsingHeader::new(folder_display_name(&model.model))
@@ -46,12 +46,11 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                                 &available_folders,
                                 model_index,
                                 slot,
-                                &mut slots_to_remove,
+                                &mut slot_to_remove,
                             );
                         }
 
-                        // TODO: Force only one slot to be removed?
-                        for slot in slots_to_remove {
+                        if let Some(slot) = slot_to_remove {
                             model_animations.remove(slot);
                         }
                     }
@@ -68,7 +67,7 @@ fn show_anim_slot(
     available_folders: &[(usize, &ModelFolderState)],
     model_index: usize,
     slot: usize,
-    slots_to_remove: &mut Vec<usize>,
+    slot_to_remove: &mut Option<usize>,
 ) -> bool {
     let mut update_animations = false;
 
@@ -102,7 +101,7 @@ fn show_anim_slot(
 
                 // Use "Remove" since this doesn't delete the actual animation.
                 if ui.button("Remove").clicked() {
-                    slots_to_remove.push(slot);
+                    *slot_to_remove = Some(slot);
                 }
             });
         })
