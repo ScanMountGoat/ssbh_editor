@@ -7,8 +7,8 @@ use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{
-    swing::SwingPrc, ModelFolder, ModelRenderOptions, RenderSettings, SharedRenderData,
-    SkinningSettings,
+    swing::SwingPrc, ModelFolder, ModelRenderOptions, RenderModel, RenderSettings,
+    SharedRenderData, SkinningSettings,
 };
 use std::{collections::BTreeMap, error::Error};
 use validation::ModelValidationErrors;
@@ -667,5 +667,76 @@ pub fn animate_models(app: &mut SsbhApp) {
             app.animation_state.current_frame,
             app.animation_state.should_loop,
         );
+    }
+}
+
+fn load_model_render_model(
+    model: ssbh_wgpu::ModelFolder,
+    render_state: &RenderState,
+) -> (RenderModel, ModelFolderState) {
+    let render_model = RenderModel::from_folder(
+        &render_state.device,
+        &render_state.queue,
+        &model,
+        &render_state.shared_data,
+    );
+
+    let model_state = ModelFolderState::from_model_and_swing(model, None);
+
+    (render_model, model_state)
+}
+
+fn hide_expressions(render_model: &mut RenderModel) {
+    let patterns: [&str; 36] = [
+        "_bink",
+        "_low",
+        "appeal",
+        "attack",
+        "blink",
+        "bound",
+        "breath",
+        "camerahit",
+        "capture",
+        "catch",
+        "cliff",
+        "damage",
+        "down",
+        "escape",
+        "fall",
+        "final",
+        "flip",
+        "fura",
+        "half",
+        "harf",
+        "heavy",
+        "hot",
+        "inkmesh",
+        "laugh",
+        "open_mouth",
+        "ottotto",
+        "ouch",
+        "pattern",
+        "result",
+        "result",
+        "smalleye",
+        "sorori",
+        "steppose",
+        "swell",
+        "talk",
+        "voice",
+    ];
+
+    let default_patterns = ["openblink", "belly_low", "facen"];
+
+    for mesh in &mut render_model.meshes {
+        let name = &mesh.name.to_lowercase();
+
+        // Default expressions should remain visible.
+        // Make all other expressions invisible.
+        if !default_patterns.iter().any(|p| name.contains(p))
+            && patterns.iter().any(|p| name.contains(p))
+        {
+            mesh.is_visible = false;
+        }
     }
 }

@@ -15,6 +15,7 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
+    hide_expressions, load_model_render_model,
     log::AppLogger,
     path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
@@ -35,7 +36,7 @@ use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{swing::SwingPrc, ModelFiles, RenderModel};
+use ssbh_wgpu::{ModelFiles, RenderModel};
 use std::{
     path::{Path, PathBuf},
     sync::Mutex,
@@ -599,24 +600,18 @@ impl SsbhApp {
 
         // Only load new render models for better performance.
         // TODO: Handle this with models to update?
-        self.render_models.extend(new_models.iter().map(|model| {
-            RenderModel::from_folder(
-                &self.render_state.device,
-                &self.render_state.queue,
-                model,
-                &self.render_state.shared_data,
-            )
-        }));
+        for model in new_models {
+            let (mut render_model, model_state) =
+                load_model_render_model(model, &self.render_state);
 
-        if self.preferences.autohide_expressions {
-            self.hide_expressions();
+            // Only hide expressions on new models to preserve visibility edits.
+            if self.preferences.autohide_expressions {
+                hide_expressions(&mut render_model);
+            }
+
+            self.models.push(model_state);
+            self.render_models.push(render_model);
         }
-
-        self.models.extend(new_models.into_iter().map(|model| {
-            let swing_prc_path = Path::new(&model.folder_name).join("swing.prc");
-            let swing_prc = SwingPrc::from_file(swing_prc_path);
-            ModelFolderState::from_model_and_swing(model, swing_prc)
-        }));
 
         self.sort_files();
 
@@ -677,67 +672,6 @@ impl SsbhApp {
             model.model.modls.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
             model.model.nutexbs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
             model.model.skels.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
-        }
-    }
-
-    pub fn hide_expressions(&mut self) {
-        let patterns: [&str; 36] = [
-            "_bink",
-            "_low",
-            "appeal",
-            "attack",
-            "blink",
-            "bound",
-            "breath",
-            "camerahit",
-            "capture",
-            "catch",
-            "cliff",
-            "damage",
-            "down",
-            "escape",
-            "fall",
-            "final",
-            "flip",
-            "fura",
-            "half",
-            "harf",
-            "heavy",
-            "hot",
-            "inkmesh",
-            "laugh",
-            "open_mouth",
-            "ottotto",
-            "ouch",
-            "pattern",
-            "result",
-            "result",
-            "smalleye",
-            "sorori",
-            "steppose",
-            "swell",
-            "talk",
-            "voice",
-        ];
-        let pattern_exceptions: [&str; 3] = ["openblink", "belly_low", "facen"];
-
-        for render_model in &mut self.render_models {
-            for mesh in &mut render_model.meshes {
-                let name = &mesh.name.to_lowercase();
-                'pattern_search: for pattern in patterns {
-                    //Default expressions
-                    for pattern_exception in pattern_exceptions {
-                        if name.contains(pattern_exception) {
-                            continue 'pattern_search;
-                        }
-                    }
-
-                    //Make all other expressions invisible
-                    if name.contains(pattern) {
-                        mesh.is_visible = false;
-                    }
-                }
-            }
         }
     }
 

@@ -472,7 +472,7 @@ fn update_and_render_app(
     }
 
     // TODO: Load models on a separate thread to avoid freezing the UI.
-    reload_models(app, egui_renderer);
+    reload_render_models(app, egui_renderer);
 
     if app.should_refresh_render_settings {
         renderer.update_render_settings(&app.render_state.queue, &app.render_state.render_settings);
@@ -762,29 +762,41 @@ fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path
     }
 }
 
-fn reload_models(app: &mut SsbhApp, egui_renderer: &mut egui_wgpu::renderer::Renderer) {
+fn reload_render_models(app: &mut SsbhApp, egui_renderer: &mut egui_wgpu::renderer::Renderer) {
     // Only load render models that need to change to improve performance.
+    // Attempt to preserve the model and mesh visibility if possible.
     match app.models_to_update {
         ItemsToUpdate::None => (),
         ItemsToUpdate::One(i) => {
             if let (Some(render_model), Some(model)) =
                 (app.render_models.get_mut(i), app.models.get(i))
             {
-                *render_model = RenderModel::from_folder(
+                let mut new_render_model = RenderModel::from_folder(
                     &app.render_state.device,
                     &app.render_state.queue,
                     &model.model,
                     &app.render_state.shared_data,
                 );
+                copy_visibility(&mut new_render_model, render_model);
+
+                *render_model = new_render_model;
             }
         }
         ItemsToUpdate::All => {
-            app.render_models = ssbh_wgpu::load_render_models(
+            let mut new_render_models = ssbh_wgpu::load_render_models(
                 &app.render_state.device,
                 &app.render_state.queue,
                 app.models.iter().map(|m| &m.model),
                 &app.render_state.shared_data,
             );
+
+            for (new_render_model, old_render_model) in
+                new_render_models.iter_mut().zip(app.render_models.iter())
+            {
+                copy_visibility(new_render_model, old_render_model);
+            }
+
+            app.render_models = new_render_models;
         }
     }
 
@@ -802,11 +814,23 @@ fn reload_models(app: &mut SsbhApp, egui_renderer: &mut egui_wgpu::renderer::Ren
         app.should_update_thumbnails = false;
     }
 
-    if app.models_to_update != ItemsToUpdate::None && app.preferences.autohide_expressions {
-        app.hide_expressions();
-    }
-
     app.models_to_update = ItemsToUpdate::None;
+}
+
+fn copy_visibility(new_render_model: &mut RenderModel, render_model: &RenderModel) {
+    // Preserve the visibility from the old render model.
+    new_render_model.is_visible = render_model.is_visible;
+
+    // The new render meshes may be renamed, added, or deleted.
+    // This makes it impossible to always find the old mesh in general.
+    // Assume the mesh ordering remains the same for simplicity.
+    for (new_mesh, old_mesh) in new_render_model
+        .meshes
+        .iter_mut()
+        .zip(render_model.meshes.iter())
+    {
+        new_mesh.is_visible = old_mesh.is_visible;
+    }
 }
 
 fn get_hovered_material_label(app: &SsbhApp, folder_index: usize) -> Option<&str> {

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::CameraInputState;
+use crate::{hide_expressions, CameraInputState};
 
 use super::SsbhApp;
 use egui::{special_emojis::GITHUB, Button, KeyboardShortcut, Ui};
@@ -196,7 +196,10 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
 
             if ui.button("Hide Expressions").clicked() {
                 ui.close_menu();
-                app.hide_expressions();
+
+                for model in &mut app.render_models {
+                    hide_expressions(model);
+                }
             }
         });
 
