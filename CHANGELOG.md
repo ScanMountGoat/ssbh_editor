@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Changed
+* Adjusted the behavior of adding folders and reloading folders to preserve toggled model and mesh visibility.
+* Adjusted the behavior of reloading folders to reapply assigned animations.
+
 ### Fixed
 * Fixed an issue causing the MeshEx Editor to not track changes or update properly in the viewport.
 

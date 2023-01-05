@@ -651,6 +651,9 @@ impl SsbhApp {
         self.models_to_update = ItemsToUpdate::All;
         self.should_update_thumbnails = true;
         self.should_validate_models = true;
+        // Reloaded models should have their animations applied.
+        // This includes if the animation playback is paused.
+        self.animation_state.should_update_animations = true;
     }
 
     pub fn clear_workspace(&mut self) {
