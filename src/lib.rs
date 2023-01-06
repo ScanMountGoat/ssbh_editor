@@ -161,6 +161,7 @@ impl RenderState {
 #[derive(Default)]
 pub struct SwingState {
     pub selected_swing_folders: Vec<Option<usize>>,
+    pub should_update_swing: bool,
 }
 
 pub struct AnimationState {

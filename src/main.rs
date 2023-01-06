@@ -448,6 +448,7 @@ fn update_and_render_app(
     let output_frame = match surface.get_current_texture() {
         Ok(frame) => frame,
         Err(e) => {
+            // TODO: Return an error instead?
             eprintln!("Dropped frame with error: {e}");
             return;
         }
@@ -467,44 +468,7 @@ fn update_and_render_app(
     let scissor_rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
     renderer.set_scissor_rect(scissor_rect);
 
-    if app.should_update_lighting {
-        update_lighting(renderer, app);
-        app.should_update_lighting = false;
-    }
-
-    // TODO: Load models on a separate thread to avoid freezing the UI.
-    reload_render_models(app, egui_renderer);
-
-    if app.should_refresh_render_settings {
-        renderer.update_render_settings(&app.render_state.queue, &app.render_state.render_settings);
-        renderer
-            .update_skinning_settings(&app.render_state.queue, &app.render_state.skinning_settings);
-        app.should_refresh_render_settings = false;
-    }
-
-    if app.should_refresh_camera_settings {
-        update_camera(
-            renderer,
-            &app.render_state.queue,
-            size,
-            &app.camera_state,
-            window.scale_factor(),
-        );
-        app.should_refresh_camera_settings = false;
-    }
-
-    if app.should_validate_models {
-        // Folders can be validated independently from one another.
-        for model in &mut app.models {
-            model.validate(&app.render_state.shared_data)
-        }
-        app.should_validate_models = false;
-    }
-
-    if app.animation_state.is_playing || app.animation_state.should_update_animations {
-        animate_models(app);
-        app.animation_state.should_update_animations = false;
-    }
+    refresh_render_state(app, renderer, egui_renderer, size, window);
 
     // Prepare the nutexb for rendering.
     // TODO: Avoid doing this each frame.
@@ -628,6 +592,74 @@ fn update_and_render_app(
         // TODO: Run this on another thread?
         render_animation_to_image_sequence(app, size, window, renderer, file);
         app.animation_image_sequence_to_render = None;
+    }
+}
+
+fn refresh_render_state(
+    app: &mut SsbhApp,
+    renderer: &mut SsbhRenderer,
+    egui_renderer: &mut egui_wgpu::Renderer,
+    size: PhysicalSize<u32>,
+    window: &winit::window::Window,
+) {
+    if app.should_update_lighting {
+        update_lighting(renderer, app);
+        app.should_update_lighting = false;
+    }
+
+    // TODO: Load models on a separate thread to avoid freezing the UI.
+    reload_render_models(app, egui_renderer);
+
+    if app.should_refresh_render_settings {
+        renderer.update_render_settings(&app.render_state.queue, &app.render_state.render_settings);
+        renderer
+            .update_skinning_settings(&app.render_state.queue, &app.render_state.skinning_settings);
+        app.should_refresh_render_settings = false;
+    }
+
+    if app.should_refresh_camera_settings {
+        update_camera(
+            renderer,
+            &app.render_state.queue,
+            size,
+            &app.camera_state,
+            window.scale_factor(),
+        );
+        app.should_refresh_camera_settings = false;
+    }
+
+    if app.should_validate_models {
+        // Folders can be validated independently from one another.
+        for model in &mut app.models {
+            model.validate(&app.render_state.shared_data)
+        }
+        app.should_validate_models = false;
+    }
+
+    if app.swing_state.should_update_swing {
+        for ((render_model, prc_index), model) in app
+            .render_models
+            .iter_mut()
+            .zip(app.swing_state.selected_swing_folders.iter())
+            .zip(app.models.iter())
+        {
+            if let Some(swing_prc) = prc_index
+                .and_then(|prc_index| app.models.get(prc_index))
+                .and_then(|m| m.swing_prc.as_ref())
+            {
+                render_model.recreate_swing_collisions(
+                    &app.render_state.device,
+                    swing_prc,
+                    model.model.find_skel(),
+                );
+            }
+        }
+        app.swing_state.should_update_swing = false;
+    }
+
+    if app.animation_state.is_playing || app.animation_state.should_update_animations {
+        animate_models(app);
+        app.animation_state.should_update_animations = false;
     }
 }
 

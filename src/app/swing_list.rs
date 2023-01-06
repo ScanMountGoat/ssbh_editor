@@ -29,9 +29,10 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     ui.label(message);
                 } else {
                     ui.horizontal(|ui| {
+                        // TODO: Add an option to remove the assigned swing.prc.
                         ui.label("Swing PRC");
                         if let Some(prc_index) = app.swing_state.selected_swing_folders.get_mut(i) {
-                            swing_combo_box(
+                            app.swing_state.should_update_swing |= swing_combo_box(
                                 ui,
                                 &available_folders,
                                 ui.make_persistent_id("swingcombo").with(i),
