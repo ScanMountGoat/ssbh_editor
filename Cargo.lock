@@ -3550,6 +3550,7 @@ name = "ssbh_editor"
 version = "0.7.2"
 dependencies = [
  "anyhow",
+ "approx",
  "chrono",
  "directories",
  "egui",

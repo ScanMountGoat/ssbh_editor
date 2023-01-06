@@ -1,4 +1,5 @@
 use crate::{FileResult, TextureDimension};
+use approx::relative_eq;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
     matl_data::{ParamId, WrapMode},
@@ -42,6 +43,7 @@ impl ModelValidationErrors {
         let mesh = model.find_mesh();
         if let Some(mesh) = mesh {
             validate_mesh_subindices(&mut validation, mesh);
+            validate_mesh_vertex_weights(&mut validation, mesh);
         }
 
         let modl = model.find_modl();
@@ -105,6 +107,11 @@ pub enum MeshValidationErrorKind {
 
     #[error("Mesh {mesh_name:?} repeats subindex {subindex}. Meshes with the same name must have unique subindices.")]
     DuplicateSubindex { mesh_name: String, subindex: u64 },
+
+    #[error(
+        "Vertex weights for mesh {mesh_name:?} are not normalized. Vertex weights should sum to 1.0."
+    )]
+    VertexWeightsNotNormalized { mesh_name: String },
 }
 
 pub struct SkelValidationError;
@@ -705,6 +712,32 @@ fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshD
     }
 }
 
+fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &MeshData) {
+    for (i, o) in mesh.objects.iter().enumerate() {
+        // TODO: Also validate 4 weights per vertex.
+        let mut weight_total_by_vertex = HashMap::<u32, f32>::new();
+        for influence in &o.bone_influences {
+            for w in &influence.vertex_weights {
+                *weight_total_by_vertex.entry(w.vertex_index).or_default() += w.vertex_weight;
+            }
+        }
+
+        // Use a threshold in case weights don't sum exactly to 1.0.
+        if weight_total_by_vertex
+            .iter()
+            .any(|(_, t)| !relative_eq!(*t, 1.0, epsilon = 0.001))
+        {
+            let error = MeshValidationError {
+                mesh_object_index: i,
+                kind: MeshValidationErrorKind::VertexWeightsNotNormalized {
+                    mesh_name: o.name.clone(),
+                },
+            };
+            validation.mesh_errors.push(error);
+        }
+    }
+}
+
 fn validate_modl_entries(
     validation: &mut ModelValidationErrors,
     modl: &ModlData,
@@ -752,7 +785,7 @@ mod tests {
     use nutexb::{NutexbFile, NutexbFooter, NutexbFormat};
     use ssbh_data::{
         matl_data::{MatlEntryData, SamplerData, SamplerParam, TextureParam},
-        mesh_data::{AttributeData, MeshObjectData, VectorData},
+        mesh_data::{AttributeData, BoneInfluence, MeshObjectData, VectorData, VertexWeight},
         modl_data::ModlEntryData,
     };
 
@@ -1655,6 +1688,98 @@ mod tests {
         assert_eq!(
             r#"Modl entry assigns to mesh "object2" not found in the model.numshb. Ensure the name and subindex are correct."#,
             format!("{}", validation.modl_errors[2])
+        );
+    }
+
+    #[test]
+    fn mesh_vertex_weights_normalized() {
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    subindex: 0,
+                    bone_influences: vec![
+                        BoneInfluence {
+                            bone_name: "bone1".to_owned(),
+                            vertex_weights: vec![VertexWeight {
+                                vertex_index: 0,
+                                vertex_weight: 0.500,
+                            }],
+                        },
+                        BoneInfluence {
+                            bone_name: "bone2".to_owned(),
+                            vertex_weights: vec![VertexWeight {
+                                vertex_index: 0,
+                                vertex_weight: 0.4999,
+                            }],
+                        },
+                    ],
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "b".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, &mesh);
+
+        assert!(validation.mesh_errors.is_empty());
+    }
+
+    #[test]
+    fn mesh_vertex_weights_not_normalized() {
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    subindex: 0,
+                    bone_influences: vec![BoneInfluence {
+                        bone_name: "bone".to_owned(),
+                        vertex_weights: vec![
+                            VertexWeight {
+                                vertex_index: 0,
+                                vertex_weight: 0.5,
+                            },
+                            VertexWeight {
+                                vertex_index: 0,
+                                vertex_weight: 0.4,
+                            },
+                        ],
+                    }],
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "b".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, &mesh);
+
+        assert_eq!(
+            vec![MeshValidationError {
+                mesh_object_index: 0,
+                kind: MeshValidationErrorKind::VertexWeightsNotNormalized {
+                    mesh_name: "a".to_owned(),
+                }
+            }],
+            validation.mesh_errors
+        );
+
+        assert_eq!(
+            r#"Vertex weights for mesh "a" are not normalized. Vertex weights should sum to 1.0."#,
+            format!("{}", validation.mesh_errors[0])
         );
     }
 }
