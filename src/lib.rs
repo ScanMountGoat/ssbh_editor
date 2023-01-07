@@ -11,7 +11,11 @@ use ssbh_wgpu::{
     swing::SwingPrc, ModelRenderOptions, RenderModel, RenderSettings, SharedRenderData,
     SkinningSettings,
 };
-use std::{collections::BTreeMap, error::Error, path::Path};
+use std::{
+    collections::{BTreeMap, HashSet},
+    error::Error,
+    path::Path,
+};
 use winit::dpi::PhysicalPosition;
 
 pub mod app;
@@ -162,6 +166,11 @@ impl RenderState {
 pub struct SwingState {
     pub selected_swing_folders: Vec<Option<usize>>,
     pub should_update_swing: bool,
+
+    // Collisions are often shared between params.
+    // Use a shared set to avoid tracking shape types separately.
+    // This assumes collision name hashes are unique.
+    pub visible_collisions: Vec<HashSet<u64>>,
 }
 
 pub struct AnimationState {

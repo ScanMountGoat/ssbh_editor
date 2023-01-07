@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     app::{folder_display_name, SsbhApp},
     model_folder::{find_swing_folders, ModelFolderState},
@@ -42,7 +44,11 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     });
 
                     if let Some(swing_prc) = get_swing_prc(i, &app.swing_state, &app.models) {
-                        list_swing_bones(ctx, id, ui, swing_prc);
+                        if let Some(visible_collisions) =
+                            app.swing_state.visible_collisions.get_mut(i)
+                        {
+                            list_swing_bones(ctx, id, ui, swing_prc, visible_collisions);
+                        }
                     }
                 }
             });
@@ -58,48 +64,60 @@ fn get_swing_prc<'a>(
     models.get(*prc_index)?.swing_prc.as_ref()
 }
 
-fn list_swing_bones(ctx: &Context, id: egui::Id, ui: &mut Ui, swing_prc: &SwingPrc) {
+fn list_swing_bones(
+    ctx: &Context,
+    id: egui::Id,
+    ui: &mut Ui,
+    swing_prc: &SwingPrc,
+    visible_collisions: &mut HashSet<u64>,
+) {
     for (i, swing_bone) in swing_prc.swingbones.iter().enumerate() {
         let id = id.with("swingbones").with(i);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
                 let name = swing_bone.name;
-                ui.add(EyeCheckBox::new(
-                    &mut true,
-                    format!("swingbones[{i}] {name}"),
-                ));
+                ui.label(format!("swingbones[{i}] {name}"));
             })
             .body(|ui| {
-                list_params(ctx, id, ui, &swing_bone.params);
+                list_params(ctx, id, ui, &swing_bone.params, visible_collisions);
             });
     }
 }
 
-fn list_params(ctx: &Context, id: egui::Id, ui: &mut Ui, params: &[Param]) {
+fn list_params(
+    ctx: &Context,
+    id: egui::Id,
+    ui: &mut Ui,
+    params: &[Param],
+    visible_collisions: &mut HashSet<u64>,
+) {
     for (i, param) in params.iter().enumerate() {
         let id = id.with("params").with(i);
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
-                ui.add(EyeCheckBox::new(&mut true, format!("params[{i}]")));
+                ui.label(format!("params[{i}]"));
             })
             .body(|ui| {
-                list_collisions(ui, param);
+                list_collisions(ui, param, visible_collisions);
             });
     }
 }
 
-fn list_collisions(ui: &mut Ui, param: &Param) {
-    // Indent without the vertical line.
-    ui.visuals_mut().widgets.noninteractive.bg_stroke.width = 0.0;
-    ui.spacing_mut().indent = 24.0;
-    ui.indent("indent", |ui| {
-        for (i, col) in param.collisions.iter().enumerate() {
-            ui.add(EyeCheckBox::new(
-                &mut true,
-                format!("collisions[{i}] {col}"),
-            ));
+fn list_collisions(ui: &mut Ui, param: &Param, visible_collisions: &mut HashSet<u64>) {
+    for (i, col) in param.collisions.iter().enumerate() {
+        let mut is_visible = visible_collisions.contains(&col.0);
+        ui.add(EyeCheckBox::new(
+            &mut is_visible,
+            format!("collisions[{i}] {col}"),
+        ));
+
+        // Use a set since collisions are shared between params.
+        if is_visible {
+            visible_collisions.insert(col.0);
+        } else {
+            visible_collisions.remove(&col.0);
         }
-    });
+    }
 }
 
 fn swing_combo_box(

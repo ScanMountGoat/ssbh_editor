@@ -39,6 +39,7 @@ use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{ModelFiles, RenderModel};
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::Mutex,
 };
@@ -605,6 +606,12 @@ impl SsbhApp {
             .selected_swing_folders
             .extend(std::iter::repeat(None).take(new_models.len()));
 
+        // Use an empty set since we can't predict the collisions hashes.
+        // This has the side effect of hiding all collisions by default.
+        self.swing_state
+            .visible_collisions
+            .extend(std::iter::repeat(HashSet::new()).take(new_models.len()));
+
         // Only load new render models for better performance.
         // TODO: Handle this with models to update?
         for model in new_models {
@@ -664,10 +671,12 @@ impl SsbhApp {
     }
 
     pub fn clear_workspace(&mut self) {
+        // TODO: Is it easier to have dedicated reset methods?
         self.models = Vec::new();
         self.render_models = Vec::new();
         self.animation_state.animations = Vec::new();
         self.swing_state.selected_swing_folders = Vec::new();
+        self.swing_state.visible_collisions = Vec::new();
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }
