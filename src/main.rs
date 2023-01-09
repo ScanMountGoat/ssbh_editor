@@ -18,7 +18,7 @@ use ssbh_editor::{
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
 use ssbh_editor::{SwingState, Thumbnail};
-use ssbh_wgpu::{CameraTransforms, RenderModel, SsbhRenderer};
+use ssbh_wgpu::{next_frame, CameraTransforms, RenderModel, SsbhRenderer};
 use std::iter;
 use std::path::Path;
 use winit::{
@@ -294,46 +294,6 @@ fn calculate_mvp(
     )
 }
 
-// TODO: Make this part of the public API for ssbh_wgpu?
-pub fn next_frame(
-    current_frame: f32,
-    previous: std::time::Instant,
-    current: std::time::Instant,
-    final_frame_index: f32,
-    playback_speed: f32,
-    should_loop: bool,
-) -> f32 {
-    // Convert elapsed time to a delta in frames.
-    // This relies on interpolation or frame skipping.
-    // TODO: How robust is this timing implementation?
-    // TODO: Create a module/tests for this?
-    let delta_t = current.duration_since(previous);
-
-    // TODO: Ensure 60hz monitors always advanced by exactly one frame per refresh?
-    let millis_per_frame = 1000.0f64 / 60.0f64;
-    let delta_t_frames = delta_t.as_millis() as f64 / millis_per_frame;
-
-    let mut next_frame = current_frame + (delta_t_frames as f32 * playback_speed);
-
-    if next_frame > final_frame_index {
-        if should_loop {
-            // Wrap around to loop the animation.
-            // This may not be seamless if the animations have different lengths.
-            next_frame = if final_frame_index > 0.0 {
-                next_frame.rem_euclid(final_frame_index)
-            } else {
-                // Use 0.0 instead of NaN for empty animations.
-                0.0
-            };
-        } else {
-            // Reduce chances of overflow.
-            next_frame = final_frame_index;
-        }
-    }
-
-    next_frame
-}
-
 // TODO: Make this a method.
 fn create_app(
     default_thumbnails: Vec<Thumbnail>,
@@ -436,8 +396,7 @@ fn update_and_render_app(
     if app.animation_state.is_playing {
         app.animation_state.current_frame = next_frame(
             app.animation_state.current_frame,
-            app.animation_state.previous_frame_start,
-            current_frame_start,
+            current_frame_start.duration_since(app.animation_state.previous_frame_start),
             final_frame_index,
             app.animation_state.playback_speed,
             app.animation_state.should_loop,
@@ -549,8 +508,10 @@ fn update_and_render_app(
                 &app.render_state.device,
                 &app.render_state.queue,
                 &output_view,
-                app.render_models.iter(),
-                app.models.iter().map(|m| m.model.find_skel()),
+                app.render_models
+                    .iter()
+                    .zip(app.models.iter().map(|m| m.model.find_skel()))
+                    .filter_map(|(m, s)| Some((m, s?))),
                 size.width,
                 size.height,
                 mvp,

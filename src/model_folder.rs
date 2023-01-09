@@ -45,7 +45,7 @@ impl ModelFolderState {
 
     pub fn reload(&mut self) {
         // Make sure the ModelFolder is updated first.
-        self.model = ModelFolder::load_folder(&self.model.folder_name);
+        self.model = ModelFolder::load_folder(&self.model.folder_path);
         self.changed = FileChanged::from_model(&self.model);
     }
 }
@@ -109,10 +109,10 @@ fn find_folders_by_path_affinity<'a, P: Fn(&'a ModelFolderState) -> bool>(
         // The folder affinity is the number of matching path components.
         // Consider the model folder "/mario/model/body/c00".
         // The folder "/mario/motion/body/c00" scores higher than "/mario/motion/pump/c00".
-        Path::new(&model.model.folder_name)
+        Path::new(&model.model.folder_path)
             .components()
             .rev()
-            .zip(Path::new(&a.model.folder_name).components().rev())
+            .zip(Path::new(&a.model.folder_path).components().rev())
             .take_while(|(a, b)| a == b)
             .count()
     });
@@ -129,7 +129,7 @@ mod tests {
     fn model_folder(name: &str) -> ModelFolderState {
         ModelFolderState {
             model: ModelFolder {
-                folder_name: name.to_owned(),
+                folder_path: name.to_owned(),
                 meshes: Vec::new(),
                 skels: Vec::new(),
                 matls: Vec::new(),
@@ -150,7 +150,7 @@ mod tests {
     fn anim_folder(name: &str) -> ModelFolderState {
         ModelFolderState {
             model: ModelFolder {
-                folder_name: name.to_owned(),
+                folder_path: name.to_owned(),
                 meshes: Vec::new(),
                 skels: Vec::new(),
                 matls: Vec::new(),

@@ -40,7 +40,7 @@ pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
 pub fn folder_display_name(model: &ModelFolder) -> String {
     // Get enough components to differentiate folder paths.
     // fighter/mario/motion/body/c00 -> mario/motion/body/c00
-    let path = Path::new(&model.folder_name)
+    let path = Path::new(&model.folder_path)
         .components()
         .rev()
         .take(4)

@@ -85,7 +85,7 @@ impl Editor for AdjData {
         let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
         Some(adj_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             adj,
             find_file(&model.model.meshes, "model.numshb"),
@@ -113,7 +113,7 @@ impl Editor for HlpbData {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
         Some(hlpb_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             hlpb,
             find_file(&model.model.skels, "model.nusktb"),
@@ -140,7 +140,7 @@ impl Editor for SkelData {
         let (name, skel) = get_file_to_edit(&mut model.model.skels, *open_file_index)?;
         Some(skel_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             skel,
             state,
@@ -169,7 +169,7 @@ impl Editor for AnimData {
         let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
         Some(anim_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             anim,
             state,
@@ -196,7 +196,7 @@ impl Editor for MeshExData {
         let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
         Some(meshex_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             meshex,
             find_file(&model.model.meshes, "model.numshb"),
@@ -223,7 +223,7 @@ impl Editor for MeshData {
         let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
         Some(mesh_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             mesh,
             render_model,
@@ -254,7 +254,7 @@ impl Editor for ModlData {
         let (name, modl) = get_file_to_edit(&mut model.model.modls, *open_file_index)?;
         Some(modl_editor(
             ctx,
-            &model.model.folder_name,
+            &model.model.folder_path,
             name,
             modl,
             find_file(&model.model.meshes, "model.numshb"),
@@ -581,7 +581,7 @@ impl SsbhApp {
 
         // Load recursively for nested folders like stages.
         let mut new_models = ssbh_wgpu::load_model_folders(&folder);
-        new_models.sort_by_key(|m| m.folder_name.clone());
+        new_models.sort_by_key(|m| m.folder_path.clone());
 
         self.animation_state
             .animations
@@ -870,7 +870,7 @@ impl SsbhApp {
                     if let Some((name, Ok(matl))) = model.model.matls.get_mut(matl_index) {
                         let response = matl_editor(
                             ctx,
-                            &model.model.folder_name,
+                            &model.model.folder_path,
                             name,
                             &mut self.ui_state.matl_editor,
                             matl,
@@ -1014,7 +1014,7 @@ impl SsbhApp {
                     if let Some((name, Ok(nutexb))) = model.model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(
                             ctx,
-                            &folder_editor_title(&model.model.folder_name, name),
+                            &folder_editor_title(&model.model.folder_path, name),
                             nutexb,
                             &mut self.render_state.texture_render_settings,
                         ) {
@@ -1074,7 +1074,7 @@ impl SsbhApp {
                             );
                         })
                         .header_response
-                        .on_hover_text(&model.model.folder_name)
+                        .on_hover_text(&model.model.folder_path)
                         .context_menu(|ui| {
                             // Prevent adding a file that already exists.
                             let mesh = model.model.find_mesh();

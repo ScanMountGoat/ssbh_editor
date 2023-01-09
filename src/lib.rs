@@ -572,8 +572,7 @@ pub fn animate_models(app: &mut SsbhApp) {
                     .and_then(|(_, a)| a.as_ref().ok())
             });
 
-        // TODO: Make frame timing logic in ssbh_wgpu public?
-        render_model.apply_anim(
+        render_model.apply_anims(
             &app.render_state.queue,
             animations,
             model
@@ -600,7 +599,6 @@ pub fn animate_models(app: &mut SsbhApp) {
             },
             &app.render_state.shared_data,
             app.animation_state.current_frame,
-            app.animation_state.should_loop,
         );
     }
 }
@@ -616,7 +614,7 @@ fn load_model_render_model(
         &render_state.shared_data,
     );
 
-    let swing_prc_path = Path::new(&model.folder_name).join("swing.prc");
+    let swing_prc_path = Path::new(&model.folder_path).join("swing.prc");
     let swing_prc = SwingPrc::from_file(swing_prc_path);
 
     let model_state = ModelFolderState::from_model_and_swing(model, swing_prc);
