@@ -19,7 +19,7 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         .filter(|(_, model)| model.is_model_folder())
     {
         let id = ui.make_persistent_id("swinglist").with(i);
-        CollapsingHeader::new(folder_display_name(&model.model))
+        CollapsingHeader::new(folder_display_name(model))
             .id_source(id)
             .default_open(true)
             .show(ui, |ui| {
@@ -140,8 +140,7 @@ fn swing_combo_box(
                 // TODO: Is it worth grouping by folder if there's only one swing?
                 // TODO: Just show the full path for each swing.prc?
                 ui.add(
-                    Label::new(RichText::new(folder_display_name(&folder.model)).heading())
-                        .wrap(false),
+                    Label::new(RichText::new(folder_display_name(folder)).heading()).wrap(false),
                 );
                 if folder.swing_prc.is_some() {
                     changed |= ui

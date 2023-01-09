@@ -260,7 +260,7 @@ fn edit_graphics_backend(graphics_backend: &mut GraphicsBackend, ui: &mut Ui) ->
     // TODO: Limit backends based on the current platform.
     egui::ComboBox::from_id_source("graphics_backend")
         .width(200.0)
-        .selected_text(backend_label(&graphics_backend))
+        .selected_text(backend_label(graphics_backend))
         .show_ui(ui, |ui| {
             for v in GraphicsBackend::VARIANTS {
                 let variant = GraphicsBackend::from_str(v).unwrap();

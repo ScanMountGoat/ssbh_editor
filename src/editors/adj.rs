@@ -7,7 +7,7 @@ use std::path::Path;
 
 pub fn adj_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     adj: &mut AdjData,
     mesh: Option<&MeshData>,

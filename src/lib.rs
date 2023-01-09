@@ -14,7 +14,7 @@ use ssbh_wgpu::{
 use std::{
     collections::{BTreeMap, HashSet},
     error::Error,
-    path::Path,
+    path::PathBuf,
 };
 use winit::dpi::PhysicalPosition;
 
@@ -604,6 +604,7 @@ pub fn animate_models(app: &mut SsbhApp) {
 }
 
 fn load_model_render_model(
+    path: PathBuf,
     model: ssbh_wgpu::ModelFolder,
     render_state: &RenderState,
 ) -> (RenderModel, ModelFolderState) {
@@ -614,10 +615,10 @@ fn load_model_render_model(
         &render_state.shared_data,
     );
 
-    let swing_prc_path = Path::new(&model.folder_path).join("swing.prc");
+    let swing_prc_path = path.join("swing.prc");
     let swing_prc = SwingPrc::from_file(swing_prc_path);
 
-    let model_state = ModelFolderState::from_model_and_swing(model, swing_prc);
+    let model_state = ModelFolderState::from_model_and_swing(path, model, swing_prc);
 
     (render_model, model_state)
 }

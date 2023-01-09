@@ -1,10 +1,11 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use ssbh_wgpu::{swing::SwingPrc, ModelFolder, SharedRenderData};
 
 use crate::{validation::ModelValidationErrors, Thumbnail};
 
 pub struct ModelFolderState {
+    pub folder_path: PathBuf,
     pub model: ModelFolder,
     pub thumbnails: Vec<Thumbnail>,
     pub validation: ModelValidationErrors,
@@ -13,9 +14,14 @@ pub struct ModelFolderState {
 }
 
 impl ModelFolderState {
-    pub fn from_model_and_swing(model: ModelFolder, swing_prc: Option<SwingPrc>) -> Self {
+    pub fn from_model_and_swing(
+        folder_path: PathBuf,
+        model: ModelFolder,
+        swing_prc: Option<SwingPrc>,
+    ) -> Self {
         let changed = FileChanged::from_model(&model);
         Self {
+            folder_path,
             model,
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
@@ -45,7 +51,7 @@ impl ModelFolderState {
 
     pub fn reload(&mut self) {
         // Make sure the ModelFolder is updated first.
-        self.model = ModelFolder::load_folder(&self.model.folder_path);
+        self.model = ModelFolder::load_folder(&self.folder_path);
         self.changed = FileChanged::from_model(&self.model);
     }
 }
@@ -109,10 +115,10 @@ fn find_folders_by_path_affinity<'a, P: Fn(&'a ModelFolderState) -> bool>(
         // The folder affinity is the number of matching path components.
         // Consider the model folder "/mario/model/body/c00".
         // The folder "/mario/motion/body/c00" scores higher than "/mario/motion/pump/c00".
-        Path::new(&model.model.folder_path)
+        Path::new(&model.folder_path)
             .components()
             .rev()
-            .zip(Path::new(&a.model.folder_path).components().rev())
+            .zip(Path::new(&a.folder_path).components().rev())
             .take_while(|(a, b)| a == b)
             .count()
     });
@@ -126,10 +132,10 @@ mod tests {
     use ssbh_data::anim_data::AnimData;
     use ssbh_wgpu::ModelFolder;
 
-    fn model_folder(name: &str) -> ModelFolderState {
+    fn model_folder(folder_path: PathBuf) -> ModelFolderState {
         ModelFolderState {
+            folder_path,
             model: ModelFolder {
-                folder_path: name.to_owned(),
                 meshes: Vec::new(),
                 skels: Vec::new(),
                 matls: Vec::new(),
@@ -147,10 +153,10 @@ mod tests {
         }
     }
 
-    fn anim_folder(name: &str) -> ModelFolderState {
+    fn anim_folder(folder_path: PathBuf) -> ModelFolderState {
         ModelFolderState {
+            folder_path,
             model: ModelFolder {
-                folder_path: name.to_owned(),
                 meshes: Vec::new(),
                 skels: Vec::new(),
                 matls: Vec::new(),
@@ -178,15 +184,15 @@ mod tests {
 
     #[test]
     fn find_anim_folders_no_folders() {
-        assert!(find_anim_folders(&model_folder("/model/body/c00"), &[]).is_empty());
+        assert!(find_anim_folders(&model_folder("/model/body/c00".into()), &[]).is_empty());
     }
 
     #[test]
     fn find_anim_folders_empty_folders() {
         // Folders without animations should be excluded.
         assert!(find_anim_folders(
-            &model_folder("/model/body/c00"),
-            &[model_folder("/motion/body/c00")]
+            &model_folder("/model/body/c00".into()),
+            &[model_folder("/motion/body/c00".into())]
         )
         .is_empty());
     }
@@ -195,11 +201,11 @@ mod tests {
     fn find_anim_folders_compare_matches() {
         // The second folder is the best match.
         let anim_folders = vec![
-            anim_folder("/motion/pump/c00"),
-            anim_folder("/motion/body/c00"),
-            anim_folder("/motion/body/c01"),
+            anim_folder("/motion/pump/c00".into()),
+            anim_folder("/motion/body/c00".into()),
+            anim_folder("/motion/body/c01".into()),
         ];
-        let folders = find_anim_folders(&model_folder("/model/body/c00"), &anim_folders);
+        let folders = find_anim_folders(&model_folder("/model/body/c00".into()), &anim_folders);
         assert!(matches!(folders.as_slice(), [(2, _), (0, _), (1, _)]));
     }
 }

@@ -17,7 +17,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
         let mut slot_to_remove = None;
 
         let id = ui.make_persistent_id("animlist").with(model_index);
-        CollapsingHeader::new(folder_display_name(&model.model))
+        CollapsingHeader::new(folder_display_name(model))
             .id_source(id)
             .default_open(true)
             .show(ui, |ui| {
@@ -52,6 +52,8 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 
                         if let Some(slot) = slot_to_remove {
                             model_animations.remove(slot);
+                            // TODO: This doesn't properly update material animations?
+                            app.animation_state.should_update_animations = true;
                         }
                     }
                 }
@@ -163,8 +165,7 @@ fn anim_combo_box(
             // Iterate in decreasing order of affinity with the model folder.
             for (folder_index, folder) in anim_folders.iter().rev() {
                 ui.add(
-                    Label::new(RichText::new(folder_display_name(&folder.model)).heading())
-                        .wrap(false),
+                    Label::new(RichText::new(folder_display_name(folder)).heading()).wrap(false),
                 );
 
                 for (anim_index, (name, _)) in folder.model.anims.iter().enumerate() {

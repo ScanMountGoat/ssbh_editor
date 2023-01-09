@@ -23,7 +23,7 @@ impl DragDropItem for ModlEntryIndex {
 
 pub fn modl_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     modl: &mut ModlData,
     mesh: Option<&MeshData>,

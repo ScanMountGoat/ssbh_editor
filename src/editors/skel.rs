@@ -22,7 +22,7 @@ impl DragDropItem for SkelBoneIndex {
 
 pub fn skel_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     skel: &mut SkelData,
     state: &mut SkelEditorState,

@@ -16,7 +16,7 @@ use ssbh_data::{
 
 pub fn hlpb_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,

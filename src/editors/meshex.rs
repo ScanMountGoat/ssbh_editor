@@ -7,7 +7,7 @@ use std::path::Path;
 
 pub fn meshex_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     meshex: &mut MeshExData,
     mesh: Option<&MeshData>,

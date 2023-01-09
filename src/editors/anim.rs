@@ -18,7 +18,7 @@ use std::path::Path;
 
 pub fn anim_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     anim: &mut AnimData,
     state: &mut AnimEditorState,

@@ -29,7 +29,7 @@ impl DragDropItem for MeshObjectIndex {
 
 pub fn mesh_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     mesh: &mut MeshData,
     render_model: &mut Option<&mut RenderModel>,

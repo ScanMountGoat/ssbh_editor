@@ -27,7 +27,7 @@ const UNUSED_PARAM: &str =
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
     ctx: &egui::Context,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
     state: &mut MatlEditorState,
     matl: &mut MatlData,
@@ -429,7 +429,7 @@ fn menu_bar(
     modl: &Option<&mut ModlData>,
     state: &mut MatlEditorState,
     material_presets: &mut Vec<MatlEntryData>,
-    folder_name: &str,
+    folder_name: &Path,
     file_name: &str,
 ) -> bool {
     let mut saved = false;

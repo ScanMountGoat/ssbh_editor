@@ -1,6 +1,6 @@
+use crate::model_folder::ModelFolderState;
 use directories::ProjectDirs;
 use once_cell::sync::Lazy;
-use ssbh_wgpu::ModelFolder;
 use std::path::{Path, PathBuf};
 
 pub static PROJECT_DIR: Lazy<ProjectDirs> = Lazy::new(|| {
@@ -24,7 +24,7 @@ pub fn preferences_file() -> PathBuf {
     PROJECT_DIR.data_local_dir().join("preferences.json")
 }
 
-pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
+pub fn folder_editor_title(folder_name: &Path, file_name: &str) -> String {
     // Show a simplified version of the path.
     // fighter/mario/motion/body/c00/model.numatb -> c00/model.numatb
     format!(
@@ -37,7 +37,7 @@ pub fn folder_editor_title(folder_name: &str, file_name: &str) -> String {
     )
 }
 
-pub fn folder_display_name(model: &ModelFolder) -> String {
+pub fn folder_display_name(model: &ModelFolderState) -> String {
     // Get enough components to differentiate folder paths.
     // fighter/mario/motion/body/c00 -> mario/motion/body/c00
     let path = Path::new(&model.folder_path)
