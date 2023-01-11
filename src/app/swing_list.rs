@@ -44,10 +44,10 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                     });
 
                     if let Some(swing_prc) = get_swing_prc(i, &app.swing_state, &app.models) {
-                        if let Some(visible_collisions) =
-                            app.swing_state.visible_collisions.get_mut(i)
+                        if let Some(hidden_collisions) =
+                            app.swing_state.hidden_collisions.get_mut(i)
                         {
-                            list_swing_bones(ctx, id, ui, swing_prc, visible_collisions);
+                            list_swing_bones(ctx, id, ui, swing_prc, hidden_collisions);
                         }
                     }
                 }
@@ -69,7 +69,7 @@ fn list_swing_bones(
     id: egui::Id,
     ui: &mut Ui,
     swing_prc: &SwingPrc,
-    visible_collisions: &mut HashSet<u64>,
+    hidden_collisions: &mut HashSet<u64>,
 ) {
     for (i, swing_bone) in swing_prc.swingbones.iter().enumerate() {
         let id = id.with("swingbones").with(i);
@@ -79,7 +79,7 @@ fn list_swing_bones(
                 ui.label(format!("swingbones[{i}] {name}"));
             })
             .body(|ui| {
-                list_params(ctx, id, ui, &swing_bone.params, visible_collisions);
+                list_params(ctx, id, ui, &swing_bone.params, hidden_collisions);
             });
     }
 }
@@ -89,7 +89,7 @@ fn list_params(
     id: egui::Id,
     ui: &mut Ui,
     params: &[Param],
-    visible_collisions: &mut HashSet<u64>,
+    hidden_collisions: &mut HashSet<u64>,
 ) {
     for (i, param) in params.iter().enumerate() {
         let id = id.with("params").with(i);
@@ -98,14 +98,14 @@ fn list_params(
                 ui.label(format!("params[{i}]"));
             })
             .body(|ui| {
-                list_collisions(ui, param, visible_collisions);
+                list_collisions(ui, param, hidden_collisions);
             });
     }
 }
 
-fn list_collisions(ui: &mut Ui, param: &Param, visible_collisions: &mut HashSet<u64>) {
+fn list_collisions(ui: &mut Ui, param: &Param, hidden_collisions: &mut HashSet<u64>) {
     for (i, col) in param.collisions.iter().enumerate() {
-        let mut is_visible = visible_collisions.contains(&col.0);
+        let mut is_visible = !hidden_collisions.contains(&col.0);
         ui.add(EyeCheckBox::new(
             &mut is_visible,
             format!("collisions[{i}] {col}"),
@@ -113,9 +113,9 @@ fn list_collisions(ui: &mut Ui, param: &Param, visible_collisions: &mut HashSet<
 
         // Use a set since collisions are shared between params.
         if is_visible {
-            visible_collisions.insert(col.0);
+            hidden_collisions.remove(&col.0);
         } else {
-            visible_collisions.remove(&col.0);
+            hidden_collisions.insert(col.0);
         }
     }
 }

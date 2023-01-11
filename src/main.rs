@@ -470,6 +470,14 @@ fn update_and_render_app(
         &app.render_state.model_render_options,
     );
 
+    for (render_model, hidden_collisions) in app
+        .render_models
+        .iter()
+        .zip(app.swing_state.hidden_collisions.iter())
+    {
+        renderer.render_swing(&mut final_pass, render_model, hidden_collisions);
+    }
+
     // TODO: Avoid calculating the MVP matrix every frame.
     // Overlay egui on the final pass to avoid a costly LoadOp::Load.
     // This improves performance on weak integrated graphics.
@@ -491,6 +499,7 @@ fn update_and_render_app(
         app,
         &mut final_pass,
     );
+
     drop(final_pass);
 
     let (_, _, mvp) = calculate_mvp(

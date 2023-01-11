@@ -170,7 +170,7 @@ pub struct SwingState {
     // Collisions are often shared between params.
     // Use a shared set to avoid tracking shape types separately.
     // This assumes collision name hashes are unique.
-    pub visible_collisions: Vec<HashSet<u64>>,
+    pub hidden_collisions: Vec<HashSet<u64>>,
 }
 
 pub struct AnimationState {

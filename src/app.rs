@@ -603,7 +603,7 @@ impl SsbhApp {
         // Use an empty set since we can't predict the collisions hashes.
         // This has the side effect of hiding all collisions by default.
         self.swing_state
-            .visible_collisions
+            .hidden_collisions
             .extend(std::iter::repeat(HashSet::new()).take(new_models.len()));
 
         // Only load new render models for better performance.
@@ -670,7 +670,7 @@ impl SsbhApp {
         self.render_models = Vec::new();
         self.animation_state.animations = Vec::new();
         self.swing_state.selected_swing_folders = Vec::new();
-        self.swing_state.visible_collisions = Vec::new();
+        self.swing_state.hidden_collisions = Vec::new();
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }

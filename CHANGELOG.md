@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Added
+* Added experimental swing collision shape rendering. After adding the animation folder, assign the swing.prc and toggle visibility in the Swing tab.
+
 ### Changed
 * Adjusted the behavior of adding folders and reloading folders to preserve toggled model and mesh visibility.
 * Adjusted the behavior of reloading folders to reapply assigned animations.
