@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Adjusted the behavior of adding folders and reloading folders to preserve toggled model and mesh visibility.
 * Adjusted the behavior of reloading folders to reapply assigned animations.
+* Added a tooltip explaining why editing of some Vector4 components is disabled when unused by the shader.
 
 ### Fixed
 * Fixed an issue causing the MeshEx Editor to not track changes or update properly in the viewport.

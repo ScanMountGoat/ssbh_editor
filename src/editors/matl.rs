@@ -1200,25 +1200,30 @@ fn edit_vector(
     ui.add_enabled(enabled, Label::new(param_label(param.param_id)))
         .on_disabled_hover_text(UNUSED_PARAM);
 
-    // TODO: Is it less annoying to enable all parameters if the shader label is invalid?
     let channels = program
         .map(|p| p.accessed_channels(&param.param_id.to_string()))
         .unwrap_or_default();
     let labels = vector4_labels_short(param.param_id);
     let labels_long = vector4_labels_long(param.param_id);
 
-    // Prevent editing components not accessed by shaders in game.
+    // Prevent editing components not accessed by the shader code.
     let id = egui::Id::new(param.param_id.to_string());
     let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
+        let component = labels[i];
         ui.add_enabled_ui(enabled && channels[i], |ui| {
             ui.horizontal(|ui| {
-                ui.add_sized([15.0, 20.0], egui::Label::new(labels[i]));
+                ui.add_sized([15.0, 20.0], egui::Label::new(component));
                 *changed |= ui
                     .add(DragSlider::new(id.with(labels[i]), value).width(50.0))
                     .on_hover_text(labels_long[i])
                     .changed();
-            });
-        });
+            })
+        })
+        .inner
+        .response
+        .on_disabled_hover_text(format!(
+            "Vector component {component} is not accessed by the shader and will be ignored in game."
+        ));
     };
 
     edit_component(ui, &mut changed, 0, &mut param.data.x);
