@@ -181,7 +181,7 @@ impl Editor for MeshExData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        _: &mut Option<&mut RenderModel>,
+        render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
         _: &Icons,
@@ -194,6 +194,7 @@ impl Editor for MeshExData {
             name,
             meshex,
             find_file(&model.model.meshes, "model.numshb"),
+            render_model,
         ))
     }
 
