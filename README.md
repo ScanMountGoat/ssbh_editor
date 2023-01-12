@@ -31,7 +31,7 @@ SSBH Editor supports a number of model file types. Some files will render in the
 - Edit formats supported by ssbh_data like numdlb, nusktb, numatb, nuhlpb, and numshb files using a more intuitive interface
 
 ## Getting Started
-Open the folder containing the model and textures by clicking File > Open Folder. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
+Open the folder containing the model and textures by clicking File > Open Folder. Files or folders can also be dragged and dropped onto the application window to add them to the workspace. Clicking on supported files in the file list will open the corresponding editor. For example, clicking the model.numatb button will open the material editor. Many of the editors have additional settings that are hidden by default. Check "Advanced Settings" to allow more control over file parameters such as deleting entries or manually editing name fields.
 
 For previewing animations, make sure the animation folder is loaded. Most animations are stored separately from the model folder and should be added with File > Add Folder to Workspace. This also works for adding additional models to the scene. 
 

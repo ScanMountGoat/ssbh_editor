@@ -371,12 +371,26 @@ fn update_and_render_app(
     size: PhysicalSize<u32>,
     surface_config: &wgpu::SurfaceConfiguration,
 ) {
-    let raw_input = winit_state.take_egui_input(window);
-
     // Always update the frame times even if no animation is playing.
     // This avoids skipping when resuming playback.
     let current_frame_start = std::time::Instant::now();
     let final_frame_index = app.max_final_frame_index();
+
+    let raw_input = winit_state.take_egui_input(window);
+
+    // Allow users to drag and drop folders or files.
+    for file in &raw_input.dropped_files {
+        if let Some(path) = file.path.as_ref() {
+            if path.is_file() {
+                // Load the parent folder for files.
+                if let Some(parent) = path.parent() {
+                    app.add_folder_to_workspace(parent, false);
+                }
+            } else {
+                app.add_folder_to_workspace(path, false);
+            }
+        }
+    }
 
     if app.should_update_clear_color {
         // Assume an sRGB framebuffer, so convert sRGB to linear.

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added experimental swing collision shape rendering. After adding the animation folder, assign the swing.prc and toggle visibility in the Swing tab.
 * Added validation for vertex weights being normalized.
+* Added support for loading folders by dragging and dropping files or folders onto the application.
 
 ### Changed
 * Adjusted the behavior of adding folders and reloading folders to preserve toggled model and mesh visibility.
