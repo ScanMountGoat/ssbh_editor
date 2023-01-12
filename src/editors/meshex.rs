@@ -91,7 +91,7 @@ pub fn meshex_editor(
 
                         for group in &mut meshex.mesh_object_groups {
                             for (subindex, entry) in group.entry_flags.iter_mut().enumerate() {
-                                // Avoid short-circuiting below to always show both labels.
+                                // Get responses outside the if condition to always show both labels.
                                 let response1 = hoverable_label(ui, &group.mesh_object_full_name);
                                 let response2 = hoverable_label(ui, &group.mesh_object_name);
 
