@@ -100,6 +100,7 @@ pub fn skel_editor(
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
+                    // TODO: use tabs similar to the anim editor.
                     ui.label("Display Mode");
                     ui.radio_value(&mut state.mode, SkelMode::List, "List");
                     ui.radio_value(&mut state.mode, SkelMode::Hierarchy, "Hierarchy");

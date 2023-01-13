@@ -6,7 +6,7 @@ use crate::{
 use egui::{
     plot::{Legend, Line, Plot, PlotPoint},
     special_emojis::GITHUB,
-    CentralPanel, CollapsingHeader, RichText, ScrollArea, SidePanel,
+    CentralPanel, CollapsingHeader, Grid, RichText, ScrollArea, SidePanel,
 };
 use log::error;
 use rfd::FileDialog;
@@ -75,19 +75,25 @@ pub fn anim_editor(
             ui.horizontal(|ui| {
                 ui.selectable_value(
                     &mut state.editor_tab,
-                    AnimEditorTab::Editor,
-                    RichText::new("Editor").heading(),
+                    AnimEditorTab::Hierarchy,
+                    RichText::new("Hierarchy").heading(),
                 );
                 ui.selectable_value(
                     &mut state.editor_tab,
                     AnimEditorTab::Graph,
                     RichText::new("Graph").heading(),
                 );
+                ui.selectable_value(
+                    &mut state.editor_tab,
+                    AnimEditorTab::List,
+                    RichText::new("List").heading(),
+                );
             });
 
             changed |= match state.editor_tab {
-                AnimEditorTab::Editor => editor_view(ui, anim, state),
+                AnimEditorTab::Hierarchy => hierarchy_view(ui, anim, state),
                 AnimEditorTab::Graph => graph_view(ui, anim, state),
+                AnimEditorTab::List => list_view(ui, anim, state),
             };
         });
 
@@ -98,7 +104,7 @@ pub fn anim_editor(
     }
 }
 
-fn editor_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorState) -> bool {
+fn hierarchy_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorState) -> bool {
     let mut changed = false;
     ScrollArea::vertical()
         .auto_shrink([false; 2])
@@ -124,77 +130,7 @@ fn editor_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorSt
 }
 
 fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
-    let mut _changed = false;
-
-    SidePanel::left("anim_left_panel")
-        .default_width(300.0)
-        .show_inside(ui, |ui| {
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    // TODO: Make names editable in edit mode?
-                    for (g, group) in &mut anim.groups.iter().enumerate() {
-                        CollapsingHeader::new(group.group_type.to_string())
-                            .default_open(false)
-                            .show(ui, |ui| {
-                                for (n, node) in &mut group.nodes.iter().enumerate() {
-                                    match &node.tracks[..] {
-                                        [t] => {
-                                            // Single tracks just use the group type as the name.
-                                            // Make the node selectable instead.
-                                            let mut selected = state.selected_group_index
-                                                == Some(g)
-                                                && state.selected_node_index == Some(n)
-                                                && state.selected_track_index == Some(0);
-                                            ui.selectable_value(
-                                                &mut selected,
-                                                true,
-                                                format!(
-                                                    "{} ({} frames)",
-                                                    node.name,
-                                                    t.values.len()
-                                                ),
-                                            );
-                                            if selected {
-                                                state.selected_group_index = Some(g);
-                                                state.selected_node_index = Some(n);
-                                                state.selected_track_index = Some(0);
-                                            }
-                                        }
-                                        tracks => {
-                                            CollapsingHeader::new(&node.name)
-                                                .default_open(true)
-                                                .show(ui, |ui| {
-                                                    for (t, track) in tracks.iter().enumerate() {
-                                                        let mut selected = state
-                                                            .selected_group_index
-                                                            == Some(g)
-                                                            && state.selected_node_index == Some(n)
-                                                            && state.selected_track_index
-                                                                == Some(t);
-                                                        ui.selectable_value(
-                                                            &mut selected,
-                                                            true,
-                                                            format!(
-                                                                "{} ({} frames)",
-                                                                track.name,
-                                                                track.values.len()
-                                                            ),
-                                                        );
-                                                        if selected {
-                                                            state.selected_group_index = Some(g);
-                                                            state.selected_node_index = Some(n);
-                                                            state.selected_track_index = Some(t);
-                                                        }
-                                                    }
-                                                });
-                                        }
-                                    }
-                                }
-                            });
-                    }
-                });
-        });
+    select_track_panel(ui, anim, state);
 
     CentralPanel::default().show_inside(ui, |ui| {
         let label_fmt = |name: &str, value: &PlotPoint| {
@@ -295,7 +231,7 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                     for (i, v) in values.iter().enumerate() {
                         points.push([i as f64, *v as f64]);
                     }
-                    shapes.push(Line::new(points).name("pattern index"));
+                    shapes.push(Line::new(points).name("value"));
                 }
                 TrackValues::Boolean(values) => {
                     let mut points = Vec::new();
@@ -335,7 +271,79 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
         });
     });
 
-    _changed
+    // The graph view is readonly.
+    false
+}
+
+fn select_track_panel(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) {
+    SidePanel::left("anim_left_panel")
+        .default_width(300.0)
+        .show_inside(ui, |ui| {
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    for (g, group) in anim.groups.iter().enumerate() {
+                        CollapsingHeader::new(group.group_type.to_string())
+                            .default_open(false)
+                            .show(ui, |ui| {
+                                for (n, node) in &mut group.nodes.iter().enumerate() {
+                                    match &node.tracks[..] {
+                                        [t] => {
+                                            // Single tracks just use the group type as the name.
+                                            // Make the node selectable instead.
+                                            let mut selected = state.selected_group_index
+                                                == Some(g)
+                                                && state.selected_node_index == Some(n)
+                                                && state.selected_track_index == Some(0);
+                                            ui.selectable_value(
+                                                &mut selected,
+                                                true,
+                                                format!(
+                                                    "{} ({} frames)",
+                                                    node.name,
+                                                    t.values.len()
+                                                ),
+                                            );
+                                            if selected {
+                                                state.selected_group_index = Some(g);
+                                                state.selected_node_index = Some(n);
+                                                state.selected_track_index = Some(0);
+                                            }
+                                        }
+                                        tracks => {
+                                            CollapsingHeader::new(&node.name)
+                                                .default_open(true)
+                                                .show(ui, |ui| {
+                                                    for (t, track) in tracks.iter().enumerate() {
+                                                        let mut selected = state
+                                                            .selected_group_index
+                                                            == Some(g)
+                                                            && state.selected_node_index == Some(n)
+                                                            && state.selected_track_index
+                                                                == Some(t);
+                                                        ui.selectable_value(
+                                                            &mut selected,
+                                                            true,
+                                                            format!(
+                                                                "{} ({} frames)",
+                                                                track.name,
+                                                                track.values.len()
+                                                            ),
+                                                        );
+                                                        if selected {
+                                                            state.selected_group_index = Some(g);
+                                                            state.selected_node_index = Some(n);
+                                                            state.selected_track_index = Some(t);
+                                                        }
+                                                    }
+                                                });
+                                        }
+                                    }
+                                }
+                            });
+                    }
+                });
+        });
 }
 
 fn selected_track<'a>(groups: &'a [GroupData], state: &AnimEditorState) -> Option<&'a TrackData> {
@@ -384,4 +392,119 @@ fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) ->
     });
 
     changed
+}
+
+fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
+    select_track_panel(ui, anim, state);
+
+    CentralPanel::default().show_inside(ui, |ui| {
+        if let Some(track) = selected_track(&anim.groups, state) {
+            // TODO: The scroll area doesnt extend to the edges?
+            ScrollArea::vertical().show(ui, |ui| {
+                track_value_grid(ui, track);
+            });
+        }
+    });
+
+    // The list view is readonly.
+    false
+}
+
+fn track_value_grid(ui: &mut egui::Ui, track: &TrackData) {
+    // TODO: Use the table builder from egui_extras?
+    Grid::new("anim_grid").show(ui, |ui| match &track.values {
+        TrackValues::Transform(values) => {
+            ui.heading("scale.x");
+            ui.heading("scale.y");
+            ui.heading("scale.z");
+            ui.heading("rotation.x");
+            ui.heading("rotation.y");
+            ui.heading("rotation.z");
+            ui.heading("rotation.w");
+            ui.heading("translation.x");
+            ui.heading("translation.y");
+            ui.heading("translation.z");
+            ui.end_row();
+
+            for v in values {
+                ui.label(v.scale.x.to_string());
+                ui.label(v.scale.y.to_string());
+                ui.label(v.scale.z.to_string());
+
+                ui.label(v.rotation.x.to_string());
+                ui.label(v.rotation.y.to_string());
+                ui.label(v.rotation.z.to_string());
+                ui.label(v.rotation.w.to_string());
+
+                ui.label(v.translation.x.to_string());
+                ui.label(v.translation.y.to_string());
+                ui.label(v.translation.z.to_string());
+
+                ui.end_row();
+            }
+        }
+        TrackValues::UvTransform(values) => {
+            ui.heading("scale_u");
+            ui.heading("scale_v");
+            ui.heading("rotation");
+            ui.heading("translate_u");
+            ui.heading("translate_v");
+            ui.end_row();
+
+            for v in values {
+                ui.label(v.scale_u.to_string());
+                ui.label(v.scale_v.to_string());
+
+                ui.label(v.rotation.to_string());
+
+                ui.label(v.translate_u.to_string());
+                ui.label(v.translate_v.to_string());
+
+                ui.end_row();
+            }
+        }
+        TrackValues::Float(values) => {
+            ui.heading("value");
+            ui.end_row();
+
+            for v in values {
+                ui.label(v.to_string());
+                ui.end_row();
+            }
+        }
+        TrackValues::PatternIndex(values) => {
+            ui.heading("value");
+            ui.end_row();
+
+            for v in values {
+                ui.label(v.to_string());
+                ui.end_row();
+            }
+        }
+        TrackValues::Boolean(values) => {
+            ui.heading("value");
+            ui.end_row();
+
+            for v in values {
+                ui.label(v.to_string());
+                ui.end_row();
+            }
+        }
+        TrackValues::Vector4(values) => {
+            ui.heading("x");
+            ui.heading("y");
+            ui.heading("z");
+            ui.heading("w");
+
+            ui.end_row();
+
+            for v in values {
+                ui.label(v.x.to_string());
+                ui.label(v.y.to_string());
+                ui.label(v.z.to_string());
+                ui.label(v.w.to_string());
+                ui.end_row();
+            }
+        }
+    });
 }

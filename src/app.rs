@@ -522,13 +522,14 @@ pub struct StageLightingState {
 
 #[derive(PartialEq, Eq)]
 pub enum AnimEditorTab {
-    Editor,
+    Hierarchy,
     Graph,
+    List,
 }
 
 impl Default for AnimEditorTab {
     fn default() -> Self {
-        Self::Editor
+        Self::Hierarchy
     }
 }
 
