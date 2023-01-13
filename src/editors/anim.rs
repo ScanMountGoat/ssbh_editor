@@ -399,10 +399,11 @@ fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState
 
     CentralPanel::default().show_inside(ui, |ui| {
         if let Some(track) = selected_track(&anim.groups, state) {
-            // TODO: The scroll area doesnt extend to the edges?
-            ScrollArea::vertical().show(ui, |ui| {
-                track_value_grid(ui, track);
-            });
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    track_value_grid(ui, track);
+                });
         }
     });
 
@@ -411,100 +412,101 @@ fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState
 }
 
 fn track_value_grid(ui: &mut egui::Ui, track: &TrackData) {
-    // TODO: Use the table builder from egui_extras?
-    Grid::new("anim_grid").show(ui, |ui| match &track.values {
-        TrackValues::Transform(values) => {
-            ui.heading("scale.x");
-            ui.heading("scale.y");
-            ui.heading("scale.z");
-            ui.heading("rotation.x");
-            ui.heading("rotation.y");
-            ui.heading("rotation.z");
-            ui.heading("rotation.w");
-            ui.heading("translation.x");
-            ui.heading("translation.y");
-            ui.heading("translation.z");
-            ui.end_row();
+    Grid::new("anim_grid")
+        .striped(true)
+        .show(ui, |ui| match &track.values {
+            TrackValues::Transform(values) => {
+                ui.heading("scale.x");
+                ui.heading("scale.y");
+                ui.heading("scale.z");
+                ui.heading("rotation.x");
+                ui.heading("rotation.y");
+                ui.heading("rotation.z");
+                ui.heading("rotation.w");
+                ui.heading("translation.x");
+                ui.heading("translation.y");
+                ui.heading("translation.z");
+                ui.end_row();
 
-            for v in values {
-                ui.label(v.scale.x.to_string());
-                ui.label(v.scale.y.to_string());
-                ui.label(v.scale.z.to_string());
+                for v in values {
+                    ui.label(v.scale.x.to_string());
+                    ui.label(v.scale.y.to_string());
+                    ui.label(v.scale.z.to_string());
 
-                ui.label(v.rotation.x.to_string());
-                ui.label(v.rotation.y.to_string());
-                ui.label(v.rotation.z.to_string());
-                ui.label(v.rotation.w.to_string());
+                    ui.label(v.rotation.x.to_string());
+                    ui.label(v.rotation.y.to_string());
+                    ui.label(v.rotation.z.to_string());
+                    ui.label(v.rotation.w.to_string());
 
-                ui.label(v.translation.x.to_string());
-                ui.label(v.translation.y.to_string());
-                ui.label(v.translation.z.to_string());
+                    ui.label(v.translation.x.to_string());
+                    ui.label(v.translation.y.to_string());
+                    ui.label(v.translation.z.to_string());
+
+                    ui.end_row();
+                }
+            }
+            TrackValues::UvTransform(values) => {
+                ui.heading("scale_u");
+                ui.heading("scale_v");
+                ui.heading("rotation");
+                ui.heading("translate_u");
+                ui.heading("translate_v");
+                ui.end_row();
+
+                for v in values {
+                    ui.label(v.scale_u.to_string());
+                    ui.label(v.scale_v.to_string());
+
+                    ui.label(v.rotation.to_string());
+
+                    ui.label(v.translate_u.to_string());
+                    ui.label(v.translate_v.to_string());
+
+                    ui.end_row();
+                }
+            }
+            TrackValues::Float(values) => {
+                ui.heading("value");
+                ui.end_row();
+
+                for v in values {
+                    ui.label(v.to_string());
+                    ui.end_row();
+                }
+            }
+            TrackValues::PatternIndex(values) => {
+                ui.heading("value");
+                ui.end_row();
+
+                for v in values {
+                    ui.label(v.to_string());
+                    ui.end_row();
+                }
+            }
+            TrackValues::Boolean(values) => {
+                ui.heading("value");
+                ui.end_row();
+
+                for v in values {
+                    ui.label(v.to_string());
+                    ui.end_row();
+                }
+            }
+            TrackValues::Vector4(values) => {
+                ui.heading("x");
+                ui.heading("y");
+                ui.heading("z");
+                ui.heading("w");
 
                 ui.end_row();
+
+                for v in values {
+                    ui.label(v.x.to_string());
+                    ui.label(v.y.to_string());
+                    ui.label(v.z.to_string());
+                    ui.label(v.w.to_string());
+                    ui.end_row();
+                }
             }
-        }
-        TrackValues::UvTransform(values) => {
-            ui.heading("scale_u");
-            ui.heading("scale_v");
-            ui.heading("rotation");
-            ui.heading("translate_u");
-            ui.heading("translate_v");
-            ui.end_row();
-
-            for v in values {
-                ui.label(v.scale_u.to_string());
-                ui.label(v.scale_v.to_string());
-
-                ui.label(v.rotation.to_string());
-
-                ui.label(v.translate_u.to_string());
-                ui.label(v.translate_v.to_string());
-
-                ui.end_row();
-            }
-        }
-        TrackValues::Float(values) => {
-            ui.heading("value");
-            ui.end_row();
-
-            for v in values {
-                ui.label(v.to_string());
-                ui.end_row();
-            }
-        }
-        TrackValues::PatternIndex(values) => {
-            ui.heading("value");
-            ui.end_row();
-
-            for v in values {
-                ui.label(v.to_string());
-                ui.end_row();
-            }
-        }
-        TrackValues::Boolean(values) => {
-            ui.heading("value");
-            ui.end_row();
-
-            for v in values {
-                ui.label(v.to_string());
-                ui.end_row();
-            }
-        }
-        TrackValues::Vector4(values) => {
-            ui.heading("x");
-            ui.heading("y");
-            ui.heading("z");
-            ui.heading("w");
-
-            ui.end_row();
-
-            for v in values {
-                ui.label(v.x.to_string());
-                ui.label(v.y.to_string());
-                ui.label(v.z.to_string());
-                ui.label(v.w.to_string());
-                ui.end_row();
-            }
-        }
-    });
+        });
 }
