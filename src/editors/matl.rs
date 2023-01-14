@@ -838,7 +838,19 @@ fn edit_matl_entry(
     horizontal_separator_empty(ui);
 
     for param in &mut entry.blend_states {
-        changed |= edit_blend(ui, param);
+        // TODO: Avoid collect.
+        // TODO: Also check that the ParamId matches?
+        let errors: Vec<_> = validation_errors
+            .iter()
+            .filter(|e| {
+                matches!(
+                    &e.kind,
+                    MatlValidationErrorKind::PremultipliedShaderSrcAlpha { .. }
+                )
+            })
+            .collect();
+
+        changed |= edit_blend(ui, param, &errors);
     }
 
     changed
@@ -906,10 +918,11 @@ fn edit_shader(
     changed
 }
 
-fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
+fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) -> bool {
     let mut changed = false;
 
-    CollapsingHeader::new(param_label(param.param_id))
+    let text = param_text(param.param_id, errors);
+    let response = CollapsingHeader::new(text)
         .default_open(true)
         .show(ui, |ui| {
             let id = egui::Id::new(param.param_id.to_string());
@@ -938,7 +951,12 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam) -> bool {
                 // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
                 // TODO: Research in game examples for these presets (premultiplied alpha?)
             });
-        });
+        })
+        .header_response;
+
+    if !errors.is_empty() {
+        response.on_hover_ui(|ui| display_validation_errors(ui, errors));
+    }
 
     changed
 }

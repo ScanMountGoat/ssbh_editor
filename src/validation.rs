@@ -2,7 +2,7 @@ use crate::{FileResult, TextureDimension};
 use approx::relative_eq;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
-    matl_data::{ParamId, WrapMode},
+    matl_data::{BlendFactor, ParamId, WrapMode},
     mesh_data::VectorData,
     prelude::*,
 };
@@ -58,6 +58,7 @@ impl ModelValidationErrors {
             validate_shader_labels(&mut validation, matl, shader_database);
             validate_wrap_mode_tiling(&mut validation, matl, modl, mesh);
             validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
+            validate_premultiplied_blend(&mut validation, matl, shader_database);
             validate_texture_dimensions(
                 &mut validation,
                 matl,
@@ -197,6 +198,13 @@ Use wrap mode Repeat if the texture should tile.",
 
     #[error("Shader label {shader_label:?} for material {material_label:?} is not a valid shader label.")]
     InvalidShaderLabel {
+        material_label: String,
+        shader_label: String,
+    },
+
+    #[error("Material {material_label:?} uses Source Color \"SourceAlpha\", but shader {shader_label:?} already premultiplies alpha.
+Use a Source Color of \"One\" or use a shader that does not premultiply alpha.")]
+    PremultipliedShaderSrcAlpha {
         material_label: String,
         shader_label: String,
     },
@@ -356,6 +364,32 @@ fn validate_shader_labels(
                 },
             };
             validation.matl_errors.push(error);
+        }
+    }
+}
+
+fn validate_premultiplied_blend(
+    validation: &mut ModelValidationErrors,
+    matl: &MatlData,
+    shader_database: &ShaderDatabase,
+) {
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        if let Some(program) = shader_database.get(&entry.shader_label) {
+            if let Some(blend_state) = entry.blend_states.get(0) {
+                if program.premultiplied
+                    && blend_state.data.source_color == BlendFactor::SourceAlpha
+                {
+                    // This will square the src alpha and probably isn't intentional.
+                    let error = MatlValidationError {
+                        entry_index,
+                        kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
+                            material_label: entry.material_label.clone(),
+                            shader_label: entry.shader_label.clone(),
+                        },
+                    };
+                    validation.matl_errors.push(error);
+                }
+            }
         }
     }
 }
@@ -784,7 +818,10 @@ fn validate_modl_entries(
 mod tests {
     use nutexb::{NutexbFile, NutexbFooter, NutexbFormat};
     use ssbh_data::{
-        matl_data::{MatlEntryData, SamplerData, SamplerParam, TextureParam},
+        matl_data::{
+            BlendFactor, BlendStateData, BlendStateParam, MatlEntryData, SamplerData, SamplerParam,
+            TextureParam,
+        },
         mesh_data::{AttributeData, BoneInfluence, MeshObjectData, VectorData, VertexWeight},
         modl_data::ModlEntryData,
     };
@@ -1592,6 +1629,117 @@ mod tests {
             r#"Shader label "SFX_PBS_777002000800824f_opaque" for material "b" is not a valid shader label."#,
             format!("{}", validation.matl_errors[0])
         );
+    }
+
+    #[test]
+    fn premultiplied_shader_src_alpha() {
+        let shader_database = ShaderDatabase::new();
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_0100000008018269_sort".to_owned(),
+                blend_states: vec![BlendStateParam {
+                    param_id: ParamId::BlendState0,
+                    data: BlendStateData {
+                        source_color: BlendFactor::SourceAlpha,
+                        destination_color: BlendFactor::OneMinusSourceAlpha,
+                        alpha_sample_to_coverage: false,
+                    },
+                }],
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: Vec::new(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_premultiplied_blend(&mut validation, &matl, &shader_database);
+
+        assert_eq!(
+            vec![MatlValidationError {
+                entry_index: 0,
+                kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_0100000008018269_sort".to_owned()
+                }
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Material "a" uses Source Color "SourceAlpha", but shader "SFX_PBS_0100000008018269_sort" already premultiplies alpha.
+Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn premultiplied_shader_one() {
+        let shader_database = ShaderDatabase::new();
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_0100000008018269_sort".to_owned(),
+                blend_states: vec![BlendStateParam {
+                    param_id: ParamId::BlendState0,
+                    data: BlendStateData {
+                        source_color: BlendFactor::One,
+                        destination_color: BlendFactor::OneMinusSourceAlpha,
+                        alpha_sample_to_coverage: false,
+                    },
+                }],
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: Vec::new(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_premultiplied_blend(&mut validation, &matl, &shader_database);
+
+        assert!(validation.matl_errors.is_empty());
+    }
+
+    #[test]
+    fn non_premultiplied_shader_source_alpha() {
+        let shader_database = ShaderDatabase::new();
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_0100000008008269_opaque".to_owned(),
+                blend_states: vec![BlendStateParam {
+                    param_id: ParamId::BlendState0,
+                    data: BlendStateData {
+                        source_color: BlendFactor::SourceAlpha,
+                        destination_color: BlendFactor::OneMinusSourceAlpha,
+                        alpha_sample_to_coverage: false,
+                    },
+                }],
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: Vec::new(),
+                textures: Vec::new(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_premultiplied_blend(&mut validation, &matl, &shader_database);
+
+        assert!(validation.matl_errors.is_empty());
     }
 
     #[test]
