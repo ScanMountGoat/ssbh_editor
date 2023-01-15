@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### unreleased
+### 0.8.0 - 2023-01-14
 ### Added
 * Added experimental swing collision shape rendering. After adding the animation folder, assign the swing.prc and toggle visibility in the Swing tab.
 * Added validation for vertex weights being normalized.
@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed an issue causing the MeshEx Editor to not track changes or update properly in the viewport.
 * Fixed an issue where skeletal animations would not reset properly when removing all animation slots.
 * Fixed flickering due to Z-fighting on double sided meshes when using debug shading modes.
+* Fixed an issue where the Matl Editor would sometimes disable editing for too many Vector4 components.
 
 ### 0.7.2 - 2022-12-28
 ### Added
