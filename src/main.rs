@@ -1,3 +1,9 @@
+// Disable the console on Windows in release mode.
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
 use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
 use egui_commonmark::CommonMarkCache;

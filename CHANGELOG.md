@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue causing the MeshEx Editor to not track changes or update properly in the viewport.
 * Fixed an issue where skeletal animations would not reset properly when removing all animation slots.
+* Fixed flickering due to Z-fighting on double sided meshes when using debug shading modes.
 
 ### 0.7.2 - 2022-12-28
 ### Added

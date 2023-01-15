@@ -2506,7 +2506,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#c766e83cc783efeae4e5a18d361d4f5dd54faad5"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#c695e32636bc9a32af287dd9c48b21191923c04f"
 dependencies = [
  "bytemuck",
  "log",
@@ -3611,7 +3611,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#c766e83cc783efeae4e5a18d361d4f5dd54faad5"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#c695e32636bc9a32af287dd9c48b21191923c04f"
 dependencies = [
  "bytemuck",
  "encase",
@@ -4432,7 +4432,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "raw-window-handle 0.5.0",
  "smallvec",
  "static_assertions",
@@ -4458,7 +4458,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle 0.5.0",
  "smallvec",
@@ -4494,7 +4494,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.0",
