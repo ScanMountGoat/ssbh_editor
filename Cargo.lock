@@ -2506,7 +2506,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#c695e32636bc9a32af287dd9c48b21191923c04f"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#fcd9ad866399db764d1f879af89ba0bdcf67f5b4"
 dependencies = [
  "bytemuck",
  "log",
@@ -3536,7 +3536,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#961e188920ccbd69e0dfa99ead7004f2878927eb"
+source = "git+https://github.com/ultimate-research/ssbh_lib#254448c6bde8ab38a3dd52e77de8926b520c8b27"
 dependencies = [
  "ahash 0.7.6",
  "binrw 0.8.4",
@@ -3555,7 +3555,7 @@ dependencies = [
 
 [[package]]
 name = "ssbh_editor"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "approx",
@@ -3597,7 +3597,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#961e188920ccbd69e0dfa99ead7004f2878927eb"
+source = "git+https://github.com/ultimate-research/ssbh_lib#254448c6bde8ab38a3dd52e77de8926b520c8b27"
 dependencies = [
  "binrw 0.8.4",
  "modular-bitfield",
@@ -3611,7 +3611,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#c695e32636bc9a32af287dd9c48b21191923c04f"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#fcd9ad866399db764d1f879af89ba0bdcf67f5b4"
 dependencies = [
  "bytemuck",
  "encase",
@@ -3636,7 +3636,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#961e188920ccbd69e0dfa99ead7004f2878927eb"
+source = "git+https://github.com/ultimate-research/ssbh_lib#254448c6bde8ab38a3dd52e77de8926b520c8b27"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -3644,7 +3644,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.15.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib#961e188920ccbd69e0dfa99ead7004f2878927eb"
+source = "git+https://github.com/ultimate-research/ssbh_lib#254448c6bde8ab38a3dd52e77de8926b520c8b27"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4432,7 +4432,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "raw-window-handle 0.5.0",
  "smallvec",
  "static_assertions",
@@ -4458,7 +4458,7 @@ dependencies = [
  "fxhash",
  "log",
  "naga",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle 0.5.0",
  "smallvec",
@@ -4494,7 +4494,7 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "parking_lot 0.12.1",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.0",
@@ -4546,7 +4546,7 @@ dependencies = [
 [[package]]
 name = "wgsl_to_wgpu"
 version = "0.3.1"
-source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#2011b6314e87f3407c6446873803416de56c77e5"
+source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#a82c88e1ccac73daafca5581b4b5257eaac6f6c7"
 dependencies = [
  "naga",
  "prettyplease",

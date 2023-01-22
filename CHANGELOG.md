@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### 0.8.1 - 2023-01-22
+### Fixed
+* Fixed a regression causing crashes when loading some large mesh files.
+
 ### 0.8.0 - 2023-01-14
 ### Added
 * Added experimental swing collision shape rendering. After adding the animation folder, assign the swing.prc and toggle visibility in the Swing tab.
