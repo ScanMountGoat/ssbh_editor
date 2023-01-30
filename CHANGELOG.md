@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### unreleased
+### Fixed
+* Fixed an issue where materials did not update properly in the viewport when using Matl Editor menu options.
+
 ### 0.8.1 - 2023-01-22
 ### Fixed
 * Fixed a regression causing crashes when loading some large mesh files.

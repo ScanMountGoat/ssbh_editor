@@ -50,7 +50,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            saved |= menu_bar(
+            let (menu_changed, menu_saved) = menu_bar(
                 ui,
                 matl,
                 &modl,
@@ -59,6 +59,8 @@ pub fn matl_editor(
                 folder_name,
                 file_name,
             );
+            changed |= menu_changed;
+            saved |= menu_saved;
             ui.separator();
 
             // TODO: Simplify logic for closing window.
@@ -431,7 +433,8 @@ fn menu_bar(
     material_presets: &mut Vec<MatlEntryData>,
     folder_name: &Path,
     file_name: &str,
-) -> bool {
+) -> (bool, bool) {
+    let mut changed = false;
     let mut saved = false;
 
     egui::menu::bar(ui, |ui| {
@@ -471,6 +474,8 @@ fn menu_bar(
                 matl.entries.push(new_entry);
 
                 state.selected_material_index = matl.entries.len() - 1;
+
+                changed = true;
             }
 
             if button(ui, "Duplicate Current Material").clicked() {
@@ -483,6 +488,8 @@ fn menu_bar(
                 }
 
                 state.selected_material_index = matl.entries.len() - 1;
+
+                changed = true;
             }
             ui.separator();
 
@@ -499,6 +506,7 @@ fn menu_bar(
                 ui.close_menu();
 
                 state.matl_preset_window_open = true;
+                changed = true;
             }
             ui.separator();
 
@@ -506,6 +514,7 @@ fn menu_bar(
                 ui.close_menu();
 
                 remove_duplicates(&mut matl.entries);
+                changed = true;
             }
 
             if ui
@@ -515,7 +524,8 @@ fn menu_bar(
                 ui.close_menu();
 
                 if let Some(modl) = modl {
-                    remove_unused_materials(&mut matl.entries, &modl.entries)
+                    remove_unused_materials(&mut matl.entries, &modl.entries);
+                    changed = true;
                 }
             }
         });
@@ -523,7 +533,7 @@ fn menu_bar(
         help_menu(ui);
     });
 
-    saved
+    (changed, saved)
 }
 
 fn help_menu(ui: &mut Ui) {
