@@ -568,6 +568,7 @@ pub fn param_description(p: ParamId) -> &'static str {
         ParamId::CustomVector13 => "Diffuse Color Scale",
         ParamId::CustomVector14 => "Rim Color",
         ParamId::CustomVector18 => "Sprite Sheet Params",
+        ParamId::CustomVector27 => "Fog Params",
         ParamId::CustomVector30 => "Subsurface Params",
         ParamId::CustomVector31 => "UV Transform Layer 2",
         ParamId::CustomVector32 => "UV Transform Layer 3",
@@ -608,6 +609,7 @@ pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
         | ParamId::CustomVector8
         | ParamId::CustomVector9
         | ParamId::CustomVector10
+        | ParamId::CustomVector11
         | ParamId::CustomVector13
         | ParamId::CustomVector14
         | ParamId::CustomVector15
@@ -621,8 +623,6 @@ pub fn vector4_labels_short(p: ParamId) -> [&'static str; 4] {
         | ParamId::CustomVector43
         | ParamId::CustomVector44
         | ParamId::CustomVector45 => ["R", "G", "B", "A"],
-        ParamId::CustomVector11 => ["R", "G", "B", "A"],
-        ParamId::CustomVector30 => ["X", "Y", "Z", "W"],
         _ => ["X", "Y", "Z", "W"],
     }
 }
@@ -661,6 +661,7 @@ pub fn vector4_labels_long(p: ParamId) -> [&'static str; 4] {
             "Frames per Sprite",
             "Sprite Count",
         ],
+        ParamId::CustomVector27 => ["Fog Intensity", "", "", ""],
         ParamId::CustomVector30 => ["Blend Factor", "Smooth Factor", "", ""],
         ParamId::CustomVector47 => ["Metalness", "Roughness", "Ambient Occlusion", "Specular"],
         _ => ["X", "Y", "Z", "W"],
