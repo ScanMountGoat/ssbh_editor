@@ -81,9 +81,10 @@ Prebuilt binaries are only provided for Windows and MacOS at this time. Users on
 
 ## Useful Tools
 SSBH Editor is designed for editing existing models from imports or in game. For other steps of the mod creation process, see the tools linked below.
-- [Switch-Toolbox](https://github.com/KillzXGaming/Switch-Toolbox) - application that can create and edit Nutexb files (Windows only)
 - [Smash Ultimate Blender](https://github.com/ssbucarlos/smash-ultimate-blender) - addon for Blender for importing and exporting models and animations.
 - [ssbh_data_json](https://github.com/ultimate-research/ssbh_lib) - command line tool to convert SSBH files to JSON for editing in a text editor
+- [Ultimate Tex](https://github.com/ScanMountGoat/ultimate_tex) - batch convert nutexb files to and from formats like DDS or PNG
+- [Switch-Toolbox](https://github.com/KillzXGaming/Switch-Toolbox) - application that can create and edit Nutexb files (Windows only)
 
 ## Credits
 - [egui](https://github.com/emilk/egui) - user interface
