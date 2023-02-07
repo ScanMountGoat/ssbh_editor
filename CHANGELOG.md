@@ -4,8 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Changed
+* Screenshots save with transparent backgrounds when using supported formats like PNG.
+
 ### Fixed
 * Fixed an issue where materials did not update properly in the viewport when using Matl Editor menu options.
+* Fixed an issue where the floor grid would occasionally have white artifacts at the horizon.
+* Fixed an issue where alpha sample to coverage did not render properly on the Metal API for MacOS.
+* Fixed an issue where loading scenes with lots of materials would create too many samplers for some GPU drivers.
 
 ### 0.8.1 - 2023-01-22
 ### Fixed
