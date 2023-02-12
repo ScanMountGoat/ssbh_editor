@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### unreleased
 ### Changed
 * Screenshots save with transparent backgrounds when using supported formats like PNG.
+* Increased width of UI elements in Skel Editor to avoid cutting off long bone names.
 
 ### Fixed
 * Fixed an issue where materials did not update properly in the viewport when using Matl Editor menu options.

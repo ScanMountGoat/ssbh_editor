@@ -152,7 +152,7 @@ fn edit_bones_list(
             // Grids don't work with egui_dnd, so set the label size manually.
             // Use a workaround for left aligning the text.
             // TODO: Highlight the selected bone on hover.
-            let (_, rect) = ui.allocate_space(egui::Vec2::new(120.0, 20.0));
+            let (_, rect) = ui.allocate_space(egui::Vec2::new(250.0, 20.0));
             ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
                 .add(Label::new(&bone.name).sense(egui::Sense::click()));
 
@@ -166,7 +166,7 @@ fn edit_bones_list(
             ui.label("Parent Bone");
             egui::ComboBox::from_id_source(id)
                 .selected_text(parent_bone_name)
-                .width(120.0)
+                .width(250.0)
                 .show_ui(ui, |ui| {
                     changed |= ui
                         .selectable_value(&mut bone.parent_index, None, "None")
