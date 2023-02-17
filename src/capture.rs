@@ -60,6 +60,7 @@ pub fn render_screenshot(
             dimension: wgpu::TextureDimension::D2,
             format: ssbh_wgpu::RGBA_COLOR_FORMAT,
             usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
         });
     let screenshot_view = screenshot_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let mut encoder =
@@ -105,6 +106,7 @@ fn read_texture_to_image(
     });
 
     let texture_desc = wgpu::TextureDescriptor {
+        label: None,
         size: wgpu::Extent3d {
             width,
             height,
@@ -115,7 +117,7 @@ fn read_texture_to_image(
         dimension: wgpu::TextureDimension::D2,
         format: ssbh_wgpu::RGBA_COLOR_FORMAT,
         usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
-        label: None,
+        view_formats: &[],
     };
 
     encoder.copy_texture_to_buffer(

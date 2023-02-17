@@ -338,6 +338,7 @@ pub fn checkerboard_texture(
         usage: wgpu::TextureUsages::COPY_SRC
             | wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
     });
     queue.write_texture(
         wgpu::ImageCopyTexture {
@@ -471,20 +472,23 @@ pub fn widgets_dark() -> Widgets {
     // Modified from the default theme to have higher text contrast.
     Widgets {
         noninteractive: WidgetVisuals {
-            bg_fill: Color32::from_gray(27), // window background
+            weak_bg_fill: Color32::from_gray(27),
+            bg_fill: Color32::from_gray(27),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)), // separators, indentation lines, windows outlines
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK),        // normal text color
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
-            bg_fill: Color32::from_gray(60), // button background
+            weak_bg_fill: Color32::from_gray(60), // button background
+            bg_fill: Color32::from_gray(60),      // checkbox background
             bg_stroke: Default::default(),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK), // button text
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         hovered: WidgetVisuals {
+            weak_bg_fill: Color32::from_gray(70),
             bg_fill: Color32::from_gray(70),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(150)), // e.g. hover over window edge or button
             fg_stroke: Stroke::new(1.5, Color32::from_gray(255)),
@@ -492,6 +496,7 @@ pub fn widgets_dark() -> Widgets {
             expansion: 1.0,
         },
         active: WidgetVisuals {
+            weak_bg_fill: Color32::from_gray(55),
             bg_fill: Color32::from_gray(55),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(255)),
             fg_stroke: Stroke::new(2.0, Color32::from_gray(255)),
@@ -499,6 +504,7 @@ pub fn widgets_dark() -> Widgets {
             expansion: 1.0,
         },
         open: WidgetVisuals {
+            weak_bg_fill: Color32::from_gray(27),
             bg_fill: Color32::from_gray(27),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK),
@@ -512,20 +518,23 @@ pub fn widgets_light() -> Widgets {
     // TODO: Make it more obvious when a label is hovered.
     Widgets {
         noninteractive: WidgetVisuals {
-            bg_fill: Color32::from_gray(248), // window background - should be distinct from TextEdit background
+            weak_bg_fill: Color32::from_gray(248),
+            bg_fill: Color32::from_gray(248),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(190)), // separators, indentation lines, windows outlines
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT),        // normal text color
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
-            bg_fill: Color32::from_gray(230), // button background
+            weak_bg_fill: Color32::from_gray(230), // button background
+            bg_fill: Color32::from_gray(230),      // checkbox background
             bg_stroke: Default::default(),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT), // button text
             rounding: Rounding::same(2.0),
             expansion: 0.0,
         },
         hovered: WidgetVisuals {
+            weak_bg_fill: Color32::from_gray(220),
             bg_fill: Color32::from_gray(220),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(105)), // e.g. hover over window edge or button
             fg_stroke: Stroke::new(1.5, Color32::BLACK),
@@ -533,6 +542,7 @@ pub fn widgets_light() -> Widgets {
             expansion: 1.0,
         },
         active: WidgetVisuals {
+            weak_bg_fill: Color32::from_gray(165),
             bg_fill: Color32::from_gray(165),
             bg_stroke: Stroke::new(1.0, Color32::BLACK),
             fg_stroke: Stroke::new(2.0, Color32::BLACK),
@@ -540,6 +550,7 @@ pub fn widgets_light() -> Widgets {
             expansion: 1.0,
         },
         open: WidgetVisuals {
+            weak_bg_fill: Color32::from_gray(220),
             bg_fill: Color32::from_gray(220),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(160)),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT),

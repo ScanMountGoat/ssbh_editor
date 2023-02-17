@@ -15,15 +15,15 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
     let reload_shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::R);
 
     // Shortcuts need to be handled even while the menu is not open.
-    if ui.input_mut().consume_shortcut(&open_shortcut) {
+    if ui.input_mut(|i| i.consume_shortcut(&open_shortcut)) {
         app.add_folder_to_workspace_from_dialog(true);
     }
 
-    if ui.input_mut().consume_shortcut(&add_shortcut) {
+    if ui.input_mut(|i| i.consume_shortcut(&add_shortcut)) {
         app.add_folder_to_workspace_from_dialog(false)
     }
 
-    if ui.input_mut().consume_shortcut(&reload_shortcut) {
+    if ui.input_mut(|i| i.consume_shortcut(&reload_shortcut)) {
         app.reload_workspace();
     }
 

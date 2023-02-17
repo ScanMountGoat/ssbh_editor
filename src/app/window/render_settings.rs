@@ -158,7 +158,7 @@ fn edit_debug_mode(settings: &mut RenderSettings, ui: &mut egui::Ui) {
             debug_mode(ui, settings, DebugMode::Basic);
             debug_mode(ui, settings, DebugMode::Normals);
             debug_mode(ui, settings, DebugMode::Bitangents);
-            debug_mode(ui, settings, DebugMode::Albedo);
+            debug_mode(ui, settings, DebugMode::Unlit);
             debug_mode(ui, settings, DebugMode::ShaderComplexity);
             ui.separator();
 
@@ -254,7 +254,7 @@ fn debug_tooltip(mode: DebugMode) -> &'static str {
         DebugMode::Basic => "Lambertion diffuse lighting with normal maps applied",
         DebugMode::Normals => "Calculated normals after applying tangents and normal maps",
         DebugMode::Bitangents => "Bitangents calculated by the shaders for normal mapping and anisotropic specular",
-        DebugMode::Albedo => "Final albedo or base color after blending all col map layers and CustomVector11/CustomVector30",
+        DebugMode::Unlit => "The color after applying textures and materials but without any lighting.",
         DebugMode::ShaderComplexity => "Estimated shader complexity based on instruction count. Warmer colors are more expensive.",
         _ => "",
     }

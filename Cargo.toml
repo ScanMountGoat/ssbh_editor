@@ -8,12 +8,14 @@ description = "View, edit, and validate models for Smash Ultimate"
 [dependencies]
 chrono = "0.4"
 pollster = "0.2"
-egui = { version = "0.20.0", default-features = false }
-egui_extras = { version = "0.20.0", features = ["svg"] }
-egui-wgpu = "0.20.0"
-egui-winit = "0.20.0"
-wgpu = "0.14.0"
-winit = "0.27.4"
+egui = { version = "0.21.0", default-features = false }
+egui_extras = { version = "0.21.0", features = ["svg"] }
+egui-wgpu = "0.21.0"
+egui-winit = "0.21.0"
+egui_dnd = "0.3.0"
+egui_commonmark = "0.7.0"
+wgpu = "0.15.0"
+winit = "0.28.1"
 glam = { version = "0.22.0", features = ["mint", "bytemuck"] }
 rfd = "0.10.0"
 ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
@@ -37,9 +39,7 @@ thiserror = "1.0"
 futures-intrusive = "0.4.0" # TODO: Avoid these dependencies?
 futures = "0.3"
 pico-args = "0.5.0"
-egui_dnd = "0.1.0"
 reqwest = { version = "0.11.13", features = ["blocking"] }
-egui_commonmark = "0.6.0"
 approx = "0.5.1"
 
 [profile.release]

@@ -113,6 +113,7 @@ fn main() {
         height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
         alpha_mode: wgpu::CompositeAlphaMode::Auto,
+        view_formats: Vec::new(),
     };
     surface.configure(&device, &surface_config);
 
@@ -721,7 +722,7 @@ fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
     // light00.nuamb
     match &app.ui_state.stage_lighting.light {
         Some(path) => {
-            update_stage_uniforms(renderer, app, path);
+            update_stage_uniforms(renderer, app, path, app.animation_state.current_frame);
         }
         None => renderer.reset_stage_uniforms(&app.render_state.queue),
     }
@@ -776,10 +777,10 @@ fn update_stage_cube_map(render_state: &mut RenderState, path: &Path) {
     }
 }
 
-fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path) {
+fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path, frame: f32) {
     match AnimData::from_file(path) {
         Ok(data) => {
-            renderer.update_stage_uniforms(&app.render_state.queue, &data);
+            renderer.update_stage_uniforms(&app.render_state.queue, &data, frame);
         }
         Err(e) => error!("Error reading {:?}: {}", path, e),
     }
@@ -988,8 +989,11 @@ fn request_adapter(
     window: &winit::window::Window,
     backends: wgpu::Backends,
 ) -> Option<(wgpu::Surface, wgpu::Adapter)> {
-    let instance = wgpu::Instance::new(backends);
-    let surface = unsafe { instance.create_surface(window) };
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends,
+        ..Default::default()
+    });
+    let surface = unsafe { instance.create_surface(window).unwrap() };
 
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {

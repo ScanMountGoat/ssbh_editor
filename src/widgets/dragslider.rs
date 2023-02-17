@@ -49,13 +49,13 @@ impl<'a> Widget for DragSlider<'a> {
 
         // Switch from a slider to a text edit on click.
         // Return to using a slider if the text edit loses focus.
-        let response = if ui.memory().has_focus(kb_edit_id) {
+        let response = if ui.memory(|m| m.has_focus(kb_edit_id)) {
             // Show the full precision while editing the text.
-            let mut value_text = ui
-                .memory()
-                .data
-                .get_temp::<String>(edit_text_id)
-                .unwrap_or_else(|| self.value.to_string());
+            let mut value_text = ui.memory_mut(|m| {
+                m.data
+                    .get_temp::<String>(edit_text_id)
+                    .unwrap_or_else(|| self.value.to_string())
+            });
 
             let mut response = ui.add(
                 TextEdit::singleline(&mut value_text)
@@ -65,17 +65,15 @@ impl<'a> Widget for DragSlider<'a> {
 
             // Confirm the value on enter or if the user clicks away.
             // TODO: Also update value on lost focus.
-            if ui.input().key_pressed(Key::Enter) {
+            if ui.input(|i| i.key_pressed(Key::Enter)) {
                 if let Ok(new_value) = value_text.parse() {
                     *self.value = new_value;
                     response.mark_changed();
                 }
                 response.surrender_focus();
-                ui.memory().data.remove::<String>(edit_text_id);
+                ui.memory_mut(|m| m.data.remove::<String>(edit_text_id));
             } else {
-                ui.memory()
-                    .data
-                    .insert_temp::<String>(edit_text_id, value_text);
+                ui.memory_mut(|m| m.data.insert_temp::<String>(edit_text_id, value_text));
             }
             response
         } else {
@@ -94,15 +92,15 @@ impl<'a> Widget for DragSlider<'a> {
                 ui.allocate_at_least(desired_size.max(text_size), Sense::click_and_drag());
 
             if response.clicked() {
-                ui.memory().request_focus(kb_edit_id);
+                ui.memory_mut(|m| m.request_focus(kb_edit_id));
 
                 // Remove stale values if present.
-                ui.memory().data.remove::<String>(edit_text_id);
+                ui.memory_mut(|m| m.data.remove::<String>(edit_text_id));
 
                 // Select all when next showing the text edit.
                 select_all_text(ui, kb_edit_id);
             } else if response.dragged() {
-                ui.output().cursor_icon = CursorIcon::ResizeHorizontal;
+                ui.output_mut(|o| o.cursor_icon = CursorIcon::ResizeHorizontal);
                 // Don't update the value if the cursor didn't move.
                 // This prevents accidental value changes while clicking.
                 let delta = response.drag_delta();
