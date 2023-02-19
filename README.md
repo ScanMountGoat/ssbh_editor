@@ -1,4 +1,4 @@
-# ssbh_editor [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ssbh_editor?include_prereleases)](https://github.com/ScanMountGoat/ssbh_editor/releases/latest) [![wiki](https://img.shields.io/badge/wiki-guide-success)](https://github.com/ScanMountGoat/ssbh_editor/wiki)
+# ssbh_editor [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ssbh_editor?include_prereleases)](https://github.com/ScanMountGoat/ssbh_editor/releases/latest) [![wiki](https://img.shields.io/badge/wiki-guide-success)](https://github.com/ScanMountGoat/ssbh_editor/wiki) [![Github All Releases](https://img.shields.io/github/downloads/ScanMountGoat/ssbh_editor/total.svg)]()
 
 <img src="https://images.gamebanana.com/img/ss/tools/63acb87bc32c3.jpg" align="top" height="auto" width="auto">
 
