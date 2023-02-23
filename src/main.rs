@@ -778,6 +778,7 @@ fn update_stage_cube_map(render_state: &mut RenderState, path: &Path) {
 }
 
 fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path, frame: f32) {
+    // TODO: Store the file somewhere to allow lighting animations.
     match AnimData::from_file(path) {
         Ok(data) => {
             renderer.update_stage_uniforms(&app.render_state.queue, &data, frame);
