@@ -3,7 +3,9 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString, EnumVariantNames};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, EnumVariantNames, Display, EnumString)]
+#[derive(
+    Debug, Serialize, Deserialize, PartialEq, EnumVariantNames, Display, EnumString, Clone, Copy,
+)]
 pub enum GraphicsBackend {
     Auto,
     Vulkan,

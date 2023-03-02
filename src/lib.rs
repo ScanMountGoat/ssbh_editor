@@ -137,6 +137,7 @@ pub struct RenderState {
     pub viewport_right: Option<f32>,
     pub viewport_top: Option<f32>,
     pub viewport_bottom: Option<f32>,
+    pub adapter_info: wgpu::AdapterInfo,
 }
 
 impl RenderState {
@@ -144,6 +145,7 @@ impl RenderState {
         device: wgpu::Device,
         queue: wgpu::Queue,
         surface_format: wgpu::TextureFormat,
+        adapter_info: wgpu::AdapterInfo,
     ) -> Self {
         let shared_data = SharedRenderData::new(&device, &queue, surface_format);
         Self {
@@ -158,6 +160,7 @@ impl RenderState {
             viewport_right: None,
             viewport_top: None,
             viewport_bottom: None,
+            adapter_info,
         }
     }
 }

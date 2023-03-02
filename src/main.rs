@@ -66,37 +66,7 @@ fn main() {
         }
     }
 
-    let start = std::time::Instant::now();
-
-    let preferred_backends = match preferences.graphics_backend {
-        GraphicsBackend::Auto => wgpu::Backends::PRIMARY,
-        GraphicsBackend::Vulkan => wgpu::Backends::VULKAN,
-        GraphicsBackend::Metal => wgpu::Backends::METAL,
-        GraphicsBackend::Dx12 => wgpu::Backends::DX12,
-    };
-
-    // Try the other backends in case the user sets the wrong preferred backend.
-    // Try DX12 last to fix Vulkan not working on some Windows systems.
-    // TODO: Get adapter info and display in GPU preferences?
-    // TODO: Enumerate available adapters?
-    let (surface, adapter) = request_adapter(&window, preferred_backends)
-        .or_else(|| request_adapter(&window, wgpu::Backends::VULKAN | wgpu::Backends::METAL))
-        .or_else(|| request_adapter(&window, wgpu::Backends::DX12))
-        .unwrap();
-
-    println!("Request compatible adapter: {:?}", start.elapsed());
-
-    let (device, queue) = adapter
-        .request_device(
-            &wgpu::DeviceDescriptor {
-                features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
-                limits: wgpu::Limits::default(),
-                label: None,
-            },
-            None,
-        )
-        .block_on()
-        .unwrap();
+    let (surface, device, queue, adapter) = initialize_wgpu(preferences.graphics_backend, &window);
 
     create_app_data_directory();
 
@@ -175,7 +145,7 @@ fn main() {
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 255, 0, 255]);
 
-    let render_state = RenderState::new(device, queue, surface_format);
+    let render_state = RenderState::new(device, queue, surface_format, adapter.get_info());
     let default_thumbnails = generate_default_thumbnails(
         &mut egui_renderer,
         render_state.shared_data.default_textures(),
@@ -276,6 +246,46 @@ fn main() {
             }
         },
     );
+}
+
+fn initialize_wgpu(
+    backend: GraphicsBackend,
+    window: &winit::window::Window,
+) -> (wgpu::Surface, wgpu::Device, wgpu::Queue, wgpu::Adapter) {
+    let start = std::time::Instant::now();
+
+    let preferred_backends = match backend {
+        GraphicsBackend::Auto => wgpu::Backends::PRIMARY,
+        GraphicsBackend::Vulkan => wgpu::Backends::VULKAN,
+        GraphicsBackend::Metal => wgpu::Backends::METAL,
+        GraphicsBackend::Dx12 => wgpu::Backends::DX12,
+    };
+
+    // Try the other backends in case the user sets the wrong preferred backend.
+    // Try DX12 last to fix Vulkan not working on some Windows systems.
+    // TODO: Get adapter info and display in GPU preferences?
+    // TODO: Enumerate available adapters?
+    let (surface, adapter) = request_adapter(window, preferred_backends)
+        .or_else(|| request_adapter(window, wgpu::Backends::VULKAN | wgpu::Backends::METAL))
+        .or_else(|| request_adapter(window, wgpu::Backends::DX12))
+        .unwrap();
+
+    println!("Request compatible adapter: {:?}", start.elapsed());
+    println!("Adapter: {:?}", adapter.get_info());
+
+    let (device, queue) = adapter
+        .request_device(
+            &wgpu::DeviceDescriptor {
+                features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
+                limits: wgpu::Limits::default(),
+                label: None,
+            },
+            None,
+        )
+        .block_on()
+        .unwrap();
+
+    (surface, device, queue, adapter)
 }
 
 // TODO: Separate module for camera + input handling?

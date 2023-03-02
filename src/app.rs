@@ -447,6 +447,7 @@ pub struct UiState {
     pub right_panel_tab: PanelTab,
     pub log_window_open: bool,
     pub preferences_window_open: bool,
+    pub device_info_window_open: bool,
 
     // TODO: Is there a better way to track this?
     // Clicking an item in the file list sets the selected index.
@@ -772,6 +773,8 @@ impl SsbhApp {
         if self.ui_state.camera_settings_open {
             self.should_refresh_camera_settings = true;
         }
+
+        device_info_window(ctx, &mut self.ui_state.device_info_window_open, &self.render_state.adapter_info);
 
         self.should_update_lighting |= stage_lighting_window(
             ctx,

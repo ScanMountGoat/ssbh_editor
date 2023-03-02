@@ -122,6 +122,11 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 ui.close_menu();
                 app.ui_state.preferences_window_open = true;
             }
+
+            if ui.button("Device Info").clicked() {
+                ui.close_menu();
+                app.ui_state.device_info_window_open = true;
+            }
         });
 
         ui.menu_button("Viewport", |ui| {

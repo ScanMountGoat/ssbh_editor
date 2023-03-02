@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### unreleased
 ### Added
 * Added shader information for shadows and lighting to the Matl Editor.
+* Added a Device Info window for showing information about the GPU currently used by SSBH Editor.
 
 ### Changed
 * Screenshots save with transparent backgrounds when using supported formats like PNG.
