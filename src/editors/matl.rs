@@ -65,7 +65,8 @@ pub fn matl_editor(
 
             // TODO: Simplify logic for closing window.
             let entry = matl.entries.get_mut(state.selected_material_index);
-            let (open, preset_changed) = preset_window(state, ctx, material_presets, entry);
+            let (open, preset_changed) =
+                preset_window(state, ctx, material_presets, entry, shader_database);
             if !open {
                 state.matl_preset_window_open = false;
             }
@@ -390,6 +391,7 @@ fn preset_window(
     ctx: &egui::Context,
     material_presets: &[MatlEntryData],
     entry: Option<&mut MatlEntryData>,
+    shader_database: &ShaderDatabase,
 ) -> (bool, bool) {
     let mut open = state.matl_preset_window_open;
     let mut changed = false;
@@ -400,14 +402,7 @@ fn preset_window(
             if material_presets.is_empty() {
                 ui.label("No material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
             } else {
-                for (i, preset) in material_presets.iter().enumerate() {
-                    ui.selectable_value(
-                        &mut state.selected_material_preset_index,
-                        i,
-                        &preset.material_label,
-                    );
-                }
-
+                preset_grid(ui, material_presets, &mut state.selected_material_preset_index, shader_database);
                 if ui.button("Apply").clicked() {
                     if let Some(preset) = material_presets.get(state.selected_material_preset_index)
                     {
@@ -416,13 +411,33 @@ fn preset_window(
                             changed = true;
                         }
                     }
-
                     open = false;
                 }
             }
         });
 
     (open, changed)
+}
+
+fn preset_grid(
+    ui: &mut Ui,
+    material_presets: &[MatlEntryData],
+    selected_index: &mut usize,
+    shader_database: &ShaderDatabase,
+) {
+    Grid::new("preset_grid").show(ui, |ui| {
+        ui.label("Preset");
+        shader_info_header(ui);
+        ui.end_row();
+
+        for (i, preset) in material_presets.iter().enumerate() {
+            ui.selectable_value(selected_index, i, &preset.material_label);
+            if let Some(program) = shader_database.get(&preset.shader_label) {
+                shader_info_values(ui, program);
+            }
+            ui.end_row();
+        }
+    });
 }
 
 fn menu_bar(
@@ -679,7 +694,7 @@ fn edit_matl_entry(
 ) -> bool {
     let mut changed = false;
 
-    let program = shader_database.get(entry.shader_label.get(..24).unwrap_or(""));
+    let program = shader_database.get(&entry.shader_label);
 
     ui.heading("Shader");
     changed |= edit_shader(ui, entry, program, red_checkerboard);
@@ -935,26 +950,35 @@ fn shader_grid(
 
 fn shader_info_grid(ui: &mut Ui, program: &ShaderProgram) {
     Grid::new("shader_info").show(ui, |ui| {
-        ui.label("Alpha Testing")
-            .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
-        ui.label("Premultiplied Alpha").on_hover_text(
-            "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.",
-        );
-        ui.label("Receives Shadow")
-            .on_hover_text("Receives directional shadows. Not to be confused with shadow casting.");
-        ui.label("SH Lighting")
-            .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
-        ui.label("Lightset Lighting")
-            .on_hover_text("Uses directional lighting from the lighting nuanmb.");
+        shader_info_header(ui);
         ui.end_row();
 
-        ui.label(program.discard.to_string());
-        ui.label(program.premultiplied.to_string());
-        ui.label(program.receives_shadow.to_string());
-        ui.label(program.sh.to_string());
-        ui.label(program.lighting.to_string());
+        shader_info_values(ui, program);
         ui.end_row();
     });
+}
+
+fn shader_info_values(ui: &mut Ui, program: &ShaderProgram) {
+    // TODO: use checkmarks so this is easier to parse at a glance.
+    ui.label(program.discard.to_string());
+    ui.label(program.premultiplied.to_string());
+    ui.label(program.receives_shadow.to_string());
+    ui.label(program.sh.to_string());
+    ui.label(program.lighting.to_string());
+}
+
+fn shader_info_header(ui: &mut Ui) {
+    ui.label("Alpha Testing")
+        .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
+    ui.label("Premultiplied Alpha").on_hover_text(
+        "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.",
+    );
+    ui.label("Receives Shadow")
+        .on_hover_text("Receives directional shadows. Not to be confused with shadow casting.");
+    ui.label("SH Lighting")
+        .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
+    ui.label("Lightset Lighting")
+        .on_hover_text("Uses directional lighting from the lighting nuanmb.");
 }
 
 fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) -> bool {
