@@ -397,12 +397,11 @@ fn preset_window(
     let mut changed = false;
     Window::new("Select Material Preset")
         .open(&mut state.matl_preset_window_open)
-        .resizable(false)
         .show(ctx, |ui| {
             if material_presets.is_empty() {
                 ui.label("No material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
             } else {
-                preset_grid(ui, material_presets, &mut state.selected_material_preset_index, shader_database);
+                list_presets(ui, material_presets, &mut state.selected_material_preset_index, shader_database);
                 if ui.button("Apply").clicked() {
                     if let Some(preset) = material_presets.get(state.selected_material_preset_index)
                     {
@@ -419,25 +418,41 @@ fn preset_window(
     (open, changed)
 }
 
-fn preset_grid(
+fn list_presets(
     ui: &mut Ui,
     material_presets: &[MatlEntryData],
     selected_index: &mut usize,
     shader_database: &ShaderDatabase,
 ) {
-    Grid::new("preset_grid").show(ui, |ui| {
-        ui.label("Preset");
-        shader_info_header(ui);
-        ui.end_row();
-
-        for (i, preset) in material_presets.iter().enumerate() {
-            ui.selectable_value(selected_index, i, &preset.material_label);
-            if let Some(program) = shader_database.get(&preset.shader_label) {
-                shader_info_values(ui, program);
+    for (i, preset) in material_presets.iter().enumerate() {
+        let response = ui.selectable_value(selected_index, i, &preset.material_label);
+        if let Some(program) = shader_database.get(&preset.shader_label) {
+            let tooltip = program_attributes(program);
+            if !tooltip.is_empty() {
+                response.on_hover_text(tooltip);
             }
-            ui.end_row();
         }
-    });
+    }
+}
+
+fn program_attributes(program: &ShaderProgram) -> String {
+    let mut attributes = Vec::new();
+    if program.discard {
+        attributes.push("Alpha Testing");
+    }
+    if program.premultiplied {
+        attributes.push("Premultiplied Alpha");
+    }
+    if program.receives_shadow {
+        attributes.push("Receives Shadow");
+    }
+    if program.sh {
+        attributes.push("SH Lighting");
+    }
+    if program.lighting {
+        attributes.push("Lightset Lighting");
+    }
+    attributes.join(", ")
 }
 
 fn menu_bar(
