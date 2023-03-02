@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Added
+* Added shader information for shadows and lighting to the Matl Editor.
+
 ### Changed
 * Screenshots save with transparent backgrounds when using supported formats like PNG.
 * Increased width of UI elements in Skel Editor to avoid cutting off long bone names.

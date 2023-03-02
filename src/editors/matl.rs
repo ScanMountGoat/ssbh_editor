@@ -883,6 +883,23 @@ fn edit_shader(
             red_checkerboard,
         );
     });
+
+    shader_grid(ui, entry, &mut changed, program);
+
+    if let Some(program) = program {
+        horizontal_separator_empty(ui);
+        shader_info_grid(ui, program);
+    }
+
+    changed
+}
+
+fn shader_grid(
+    ui: &mut Ui,
+    entry: &mut MatlEntryData,
+    changed: &mut bool,
+    program: Option<&ShaderProgram>,
+) {
     Grid::new("shader_grid").show(ui, |ui| {
         // TODO: Should this be part of the basic mode.
         ui.label("Render Pass");
@@ -896,7 +913,7 @@ fn edit_shader(
                     shader.clone() + "_sort",
                     shader.clone() + "_near",
                 ] {
-                    changed |= ui
+                    *changed |= ui
                         .selectable_value(
                             &mut entry.shader_label,
                             pass.clone(),
@@ -908,24 +925,36 @@ fn edit_shader(
         ui.end_row();
 
         if let Some(program) = program {
-            ui.label("Alpha Testing")
-                .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
-            ui.label(program.discard.to_string());
-            ui.end_row();
-
-            ui.label("Premultiplied Alpha")
-                .on_hover_text("Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.");
-            ui.label(program.premultiplied.to_string());
-            ui.end_row();
-
             ui.label("Vertex Attributes")
                 .on_hover_text("The mesh attributes required by the shader. The XYZW suffixes indicate accessed components.");
             ui.add(Label::new(program.vertex_attributes.join(", ")));
             ui.end_row();
         }
     });
+}
 
-    changed
+fn shader_info_grid(ui: &mut Ui, program: &ShaderProgram) {
+    Grid::new("shader_info").show(ui, |ui| {
+        ui.label("Alpha Testing")
+            .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
+        ui.label("Premultiplied Alpha").on_hover_text(
+            "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.",
+        );
+        ui.label("Receives Shadow")
+            .on_hover_text("Receives directional shadows. Not to be confused with shadow casting.");
+        ui.label("SH Lighting")
+            .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
+        ui.label("Lightset Lighting")
+            .on_hover_text("Uses directional lighting from the lighting nuanmb.");
+        ui.end_row();
+
+        ui.label(program.discard.to_string());
+        ui.label(program.premultiplied.to_string());
+        ui.label(program.receives_shadow.to_string());
+        ui.label(program.sh.to_string());
+        ui.label(program.lighting.to_string());
+        ui.end_row();
+    });
 }
 
 fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) -> bool {
