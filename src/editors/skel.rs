@@ -6,7 +6,7 @@ use crate::{
     widgets::enum_combo_box,
     EditorResponse,
 };
-use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Label, ScrollArea};
+use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Label, RichText, ScrollArea};
 use egui_dnd::DragDropItem;
 use log::error;
 use rfd::FileDialog;
@@ -97,21 +97,26 @@ pub fn skel_editor(
             });
             ui.separator();
 
+            ui.horizontal(|ui| {
+                ui.selectable_value(
+                    &mut state.mode,
+                    SkelMode::List,
+                    RichText::new("List").heading(),
+                );
+                ui.selectable_value(
+                    &mut state.mode,
+                    SkelMode::Hierarchy,
+                    RichText::new("Hierarchy").heading(),
+                );
+            });
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    // TODO: use tabs similar to the anim editor.
-                    ui.label("Display Mode");
-                    ui.radio_value(&mut state.mode, SkelMode::List, "List");
-                    ui.radio_value(&mut state.mode, SkelMode::Hierarchy, "Hierarchy");
-
-                    match state.mode {
-                        SkelMode::List => {
-                            changed |= edit_bones_list(ui, skel, state, icons, dark_mode);
-                        }
-                        SkelMode::Hierarchy => {
-                            changed |= edit_bones_hierarchy(ui, skel);
-                        }
+                .show(ui, |ui| match state.mode {
+                    SkelMode::List => {
+                        changed |= edit_bones_list(ui, skel, state, icons, dark_mode);
+                    }
+                    SkelMode::Hierarchy => {
+                        changed |= edit_bones_hierarchy(ui, skel);
                     }
                 });
         });
