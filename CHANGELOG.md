@@ -7,11 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added shader information for shadows and lighting to the Matl Editor.
 * Added a Device Info window for showing information about the GPU currently used by SSBH Editor.
+* Added default material presets with more consistent naming and additional alpha options. 
+    * These presets are always available and not editable.
+    * Existing material presets are still editable as before from the Preset Editor.
+* Added an option to create a new material in the Preset Editor.
 
 ### Changed
 * Screenshots save with transparent backgrounds when using supported formats like PNG.
 * Increased width of UI elements in Skel Editor to avoid cutting off long bone names.
 * Changed the Skel Editor modes to use tabs to be consistent with other editors.
+* Modified preset loading behavior to not create a default presets.json file if not necessary.
+* Select either Default or User tabs when applying a material preset in the Matl Editor.
 
 ### Fixed
 * Fixed an issue where materials did not update properly in the viewport when using Matl Editor menu options.

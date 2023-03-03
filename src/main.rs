@@ -16,6 +16,7 @@ use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
+use ssbh_editor::presets::default_presets;
 use ssbh_editor::update::{check_for_updates, LatestReleaseInfo};
 use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
@@ -335,6 +336,7 @@ fn create_app(
         should_update_clear_color: true,
         should_update_thumbnails: false,
         material_presets,
+        default_presets: default_presets(),
         red_checkerboard,
         yellow_checkerboard,
         draw_bone_names: false,

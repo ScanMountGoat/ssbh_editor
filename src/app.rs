@@ -330,6 +330,7 @@ pub struct SsbhApp {
     pub animation_image_sequence_to_render: Option<PathBuf>,
 
     pub material_presets: Vec<MatlEntryData>,
+    pub default_presets: Vec<MatlEntryData>,
 
     pub red_checkerboard: egui::TextureId,
     pub yellow_checkerboard: egui::TextureId,
@@ -490,6 +491,19 @@ impl Default for SkelMode {
     }
 }
 
+
+#[derive(PartialEq, Eq)]
+pub enum PresetMode {
+    User,
+    Default,
+}
+
+impl Default for PresetMode {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
 #[derive(Default)]
 pub struct MatlEditorState {
     pub advanced_mode: bool,
@@ -497,7 +511,8 @@ pub struct MatlEditorState {
     pub is_editing_material_label: bool,
     pub hovered_material_index: Option<usize>,
     pub matl_preset_window_open: bool,
-    pub selected_material_preset_index: usize,
+    pub selected_preset_index: usize,
+    pub preset_mode: PresetMode,
 }
 
 #[derive(Default)]
@@ -774,7 +789,11 @@ impl SsbhApp {
             self.should_refresh_camera_settings = true;
         }
 
-        device_info_window(ctx, &mut self.ui_state.device_info_window_open, &self.render_state.adapter_info);
+        device_info_window(
+            ctx,
+            &mut self.ui_state.device_info_window_open,
+            &self.render_state.adapter_info,
+        );
 
         self.should_update_lighting |= stage_lighting_window(
             ctx,
@@ -790,6 +809,7 @@ impl SsbhApp {
             &mut self.ui_state.preferences_window_open,
         );
 
+        // Only edit the user presets.
         preset_editor(
             ctx,
             &mut self.ui_state,
@@ -879,6 +899,7 @@ impl SsbhApp {
                             &self.default_thumbnails,
                             self.render_state.shared_data.database(),
                             &mut self.material_presets,
+                            &self.default_presets,
                             self.red_checkerboard,
                             self.yellow_checkerboard,
                         );

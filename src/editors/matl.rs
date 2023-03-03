@@ -1,5 +1,5 @@
 use crate::{
-    app::{display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, UiState},
+    app::{display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, UiState, PresetMode},
     horizontal_separator_empty,
     material::*,
     path::folder_editor_title,
@@ -37,6 +37,7 @@ pub fn matl_editor(
     default_thumbnails: &[Thumbnail],
     shader_database: &ShaderDatabase,
     material_presets: &mut Vec<MatlEntryData>,
+    default_presets: &[MatlEntryData],
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
 ) -> EditorResponse {
@@ -65,8 +66,14 @@ pub fn matl_editor(
 
             // TODO: Simplify logic for closing window.
             let entry = matl.entries.get_mut(state.selected_material_index);
-            let (open, preset_changed) =
-                preset_window(state, ctx, material_presets, entry, shader_database);
+            let (open, preset_changed) = preset_window(
+                state,
+                ctx,
+                material_presets,
+                default_presets,
+                entry,
+                shader_database,
+            );
             if !open {
                 state.matl_preset_window_open = false;
             }
@@ -102,7 +109,7 @@ pub fn matl_editor(
 pub fn preset_editor(
     ctx: &egui::Context,
     ui_state: &mut UiState,
-    presets: &mut Vec<MatlEntryData>,
+    user_presets: &mut Vec<MatlEntryData>,
     default_thumbnails: &[Thumbnail],
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
@@ -117,7 +124,7 @@ pub fn preset_editor(
                         ui.close_menu();
 
                         let path = presets_file();
-                        save_material_presets(presets, path);
+                        save_material_presets(user_presets, path);
                     }
                 });
 
@@ -133,7 +140,7 @@ pub fn preset_editor(
                             .add_filter("Matl JSON", &["json"])
                             .pick_file()
                         {
-                            load_presets_from_file(presets, file, load_json_presets);
+                            load_presets_from_file(user_presets, file, load_json_presets);
                         }
                     }
 
@@ -147,16 +154,23 @@ pub fn preset_editor(
                             .add_filter("Matl XML", &["xml"])
                             .pick_file()
                         {
-                            load_presets_from_file(presets, file, load_xml_presets);
+                            load_presets_from_file(user_presets, file, load_xml_presets);
                         }
                     }
                 });
 
                 ui.menu_button("Material", |ui| {
+                    if ui.button("Add New Material").clicked() {
+                        ui.close_menu();
+        
+                        let new_entry = default_material();
+                        user_presets.push(new_entry);
+                    }
+
                     if ui.button("Remove Duplicates").clicked() {
                         ui.close_menu();
 
-                        remove_duplicates(presets);
+                        remove_duplicates(user_presets);
                     }
                 });
                 help_menu(ui);
@@ -170,7 +184,7 @@ pub fn preset_editor(
                     edit_matl_entries(
                         ctx,
                         ui,
-                        presets,
+                        user_presets,
                         None,
                         &[],
                         &[],
@@ -390,6 +404,7 @@ fn preset_window(
     state: &mut MatlEditorState,
     ctx: &egui::Context,
     material_presets: &[MatlEntryData],
+    default_presets: &[MatlEntryData],
     entry: Option<&mut MatlEntryData>,
     shader_database: &ShaderDatabase,
 ) -> (bool, bool) {
@@ -397,21 +412,49 @@ fn preset_window(
     let mut changed = false;
     Window::new("Select Material Preset")
         .open(&mut state.matl_preset_window_open)
+        .resizable(true)
         .show(ctx, |ui| {
-            if material_presets.is_empty() {
-                ui.label("No material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
-            } else {
-                list_presets(ui, material_presets, &mut state.selected_material_preset_index, shader_database);
-                if ui.button("Apply").clicked() {
-                    if let Some(preset) = material_presets.get(state.selected_material_preset_index)
-                    {
-                        if let Some(entry) = entry {
-                            *entry = apply_preset(entry, preset);
-                            changed = true;
-                        }
+            ui.horizontal(|ui| {
+                ui.selectable_value(
+                    &mut state.preset_mode,
+                    PresetMode::Default,
+                    RichText::new("Default").heading(),
+                );
+                ui.selectable_value(
+                    &mut state.preset_mode,
+                    PresetMode::User,
+                    RichText::new("User").heading(),
+                );
+            });
+
+            ui.weak("Hover over a preset to see shader info.");
+            horizontal_separator_empty(ui);
+
+            match state.preset_mode {
+                PresetMode::User => { 
+                    if material_presets.is_empty() {
+                        ui.label("No user material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
+                    } else {
+                        list_presets(ui, material_presets, &mut state.selected_preset_index, shader_database);
                     }
-                    open = false;
                 }
+                PresetMode::Default => list_presets(ui, default_presets, &mut state.selected_preset_index, shader_database),
+            }
+
+            if ui.button("Apply").clicked() {
+                let presets = match state.preset_mode {
+                    PresetMode::User => material_presets,
+                    PresetMode::Default => default_presets,
+                };
+
+                if let Some(preset) = presets.get(state.selected_preset_index)
+                {
+                    if let Some(entry) = entry {
+                        *entry = apply_preset(entry, preset);
+                        changed = true;
+                    }
+                }
+                open = false;
             }
         });
 

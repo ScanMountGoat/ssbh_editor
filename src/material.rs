@@ -1,40 +1,19 @@
-use crate::presets::default_presets;
 use log::error;
 use ssbh_data::{matl_data::*, Vector4};
 use ssbh_wgpu::{split_param, ShaderProgram};
 use std::str::FromStr;
 
 pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
-    let mut bytes = std::fs::read(path.as_ref());
-    if bytes.is_err() {
-        // The application doesn't ship with a presets file to simplify installation.
-        // Write to the default location if the presets are missing.
-        let json = serde_json::to_string_pretty(&MatlData {
-            major_version: 1,
-            minor_version: 6,
-            entries: default_presets(),
-        })
-        .unwrap();
-        if let Err(e) = std::fs::write(path.as_ref(), json) {
-            error!(
-                "Failed to write default presets to {:?}: {}",
-                path.as_ref(),
-                e
-            );
-        }
-
-        // Read again to avoid showing an error after writing default presets.
-        bytes = std::fs::read(path.as_ref());
-    }
-
-    bytes
+    // The application doesn't ship with a user presets file.
+    // Load an empty list if not found since users can use default presets.
+    std::fs::read(path.as_ref())
         .and_then(|data| Ok(serde_json::from_slice(&data)?))
         .map_err(|e| {
             error!("Failed to load presets from {:?}: {}", path.as_ref(), e);
             e
         })
         .map(|matl: MatlData| matl.entries)
-        .unwrap_or_else(|_| default_presets())
+        .unwrap_or_default()
 }
 
 pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryData {
