@@ -491,7 +491,6 @@ impl Default for SkelMode {
     }
 }
 
-
 #[derive(PartialEq, Eq)]
 pub enum PresetMode {
     User,

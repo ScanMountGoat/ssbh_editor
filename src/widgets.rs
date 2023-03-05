@@ -3,7 +3,6 @@ use egui::{
     WidgetText, WidgetType,
 };
 use ssbh_data::skel_data::SkelData;
-use std::str::FromStr;
 
 mod dragslider;
 pub use dragslider::DragSlider;
@@ -85,8 +84,7 @@ impl<'a> Widget for EyeCheckBox<'a> {
 
 pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl std::hash::Hash, value: &mut V) -> bool
 where
-    V: PartialEq + strum::VariantNames + ToString + FromStr,
-    <V as FromStr>::Err: std::fmt::Debug,
+    V: PartialEq + strum::IntoEnumIterator + ToString,
 {
     // TODO: Return response and union instead?
     let mut changed = false;
@@ -94,11 +92,9 @@ where
         .width(200.0)
         .selected_text(value.to_string())
         .show_ui(ui, |ui| {
-            for v in V::VARIANTS {
-                // TODO: Does the conversion cost here matter?
-                changed |= ui
-                    .selectable_value(value, V::from_str(v).unwrap(), *v)
-                    .changed();
+            for v in V::iter() {
+                let text = v.to_string();
+                changed |= ui.selectable_value(value, v, text).changed();
             }
         });
 

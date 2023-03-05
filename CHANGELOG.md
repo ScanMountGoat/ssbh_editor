@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the Skel Editor modes to use tabs to be consistent with other editors.
 * Modified preset loading behavior to not create a default presets.json file if not necessary.
 * Select either Default or User tabs when applying a material preset in the Matl Editor.
+* Replaced Albedo debug mode with Unlit mode that shows texture and material coloring without lighting or vertex colors.
 
 ### Fixed
 * Fixed an issue where materials did not update properly in the viewport when using Matl Editor menu options.

@@ -1,5 +1,8 @@
 use crate::{
-    app::{display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, UiState, PresetMode},
+    app::{
+        display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, PresetMode,
+        UiState,
+    },
     horizontal_separator_empty,
     material::*,
     path::folder_editor_title,
@@ -18,8 +21,7 @@ use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*, Color4f, Vector4};
 use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
 use std::path::Path;
-use std::str::FromStr;
-use strum::VariantNames;
+use strum::IntoEnumIterator;
 
 const UNUSED_PARAM: &str =
     "This parameter is not required by the shader and will be ignored in game.";
@@ -162,7 +164,7 @@ pub fn preset_editor(
                 ui.menu_button("Material", |ui| {
                     if ui.button("Add New Material").clicked() {
                         ui.close_menu();
-        
+
                         let new_entry = default_material();
                         user_presets.push(new_entry);
                     }
@@ -431,7 +433,7 @@ fn preset_window(
             horizontal_separator_empty(ui);
 
             match state.preset_mode {
-                PresetMode::User => { 
+                PresetMode::User => {
                     if material_presets.is_empty() {
                         ui.label("No user material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
                     } else {
@@ -1274,8 +1276,8 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
                     changed |= ui.selectable_value(&mut param.data.max_anisotropy, None, "None").changed();
                     ui.separator();
 
-                    for variant in MaxAnisotropy::VARIANTS {
-                        let value = Some(MaxAnisotropy::from_str(variant).unwrap());
+                    for variant in MaxAnisotropy::iter() {
+                        let value = Some(variant);
                         changed |= ui.selectable_value(
                             &mut param.data.max_anisotropy,
                             value,
