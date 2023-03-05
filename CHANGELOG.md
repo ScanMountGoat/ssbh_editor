@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### unreleased
+### 0.8.2 - 2023-03-05
 ### Added
 * Added shader information for shadows and lighting to the Matl Editor.
 * Added a Device Info window for showing information about the GPU currently used by SSBH Editor.
