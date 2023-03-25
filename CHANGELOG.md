@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### unreleased
 ### Fixed
 * Fixed an issue where UV animations would sometimes be incorrectly flipped.
+* Fixed an issue where CustomVector8 alpha did not update properly in the viewport.
 
 ### 0.8.2 - 2023-03-05
 ### Added

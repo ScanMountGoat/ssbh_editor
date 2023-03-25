@@ -2142,7 +2142,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#dd3016b257ea27fe3b932c431441c3ecb67a4559"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7592e5f19f4332a438120bbc2c852deff91eeb3b"
 dependencies = [
  "bytemuck",
  "log",
@@ -3201,7 +3201,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#dd3016b257ea27fe3b932c431441c3ecb67a4559"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7592e5f19f4332a438120bbc2c852deff91eeb3b"
 dependencies = [
  "bytemuck",
  "encase",
@@ -4087,7 +4087,7 @@ dependencies = [
 [[package]]
 name = "wgsl_to_wgpu"
 version = "0.3.1"
-source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#cd30895e1318fe418b7ae5a1e0c3244585539cc4"
+source = "git+https://github.com/ScanMountGoat/wgsl_to_wgpu#66b7bb34322b9665bbeb48f4d85b98ee3831469e"
 dependencies = [
  "naga 0.11.0",
  "prettyplease",
