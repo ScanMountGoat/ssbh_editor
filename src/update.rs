@@ -75,9 +75,7 @@ fn should_check_for_release(
 // TODO: Display a changelog from the repository.
 fn get_latest_release() -> Option<Release> {
     let octocrab = octocrab::instance();
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
+    tokio::runtime::Runtime::new()
         .ok()?
         .block_on(
             octocrab
