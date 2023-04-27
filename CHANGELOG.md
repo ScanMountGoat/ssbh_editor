@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Added
+* Added support for stage fog rendering.
+
 ### Fixed
 * Fixed an issue where UV animations would sometimes be incorrectly flipped.
 * Fixed an issue where CustomVector8 alpha did not update properly in the viewport.

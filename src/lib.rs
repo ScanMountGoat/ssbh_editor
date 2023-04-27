@@ -141,13 +141,8 @@ pub struct RenderState {
 }
 
 impl RenderState {
-    pub fn new(
-        device: wgpu::Device,
-        queue: wgpu::Queue,
-        surface_format: wgpu::TextureFormat,
-        adapter_info: wgpu::AdapterInfo,
-    ) -> Self {
-        let shared_data = SharedRenderData::new(&device, &queue, surface_format);
+    pub fn new(device: wgpu::Device, queue: wgpu::Queue, adapter_info: wgpu::AdapterInfo) -> Self {
+        let shared_data = SharedRenderData::new(&device, &queue);
         Self {
             device,
             queue,

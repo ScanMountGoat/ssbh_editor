@@ -146,7 +146,7 @@ fn main() {
     let yellow_checkerboard =
         checkerboard_texture(&device, &queue, &mut egui_renderer, [255, 255, 0, 255]);
 
-    let render_state = RenderState::new(device, queue, surface_format, adapter.get_info());
+    let render_state = RenderState::new(device, queue, adapter.get_info());
     let default_thumbnails = generate_default_thumbnails(
         &mut egui_renderer,
         render_state.shared_data.default_textures(),
