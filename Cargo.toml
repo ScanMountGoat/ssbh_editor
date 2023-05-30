@@ -8,19 +8,19 @@ description = "View, edit, and validate models for Smash Ultimate"
 [dependencies]
 chrono = "0.4"
 pollster = "0.2"
-egui = { version = "0.21.0", default-features = false }
-egui_extras = { version = "0.21.0", features = ["svg"] }
-egui-wgpu = "0.21.0"
-egui-winit = "0.21.0"
-egui_dnd = "0.3.0"
-egui_commonmark = "0.7.0"
-wgpu = "0.15.0"
+egui = { version = "0.22.0", default-features = false }
+egui_extras = { version = "0.22.0", features = ["svg"] }
+egui-wgpu = "0.22.0"
+egui-winit = "0.22.0"
+egui_dnd = { git = "https://github.com/rfuzzo/egui_dnd", branch = "feature/egui-update" }
+egui_commonmark = "0.7.3"
+wgpu = "0.16.0"
 winit = "0.28.1"
 glam = { version = "0.22.0", features = ["mint", "bytemuck"] }
 rfd = "0.10.0"
 ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
 nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
-ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", features = ["strum", "serde"] }
+ssbh_data = { version = "0.17.0", features = ["strum", "serde"] }
 strum = "0.24.1"
 nutexb = "0.6.0"
 octocrab = "0.19.0"

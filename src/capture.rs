@@ -1,7 +1,6 @@
 use crate::{animate_models, app::SsbhApp};
 use futures::executor::block_on;
 use ssbh_wgpu::SsbhRenderer;
-use std::num::NonZeroU32;
 
 pub fn render_animation_sequence(
     renderer: &mut SsbhRenderer,
@@ -132,7 +131,7 @@ fn read_texture_to_image(
             layout: wgpu::ImageDataLayout {
                 offset: 0,
                 // TODO: This needs to be aligned to 256 bytes?
-                bytes_per_row: NonZeroU32::new(width * 4),
+                bytes_per_row: Some(width * 4),
                 rows_per_image: None,
             },
         },

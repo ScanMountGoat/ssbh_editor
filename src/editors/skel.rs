@@ -141,10 +141,7 @@ fn edit_bones_list(
     let other_bones = skel.bones.clone();
 
     // TODO: Avoid allocating here.
-    let mut items: Vec<_> = (0..skel.bones.len())
-        .into_iter()
-        .map(SkelBoneIndex)
-        .collect();
+    let mut items: Vec<_> = (0..skel.bones.len()).map(SkelBoneIndex).collect();
 
     let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
         ui.horizontal(|ui| {

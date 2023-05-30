@@ -565,7 +565,7 @@ fn validate_texture_assignments<'a, 'b>(
                 if !nutexbs
                     .iter()
                     .map(|(f, _)| f)
-                    .chain(default_textures.clone().into_iter().map(|(f, _)| f))
+                    .chain(default_textures.clone().map(|(f, _)| f))
                     .any(|f| {
                         Path::new(f)
                             .with_extension("")

@@ -351,7 +351,7 @@ pub fn checkerboard_texture(
         ],
         wgpu::ImageDataLayout {
             offset: 0,
-            bytes_per_row: std::num::NonZeroU32::new(8),
+            bytes_per_row: Some(8),
             rows_per_image: None,
         },
         texture_size,
@@ -412,6 +412,7 @@ pub fn default_fonts() -> egui::FontDefinitions {
                         scale: 0.81,           // make it smaller
                         y_offset_factor: -0.2, // move it up
                         y_offset: 0.0,
+                        baseline_offset_factor: 0.0,
                     },
                 ),
             ),
@@ -421,6 +422,7 @@ pub fn default_fonts() -> egui::FontDefinitions {
                     scale: 1.0,           // make it smaller
                     y_offset_factor: 0.0, // move it down slightly
                     y_offset: 2.0,
+                    baseline_offset_factor: 0.0,
                 }),
             ),
         ]),

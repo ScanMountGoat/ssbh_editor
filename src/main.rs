@@ -25,8 +25,7 @@ use ssbh_editor::{
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
 use ssbh_editor::{SwingState, Thumbnail};
-use ssbh_wgpu::{next_frame, CameraTransforms, RenderModel, SsbhRenderer};
-use std::iter;
+use ssbh_wgpu::{next_frame, BoneNameRenderer, CameraTransforms, RenderModel, SsbhRenderer};
 use std::path::Path;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -112,8 +111,9 @@ fn main() {
         size.height,
         window.scale_factor(),
         [0.0; 3],
-        ssbh_editor::FONT_BYTES,
     );
+    let mut bone_name_renderer =
+        BoneNameRenderer::new(&device, ssbh_editor::FONT_BYTES, size.width, size.height);
 
     // TODO: Use this to generate thumbnails for cube maps and 3d textures.
     let texture_renderer = TextureRenderer::new(&device, &queue, surface_format);
@@ -181,6 +181,7 @@ fn main() {
                             &mut app,
                             &mut winit_state,
                             &mut renderer,
+                            &mut bone_name_renderer,
                             &mut egui_renderer,
                             &mut previous_dark_mode,
                             &window,
@@ -202,6 +203,7 @@ fn main() {
 
                                     resize(
                                         &mut renderer,
+                                        &mut bone_name_renderer,
                                         &mut surface_config,
                                         &size,
                                         window.scale_factor(),
@@ -382,6 +384,7 @@ fn update_and_render_app(
     app: &mut SsbhApp,
     winit_state: &mut egui_winit::State,
     renderer: &mut SsbhRenderer,
+    bone_name_renderer: &mut BoneNameRenderer,
     egui_renderer: &mut egui_wgpu::Renderer,
     previous_dark_mode: &mut bool,
     window: &winit::window::Window,
@@ -521,6 +524,33 @@ fn update_and_render_app(
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("egui Encoder"),
             });
+
+    // TODO: Make the font size configurable.
+    // TODO: Fix bone names appearing on top of the UI.
+    if app.render_state.model_render_options.draw_bones && app.draw_bone_names {
+        // TODO: Avoid recalculating the MVP matrix?
+        let (_, _, mvp) = calculate_mvp(
+            size,
+            app.camera_state.translation_xyz,
+            app.camera_state.rotation_xyz_radians,
+            app.camera_state.fov_y_radians,
+        );
+
+        bone_name_renderer.render_skeleton_names(
+            &app.render_state.device,
+            &app.render_state.queue,
+            &mut final_pass,
+            app.render_models
+                .iter()
+                .zip(app.models.iter().map(|m| m.model.find_skel()))
+                .filter_map(|(m, s)| Some((m, s?))),
+            size.width,
+            size.height,
+            mvp,
+            18.0 * window.scale_factor() as f32,
+        );
+    }
+
     egui_render_pass(
         ctx,
         full_output,
@@ -535,43 +565,10 @@ fn update_and_render_app(
 
     drop(final_pass);
 
-    let (_, _, mvp) = calculate_mvp(
-        size,
-        app.camera_state.translation_xyz,
-        app.camera_state.rotation_xyz_radians,
-        app.camera_state.fov_y_radians,
-    );
-
-    // TODO: Make the font size configurable.
-    // TODO: Fix bone names appearing on top of the UI.
-    let bone_text_commands =
-        if app.render_state.model_render_options.draw_bones && app.draw_bone_names {
-            renderer.render_skeleton_names(
-                &app.render_state.device,
-                &app.render_state.queue,
-                &output_view,
-                app.render_models
-                    .iter()
-                    .zip(app.models.iter().map(|m| m.model.find_skel()))
-                    .filter_map(|(m, s)| Some((m, s?))),
-                size.width,
-                size.height,
-                mvp,
-                18.0 * window.scale_factor() as f32,
-            )
-        } else {
-            None
-        };
-
     // Submit the commands.
     app.render_state
         .queue
         .submit([encoder.finish(), egui_encoder.finish()]);
-    if let Some(bone_text_commands) = bone_text_commands {
-        app.render_state
-            .queue
-            .submit(iter::once(bone_text_commands));
-    }
 
     // Present the final rendered image.
     output_frame.present();
@@ -899,6 +896,7 @@ fn update_color_theme(app: &SsbhApp, ctx: &egui::Context) {
 
 fn resize(
     renderer: &mut SsbhRenderer,
+    bone_name_renderer: &mut BoneNameRenderer,
     surface_config: &mut wgpu::SurfaceConfiguration,
     size: &PhysicalSize<u32>,
     scale_factor: f64,
@@ -919,6 +917,8 @@ fn resize(
         scale_factor,
         scissor_rect,
     );
+
+    bone_name_renderer.resize(&app.render_state.queue, size.width, size.height);
 
     update_camera(
         renderer,
