@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue where UV animations would sometimes be incorrectly flipped.
 * Fixed an issue where CustomVector8 alpha did not update properly in the viewport.
+* Fixed an issue where the application would log an error if the user presets.json file was missing.
+* Fixed an issue where bone names would render on top of editor windows and menus.
+* Fixed an issue where CustomFloat19 did not render properly for models like Olimar's helmet.
+* Fixed an issue where some anim files would not read or save with correct scaling information.
 
 ### 0.8.2 - 2023-03-05
 ### Added
