@@ -9,7 +9,10 @@ pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntr
     std::fs::read(path.as_ref())
         .and_then(|data| Ok(serde_json::from_slice(&data)?))
         .map_err(|e| {
-            error!("Failed to load presets from {:?}: {}", path.as_ref(), e);
+            // User presets are optional, so a missing file is not an error.
+            if e.kind() != std::io::ErrorKind::NotFound {
+                error!("Failed to load presets from {:?}: {}", path.as_ref(), e);
+            }
             e
         })
         .map(|matl: MatlData| matl.entries)
