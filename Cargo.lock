@@ -761,8 +761,9 @@ dependencies = [
 
 [[package]]
 name = "egui_dnd"
-version = "0.3.0"
-source = "git+https://github.com/rfuzzo/egui_dnd?branch=feature/egui-update#1db9fc424b227e1a2250311b82085acd436b0e69"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76b5e31bc4354958b29a1aff9db4c1a15fa63f4cf8e51b8b0edbfcf9e87761de"
 dependencies = [
  "egui",
 ]

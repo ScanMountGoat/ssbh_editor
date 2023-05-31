@@ -12,7 +12,7 @@ egui = { version = "0.22.0", default-features = false }
 egui_extras = { version = "0.22.0", features = ["svg"] }
 egui-wgpu = "0.22.0"
 egui-winit = "0.22.0"
-egui_dnd = { git = "https://github.com/rfuzzo/egui_dnd", branch = "feature/egui-update" }
+egui_dnd = "0.4.0"
 egui_commonmark = "0.7.3"
 wgpu = "0.16.0"
 winit = "0.28.1"
