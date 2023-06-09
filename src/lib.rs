@@ -708,7 +708,12 @@ fn save_file_as<T: SsbhData>(
     name: &str,
     extension: &str,
 ) -> bool {
-    if let Some(file_path) = FileDialog::new().add_filter(name, &[extension]).save_file() {
+    if let Some(file_path) = FileDialog::new()
+        .set_directory(folder_name)
+        .set_file_name(file_name)
+        .add_filter(name, &[extension])
+        .save_file()
+    {
         if let Err(e) = file.write_to_file(&file_path) {
             error!("Failed to save {:?}: {}", file_path, e);
             false
