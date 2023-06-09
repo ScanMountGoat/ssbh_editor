@@ -10,7 +10,7 @@ use crate::{
     presets::{load_json_presets, load_xml_presets},
     validation::{MatlValidationError, MatlValidationErrorKind},
     widgets::*,
-    EditorResponse, TextureDimension, Thumbnail,
+    EditorResponse, TextureDimension, Thumbnail, save_file, save_file_as,
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label,
@@ -516,26 +516,12 @@ fn menu_bar(
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
                 ui.close_menu();
-
-                let file = Path::new(folder_name).join(file_name);
-                if let Err(e) = matl.write_to_file(&file) {
-                    error!("Failed to save {:?}: {}", file, e);
-                } else {
-                    saved = true;
-                }
+                saved |= save_file(matl, folder_name, file_name);
             }
 
             if ui.button("Save As...").clicked() {
                 ui.close_menu();
-
-                if let Some(file) = FileDialog::new()
-                    .add_filter("Matl", &["numatb"])
-                    .save_file()
-                {
-                    if let Err(e) = matl.write_to_file(&file) {
-                        error!("Failed to save {:?}: {}", file, e);
-                    }
-                }
+                saved |= save_file_as(matl, folder_name, file_name, "Matl", "numatb");
             }
         });
 

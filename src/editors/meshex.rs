@@ -1,4 +1,4 @@
-use crate::{path::folder_editor_title, EditorResponse};
+use crate::{path::folder_editor_title, save_file, save_file_as, EditorResponse};
 use egui::{special_emojis::GITHUB, Grid, Label, Response, ScrollArea, Sense, Ui};
 use log::error;
 use rfd::FileDialog;
@@ -27,26 +27,12 @@ pub fn meshex_editor(
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
-
-                        let file = Path::new(folder_name).join(file_name);
-                        if let Err(e) = meshex.write_to_file(&file) {
-                            error!("Failed to save {:?}: {}", file, e);
-                        } else {
-                            saved = true;
-                        }
+                        saved |= save_file(meshex, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
                         ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("MeshEx", &["numshexb"])
-                            .save_file()
-                        {
-                            if let Err(e) = meshex.write_to_file(&file) {
-                                error!("Failed to save {:?}: {}", file, e);
-                            }
-                        }
+                        saved |= save_file_as(meshex, folder_name, file_name, "MeshEx", "numshexb");
                     }
                 });
 

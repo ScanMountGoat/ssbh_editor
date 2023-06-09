@@ -1,4 +1,4 @@
-use crate::{path::folder_editor_title, validation::AdjValidationError, EditorResponse};
+use crate::{path::folder_editor_title, save_file, validation::AdjValidationError, EditorResponse, save_file_as};
 use egui::{special_emojis::GITHUB, ScrollArea};
 use log::error;
 use rfd::FileDialog;
@@ -26,25 +26,12 @@ pub fn adj_editor(
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
-
-                        let file = Path::new(folder_name).join(file_name);
-                        if let Err(e) = adj.write_to_file(&file) {
-                            error!("Failed to save {:?}: {}", file, e);
-                        } else {
-                            saved = true;
-                        }
+                        saved |= save_file(adj, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
                         ui.close_menu();
-
-                        if let Some(file) =
-                            FileDialog::new().add_filter("Adj", &["adjb"]).save_file()
-                        {
-                            if let Err(e) = adj.write_to_file(&file) {
-                                error!("Failed to save {:?}: {}", file, e);
-                            }
-                        }
+                        saved |= save_file_as(adj, folder_name, file_name, "Adj", "adjb");
                     }
                 });
 

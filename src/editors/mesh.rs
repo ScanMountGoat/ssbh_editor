@@ -4,7 +4,7 @@ use crate::{
     path::folder_editor_title,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
-    EditorResponse,
+    EditorResponse, save_file, save_file_as,
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,
@@ -52,26 +52,12 @@ pub fn mesh_editor(
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
-
-                        let file = Path::new(folder_name).join(file_name);
-                        if let Err(e) = mesh.write_to_file(&file) {
-                            error!("Failed to save {:?}: {}", file, e);
-                        } else {
-                            saved = true;
-                        }
+                        saved |= save_file(mesh, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
                         ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("Mesh", &["numshb"])
-                            .save_file()
-                        {
-                            if let Err(e) = mesh.write_to_file(&file) {
-                                error!("Failed to save {:?}: {}", file, e);
-                            }
-                        }
+                        saved |= save_file_as(mesh, folder_name, file_name, "Mesh", "numshb");
                     }
                 });
 

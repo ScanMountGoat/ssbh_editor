@@ -3,7 +3,7 @@ use crate::{
     horizontal_separator_empty,
     path::folder_editor_title,
     validation::{ModlValidationError, ModlValidationErrorKind},
-    EditorResponse,
+    EditorResponse, save_file, save_file_as,
 };
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::DragDropItem;
@@ -47,26 +47,12 @@ pub fn modl_editor(
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
-
-                        let file = Path::new(folder_name).join(file_name);
-                        if let Err(e) = modl.write_to_file(&file) {
-                            error!("Failed to save {:?}: {}", file, e);
-                        } else {
-                            saved = true;
-                        }
+                        saved |= save_file(modl, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
                         ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("Modl", &["numdlb"])
-                            .save_file()
-                        {
-                            if let Err(e) = modl.write_to_file(&file) {
-                                error!("Failed to save {:?}: {}", file, e);
-                            }
-                        }
+                        saved |= save_file_as(modl, folder_name, file_name, "Modl", "numdlb");
                     }
                 });
 

@@ -1,7 +1,7 @@
 use crate::{
     app::{AnimEditorState, AnimEditorTab},
     path::folder_editor_title,
-    EditorResponse,
+    EditorResponse, save_file, save_file_as,
 };
 use egui::{
     plot::{Legend, Line, Plot, PlotPoint},
@@ -25,7 +25,7 @@ pub fn anim_editor(
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
-    let saved = false;
+    let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Anim Editor ({title})"))
@@ -38,24 +38,12 @@ pub fn anim_editor(
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         ui.close_menu();
-
-                        let file = Path::new(folder_name).join(file_name);
-                        if let Err(e) = anim.write_to_file(&file) {
-                            error!("Failed to save {:?}: {}", file, e);
-                        }
+                        saved |= save_file(anim, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
                         ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("Anim", &["nuanmb"])
-                            .save_file()
-                        {
-                            if let Err(e) = anim.write_to_file(&file) {
-                                error!("Failed to save {:?}: {}", file, e);
-                            }
-                        }
+                        saved |= save_file_as(anim, folder_name, file_name, "Anim", "nuanmb");
                     }
                 });
 

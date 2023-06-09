@@ -1,3 +1,4 @@
+use ::log::error;
 use app::SsbhApp;
 use egui::{
     style::{WidgetVisuals, Widgets},
@@ -6,6 +7,7 @@ use egui::{
 use model_folder::ModelFolderState;
 use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
+use rfd::FileDialog;
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{
     swing::SwingPrc, ModelRenderOptions, RenderModel, RenderSettings, SharedRenderData,
@@ -14,7 +16,7 @@ use ssbh_wgpu::{
 use std::{
     collections::{BTreeMap, HashSet},
     error::Error,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use winit::dpi::PhysicalPosition;
 
@@ -686,5 +688,34 @@ fn hide_expressions(render_model: &mut RenderModel) {
         {
             mesh.is_visible = false;
         }
+    }
+}
+
+fn save_file<T: SsbhData>(file: &T, folder_name: &Path, file_name: &str) -> bool {
+    let file_path = Path::new(folder_name).join(file_name);
+    if let Err(e) = file.write_to_file(&file_path) {
+        error!("Failed to save {:?}: {}", file_path, e);
+        false
+    } else {
+        true
+    }
+}
+
+fn save_file_as<T: SsbhData>(
+    file: &T,
+    folder_name: &Path,
+    file_name: &str,
+    name: &str,
+    extension: &str,
+) -> bool {
+    if let Some(file_path) = FileDialog::new().add_filter(name, &[extension]).save_file() {
+        if let Err(e) = file.write_to_file(&file_path) {
+            error!("Failed to save {:?}: {}", file_path, e);
+            false
+        } else {
+            true
+        }
+    } else {
+        false
     }
 }
