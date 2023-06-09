@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Save as dialogs in editors default to the currently opened file's folder and file name when saving.
 
 ### 0.8.3 - 2023-06-02
+### Fixed
+* Fixed an issue where the same folder could be loaded multiple times.
+
 ### Added
 * Added support for stage fog rendering.
 

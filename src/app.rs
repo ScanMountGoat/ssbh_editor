@@ -588,10 +588,13 @@ impl SsbhApp {
             self.clear_workspace();
         }
 
-        // TODO: Check for duplicate folders?
-
         // Load recursively for nested folders like stages.
         let mut new_models = ssbh_wgpu::load_model_folders(&folder);
+
+        // Don't add any folders that have already been added.
+        new_models.retain(|(p, _)| !self.models.iter().any(|m| &m.folder_path == p));
+
+        // List folders alphabetically.
         new_models.sort_by_key(|(p, _)| p.clone());
 
         self.animation_state
