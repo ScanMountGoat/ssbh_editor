@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### unreleased
+### 0.8.4 - 2023-06-13
 ### Fixed
 * Fixed an issue where emission only materials rendered with specular lighting.
 * Fixed an issue where fog rendering would darken half the scene with no lighting loaded.
