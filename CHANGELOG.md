@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Fixed
+* Fixed an issue where emission only materials rendered with specular lighting.
+* Fixed an issue where fog rendering would darken half the scene with no lighting loaded.
+
 ### Changed
 * Save as dialogs in editors default to the currently opened file's folder and file name when saving.
 
