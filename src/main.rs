@@ -911,7 +911,6 @@ fn resize(
     let scissor_rect = app.viewport_rect(size.width, size.height, scale_factor as f32);
     renderer.resize(
         &app.render_state.device,
-        &app.render_state.queue,
         size.width,
         size.height,
         scale_factor,
