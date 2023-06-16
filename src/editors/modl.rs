@@ -2,8 +2,9 @@ use crate::{
     app::{warning_icon_text, Icons, ModlEditorState},
     horizontal_separator_empty,
     path::folder_editor_title,
+    save_file, save_file_as,
     validation::{ModlValidationError, ModlValidationErrorKind},
-    EditorResponse, save_file, save_file_as,
+    EditorResponse,
 };
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::DragDropItem;
@@ -239,14 +240,17 @@ fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) {
         ui.add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name));
         ui.end_row();
 
-        // TODO: Only a single material name should be editable..
-        ui.label("Animation File Name");
-        ui.add_sized(size, TextEdit::singleline(&mut String::new()));
+        ui.label("Material File Names");
+        for file_name in &mut modl.material_file_names {
+            ui.add_sized(size, TextEdit::singleline(file_name));
+        }
         ui.end_row();
 
-        // TODO: Edit the animation name.
+        // TODO: Allow creating a file name if not present.
         ui.label("Animation File Name");
-        ui.add_sized(size, TextEdit::singleline(&mut String::new()));
+        if let Some(file_name) = modl.animation_file_name.as_mut() {
+            ui.add_sized(size, TextEdit::singleline(file_name));
+        }
         ui.end_row();
 
         ui.label("Mesh File Name");
