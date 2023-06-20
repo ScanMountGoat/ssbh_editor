@@ -604,7 +604,7 @@ fn validate_texture_dimensions<'a>(
             if let Some((f, actual)) = nutexbs
                 .iter()
                 .filter_map(|(f, n)| Some((f, TextureDimension::from_nutexb(n.as_ref().ok()?))))
-                .chain(default_textures.clone().into_iter())
+                .chain(default_textures.clone())
                 .find(|(f, _)| {
                     Path::new(f)
                         .with_extension("")

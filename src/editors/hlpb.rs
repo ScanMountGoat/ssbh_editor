@@ -2,12 +2,12 @@ use std::path::Path;
 
 use crate::{
     path::folder_editor_title,
+    save_file, save_file_as,
     widgets::{bone_combo_box, DragSlider},
-    EditorResponse, save_file, save_file_as,
+    EditorResponse,
 };
 use egui::{special_emojis::GITHUB, CollapsingHeader, DragValue, Grid, ScrollArea, TextEdit, Ui};
-use log::error;
-use rfd::FileDialog;
+
 use ssbh_data::{
     hlpb_data::{AimConstraintData, OrientConstraintData},
     prelude::*,

@@ -2,9 +2,10 @@ use crate::{
     app::{display_validation_errors, warning_icon_text, Icons, MeshEditorState},
     horizontal_separator_empty,
     path::folder_editor_title,
+    save_file, save_file_as,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
-    EditorResponse, save_file, save_file_as,
+    EditorResponse,
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,

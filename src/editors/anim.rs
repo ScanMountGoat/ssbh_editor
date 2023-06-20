@@ -1,15 +1,14 @@
 use crate::{
     app::{AnimEditorState, AnimEditorTab},
     path::folder_editor_title,
-    EditorResponse, save_file, save_file_as,
+    save_file, save_file_as, EditorResponse,
 };
 use egui::{
     plot::{Legend, Line, Plot, PlotPoint},
     special_emojis::GITHUB,
     CentralPanel, CollapsingHeader, Grid, RichText, ScrollArea, SidePanel,
 };
-use log::error;
-use rfd::FileDialog;
+
 use ssbh_data::{
     anim_data::{GroupData, TrackData, TrackValues},
     prelude::*,

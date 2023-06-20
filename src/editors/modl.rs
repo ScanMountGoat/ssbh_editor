@@ -8,8 +8,7 @@ use crate::{
 };
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::DragDropItem;
-use log::error;
-use rfd::FileDialog;
+
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::RenderModel;
 use std::path::Path;

@@ -8,9 +8,10 @@ use crate::{
     path::folder_editor_title,
     path::presets_file,
     presets::{load_json_presets, load_xml_presets},
+    save_file, save_file_as,
     validation::{MatlValidationError, MatlValidationErrorKind},
     widgets::*,
-    EditorResponse, TextureDimension, Thumbnail, save_file, save_file_as,
+    EditorResponse, TextureDimension, Thumbnail,
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label,

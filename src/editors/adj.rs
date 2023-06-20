@@ -1,7 +1,9 @@
-use crate::{path::folder_editor_title, save_file, validation::AdjValidationError, EditorResponse, save_file_as};
+use crate::{
+    path::folder_editor_title, save_file, save_file_as, validation::AdjValidationError,
+    EditorResponse,
+};
 use egui::{special_emojis::GITHUB, ScrollArea};
-use log::error;
-use rfd::FileDialog;
+
 use ssbh_data::{adj_data::AdjEntryData, prelude::*};
 use std::path::Path;
 

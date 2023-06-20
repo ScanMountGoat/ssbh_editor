@@ -4,19 +4,23 @@ use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString, EnumVariantNames};
 
 #[derive(
-    Debug, Serialize, Deserialize, PartialEq, EnumVariantNames, Display, EnumString, Clone, Copy,
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    EnumVariantNames,
+    Display,
+    EnumString,
+    Clone,
+    Copy,
+    Default,
 )]
 pub enum GraphicsBackend {
+    #[default]
     Auto,
     Vulkan,
     Metal,
     Dx12,
-}
-
-impl Default for GraphicsBackend {
-    fn default() -> Self {
-        GraphicsBackend::Auto
-    }
 }
 
 // Use defaults for missing values to avoid most version conflicts.
