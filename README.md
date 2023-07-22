@@ -20,8 +20,8 @@ SSBH Editor supports a number of model file types. Some files will render in the
 | Modl (numdlb) | Mesh material assignments | :heavy_check_mark: | :heavy_check_mark: |
 | Skel (nusktb) | Skeleton | :heavy_check_mark: | :heavy_check_mark: |
 | Nutexb | Textures | :x: | :heavy_check_mark: |
-| Xmb | LOD and model parameters | :x: | :x: |
-| Prc | Skeleton and swing parameters | :x: | :x: |
+| Xmb | LOD and model parameters | :x: | :heavy_check_mark: |
+| Prc | Skeleton and swing parameters | :x: | :heavy_check_mark: |
 
 - View models, textures, skeletons, and animations from Smash Ultimate
 - View the effects of transition materials like the metal box or ditto materials
