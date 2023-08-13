@@ -30,7 +30,6 @@ use egui::{
     RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
 };
 use egui_commonmark::CommonMarkCache;
-use egui_dnd::DragDropUi;
 use egui_extras::RetainedImage;
 use log::error;
 use once_cell::sync::Lazy;
@@ -476,7 +475,6 @@ pub struct UiState {
 #[derive(Default)]
 pub struct SkelEditorState {
     pub mode: SkelMode,
-    pub dnd: DragDropUi,
 }
 
 #[derive(PartialEq, Eq)]
@@ -517,13 +515,11 @@ pub struct MatlEditorState {
 #[derive(Default)]
 pub struct ModlEditorState {
     pub advanced_mode: bool,
-    pub dnd: DragDropUi,
 }
 
 #[derive(Default)]
 pub struct MeshEditorState {
     pub advanced_mode: bool,
-    pub dnd: DragDropUi,
 }
 
 #[derive(Default)]

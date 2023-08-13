@@ -10,7 +10,7 @@ use crate::{
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,
 };
-use egui_dnd::DragDropItem;
+use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
@@ -20,13 +20,8 @@ use ssbh_data::{
 use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
+#[derive(Hash)]
 struct MeshObjectIndex(usize);
-
-impl DragDropItem for MeshObjectIndex {
-    fn id(&self) -> egui::Id {
-        egui::Id::new("mesh").with(self.0)
-    }
-}
 
 pub fn mesh_editor(
     ctx: &egui::Context,
@@ -136,9 +131,9 @@ fn edit_mesh(
     // TODO: Avoid allocating here.
     let mut items: Vec<_> = (0..mesh.objects.len()).map(MeshObjectIndex).collect();
 
-    let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
+    let response = dnd(ui, "mesh_dnd").show_vec(&mut items, |ui, item, handle, _| {
         ui.horizontal(|ui| {
-            handle.ui(ui, item, |ui| {
+            handle.ui(ui, |ui| {
                 ui.add(icons.draggable(ui, dark_mode));
             });
 
@@ -199,7 +194,7 @@ fn edit_mesh(
         mesh.objects.remove(i);
     }
 
-    if let Some(response) = response.completed {
+    if let Some(response) = response.final_update() {
         egui_dnd::utils::shift_vec(response.from, response.to, &mut mesh.objects);
         changed = true;
     }

@@ -7,19 +7,14 @@ use crate::{
     EditorResponse,
 };
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
-use egui_dnd::DragDropItem;
+use egui_dnd::dnd;
 
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
+#[derive(Hash)]
 struct ModlEntryIndex(usize);
-
-impl DragDropItem for ModlEntryIndex {
-    fn id(&self) -> egui::Id {
-        egui::Id::new("modl").with(self.0)
-    }
-}
 
 pub fn modl_editor(
     ctx: &egui::Context,
@@ -134,86 +129,94 @@ pub fn modl_editor(
                     // TODO: Avoid allocating here.
                     let mut items: Vec<_> = (0..modl.entries.len()).map(ModlEntryIndex).collect();
 
-                    let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
-                        ui.horizontal(|ui| {
-                            let entry = &mut modl.entries[item.0];
-                            let id = egui::Id::new("modl").with(item.0);
+                    let response =
+                        dnd(ui, "modl_dnd").show_vec(&mut items, |ui, item, handle, _| {
+                            ui.horizontal(|ui| {
+                                let entry = &mut modl.entries[item.0];
+                                let id = egui::Id::new("modl").with(item.0);
 
-                            handle.ui(ui, item, |ui| {
-                                ui.add(icons.draggable(ui, dark_mode));
-                            });
+                                handle.ui(ui, |ui| {
+                                    ui.add(icons.draggable(ui, dark_mode));
+                                });
 
-                            // Check for assignment errors for the current entry.
-                            let mut valid_mesh = true;
-                            let mut valid_material = true;
-                            for e in validation_errors.iter().filter(|e| e.entry_index == item.0) {
-                                match &e.kind {
-                                    ModlValidationErrorKind::InvalidMeshObject { .. } => {
-                                        valid_mesh = false
-                                    }
-                                    ModlValidationErrorKind::InvalidMaterial { .. } => {
-                                        valid_material = false
+                                // Check for assignment errors for the current entry.
+                                let mut valid_mesh = true;
+                                let mut valid_material = true;
+                                for e in
+                                    validation_errors.iter().filter(|e| e.entry_index == item.0)
+                                {
+                                    match &e.kind {
+                                        ModlValidationErrorKind::InvalidMeshObject { .. } => {
+                                            valid_mesh = false
+                                        }
+                                        ModlValidationErrorKind::InvalidMaterial { .. } => {
+                                            valid_material = false
+                                        }
                                     }
                                 }
-                            }
 
-                            // Show errors for the selected mesh object for this entry.
-                            let mesh_text = if valid_mesh {
-                                RichText::new(&entry.mesh_object_name)
-                            } else {
-                                warning_icon_text(&entry.mesh_object_name)
-                            };
+                                // Show errors for the selected mesh object for this entry.
+                                let mesh_text = if valid_mesh {
+                                    RichText::new(&entry.mesh_object_name)
+                                } else {
+                                    warning_icon_text(&entry.mesh_object_name)
+                                };
 
-                            let name_response = if state.advanced_mode {
-                                let (response, name_changed) =
-                                    mesh_combo_box(ui, entry, id.with("mesh"), mesh, mesh_text);
-                                changed |= name_changed;
-                                response
-                            } else {
-                                // TODO: Find a way to get a grid layout working with egui_dnd.
-                                let (_, rect) = ui.allocate_space(egui::vec2(300.0, 20.0));
-                                ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
+                                let name_response = if state.advanced_mode {
+                                    let (response, name_changed) =
+                                        mesh_combo_box(ui, entry, id.with("mesh"), mesh, mesh_text);
+                                    changed |= name_changed;
+                                    response
+                                } else {
+                                    // TODO: Find a way to get a grid layout working with egui_dnd.
+                                    let (_, rect) = ui.allocate_space(egui::vec2(300.0, 20.0));
+                                    ui.child_ui(
+                                        rect,
+                                        egui::Layout::left_to_right(egui::Align::Center),
+                                    )
                                     .add(Label::new(mesh_text).sense(egui::Sense::click()))
-                            };
+                                };
 
-                            let name_response = name_response.context_menu(|ui| {
-                                if ui.button("Delete").clicked() {
-                                    ui.close_menu();
-                                    entry_to_remove = Some(item.0);
-                                    changed = true;
+                                let name_response = name_response.context_menu(|ui| {
+                                    if ui.button("Delete").clicked() {
+                                        ui.close_menu();
+                                        entry_to_remove = Some(item.0);
+                                        changed = true;
+                                    }
+                                });
+
+                                changed |= material_label_combo_box(
+                                    ui,
+                                    &mut entry.material_label,
+                                    id.with("matl"),
+                                    matl,
+                                    valid_material,
+                                );
+                                ui.end_row();
+
+                                // TODO: Add a menu option to match the numshb order (in game convention?).
+                                // Outline the selected mesh in the viewport.
+                                // Check the response first to only have to search for one render mesh.
+                                if name_response.hovered() {
+                                    if let Some(render_mesh) =
+                                        render_model.as_mut().and_then(|model| {
+                                            model.meshes.iter_mut().find(|m| {
+                                                m.name == entry.mesh_object_name
+                                                    && m.subindex == entry.mesh_object_subindex
+                                            })
+                                        })
+                                    {
+                                        render_mesh.is_selected = true;
+                                    }
                                 }
                             });
-
-                            changed |= material_label_combo_box(
-                                ui,
-                                &mut entry.material_label,
-                                id.with("matl"),
-                                matl,
-                                valid_material,
-                            );
-                            ui.end_row();
-
-                            // TODO: Add a menu option to match the numshb order (in game convention?).
-                            // Outline the selected mesh in the viewport.
-                            // Check the response first to only have to search for one render mesh.
-                            if name_response.hovered() {
-                                if let Some(render_mesh) = render_model.as_mut().and_then(|model| {
-                                    model.meshes.iter_mut().find(|m| {
-                                        m.name == entry.mesh_object_name
-                                            && m.subindex == entry.mesh_object_subindex
-                                    })
-                                }) {
-                                    render_mesh.is_selected = true;
-                                }
-                            }
                         });
-                    });
 
                     if let Some(i) = entry_to_remove {
                         modl.entries.remove(i);
                     }
 
-                    if let Some(response) = response.completed {
+                    if let Some(response) = response.final_update() {
                         egui_dnd::utils::shift_vec(response.from, response.to, &mut modl.entries);
                         changed = true;
                     }

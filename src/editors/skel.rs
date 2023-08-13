@@ -7,18 +7,13 @@ use crate::{
     EditorResponse,
 };
 use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Label, RichText, ScrollArea};
-use egui_dnd::DragDropItem;
+use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
 
+#[derive(Hash)]
 struct SkelBoneIndex(usize);
-
-impl DragDropItem for SkelBoneIndex {
-    fn id(&self) -> egui::Id {
-        egui::Id::new("bone").with(self.0)
-    }
-}
 
 pub fn skel_editor(
     ctx: &egui::Context,
@@ -113,7 +108,7 @@ pub fn skel_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| match state.mode {
                     SkelMode::List => {
-                        changed |= edit_bones_list(ui, skel, state, icons, dark_mode);
+                        changed |= edit_bones_list(ui, skel, icons, dark_mode);
                     }
                     SkelMode::Hierarchy => {
                         changed |= edit_bones_hierarchy(ui, skel);
@@ -128,13 +123,7 @@ pub fn skel_editor(
     }
 }
 
-fn edit_bones_list(
-    ui: &mut egui::Ui,
-    skel: &mut SkelData,
-    state: &mut SkelEditorState,
-    icons: &Icons,
-    dark_mode: bool,
-) -> bool {
+fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, icons: &Icons, dark_mode: bool) -> bool {
     let mut changed = false;
 
     // TODO: Do this without clone?
@@ -143,11 +132,11 @@ fn edit_bones_list(
     // TODO: Avoid allocating here.
     let mut items: Vec<_> = (0..skel.bones.len()).map(SkelBoneIndex).collect();
 
-    let response = state.dnd.ui(ui, items.iter_mut(), |item, ui, handle| {
+    let response = dnd(ui, "skel_dnd").show_vec(&mut items, |ui, item, handle, _| {
         ui.horizontal(|ui| {
             let bone = &mut skel.bones[item.0];
 
-            handle.ui(ui, item, |ui| {
+            handle.ui(ui, |ui| {
                 ui.add(icons.draggable(ui, dark_mode));
             });
 
@@ -193,7 +182,7 @@ fn edit_bones_list(
         });
     });
 
-    if let Some(response) = response.completed {
+    if let Some(response) = response.final_update() {
         skel.bones = move_bone(response.from, response.to, &skel.bones);
         changed = true;
     }
