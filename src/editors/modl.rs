@@ -120,7 +120,7 @@ pub fn modl_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     if state.advanced_mode {
-                        edit_modl_file_names(ui, modl);
+                        changed |= edit_modl_file_names(ui, modl);
                         horizontal_separator_empty(ui);
                     }
 
@@ -230,35 +230,57 @@ pub fn modl_editor(
     }
 }
 
-fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) {
+fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
+    let mut changed = false;
+
     ui.heading("Model Files");
     Grid::new("modl_files_grid").show(ui, |ui| {
         let size = [125.0, 20.0];
         ui.label("Model Name");
-        ui.add_sized(size, TextEdit::singleline(&mut modl.model_name));
+        changed |= ui
+            .add_sized(size, TextEdit::singleline(&mut modl.model_name))
+            .changed();
         ui.end_row();
 
         ui.label("Skeleton File Name");
-        ui.add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name));
+        changed |= ui
+            .add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name))
+            .changed();
         ui.end_row();
 
         ui.label("Material File Names");
         for file_name in &mut modl.material_file_names {
-            ui.add_sized(size, TextEdit::singleline(file_name));
+            changed |= ui
+                .add_sized(size, TextEdit::singleline(file_name))
+                .changed();
         }
         ui.end_row();
 
-        // TODO: Allow creating a file name if not present.
         ui.label("Animation File Name");
         if let Some(file_name) = modl.animation_file_name.as_mut() {
-            ui.add_sized(size, TextEdit::singleline(file_name));
+            changed |= ui
+                .add_sized(size, TextEdit::singleline(file_name))
+                .changed();
+            if ui.button("Remove").clicked() {
+                modl.animation_file_name = None;
+                changed = true;
+            }
+        } else {
+            if ui.button("Add File").clicked() {
+                modl.animation_file_name = Some("model.nuanmb".to_string());
+                changed = true;
+            }
         }
         ui.end_row();
 
         ui.label("Mesh File Name");
-        ui.add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name));
+        changed |= ui
+            .add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name))
+            .changed();
         ui.end_row();
     });
+
+    changed
 }
 
 // TODO: Create a function that handles displaying combo box errors?
