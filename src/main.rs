@@ -93,8 +93,11 @@ fn main() {
     let mut winit_state = egui_winit::State::new(&event_loop);
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
 
-    // TODO: Add an option to configure this to preferences.
-    let mut current_scale_factor = window.scale_factor();
+    let mut current_scale_factor = if preferences.use_custom_scale_factor {
+        preferences.scale_factor
+    } else {
+        window.scale_factor()
+    };
     winit_state.set_pixels_per_point(current_scale_factor as f32);
 
     ctx.set_style(egui::style::Style {
@@ -224,7 +227,11 @@ fn main() {
                             winit::event::WindowEvent::ScaleFactorChanged {
                                 scale_factor, ..
                             } => {
-                                current_scale_factor = scale_factor;
+                                current_scale_factor = if app.preferences.use_custom_scale_factor {
+                                    app.preferences.scale_factor
+                                } else {
+                                    scale_factor
+                                };
                                 winit_state.set_pixels_per_point(current_scale_factor as f32);
                             }
                             _ => {

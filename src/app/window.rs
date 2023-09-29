@@ -8,7 +8,7 @@ use crate::{
 };
 use egui::{
     special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
-    Context, Grid, Label, ScrollArea, Ui, Window,
+    Context, DragValue, Grid, Label, ScrollArea, Ui, Window,
 };
 use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use rfd::FileDialog;
@@ -29,15 +29,15 @@ pub fn camera_settings_window(
         .show(ctx, |ui| {
             egui::Grid::new("camera_grid").show(ui, |ui| {
                 ui.label("Translation X");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.x));
+                ui.add(DragValue::new(&mut camera_state.translation_xyz.x));
                 ui.end_row();
 
                 ui.label("Translation Y");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.y));
+                ui.add(DragValue::new(&mut camera_state.translation_xyz.y));
                 ui.end_row();
 
                 ui.label("Translation Z");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.z));
+                ui.add(DragValue::new(&mut camera_state.translation_xyz.z));
                 ui.end_row();
 
                 // TODO: This will need to use quaternions to work with camera anims.
@@ -45,7 +45,7 @@ pub fn camera_settings_window(
                 ui.label("Rotation X");
                 let mut rotation_x_degrees = camera_state.rotation_xyz_radians.x.to_degrees();
                 if ui
-                    .add(egui::DragValue::new(&mut rotation_x_degrees).speed(1.0))
+                    .add(DragValue::new(&mut rotation_x_degrees).speed(1.0))
                     .changed()
                 {
                     camera_state.rotation_xyz_radians.x = rotation_x_degrees.to_radians();
@@ -55,7 +55,7 @@ pub fn camera_settings_window(
                 ui.label("Rotation Y");
                 let mut rotation_y_degrees = camera_state.rotation_xyz_radians.y.to_degrees();
                 if ui
-                    .add(egui::DragValue::new(&mut rotation_y_degrees).speed(1.0))
+                    .add(DragValue::new(&mut rotation_y_degrees).speed(1.0))
                     .changed()
                 {
                     camera_state.rotation_xyz_radians.y = rotation_y_degrees.to_radians();
@@ -67,7 +67,7 @@ pub fn camera_settings_window(
                 let mut fov_degrees = camera_state.fov_y_radians.to_degrees();
                 if ui
                     .add(
-                        egui::DragValue::new(&mut fov_degrees)
+                        DragValue::new(&mut fov_degrees)
                             .speed(1.0)
                             .clamp_range(0.0..=180.0),
                     )
@@ -237,6 +237,16 @@ pub fn preferences_window(
 
                 changed |= edit_graphics_backend(&mut preferences.graphics_backend, ui);
             });
+
+            changed |= ui.checkbox(&mut preferences.use_custom_scale_factor, "Use Custom UI Scale Factor").changed();
+
+            // TODO: update the UI scale when changing this value.
+            if preferences.use_custom_scale_factor {
+                ui.horizontal(|ui| {
+                    ui.label("Scale Factor");
+                    changed |= ui.add(DragValue::new(&mut preferences.scale_factor).speed(0.5).clamp_range(1.0..=4.0)).changed();
+                });
+            }
 
             if ui.button("Reset Preferences").clicked() {
                 *preferences = AppPreferences::default();

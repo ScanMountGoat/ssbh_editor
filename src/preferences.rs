@@ -32,6 +32,8 @@ pub struct AppPreferences {
     pub viewport_color: [u8; 3],
     pub recent_folders: Vec<String>,
     pub graphics_backend: GraphicsBackend,
+    pub use_custom_scale_factor: bool,
+    pub scale_factor: f64,
 }
 
 impl AppPreferences {
@@ -77,6 +79,8 @@ impl Default for AppPreferences {
             viewport_color: [color.r(), color.g(), color.b()],
             recent_folders: Vec::new(),
             graphics_backend: GraphicsBackend::default(),
+            use_custom_scale_factor: false,
+            scale_factor: 1.0,
         }
     }
 }
