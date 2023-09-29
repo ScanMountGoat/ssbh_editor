@@ -92,7 +92,10 @@ fn main() {
     let mut egui_renderer = egui_wgpu::renderer::Renderer::new(&device, surface_format, None, 1);
     let mut winit_state = egui_winit::State::new(&event_loop);
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
-    winit_state.set_pixels_per_point(window.scale_factor() as f32);
+
+    // TODO: Add an option to configure this to preferences.
+    let mut current_scale_factor = window.scale_factor();
+    winit_state.set_pixels_per_point(current_scale_factor as f32);
 
     ctx.set_style(egui::style::Style {
         text_styles: default_text_styles(),
@@ -109,7 +112,7 @@ fn main() {
         &queue,
         size.width,
         size.height,
-        window.scale_factor(),
+        current_scale_factor,
         [0.0; 3],
     );
     let mut bone_name_renderer =
@@ -135,7 +138,7 @@ fn main() {
         &queue,
         size,
         &camera_state,
-        window.scale_factor(),
+        current_scale_factor,
     );
 
     let presets_file = presets_file();
@@ -189,6 +192,7 @@ fn main() {
                             &surface,
                             size,
                             &surface_config,
+                            current_scale_factor,
                         );
                     }
                 }
@@ -206,7 +210,7 @@ fn main() {
                                         &mut bone_name_renderer,
                                         &mut surface_config,
                                         &size,
-                                        window.scale_factor(),
+                                        current_scale_factor,
                                         &surface,
                                         &app,
                                         &app.camera_state,
@@ -216,6 +220,12 @@ fn main() {
                             winit::event::WindowEvent::CloseRequested => {
                                 app.write_state_to_disk();
                                 *control_flow = ControlFlow::Exit;
+                            }
+                            winit::event::WindowEvent::ScaleFactorChanged {
+                                scale_factor, ..
+                            } => {
+                                current_scale_factor = scale_factor;
+                                winit_state.set_pixels_per_point(current_scale_factor as f32);
                             }
                             _ => {
                                 if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
@@ -232,7 +242,7 @@ fn main() {
                                             &app.render_state.queue,
                                             size,
                                             &app.camera_state,
-                                            window.scale_factor(),
+                                            current_scale_factor,
                                         );
                                     }
                                 }
@@ -392,6 +402,7 @@ fn update_and_render_app(
     surface: &wgpu::Surface,
     size: PhysicalSize<u32>,
     surface_config: &wgpu::SurfaceConfiguration,
+    scale_factor: f64,
 ) {
     // Always update the frame times even if no animation is playing.
     // This avoids skipping when resuming playback.
@@ -459,11 +470,10 @@ fn update_and_render_app(
         app.update(ctx);
     });
 
-    // TODO: Only update scale factor variable when changed?
-    let scissor_rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+    let scissor_rect = app.viewport_rect(size.width, size.height, scale_factor as f32);
     renderer.set_scissor_rect(scissor_rect);
 
-    refresh_render_state(app, renderer, egui_renderer, size, window);
+    refresh_render_state(app, renderer, egui_renderer, size, scale_factor);
 
     // Prepare the nutexb for rendering.
     // TODO: Avoid doing this each frame.
@@ -547,7 +557,7 @@ fn update_and_render_app(
             size.width,
             size.height,
             mvp,
-            18.0 * window.scale_factor() as f32,
+            18.0 * scale_factor as f32,
         );
     }
 
@@ -561,6 +571,7 @@ fn update_and_render_app(
         egui_renderer,
         app,
         &mut final_pass,
+        scale_factor,
     );
 
     drop(final_pass);
@@ -573,7 +584,7 @@ fn update_and_render_app(
     // Present the final rendered image.
     output_frame.present();
     if let Some(file) = &app.screenshot_to_render {
-        let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+        let rect = app.viewport_rect(size.width, size.height, scale_factor as f32);
         let image = render_screenshot(renderer, app, size.width, size.height, rect);
         if let Err(e) = image.save(file) {
             error!("Error saving screenshot to {:?}: {}", file, e);
@@ -584,13 +595,13 @@ fn update_and_render_app(
     // TODO: Avoid clone?
     if let Some(file) = app.animation_gif_to_render.clone() {
         // TODO: Run this on another thread?
-        render_animation_to_gif(app, size, window, renderer, file);
+        render_animation_to_gif(app, size, renderer, file, scale_factor);
         app.animation_gif_to_render = None;
     }
 
     if let Some(file) = app.animation_image_sequence_to_render.clone() {
         // TODO: Run this on another thread?
-        render_animation_to_image_sequence(app, size, window, renderer, file);
+        render_animation_to_image_sequence(app, size, renderer, file, scale_factor);
         app.animation_image_sequence_to_render = None;
     }
 }
@@ -600,7 +611,7 @@ fn refresh_render_state(
     renderer: &mut SsbhRenderer,
     egui_renderer: &mut egui_wgpu::Renderer,
     size: PhysicalSize<u32>,
-    window: &winit::window::Window,
+    scale_factor: f64,
 ) {
     if app.should_update_lighting {
         update_lighting(renderer, app);
@@ -623,7 +634,7 @@ fn refresh_render_state(
             &app.render_state.queue,
             size,
             &app.camera_state,
-            window.scale_factor(),
+            scale_factor,
         );
         app.should_refresh_camera_settings = false;
     }
@@ -673,12 +684,12 @@ fn create_app_data_directory() {
 fn render_animation_to_gif(
     app: &mut SsbhApp,
     size: PhysicalSize<u32>,
-    window: &winit::window::Window,
     renderer: &mut SsbhRenderer,
     file: std::path::PathBuf,
+    scale_factor: f64,
 ) {
     // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
-    let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+    let rect = app.viewport_rect(size.width, size.height, scale_factor as f32);
     let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
 
     // TODO: Add progress indication.
@@ -696,12 +707,12 @@ fn render_animation_to_gif(
 fn render_animation_to_image_sequence(
     app: &mut SsbhApp,
     size: PhysicalSize<u32>,
-    window: &winit::window::Window,
     renderer: &mut SsbhRenderer,
     file: std::path::PathBuf,
+    scale_factor: f64,
 ) {
     // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
-    let rect = app.viewport_rect(size.width, size.height, window.scale_factor() as f32);
+    let rect = app.viewport_rect(size.width, size.height, scale_factor as f32);
     let images = render_animation_sequence(renderer, app, size.width, size.height, rect);
 
     // TODO: Add progress indication.
@@ -962,6 +973,7 @@ fn egui_render_pass<'a>(
     egui_renderer: &'a mut egui_wgpu::renderer::Renderer,
     app: &SsbhApp,
     rpass: &mut wgpu::RenderPass<'a>,
+    scale_factor: f64,
 ) {
     // The UI is layered on top.
     // Based on the egui_wgpu source found here:
@@ -970,7 +982,7 @@ fn egui_render_pass<'a>(
     let clipped_primitives = ctx.tessellate(full_output.shapes);
     let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
         size_in_pixels: [surface_config.width, surface_config.height],
-        pixels_per_point: window.scale_factor() as f32,
+        pixels_per_point: scale_factor as f32,
     };
     for (id, image_delta) in &full_output.textures_delta.set {
         egui_renderer.update_texture(
