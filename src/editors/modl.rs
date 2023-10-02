@@ -265,11 +265,9 @@ fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
                 modl.animation_file_name = None;
                 changed = true;
             }
-        } else {
-            if ui.button("Add File").clicked() {
-                modl.animation_file_name = Some("model.nuanmb".to_string());
-                changed = true;
-            }
+        } else if ui.button("Add File").clicked() {
+            modl.animation_file_name = Some("model.nuanmb".to_string());
+            changed = true;
         }
         ui.end_row();
 

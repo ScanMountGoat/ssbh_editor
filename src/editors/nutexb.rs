@@ -79,6 +79,7 @@ pub fn nutexb_viewer(
 
                 if nutexb.footer.mipmap_count > 0 {
                     ui.label("Mipmap");
+                    // TODO: Easier to use a slider?
                     ui.add(
                         DragValue::new(&mut settings.mipmap)
                             .clamp_range(0..=nutexb.footer.mipmap_count - 1),
