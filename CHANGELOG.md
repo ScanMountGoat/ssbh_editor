@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Added
+* Added an option for manually setting the UI scale in preferences to fix scaling issues on some systems.
+
 ### Fixed
 * Fixed an issue where the animation file name could be properly edited in the Modl Editor.
 
@@ -16,13 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Save as dialogs in editors default to the currently opened file's folder and file name when saving.
 
 ### 0.8.3 - 2023-06-02
-### Fixed
-* Fixed an issue where the same folder could be loaded multiple times.
-
 ### Added
 * Added support for stage fog rendering.
 
 ### Fixed
+* Fixed an issue where the same folder could be loaded multiple times.
 * Fixed an issue where UV animations would sometimes be incorrectly flipped.
 * Fixed an issue where CustomVector8 alpha did not update properly in the viewport.
 * Fixed an issue where the application would log an error if the user presets.json file was missing.
