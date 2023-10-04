@@ -8,10 +8,8 @@ use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
 use egui_commonmark::CommonMarkCache;
 use log::error;
-use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
 use pollster::FutureExt;
-use ssbh_data::prelude::*;
 use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
@@ -24,9 +22,8 @@ use ssbh_editor::{
     path::{presets_file, PROJECT_DIR},
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
-use ssbh_editor::{SwingState, Thumbnail};
+use ssbh_editor::{LightingData, SwingState, Thumbnail};
 use ssbh_wgpu::{next_frame, BoneNameRenderer, CameraTransforms, RenderModel, SsbhRenderer};
-use std::path::Path;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::*,
@@ -676,6 +673,9 @@ fn refresh_render_state(
     }
 
     if app.animation_state.is_playing || app.animation_state.should_update_animations {
+        // Only the light00.nuanmb needs to animate.
+        animate_lighting(renderer, app);
+
         animate_models(app);
         app.animation_state.should_update_animations = false;
     }
@@ -746,23 +746,26 @@ fn render_animation_to_image_sequence(
 }
 
 fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
+    app.render_state.lighting_data = LightingData::from_ui(&app.ui_state.stage_lighting);
+
     // light00.nuamb
-    match &app.ui_state.stage_lighting.light {
-        Some(path) => {
-            update_stage_uniforms(renderer, app, path, app.animation_state.current_frame);
-        }
-        None => renderer.reset_stage_uniforms(&app.render_state.queue),
-    }
+    animate_lighting(renderer, app);
 
     // color_grading_lut.nutexb
-    match &app.ui_state.stage_lighting.color_grading_lut {
-        Some(path) => update_color_lut(app, renderer, path),
+    match &app.render_state.lighting_data.color_grading_lut {
+        Some(lut) => {
+            renderer.update_color_lut(&app.render_state.device, &app.render_state.queue, lut)
+        }
         None => renderer.reset_color_lut(&app.render_state.device, &app.render_state.queue),
     };
 
     // reflection_cubemap.nutexb
-    match &app.ui_state.stage_lighting.reflection_cube_map {
-        Some(path) => update_stage_cube_map(&mut app.render_state, path),
+    match &app.render_state.lighting_data.reflection_cube_map {
+        Some(cube) => app.render_state.shared_data.update_stage_cube_map(
+            &app.render_state.device,
+            &app.render_state.queue,
+            cube,
+        ),
         None => {
             app.render_state
                 .shared_data
@@ -782,35 +785,14 @@ fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
     }
 }
 
-fn update_color_lut(app: &SsbhApp, renderer: &mut SsbhRenderer, path: &Path) {
-    match NutexbFile::read_from_file(path) {
-        Ok(nutexb) => {
-            renderer.update_color_lut(&app.render_state.device, &app.render_state.queue, &nutexb);
-        }
-        Err(e) => error!("Error reading {:?}: {}", path, e),
-    }
-}
-
-fn update_stage_cube_map(render_state: &mut RenderState, path: &Path) {
-    match NutexbFile::read_from_file(path) {
-        Ok(nutexb) => {
-            render_state.shared_data.update_stage_cube_map(
-                &render_state.device,
-                &render_state.queue,
-                &nutexb,
-            );
-        }
-        Err(e) => error!("Error reading {:?}: {}", path, e),
-    }
-}
-
-fn update_stage_uniforms(renderer: &mut SsbhRenderer, app: &SsbhApp, path: &Path, frame: f32) {
-    // TODO: Store the file somewhere to allow lighting animations.
-    match AnimData::from_file(path) {
-        Ok(data) => {
-            renderer.update_stage_uniforms(&app.render_state.queue, &data, frame);
-        }
-        Err(e) => error!("Error reading {:?}: {}", path, e),
+fn animate_lighting(renderer: &mut SsbhRenderer, app: &SsbhApp) {
+    match &app.render_state.lighting_data.light {
+        Some(light) => renderer.update_stage_uniforms(
+            &app.render_state.queue,
+            light,
+            app.animation_state.current_frame,
+        ),
+        None => renderer.reset_stage_uniforms(&app.render_state.queue),
     }
 }
 

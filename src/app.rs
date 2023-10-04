@@ -1049,6 +1049,7 @@ impl SsbhApp {
 
     pub fn max_final_frame_index(&mut self) -> f32 {
         // Find the minimum number of frames to cover all animations.
+        // This should include stage animations like lighting and cameras.
         self.animation_state
             .animations
             .iter()
@@ -1061,6 +1062,13 @@ impl SsbhApp {
                         Some(anim.as_ref().ok()?.final_frame_index)
                     })
             })
+            .chain(
+                self.render_state
+                    .lighting_data
+                    .light
+                    .as_ref()
+                    .map(|a| a.final_frame_index),
+            )
             .fold(0.0, f32::max)
     }
 

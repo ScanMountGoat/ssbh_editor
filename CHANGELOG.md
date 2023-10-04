@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### unreleased
 ### Added
 * Added an option for manually setting the UI scale in preferences to fix scaling issues on some systems.
+* Added playback support for lighting animations in the viewport.
 
 ### Fixed
 * Fixed an issue where the animation file name could be properly edited in the Modl Editor.

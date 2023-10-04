@@ -1,5 +1,5 @@
 use ::log::error;
-use app::SsbhApp;
+use app::{SsbhApp, StageLightingState};
 use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle,
@@ -140,6 +140,17 @@ pub struct RenderState {
     pub viewport_top: Option<f32>,
     pub viewport_bottom: Option<f32>,
     pub adapter_info: wgpu::AdapterInfo,
+    pub lighting_data: LightingData,
+}
+
+// Most files are selected from currently loaded folders.
+// Store lights separately for now for convenience.
+#[derive(Default)]
+pub struct LightingData {
+    pub light: Option<AnimData>,
+    pub reflection_cube_map: Option<NutexbFile>,
+    pub color_grading_lut: Option<NutexbFile>,
+    // TODO: shpc?
 }
 
 impl RenderState {
@@ -158,6 +169,44 @@ impl RenderState {
             viewport_top: None,
             viewport_bottom: None,
             adapter_info,
+            lighting_data: Default::default(),
+        }
+    }
+}
+
+impl LightingData {
+    pub fn from_ui(state: &StageLightingState) -> Self {
+        let light = state.light.as_ref().and_then(|path| {
+            AnimData::from_file(path)
+                .map_err(|e| {
+                    error!("Error reading {:?}: {}", path, e);
+                    e
+                })
+                .ok()
+        });
+
+        let reflection_cube_map = state.reflection_cube_map.as_ref().and_then(|path| {
+            NutexbFile::read_from_file(path)
+                .map_err(|e| {
+                    error!("Error reading {:?}: {}", path, e);
+                    e
+                })
+                .ok()
+        });
+
+        let color_grading_lut = state.color_grading_lut.as_ref().and_then(|path| {
+            NutexbFile::read_from_file(path)
+                .map_err(|e| {
+                    error!("Error reading {:?}: {}", path, e);
+                    e
+                })
+                .ok()
+        });
+
+        Self {
+            light,
+            reflection_cube_map,
+            color_grading_lut,
         }
     }
 }
