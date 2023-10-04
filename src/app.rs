@@ -314,7 +314,7 @@ pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
 
 pub struct SsbhApp {
     pub should_refresh_render_settings: bool,
-    pub should_refresh_camera_settings: bool,
+    pub should_update_camera: bool,
     // TODO: Track what files changed in each folder?
     pub models_to_update: ItemsToUpdate,
     pub should_update_thumbnails: bool,
@@ -784,7 +784,7 @@ impl SsbhApp {
             &mut self.camera_state,
         );
         if self.ui_state.camera_settings_open {
-            self.should_refresh_camera_settings = true;
+            self.should_update_camera = true;
         }
 
         device_info_window(

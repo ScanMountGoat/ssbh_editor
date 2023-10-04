@@ -137,6 +137,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             if ui.button("Reset Camera").clicked() {
                 ui.close_menu();
                 app.camera_state = CameraInputState::default();
+                app.should_update_camera = true;
             }
             ui.separator();
 

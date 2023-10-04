@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Fixed an issue where the animation file name could be properly edited in the Modl Editor.
+* Fixed an issue where clicking Viewport > Reset Camera did not immediately update the viewport.
 
 ### 0.8.4 - 2023-06-13
 ### Fixed

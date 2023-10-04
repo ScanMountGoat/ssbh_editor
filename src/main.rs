@@ -350,7 +350,7 @@ fn create_app(
         release_info,
         should_update_lighting: false,
         should_refresh_render_settings: false,
-        should_refresh_camera_settings: false,
+        should_update_camera: false,
         should_validate_models: false,
         should_update_clear_color: true,
         should_update_thumbnails: false,
@@ -635,7 +635,7 @@ fn refresh_render_state(
         app.should_refresh_render_settings = false;
     }
 
-    if app.should_refresh_camera_settings {
+    if app.should_update_camera {
         update_camera(
             renderer,
             &app.render_state.queue,
@@ -643,7 +643,7 @@ fn refresh_render_state(
             &app.camera_state,
             scale_factor,
         );
-        app.should_refresh_camera_settings = false;
+        app.should_update_camera = false;
     }
 
     if app.should_validate_models {
