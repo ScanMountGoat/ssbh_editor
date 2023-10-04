@@ -74,10 +74,12 @@ pub fn preferences_window(
             });
 
             // TODO: update the UI scale when changing these values.
-            changed |= ui.checkbox(&mut preferences.use_custom_scale_factor, "Use Custom UI Scale Factor").changed();
+            changed |= ui.checkbox(&mut preferences.use_custom_scale_factor, "Use Custom UI Scale Factor")
+                .on_hover_text("Override OS scaling settings. Requires an application restart to take effect.")
+                .changed();
             if preferences.use_custom_scale_factor {
                 ui.horizontal(|ui| {
-                    ui.label("Scale Factor");
+                    ui.label("Scale Factor").on_hover_text("Requires an application restart to take effect.");
                     changed |= ui.add(DragValue::new(&mut preferences.scale_factor).speed(0.5).clamp_range(1.0..=4.0)).changed();
                 });
             }
