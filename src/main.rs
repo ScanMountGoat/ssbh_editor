@@ -21,7 +21,7 @@ use ssbh_editor::{
     animate_models, checkerboard_texture, default_fonts, default_text_styles,
     generate_default_thumbnails, generate_model_thumbnails,
     path::{presets_file, PROJECT_DIR},
-    widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
+    widgets_dark, widgets_light, AnimationState, CameraState, RenderState, TexturePainter,
 };
 use ssbh_editor::{LightingData, SwingState, Thumbnail};
 use ssbh_wgpu::animation::camera::animate_camera;
@@ -133,7 +133,10 @@ fn main() {
         });
 
     // TODO: Camera framing?
-    let mut camera_state = CameraInputState::default();
+    let mut camera_state = CameraState {
+        values: preferences.default_camera.clone(),
+        ..Default::default()
+    };
 
     update_camera(
         &queue,
@@ -236,8 +239,8 @@ fn main() {
                                     // It's possible to interact with the UI with the mouse over the viewport.
                                     // Disable tracking the mouse in this case to prevent unwanted camera rotations.
                                     // This mostly affects resizing the left and right side panels.
-                                    app.camera_state.is_mouse_left_clicked = false;
-                                    app.camera_state.is_mouse_right_clicked = false;
+                                    app.camera_state.input.is_mouse_left_clicked = false;
+                                    app.camera_state.input.is_mouse_right_clicked = false;
                                 } else {
                                     // Only update the viewport camera if the user isn't interacting with the UI.
                                     if handle_input(&mut app.camera_state, &event, size) {
@@ -340,7 +343,7 @@ fn create_app(
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
     render_state: RenderState,
-    camera_state: CameraInputState,
+    camera_state: CameraState,
     preferences: AppPreferences,
 ) -> SsbhApp {
     SsbhApp {
@@ -808,7 +811,7 @@ fn animate_viewport_camera(
         if let Some(values) = animate_camera(
             anim,
             app.animation_state.current_frame,
-            app.camera_state.fov_y_radians,
+            app.camera_state.values.fov_y_radians,
             NEAR_CLIP,
             FAR_CLIP,
         ) {
@@ -820,9 +823,9 @@ fn animate_viewport_camera(
             // These changes won't take effect unless the user actually moves the camera.
             // Decomposition is necessary to account for different transform orders.
             let (_, r, t) = transforms.model_view_matrix.to_scale_rotation_translation();
-            app.camera_state.translation = t;
-            app.camera_state.rotation_radians = r.to_euler(glam::EulerRot::XYZ).into();
-            app.camera_state.fov_y_radians = values.fov_y_radians;
+            app.camera_state.values.translation = t;
+            app.camera_state.values.rotation_radians = r.to_euler(glam::EulerRot::XYZ).into();
+            app.camera_state.values.fov_y_radians = values.fov_y_radians;
             app.camera_state.mvp_matrix = transforms.mvp_matrix;
         }
     }
@@ -1049,15 +1052,15 @@ fn request_adapter(
 fn update_camera(
     queue: &wgpu::Queue,
     renderer: &mut SsbhRenderer,
-    camera_state: &mut CameraInputState,
+    camera_state: &mut CameraState,
     size: PhysicalSize<u32>,
     scale_factor: f64,
 ) {
     let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
         size,
-        camera_state.translation,
-        camera_state.rotation_radians,
-        camera_state.fov_y_radians,
+        camera_state.values.translation,
+        camera_state.values.rotation_radians,
+        camera_state.values.fov_y_radians,
     );
     let transforms = CameraTransforms {
         model_view_matrix,
@@ -1078,11 +1081,7 @@ fn update_camera(
 }
 
 // TODO: Create a separate module for input handling?
-fn handle_input(
-    input_state: &mut CameraInputState,
-    event: &WindowEvent,
-    size: PhysicalSize<u32>,
-) -> bool {
+fn handle_input(camera: &mut CameraState, event: &WindowEvent, size: PhysicalSize<u32>) -> bool {
     // Return true if the camera should update.
     let mut changed = false;
 
@@ -1092,65 +1091,65 @@ fn handle_input(
             // Track mouse clicks to only rotate when dragging while clicked.
             match button {
                 MouseButton::Left => {
-                    input_state.is_mouse_left_clicked = *state == ElementState::Pressed;
+                    camera.input.is_mouse_left_clicked = *state == ElementState::Pressed;
                     changed = true;
                 }
                 MouseButton::Right => {
-                    input_state.is_mouse_right_clicked = *state == ElementState::Pressed;
+                    camera.input.is_mouse_right_clicked = *state == ElementState::Pressed;
                     changed = true;
                 }
                 _ => (),
             }
         }
         WindowEvent::CursorMoved { position, .. } => {
-            if input_state.is_mouse_left_clicked {
-                let delta_x = position.x - input_state.previous_cursor_position.x;
-                let delta_y = position.y - input_state.previous_cursor_position.y;
+            if camera.input.is_mouse_left_clicked {
+                let delta_x = position.x - camera.input.previous_cursor_position.x;
+                let delta_y = position.y - camera.input.previous_cursor_position.y;
 
                 // Swap XY so that dragging left right rotates left right.
-                input_state.rotation_radians.x += (delta_y * 0.01) as f32;
-                input_state.rotation_radians.y += (delta_x * 0.01) as f32;
+                camera.values.rotation_radians.x += (delta_y * 0.01) as f32;
+                camera.values.rotation_radians.y += (delta_x * 0.01) as f32;
 
                 changed = true;
-            } else if input_state.is_mouse_right_clicked {
-                let delta_x = position.x - input_state.previous_cursor_position.x;
-                let delta_y = position.y - input_state.previous_cursor_position.y;
+            } else if camera.input.is_mouse_right_clicked {
+                let delta_x = position.x - camera.input.previous_cursor_position.x;
+                let delta_y = position.y - camera.input.previous_cursor_position.y;
 
                 // Translate an equivalent distance in screen space based on the camera.
                 // The viewport height and vertical field of view define the conversion.
-                let fac = input_state.fov_y_radians.sin() * input_state.translation.z.abs()
+                let fac = camera.values.fov_y_radians.sin() * camera.values.translation.z.abs()
                     / size.height as f32;
 
                 // Negate y so that dragging up "drags" the model up.
-                input_state.translation.x += delta_x as f32 * fac;
-                input_state.translation.y -= delta_y as f32 * fac;
+                camera.values.translation.x += delta_x as f32 * fac;
+                camera.values.translation.y -= delta_y as f32 * fac;
 
                 changed = true;
             }
             // Always update the position to avoid jumps when moving between clicks.
-            input_state.previous_cursor_position = *position;
+            camera.input.previous_cursor_position = *position;
         }
         WindowEvent::MouseWheel { delta, .. } => {
             // Scale zoom speed with distance to make it easier to zoom out large scenes.
             let delta_z = match delta {
-                MouseScrollDelta::LineDelta(_x, y) => *y * input_state.translation.z.abs() * 0.1,
+                MouseScrollDelta::LineDelta(_x, y) => *y * camera.values.translation.z.abs() * 0.1,
                 MouseScrollDelta::PixelDelta(p) => {
-                    p.y as f32 * input_state.translation.z.abs() * 0.005
+                    p.y as f32 * camera.values.translation.z.abs() * 0.005
                 }
             };
 
             // Clamp to prevent the user from zooming through the origin.
-            input_state.translation.z = (input_state.translation.z + delta_z).min(-1.0);
+            camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
 
             changed = true;
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(keycode) = input.virtual_keycode {
                 match keycode {
-                    VirtualKeyCode::Left => input_state.translation.x += 0.25,
-                    VirtualKeyCode::Right => input_state.translation.x -= 0.25,
-                    VirtualKeyCode::Up => input_state.translation.y += 0.25,
-                    VirtualKeyCode::Down => input_state.translation.y -= 0.25,
+                    VirtualKeyCode::Left => camera.values.translation.x += 0.25,
+                    VirtualKeyCode::Right => camera.values.translation.x -= 0.25,
+                    VirtualKeyCode::Up => camera.values.translation.y += 0.25,
+                    VirtualKeyCode::Down => camera.values.translation.y -= 0.25,
                     _ => (),
                 }
 

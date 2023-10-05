@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{hide_expressions, CameraInputState};
+use crate::{hide_expressions, CameraState};
 
 use super::SsbhApp;
 use egui::{special_emojis::GITHUB, Button, KeyboardShortcut, Ui};
@@ -136,7 +136,10 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             }
             if ui.button("Reset Camera").clicked() {
                 ui.close_menu();
-                app.camera_state = CameraInputState::default();
+                app.camera_state = CameraState {
+                    values: app.preferences.default_camera.clone(),
+                    ..Default::default()
+                };
                 app.should_update_camera = true;
             }
             ui.separator();

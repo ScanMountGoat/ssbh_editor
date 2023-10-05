@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added playback support for lighting animations in the viewport.
 * Added playback support for camera animations in the viewport.
 * Added validation for mesh vertex weights with zero weight.
+* Added an option for overriding the default camera values in Camera Settings.
 
 ### Fixed
 * Fixed an issue where the animation file name could be properly edited in the Modl Editor.

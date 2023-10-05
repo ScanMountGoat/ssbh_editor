@@ -1,14 +1,15 @@
 use std::path::PathBuf;
 
-use egui::{DragValue, Label, Ui};
+use egui::{Button, DragValue, Label, Ui};
 use rfd::FileDialog;
 
-use crate::{horizontal_separator_empty, CameraInputState};
+use crate::{horizontal_separator_empty, CameraState, CameraValues};
 
 pub fn camera_settings_window(
     ctx: &egui::Context,
     open: &mut bool,
-    camera_state: &mut CameraInputState,
+    camera_state: &mut CameraState,
+    default_camera: &mut CameraValues,
 ) -> bool {
     let mut changed = false;
 
@@ -16,42 +17,80 @@ pub fn camera_settings_window(
         .resizable(false)
         .open(open)
         .show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("Defaults", |ui| {
+                    if ui
+                        .add(Button::new("Save Current Settings as Default").wrap(false))
+                        .clicked()
+                    {
+                        ui.close_menu();
+
+                        *default_camera = camera_state.values.clone();
+                    }
+
+                    if ui
+                        .button("Reset Defaults")
+                        .on_hover_text("Hard reset all settings to their original defaults.")
+                        .clicked()
+                    {
+                        ui.close_menu();
+
+                        *camera_state = CameraState::default();
+                        *default_camera = CameraValues::default();
+                        changed = true;
+                    }
+                });
+
+                ui.menu_button("Help", |ui| {
+                    if ui.button("Camera Settings Wiki").clicked() {
+                        ui.close_menu();
+
+                        let link =
+                            "https://github.com/ScanMountGoat/ssbh_editor/wiki/Camera-Settings";
+                        if let Err(e) = open::that(link) {
+                            log::error!("Failed to open {link}: {e}");
+                        }
+                    }
+                });
+            });
+            ui.separator();
+
             egui::Grid::new("camera_grid").show(ui, |ui| {
                 ui.label("Translation X");
                 changed |= ui
-                    .add(DragValue::new(&mut camera_state.translation.x))
+                    .add(DragValue::new(&mut camera_state.values.translation.x))
                     .changed();
                 ui.end_row();
 
                 ui.label("Translation Y");
                 changed |= ui
-                    .add(DragValue::new(&mut camera_state.translation.y))
+                    .add(DragValue::new(&mut camera_state.values.translation.y))
                     .changed();
                 ui.end_row();
 
                 ui.label("Translation Z");
                 changed |= ui
-                    .add(DragValue::new(&mut camera_state.translation.z))
+                    .add(DragValue::new(&mut camera_state.values.translation.z))
                     .changed();
                 ui.end_row();
 
                 ui.label("Rotation X");
-                changed |= edit_angle_degrees(ui, &mut camera_state.rotation_radians.x);
+                changed |= edit_angle_degrees(ui, &mut camera_state.values.rotation_radians.x);
                 ui.end_row();
 
                 ui.label("Rotation Y");
-                changed |= edit_angle_degrees(ui, &mut camera_state.rotation_radians.y);
+                changed |= edit_angle_degrees(ui, &mut camera_state.values.rotation_radians.y);
                 ui.end_row();
 
                 // All three axes are necessary to decompose in game animations.
                 // Most users won't touch this value.
                 ui.label("Rotation Z");
-                changed |= edit_angle_degrees(ui, &mut camera_state.rotation_radians.z);
+                changed |= edit_angle_degrees(ui, &mut camera_state.values.rotation_radians.z);
                 ui.end_row();
 
                 ui.label("Field of View")
                     .on_hover_text("The vertical field of view in degrees.");
-                let mut fov_degrees = camera_state.fov_y_radians.to_degrees();
+                let mut fov_degrees = camera_state.values.fov_y_radians.to_degrees();
                 if ui
                     .add(
                         DragValue::new(&mut fov_degrees)
@@ -60,7 +99,7 @@ pub fn camera_settings_window(
                     )
                     .changed()
                 {
-                    camera_state.fov_y_radians = fov_degrees.to_radians();
+                    camera_state.values.fov_y_radians = fov_degrees.to_radians();
                     changed = true;
                 }
                 ui.end_row();
@@ -82,8 +121,15 @@ pub fn camera_settings_window(
             });
             horizontal_separator_empty(ui);
 
-            if ui.button("Reset").clicked() {
-                *camera_state = CameraInputState::default();
+            if ui
+                .button("Reset")
+                .on_hover_text("Reset settings to their configured defaults.")
+                .clicked()
+            {
+                *camera_state = CameraState {
+                    values: default_camera.clone(),
+                    ..Default::default()
+                };
                 changed = true;
             }
         });

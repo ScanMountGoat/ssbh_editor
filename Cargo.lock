@@ -1265,6 +1265,7 @@ checksum = "12f597d56c1bd55a811a1be189459e8fad2bbc272616375602443bdfb37fa774"
 dependencies = [
  "bytemuck",
  "mint",
+ "serde",
 ]
 
 [[package]]

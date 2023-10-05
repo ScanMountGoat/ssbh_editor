@@ -22,7 +22,7 @@ use crate::{
     preferences::AppPreferences,
     update::LatestReleaseInfo,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraInputState, EditorResponse, FileResult,
+    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorResponse, FileResult,
     RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
@@ -352,7 +352,7 @@ pub struct SsbhApp {
     pub show_right_panel: bool,
     pub show_bottom_panel: bool,
 
-    pub camera_state: CameraInputState,
+    pub camera_state: CameraState,
 
     pub preferences: AppPreferences,
 
@@ -782,6 +782,7 @@ impl SsbhApp {
             ctx,
             &mut self.ui_state.camera_settings_open,
             &mut self.camera_state,
+            &mut self.preferences.default_camera,
         );
 
         device_info_window(

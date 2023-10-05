@@ -16,7 +16,7 @@ egui_dnd = "0.5.0"
 egui_commonmark = "0.7.3"
 wgpu = "0.16.0"
 winit = "0.28.1"
-glam = { version = "0.22.0", features = ["mint", "bytemuck"] }
+glam = { version = "0.22.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.10.0"
 ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
 nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }

@@ -1,4 +1,4 @@
-use crate::{path::preferences_file, widgets_dark};
+use crate::{path::preferences_file, widgets_dark, CameraValues};
 use log::error;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString, EnumVariantNames};
@@ -34,6 +34,7 @@ pub struct AppPreferences {
     pub graphics_backend: GraphicsBackend,
     pub use_custom_scale_factor: bool,
     pub scale_factor: f64,
+    pub default_camera: CameraValues,
 }
 
 impl AppPreferences {
@@ -81,6 +82,7 @@ impl Default for AppPreferences {
             graphics_backend: GraphicsBackend::default(),
             use_custom_scale_factor: false,
             scale_factor: 1.0,
+            default_camera: CameraValues::default(),
         }
     }
 }
