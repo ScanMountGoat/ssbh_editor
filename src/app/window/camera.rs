@@ -19,19 +19,19 @@ pub fn camera_settings_window(
             egui::Grid::new("camera_grid").show(ui, |ui| {
                 ui.label("Translation X");
                 changed |= ui
-                    .add(egui::DragValue::new(&mut camera_state.translation_xyz.x))
+                    .add(egui::DragValue::new(&mut camera_state.translation.x))
                     .changed();
                 ui.end_row();
 
                 ui.label("Translation Y");
                 changed |= ui
-                    .add(egui::DragValue::new(&mut camera_state.translation_xyz.y))
+                    .add(egui::DragValue::new(&mut camera_state.translation.y))
                     .changed();
                 ui.end_row();
 
                 ui.label("Translation Z");
                 changed |= ui
-                    .add(egui::DragValue::new(&mut camera_state.translation_xyz.z))
+                    .add(egui::DragValue::new(&mut camera_state.translation.z))
                     .changed();
                 ui.end_row();
 

@@ -66,7 +66,7 @@ pub struct CameraInputState {
     pub previous_cursor_position: PhysicalPosition<f64>,
     pub is_mouse_left_clicked: bool,
     pub is_mouse_right_clicked: bool,
-    pub translation_xyz: glam::Vec3,
+    pub translation: glam::Vec3,
     pub rotation_xyz_radians: glam::Vec3,
     pub fov_y_radians: f32,
 
@@ -79,7 +79,7 @@ impl Default for CameraInputState {
             previous_cursor_position: PhysicalPosition { x: 0.0, y: 0.0 },
             is_mouse_left_clicked: false,
             is_mouse_right_clicked: false,
-            translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
+            translation: glam::Vec3::new(0.0, -8.0, -60.0),
             rotation_xyz_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
             anim_path: None,

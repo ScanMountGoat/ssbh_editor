@@ -7,7 +7,6 @@
 use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
 use egui_commonmark::CommonMarkCache;
-use glam::vec4;
 use log::error;
 use nutexb_wgpu::TextureRenderer;
 use pollster::FutureExt;
@@ -27,11 +26,7 @@ use ssbh_editor::{
 use ssbh_editor::{LightingData, SwingState, Thumbnail};
 use ssbh_wgpu::animation::camera::animate_camera;
 use ssbh_wgpu::{next_frame, BoneNameRenderer, CameraTransforms, RenderModel, SsbhRenderer};
-use winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
-    event::*,
-    event_loop::ControlFlow,
-};
+use winit::{dpi::PhysicalSize, event::*, event_loop::ControlFlow};
 
 // TODO: Make these configurable?
 const NEAR_CLIP: f32 = 1.0;
@@ -123,7 +118,7 @@ fn main() {
         [0.0; 3],
     );
     let mut bone_name_renderer =
-        BoneNameRenderer::new(&device, ssbh_editor::FONT_BYTES, size.width, size.height);
+        BoneNameRenderer::new(&device, &queue, Some(ssbh_editor::FONT_BYTES.to_vec()));
 
     // TODO: Use this to generate thumbnails for cube maps and 3d textures.
     let texture_renderer = TextureRenderer::new(&device, &queue, surface_format);
@@ -214,7 +209,6 @@ fn main() {
 
                                     resize(
                                         &mut renderer,
-                                        &mut bone_name_renderer,
                                         &mut surface_config,
                                         &size,
                                         current_scale_factor,
@@ -552,19 +546,16 @@ fn update_and_render_app(
         // TODO: Avoid recalculating the MVP matrix?
         let (_, _, mvp) = calculate_mvp(
             size,
-            app.camera_state.translation_xyz,
+            app.camera_state.translation,
             app.camera_state.rotation_xyz_radians,
             app.camera_state.fov_y_radians,
         );
 
-        bone_name_renderer.render_skeleton_names(
+        bone_name_renderer.render_bone_names(
             &app.render_state.device,
             &app.render_state.queue,
             &mut final_pass,
-            app.render_models
-                .iter()
-                .zip(app.models.iter().map(|m| m.model.find_skel()))
-                .filter_map(|(m, s)| Some((m, s?))),
+            &app.render_models,
             size.width,
             size.height,
             mvp,
@@ -819,25 +810,14 @@ fn animate_viewport_camera(
     scale_factor: f64,
 ) {
     if let Some(anim) = &app.render_state.camera_anim {
-        let aspect = size.width as f32 / size.height as f32;
-        // TODO: Function for this?
-        let screen_dimensions = vec4(
-            size.width as f32,
-            size.height as f32,
-            scale_factor as f32,
-            0.0,
-        );
-
-        // TODO: have ssbh_wgpu return a decomposed struct with a to_transform method?
-        if let Some(transforms) = animate_camera(
+        if let Some(values) = animate_camera(
             anim,
             app.animation_state.current_frame,
-            aspect,
-            screen_dimensions,
             app.camera_state.fov_y_radians,
             NEAR_CLIP,
             FAR_CLIP,
         ) {
+            let transforms = values.to_transforms(size.width, size.height, scale_factor);
             renderer.update_camera(&app.render_state.queue, transforms);
 
             // TODO: Apply the animation values to the viewport camera.
@@ -948,7 +928,6 @@ fn update_color_theme(app: &SsbhApp, ctx: &egui::Context) {
 
 fn resize(
     renderer: &mut SsbhRenderer,
-    bone_name_renderer: &mut BoneNameRenderer,
     surface_config: &mut wgpu::SurfaceConfiguration,
     size: &PhysicalSize<u32>,
     scale_factor: f64,
@@ -968,8 +947,6 @@ fn resize(
         scale_factor,
         scissor_rect,
     );
-
-    bone_name_renderer.resize(&app.render_state.queue, size.width, size.height);
 
     update_camera(
         renderer,
@@ -1077,9 +1054,10 @@ fn update_camera(
     camera_state: &CameraInputState,
     scale_factor: f64,
 ) {
+    // TODO: Store camera transforms to make name rendering work properly?
     let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
         size,
-        camera_state.translation_xyz,
+        camera_state.translation,
         camera_state.rotation_xyz_radians,
         camera_state.fov_y_radians,
     );
@@ -1134,18 +1112,17 @@ fn handle_input(
 
                 changed = true;
             } else if input_state.is_mouse_right_clicked {
-                let (current_x_world, current_y_world) =
-                    screen_to_world(input_state, *position, size);
+                let delta_x = position.x - input_state.previous_cursor_position.x;
+                let delta_y = position.y - input_state.previous_cursor_position.y;
 
-                let (previous_x_world, previous_y_world) =
-                    screen_to_world(input_state, input_state.previous_cursor_position, size);
-
-                let delta_x_world = current_x_world - previous_x_world;
-                let delta_y_world = current_y_world - previous_y_world;
+                // Translate an equivalent distance in screen space based on the camera.
+                // The viewport height and vertical field of view define the conversion.
+                let fac = input_state.fov_y_radians.sin() * input_state.translation.z.abs()
+                    / size.height as f32;
 
                 // Negate y so that dragging up "drags" the model up.
-                input_state.translation_xyz.x += delta_x_world;
-                input_state.translation_xyz.y -= delta_y_world;
+                input_state.translation.x += delta_x as f32 * fac;
+                input_state.translation.y -= delta_y as f32 * fac;
 
                 changed = true;
             }
@@ -1155,26 +1132,24 @@ fn handle_input(
         WindowEvent::MouseWheel { delta, .. } => {
             // Scale zoom speed with distance to make it easier to zoom out large scenes.
             let delta_z = match delta {
-                MouseScrollDelta::LineDelta(_x, y) => {
-                    *y * input_state.translation_xyz.z.abs() * 0.1
-                }
+                MouseScrollDelta::LineDelta(_x, y) => *y * input_state.translation.z.abs() * 0.1,
                 MouseScrollDelta::PixelDelta(p) => {
-                    p.y as f32 * input_state.translation_xyz.z.abs() * 0.005
+                    p.y as f32 * input_state.translation.z.abs() * 0.005
                 }
             };
 
             // Clamp to prevent the user from zooming through the origin.
-            input_state.translation_xyz.z = (input_state.translation_xyz.z + delta_z).min(-1.0);
+            input_state.translation.z = (input_state.translation.z + delta_z).min(-1.0);
 
             changed = true;
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(keycode) = input.virtual_keycode {
                 match keycode {
-                    VirtualKeyCode::Left => input_state.translation_xyz.x += 0.25,
-                    VirtualKeyCode::Right => input_state.translation_xyz.x -= 0.25,
-                    VirtualKeyCode::Up => input_state.translation_xyz.y += 0.25,
-                    VirtualKeyCode::Down => input_state.translation_xyz.y -= 0.25,
+                    VirtualKeyCode::Left => input_state.translation.x += 0.25,
+                    VirtualKeyCode::Right => input_state.translation.x -= 0.25,
+                    VirtualKeyCode::Up => input_state.translation.y += 0.25,
+                    VirtualKeyCode::Down => input_state.translation.y -= 0.25,
                     _ => (),
                 }
 
@@ -1185,36 +1160,4 @@ fn handle_input(
     }
 
     changed
-}
-
-// TODO: Move this to ssbh_wgpu and make tests.
-fn screen_to_world(
-    input_state: &CameraInputState,
-    position: PhysicalPosition<f64>,
-    size: PhysicalSize<u32>,
-) -> (f32, f32) {
-    // The translation input is in pixels.
-    let x_pixels = position.x;
-    let y_pixels = position.y;
-
-    // We want a world translation to move the scene origin that many pixels.
-    // Map from screen space to clip space in the range [-1,1].
-    let x_clip = 2.0 * x_pixels / size.width as f64 - 1.0;
-    let y_clip = 2.0 * y_pixels / size.height as f64 - 1.0;
-
-    // Map to world space using the model, view, and projection matrix.
-    // TODO: Avoid recalculating the matrix?
-    // Rotation is applied first, so always translate in XY.
-    // TODO: Does ignoring rotation like this work in general?
-    let (_, _, mvp) = calculate_mvp(
-        size,
-        input_state.translation_xyz,
-        input_state.rotation_xyz_radians * 0.0,
-        input_state.fov_y_radians,
-    );
-    let world = mvp.inverse() * glam::Vec4::new(x_clip as f32, y_clip as f32, 0.0, 1.0);
-
-    let world_x = world.x * world.z;
-    let world_y = world.y * world.z;
-    (world_x, world_y)
 }
