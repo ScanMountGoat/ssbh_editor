@@ -70,7 +70,7 @@ pub struct CameraInputState {
     pub rotation_xyz_radians: glam::Vec3,
     pub fov_y_radians: f32,
 
-    pub anim_path: Option<PathBuf>
+    pub anim_path: Option<PathBuf>,
 }
 
 impl Default for CameraInputState {
@@ -82,7 +82,7 @@ impl Default for CameraInputState {
             translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
             rotation_xyz_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
-            anim_path: None
+            anim_path: None,
         }
     }
 }
@@ -145,6 +145,8 @@ pub struct RenderState {
     pub viewport_bottom: Option<f32>,
     pub adapter_info: wgpu::AdapterInfo,
     pub lighting_data: LightingData,
+    // TODO: where to put this?
+    pub camera_anim: Option<AnimData>,
 }
 
 // Most files are selected from currently loaded folders.
@@ -174,6 +176,7 @@ impl RenderState {
             viewport_bottom: None,
             adapter_info,
             lighting_data: Default::default(),
+            camera_anim: None,
         }
     }
 }
@@ -181,6 +184,7 @@ impl RenderState {
 impl LightingData {
     pub fn from_ui(state: &StageLightingState) -> Self {
         let light = state.light.as_ref().and_then(|path| {
+            // TODO: Create a helper function for this?
             AnimData::from_file(path)
                 .map_err(|e| {
                     error!("Error reading {:?}: {}", path, e);

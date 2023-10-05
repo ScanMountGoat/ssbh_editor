@@ -9,26 +9,35 @@ pub fn camera_settings_window(
     ctx: &egui::Context,
     open: &mut bool,
     camera_state: &mut CameraInputState,
-) {
+) -> bool {
+    let mut changed = false;
+
     egui::Window::new("Camera Settings")
         .resizable(false)
         .open(open)
         .show(ctx, |ui| {
             egui::Grid::new("camera_grid").show(ui, |ui| {
                 ui.label("Translation X");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.x));
+                changed |= ui
+                    .add(egui::DragValue::new(&mut camera_state.translation_xyz.x))
+                    .changed();
                 ui.end_row();
 
                 ui.label("Translation Y");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.y));
+                changed |= ui
+                    .add(egui::DragValue::new(&mut camera_state.translation_xyz.y))
+                    .changed();
                 ui.end_row();
 
                 ui.label("Translation Z");
-                ui.add(egui::DragValue::new(&mut camera_state.translation_xyz.z));
+                changed |= ui
+                    .add(egui::DragValue::new(&mut camera_state.translation_xyz.z))
+                    .changed();
                 ui.end_row();
 
                 // TODO: This will need to use quaternions to work with camera anims.
                 // TODO: Add an option for radians or degrees?
+                // TODO: Create helper function for this?
                 ui.label("Rotation X");
                 let mut rotation_x_degrees = camera_state.rotation_xyz_radians.x.to_degrees();
                 if ui
@@ -36,6 +45,7 @@ pub fn camera_settings_window(
                     .changed()
                 {
                     camera_state.rotation_xyz_radians.x = rotation_x_degrees.to_radians();
+                    changed = true;
                 }
                 ui.end_row();
 
@@ -46,6 +56,7 @@ pub fn camera_settings_window(
                     .changed()
                 {
                     camera_state.rotation_xyz_radians.y = rotation_y_degrees.to_radians();
+                    changed = true;
                 }
                 ui.end_row();
 
@@ -61,6 +72,7 @@ pub fn camera_settings_window(
                     .changed()
                 {
                     camera_state.fov_y_radians = fov_degrees.to_radians();
+                    changed = true;
                 }
                 ui.end_row();
             });
@@ -76,6 +88,7 @@ pub fn camera_settings_window(
                         .pick_file()
                     {
                         camera_state.anim_path = Some(file);
+                        changed = true;
                     };
                 }
             });
@@ -83,8 +96,11 @@ pub fn camera_settings_window(
 
             if ui.button("Reset").clicked() {
                 *camera_state = CameraInputState::default();
+                changed = true;
             }
         });
+
+    changed
 }
 
 fn path_label(ui: &mut Ui, path: &Option<PathBuf>) {

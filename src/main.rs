@@ -7,9 +7,11 @@
 use egui::ecolor::linear_f32_from_gamma_u8;
 use egui::Visuals;
 use egui_commonmark::CommonMarkCache;
+use glam::vec4;
 use log::error;
 use nutexb_wgpu::TextureRenderer;
 use pollster::FutureExt;
+use ssbh_data::prelude::*;
 use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
@@ -23,12 +25,17 @@ use ssbh_editor::{
     widgets_dark, widgets_light, AnimationState, CameraInputState, RenderState, TexturePainter,
 };
 use ssbh_editor::{LightingData, SwingState, Thumbnail};
+use ssbh_wgpu::animation::camera::animate_camera;
 use ssbh_wgpu::{next_frame, BoneNameRenderer, CameraTransforms, RenderModel, SsbhRenderer};
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::*,
     event_loop::ControlFlow,
 };
+
+// TODO: Make these configurable?
+const NEAR_CLIP: f32 = 1.0;
+const FAR_CLIP: f32 = 400000.0;
 
 // TODO: Split up this file into modules.
 
@@ -317,7 +324,7 @@ fn calculate_mvp(
     let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
         * glam::Mat4::from_rotation_x(rotation_xyz_radians.x)
         * glam::Mat4::from_rotation_y(rotation_xyz_radians.y);
-    let perspective_matrix = glam::Mat4::perspective_rh(fov_y_radians, aspect, 1.0, 400000.0);
+    let perspective_matrix = glam::Mat4::perspective_rh(fov_y_radians, aspect, NEAR_CLIP, FAR_CLIP);
 
     let camera_pos = model_view_matrix.inverse().col(3);
 
@@ -633,6 +640,15 @@ fn refresh_render_state(
     }
 
     if app.should_update_camera {
+        app.render_state.camera_anim = app.camera_state.anim_path.as_ref().and_then(|path| {
+            AnimData::from_file(path)
+                .map_err(|e| {
+                    error!("Error reading {:?}: {}", path, e);
+                    e
+                })
+                .ok()
+        });
+
         update_camera(
             renderer,
             &app.render_state.queue,
@@ -673,9 +689,8 @@ fn refresh_render_state(
     }
 
     if app.animation_state.is_playing || app.animation_state.should_update_animations {
-        // Only the light00.nuanmb needs to animate.
         animate_lighting(renderer, app);
-
+        animate_viewport_camera(renderer, app, size, scale_factor);
         animate_models(app);
         app.animation_state.should_update_animations = false;
     }
@@ -786,6 +801,7 @@ fn update_lighting(renderer: &mut SsbhRenderer, app: &mut SsbhApp) {
 }
 
 fn animate_lighting(renderer: &mut SsbhRenderer, app: &SsbhApp) {
+    // Only the light00.nuanmb needs to animate.
     match &app.render_state.lighting_data.light {
         Some(light) => renderer.update_stage_uniforms(
             &app.render_state.queue,
@@ -793,6 +809,42 @@ fn animate_lighting(renderer: &mut SsbhRenderer, app: &SsbhApp) {
             app.animation_state.current_frame,
         ),
         None => renderer.reset_stage_uniforms(&app.render_state.queue),
+    }
+}
+
+fn animate_viewport_camera(
+    renderer: &mut SsbhRenderer,
+    app: &mut SsbhApp,
+    size: PhysicalSize<u32>,
+    scale_factor: f64,
+) {
+    if let Some(anim) = &app.render_state.camera_anim {
+        let aspect = size.width as f32 / size.height as f32;
+        // TODO: Function for this?
+        let screen_dimensions = vec4(
+            size.width as f32,
+            size.height as f32,
+            scale_factor as f32,
+            0.0,
+        );
+
+        // TODO: have ssbh_wgpu return a decomposed struct with a to_transform method?
+        if let Some(transforms) = animate_camera(
+            anim,
+            app.animation_state.current_frame,
+            aspect,
+            screen_dimensions,
+            app.camera_state.fov_y_radians,
+            NEAR_CLIP,
+            FAR_CLIP,
+        ) {
+            renderer.update_camera(&app.render_state.queue, transforms);
+
+            // TODO: Apply the animation values to the viewport camera.
+            // This reduces "snapping" when moving the camera while paused.
+            // These changes won't take effect unless the user actually moves the camera.
+            // This avoids inaccuracies during animation playback.
+        }
     }
 }
 
@@ -1052,7 +1104,9 @@ fn handle_input(
     event: &WindowEvent,
     size: PhysicalSize<u32>,
 ) -> bool {
-    // Return true if this function handled the event.
+    // Return true if the camera should update.
+    let mut changed = false;
+
     // TODO: Input handling can be it's own module.
     match event {
         WindowEvent::MouseInput { button, state, .. } => {
@@ -1060,13 +1114,14 @@ fn handle_input(
             match button {
                 MouseButton::Left => {
                     input_state.is_mouse_left_clicked = *state == ElementState::Pressed;
+                    changed = true;
                 }
                 MouseButton::Right => {
                     input_state.is_mouse_right_clicked = *state == ElementState::Pressed;
+                    changed = true;
                 }
                 _ => (),
             }
-            true
         }
         WindowEvent::CursorMoved { position, .. } => {
             if input_state.is_mouse_left_clicked {
@@ -1076,6 +1131,8 @@ fn handle_input(
                 // Swap XY so that dragging left right rotates left right.
                 input_state.rotation_xyz_radians.x += (delta_y * 0.01) as f32;
                 input_state.rotation_xyz_radians.y += (delta_x * 0.01) as f32;
+
+                changed = true;
             } else if input_state.is_mouse_right_clicked {
                 let (current_x_world, current_y_world) =
                     screen_to_world(input_state, *position, size);
@@ -1089,11 +1146,11 @@ fn handle_input(
                 // Negate y so that dragging up "drags" the model up.
                 input_state.translation_xyz.x += delta_x_world;
                 input_state.translation_xyz.y -= delta_y_world;
+
+                changed = true;
             }
             // Always update the position to avoid jumps when moving between clicks.
             input_state.previous_cursor_position = *position;
-
-            true
         }
         WindowEvent::MouseWheel { delta, .. } => {
             // Scale zoom speed with distance to make it easier to zoom out large scenes.
@@ -1108,7 +1165,8 @@ fn handle_input(
 
             // Clamp to prevent the user from zooming through the origin.
             input_state.translation_xyz.z = (input_state.translation_xyz.z + delta_z).min(-1.0);
-            true
+
+            changed = true;
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(keycode) = input.virtual_keycode {
@@ -1119,12 +1177,14 @@ fn handle_input(
                     VirtualKeyCode::Down => input_state.translation_xyz.y -= 0.25,
                     _ => (),
                 }
-            }
 
-            true
+                changed = true;
+            }
         }
-        _ => false,
+        _ => (),
     }
+
+    changed
 }
 
 // TODO: Move this to ssbh_wgpu and make tests.

@@ -778,14 +778,11 @@ impl SsbhApp {
             self.should_refresh_render_settings = true;
         }
 
-        camera_settings_window(
+        self.should_update_camera |= camera_settings_window(
             ctx,
             &mut self.ui_state.camera_settings_open,
             &mut self.camera_state,
         );
-        if self.ui_state.camera_settings_open {
-            self.should_update_camera = true;
-        }
 
         device_info_window(
             ctx,
@@ -1066,6 +1063,12 @@ impl SsbhApp {
                 self.render_state
                     .lighting_data
                     .light
+                    .as_ref()
+                    .map(|a| a.final_frame_index),
+            )
+            .chain(
+                self.render_state
+                    .camera_anim
                     .as_ref()
                     .map(|a| a.final_frame_index),
             )
