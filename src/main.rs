@@ -133,13 +133,13 @@ fn main() {
         });
 
     // TODO: Camera framing?
-    let camera_state = CameraInputState::default();
+    let mut camera_state = CameraInputState::default();
 
     update_camera(
-        &mut renderer,
         &queue,
+        &mut renderer,
+        &mut camera_state,
         size,
-        &camera_state,
         current_scale_factor,
     );
 
@@ -208,13 +208,12 @@ fn main() {
                                     size = window.inner_size();
 
                                     resize(
+                                        &mut app,
                                         &mut renderer,
                                         &mut surface_config,
                                         &size,
                                         current_scale_factor,
                                         &surface,
-                                        &app,
-                                        &app.camera_state,
                                     );
                                 }
                             }
@@ -243,10 +242,10 @@ fn main() {
                                     // Only update the viewport camera if the user isn't interacting with the UI.
                                     if handle_input(&mut app.camera_state, &event, size) {
                                         update_camera(
-                                            &mut renderer,
                                             &app.render_state.queue,
+                                            &mut renderer,
+                                            &mut app.camera_state,
                                             size,
-                                            &app.camera_state,
                                             current_scale_factor,
                                         );
                                     }
@@ -547,14 +546,6 @@ fn update_and_render_app(
     // TODO: Make the font size configurable.
     // TODO: Fix bone names appearing on top of the UI.
     if app.render_state.model_render_options.draw_bones && app.draw_bone_names {
-        // TODO: Avoid recalculating the MVP matrix?
-        let (_, _, mvp) = calculate_mvp(
-            size,
-            app.camera_state.translation,
-            app.camera_state.rotation_radians,
-            app.camera_state.fov_y_radians,
-        );
-
         bone_name_renderer.render_bone_names(
             &app.render_state.device,
             &app.render_state.queue,
@@ -562,7 +553,7 @@ fn update_and_render_app(
             &app.render_models,
             size.width,
             size.height,
-            mvp,
+            app.camera_state.mvp_matrix,
             18.0 * scale_factor as f32,
         );
     }
@@ -645,10 +636,10 @@ fn refresh_render_state(
         });
 
         update_camera(
-            renderer,
             &app.render_state.queue,
+            renderer,
+            &mut app.camera_state,
             size,
-            &app.camera_state,
             scale_factor,
         );
         app.should_update_camera = false;
@@ -832,6 +823,7 @@ fn animate_viewport_camera(
             app.camera_state.translation = t;
             app.camera_state.rotation_radians = r.to_euler(glam::EulerRot::XYZ).into();
             app.camera_state.fov_y_radians = values.fov_y_radians;
+            app.camera_state.mvp_matrix = transforms.mvp_matrix;
         }
     }
 }
@@ -935,13 +927,12 @@ fn update_color_theme(app: &SsbhApp, ctx: &egui::Context) {
 }
 
 fn resize(
+    app: &mut SsbhApp,
     renderer: &mut SsbhRenderer,
     surface_config: &mut wgpu::SurfaceConfiguration,
     size: &PhysicalSize<u32>,
     scale_factor: f64,
     surface: &wgpu::Surface,
-    app: &SsbhApp,
-    camera_state: &CameraInputState,
 ) {
     surface_config.width = size.width;
     surface_config.height = size.height;
@@ -957,10 +948,10 @@ fn resize(
     );
 
     update_camera(
-        renderer,
         &app.render_state.queue,
+        renderer,
+        &mut app.camera_state,
         *size,
-        camera_state,
         scale_factor,
     );
 }
@@ -1056,13 +1047,12 @@ fn request_adapter(
 }
 
 fn update_camera(
-    renderer: &mut SsbhRenderer,
     queue: &wgpu::Queue,
+    renderer: &mut SsbhRenderer,
+    camera_state: &mut CameraInputState,
     size: PhysicalSize<u32>,
-    camera_state: &CameraInputState,
     scale_factor: f64,
 ) {
-    // TODO: Store camera transforms to make name rendering work properly?
     let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
         size,
         camera_state.translation,
@@ -1082,6 +1072,9 @@ fn update_camera(
         ),
     };
     renderer.update_camera(queue, transforms);
+
+    // Needed for bone name rendering.
+    camera_state.mvp_matrix = mvp_matrix;
 }
 
 // TODO: Create a separate module for input handling?

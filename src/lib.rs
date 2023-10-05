@@ -66,11 +66,14 @@ pub struct CameraInputState {
     pub previous_cursor_position: PhysicalPosition<f64>,
     pub is_mouse_left_clicked: bool,
     pub is_mouse_right_clicked: bool,
+
     pub translation: glam::Vec3,
     pub rotation_radians: glam::Vec3,
     pub fov_y_radians: f32,
-
     pub anim_path: Option<PathBuf>,
+
+    // TODO: Where to put this?
+    pub mvp_matrix: glam::Mat4,
 }
 
 impl Default for CameraInputState {
@@ -83,6 +86,7 @@ impl Default for CameraInputState {
             rotation_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
             anim_path: None,
+            mvp_matrix: glam::Mat4::IDENTITY,
         }
     }
 }
