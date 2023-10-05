@@ -67,7 +67,7 @@ pub struct CameraInputState {
     pub is_mouse_left_clicked: bool,
     pub is_mouse_right_clicked: bool,
     pub translation: glam::Vec3,
-    pub rotation_xyz_radians: glam::Vec3,
+    pub rotation_radians: glam::Vec3,
     pub fov_y_radians: f32,
 
     pub anim_path: Option<PathBuf>,
@@ -80,7 +80,7 @@ impl Default for CameraInputState {
             is_mouse_left_clicked: false,
             is_mouse_right_clicked: false,
             translation: glam::Vec3::new(0.0, -8.0, -60.0),
-            rotation_xyz_radians: glam::Vec3::new(0.0, 0.0, 0.0),
+            rotation_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
             anim_path: None,
         }

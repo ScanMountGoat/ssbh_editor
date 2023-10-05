@@ -313,11 +313,15 @@ fn calculate_mvp(
     rotation_xyz_radians: glam::Vec3,
     fov_y_radians: f32,
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
-    // TODO: Rework this to use the camera format from Smash (quaternion).
     let aspect = size.width as f32 / size.height as f32;
-    let model_view_matrix = glam::Mat4::from_translation(translation_xyz)
-        * glam::Mat4::from_rotation_x(rotation_xyz_radians.x)
-        * glam::Mat4::from_rotation_y(rotation_xyz_radians.y);
+
+    let rotation = glam::Mat4::from_euler(
+        glam::EulerRot::XYZ,
+        rotation_xyz_radians.x,
+        rotation_xyz_radians.y,
+        rotation_xyz_radians.z,
+    );
+    let model_view_matrix = glam::Mat4::from_translation(translation_xyz) * rotation;
     let perspective_matrix = glam::Mat4::perspective_rh(fov_y_radians, aspect, NEAR_CLIP, FAR_CLIP);
 
     let camera_pos = model_view_matrix.inverse().col(3);
@@ -547,7 +551,7 @@ fn update_and_render_app(
         let (_, _, mvp) = calculate_mvp(
             size,
             app.camera_state.translation,
-            app.camera_state.rotation_xyz_radians,
+            app.camera_state.rotation_radians,
             app.camera_state.fov_y_radians,
         );
 
@@ -820,10 +824,14 @@ fn animate_viewport_camera(
             let transforms = values.to_transforms(size.width, size.height, scale_factor);
             renderer.update_camera(&app.render_state.queue, transforms);
 
-            // TODO: Apply the animation values to the viewport camera.
+            // Apply the animation values to the viewport camera.
             // This reduces "snapping" when moving the camera while paused.
             // These changes won't take effect unless the user actually moves the camera.
-            // This avoids inaccuracies during animation playback.
+            // Decomposition is necessary to account for different transform orders.
+            let (_, r, t) = transforms.model_view_matrix.to_scale_rotation_translation();
+            app.camera_state.translation = t;
+            app.camera_state.rotation_radians = r.to_euler(glam::EulerRot::XYZ).into();
+            app.camera_state.fov_y_radians = values.fov_y_radians;
         }
     }
 }
@@ -1058,7 +1066,7 @@ fn update_camera(
     let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
         size,
         camera_state.translation,
-        camera_state.rotation_xyz_radians,
+        camera_state.rotation_radians,
         camera_state.fov_y_radians,
     );
     let transforms = CameraTransforms {
@@ -1107,8 +1115,8 @@ fn handle_input(
                 let delta_y = position.y - input_state.previous_cursor_position.y;
 
                 // Swap XY so that dragging left right rotates left right.
-                input_state.rotation_xyz_radians.x += (delta_y * 0.01) as f32;
-                input_state.rotation_xyz_radians.y += (delta_x * 0.01) as f32;
+                input_state.rotation_radians.x += (delta_y * 0.01) as f32;
+                input_state.rotation_radians.y += (delta_x * 0.01) as f32;
 
                 changed = true;
             } else if input_state.is_mouse_right_clicked {
