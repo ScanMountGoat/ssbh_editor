@@ -42,11 +42,9 @@ SSBH Editor provides a more intuitive and robust visual editing experience compa
 
 ## Planned Features
 - Additional render settings
-- View camera animations
 - Improvements to performance and accuracy of ssbh_wgpu
 - Improved validation for errors with models, textures, and animations
 - Preview shcpanim lighting files.
-- Settings to adjust UI scaling for better readability
 - Improved spacing and consistency for UI
 
 ## System Requirements
