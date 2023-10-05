@@ -1,4 +1,9 @@
-use crate::CameraInputState;
+use std::path::PathBuf;
+
+use egui::{Label, Ui};
+use rfd::FileDialog;
+
+use crate::{horizontal_separator_empty, CameraInputState};
 
 pub fn camera_settings_window(
     ctx: &egui::Context,
@@ -57,12 +62,41 @@ pub fn camera_settings_window(
                 {
                     camera_state.fov_y_radians = fov_degrees.to_radians();
                 }
-
                 ui.end_row();
+            });
+            horizontal_separator_empty(ui);
 
-                if ui.button("Reset").clicked() {
-                    *camera_state = CameraInputState::default();
+            // TODO: disable other settings while animating.
+            ui.horizontal(|ui| {
+                ui.label("Camera Anim");
+                path_label(ui, &camera_state.anim_path);
+                if ui.button("Select file...").clicked() {
+                    if let Some(file) = FileDialog::new()
+                        .add_filter("Camera Anim", &["nuanmb"])
+                        .pick_file()
+                    {
+                        camera_state.anim_path = Some(file);
+                    };
                 }
             });
+            horizontal_separator_empty(ui);
+
+            if ui.button("Reset").clicked() {
+                *camera_state = CameraInputState::default();
+            }
         });
+}
+
+fn path_label(ui: &mut Ui, path: &Option<PathBuf>) {
+    match path {
+        Some(path) => {
+            ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
+                .on_hover_ui(|ui| {
+                    ui.add(Label::new(path.to_string_lossy()).wrap(false));
+                });
+        }
+        None => {
+            ui.label("");
+        }
+    }
 }

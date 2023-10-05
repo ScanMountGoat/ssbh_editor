@@ -34,18 +34,6 @@ pub fn stage_lighting_window(
             });
             ui.separator();
 
-            let path_label = |ui: &mut Ui, path: &Option<PathBuf>| match path {
-                Some(path) => {
-                    ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
-                        .on_hover_ui(|ui| {
-                            ui.add(Label::new(path.to_string_lossy()).wrap(false));
-                        });
-                }
-                None => {
-                    ui.label("");
-                }
-            };
-
             Grid::new("stage_lighting").show(ui, |ui| {
                 // TODO: Make the files buttons to load corresponding editors?
                 ui.label("Lighting");
@@ -94,4 +82,18 @@ pub fn stage_lighting_window(
             };
         });
     changed
+}
+
+fn path_label(ui: &mut Ui, path: &Option<PathBuf>) {
+    match path {
+        Some(path) => {
+            ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
+                .on_hover_ui(|ui| {
+                    ui.add(Label::new(path.to_string_lossy()).wrap(false));
+                });
+        }
+        None => {
+            ui.label("");
+        }
+    }
 }

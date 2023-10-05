@@ -61,6 +61,7 @@ impl<'a> TexturePainter<'a> {
     }
 }
 
+// TODO: Separate input state and camera UI state?
 pub struct CameraInputState {
     pub previous_cursor_position: PhysicalPosition<f64>,
     pub is_mouse_left_clicked: bool,
@@ -68,6 +69,8 @@ pub struct CameraInputState {
     pub translation_xyz: glam::Vec3,
     pub rotation_xyz_radians: glam::Vec3,
     pub fov_y_radians: f32,
+
+    pub anim_path: Option<PathBuf>
 }
 
 impl Default for CameraInputState {
@@ -79,6 +82,7 @@ impl Default for CameraInputState {
             translation_xyz: glam::Vec3::new(0.0, -8.0, -60.0),
             rotation_xyz_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
+            anim_path: None
         }
     }
 }
