@@ -55,6 +55,7 @@ fn main() {
     let mut preferences = AppPreferences::load_from_file();
 
     // Some Windows systems don't properly support Vulkan.
+    // This mostly affects dual GPU systems like laptops.
     // Add an option to force a backend so the application can open.
     if let Some(backend_arg) = args.opt_value_from_str::<_, String>("--backend").unwrap() {
         match backend_arg.to_lowercase().as_str() {
@@ -177,6 +178,24 @@ fn main() {
     update_color_theme(&app, &ctx);
     let mut previous_dark_mode = false;
 
+    // Don't make the window visible until rendering the first frame.
+    // This fixes white flashes on Windows.
+    update_and_render_app(
+        &mut app,
+        &mut winit_state,
+        &mut renderer,
+        &mut bone_name_renderer,
+        &mut egui_renderer,
+        &mut previous_dark_mode,
+        &window,
+        &ctx,
+        &surface,
+        size,
+        &surface_config,
+        current_scale_factor,
+    );
+    window.set_visible(true);
+
     // TODO: Does the T in the the event type matter here?
     event_loop.run(
         move |event: winit::event::Event<'_, usize>, _, control_flow| {
@@ -231,7 +250,6 @@ fn main() {
                                 } else {
                                     scale_factor
                                 };
-                                // winit_state.set_pixels_per_point(current_scale_factor as f32);
                             }
                             _ => {
                                 if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
@@ -387,6 +405,7 @@ fn build_window(
         .with_decorations(true)
         .with_resizable(true)
         .with_transparent(false)
+        .with_visible(false)
         .with_title(concat!("SSBH Editor ", env!("CARGO_PKG_VERSION")))
         .with_window_icon(Some(
             winit::window::Icon::from_rgba(icon.into_bytes(), 32, 32).unwrap(),
