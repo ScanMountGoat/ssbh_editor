@@ -4,10 +4,9 @@ use crate::{
     save_file, save_file_as, EditorResponse,
 };
 use egui::{
-    plot::{Legend, Line, Plot, PlotPoint},
-    special_emojis::GITHUB,
-    CentralPanel, CollapsingHeader, Grid, RichText, ScrollArea, SidePanel,
+    special_emojis::GITHUB, CentralPanel, CollapsingHeader, Grid, RichText, ScrollArea, SidePanel,
 };
+use egui_plot::{Legend, Line, Plot, PlotPoint};
 
 use ssbh_data::{
     anim_data::{GroupData, TrackData, TrackValues},

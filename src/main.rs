@@ -11,7 +11,7 @@ use log::error;
 use nutexb_wgpu::TextureRenderer;
 use pollster::FutureExt;
 use ssbh_data::prelude::*;
-use ssbh_editor::app::{Icons, ItemsToUpdate, SsbhApp, UiState};
+use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
 use ssbh_editor::capture::{render_animation_sequence, render_screenshot};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
@@ -89,7 +89,7 @@ fn main() {
     // Initialize egui and winit state.
     let ctx = egui::Context::default();
     let mut egui_renderer = egui_wgpu::renderer::Renderer::new(&device, surface_format, None, 1);
-    let mut winit_state = egui_winit::State::new(&event_loop);
+    let mut winit_state = egui_winit::State::new(ctx.viewport_id(), &event_loop, None, None);
     winit_state.set_max_texture_side(device.limits().max_texture_dimension_2d as usize);
 
     let mut current_scale_factor = if preferences.use_custom_scale_factor {
@@ -97,7 +97,6 @@ fn main() {
     } else {
         window.scale_factor()
     };
-    winit_state.set_pixels_per_point(current_scale_factor as f32);
 
     ctx.set_style(egui::style::Style {
         text_styles: default_text_styles(),
@@ -108,6 +107,8 @@ fn main() {
         ..Default::default()
     });
     ctx.set_fonts(default_fonts());
+
+    egui_extras::install_image_loaders(&ctx);
 
     let mut renderer = SsbhRenderer::new(
         &device,
@@ -125,12 +126,10 @@ fn main() {
     // Make sure the texture preview is ready for accessed by the app.
     // State is stored in a type map because of lifetime requirements.
     // https://github.com/emilk/egui/blob/master/egui_demo_app/src/apps/custom3d_wgpu.rs
-    egui_renderer
-        .paint_callback_resources
-        .insert(TexturePainter {
-            renderer: texture_renderer,
-            texture: None,
-        });
+    egui_renderer.callback_resources.insert(TexturePainter {
+        renderer: texture_renderer,
+        texture: None,
+    });
 
     // TODO: Camera framing?
     let mut camera_state = CameraState {
@@ -202,7 +201,7 @@ fn main() {
                     }
                 }
                 winit::event::Event::WindowEvent { event, .. } => {
-                    if !winit_state.on_event(&ctx, &event).consumed {
+                    if !winit_state.on_window_event(&ctx, &event).consumed {
                         match event {
                             winit::event::WindowEvent::Resized(_) => {
                                 // The dimensions must both be non-zero before resizing.
@@ -232,7 +231,7 @@ fn main() {
                                 } else {
                                     scale_factor
                                 };
-                                winit_state.set_pixels_per_point(current_scale_factor as f32);
+                                // winit_state.set_pixels_per_point(current_scale_factor as f32);
                             }
                             _ => {
                                 if ctx.wants_keyboard_input() || ctx.wants_pointer_input() {
@@ -376,7 +375,6 @@ fn create_app(
         screenshot_to_render: None,
         animation_gif_to_render: None,
         animation_image_sequence_to_render: None,
-        icons: Icons::new(),
         markdown_cache: CommonMarkCache::default(),
     }
 }
@@ -488,7 +486,7 @@ fn update_and_render_app(
 
     // Prepare the nutexb for rendering.
     // TODO: Avoid doing this each frame.
-    let painter: &mut TexturePainter = egui_renderer.paint_callback_resources.get_mut().unwrap();
+    let painter: &mut TexturePainter = egui_renderer.callback_resources.get_mut().unwrap();
     if let Some((texture, dimension, size)) = get_nutexb_to_render(app) {
         painter.renderer.update(
             &app.render_state.device,
@@ -569,7 +567,7 @@ fn update_and_render_app(
         window,
         surface_config,
         egui_renderer,
-        app,
+        &mut app.render_state,
         &mut final_pass,
         scale_factor,
     );
@@ -983,7 +981,7 @@ fn get_nutexb_to_render(
     })
 }
 
-fn egui_render_pass<'a>(
+fn egui_render_pass<'a, 'b>(
     ctx: &egui::Context,
     full_output: egui::FullOutput,
     encoder: &mut wgpu::CommandEncoder,
@@ -991,32 +989,30 @@ fn egui_render_pass<'a>(
     window: &winit::window::Window,
     surface_config: &wgpu::SurfaceConfiguration,
     egui_renderer: &'a mut egui_wgpu::renderer::Renderer,
-    app: &SsbhApp,
-    rpass: &mut wgpu::RenderPass<'a>,
+    render_state: &'b mut RenderState,
+    rpass: &mut wgpu::RenderPass<'b>,
     scale_factor: f64,
-) {
+) where
+    'a: 'b,
+{
     // The UI is layered on top.
     // Based on the egui_wgpu source found here:
     // https://github.com/emilk/egui/blob/master/egui-wgpu/src/winit.rs
     winit_state.handle_platform_output(window, ctx, full_output.platform_output);
-    let clipped_primitives = ctx.tessellate(full_output.shapes);
+    render_state.clipped_primitives =
+        ctx.tessellate(full_output.shapes, full_output.pixels_per_point);
     let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
         size_in_pixels: [surface_config.width, surface_config.height],
         pixels_per_point: scale_factor as f32,
     };
     for (id, image_delta) in &full_output.textures_delta.set {
-        egui_renderer.update_texture(
-            &app.render_state.device,
-            &app.render_state.queue,
-            *id,
-            image_delta,
-        );
+        egui_renderer.update_texture(&render_state.device, &render_state.queue, *id, image_delta);
     }
     egui_renderer.update_buffers(
-        &app.render_state.device,
-        &app.render_state.queue,
+        &render_state.device,
+        &render_state.queue,
         encoder,
-        &clipped_primitives,
+        &render_state.clipped_primitives,
         &screen_descriptor,
     );
 
@@ -1026,7 +1022,8 @@ fn egui_render_pass<'a>(
     }
 
     // Record all render passes.
-    egui_renderer.render(rpass, &clipped_primitives, &screen_descriptor);
+    // TODO: fix this.
+    egui_renderer.render(rpass, &render_state.clipped_primitives, &screen_descriptor);
 }
 
 fn request_adapter(

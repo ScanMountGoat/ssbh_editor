@@ -14,8 +14,8 @@ use crate::{
     EditorResponse, TextureDimension, Thumbnail,
 };
 use egui::{
-    special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label,
-    RichText, ScrollArea, TextEdit, Ui, Window,
+    load::SizedTexture, special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Context,
+    DragValue, Grid, Label, RichText, ScrollArea, TextEdit, Ui, Window,
 };
 use log::error;
 use rfd::FileDialog;
@@ -717,7 +717,7 @@ fn edit_shader_label(
         changed |= ui.text_edit_singleline(shader_label).changed();
     } else {
         ui.horizontal(|ui| {
-            ui.image(red_checkerboard, egui::Vec2::new(16.0, 16.0));
+            ui.image(SizedTexture { id: red_checkerboard, size: egui::Vec2::new(16.0, 16.0) });
             changed |= ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED)).changed();
         })
         .response
@@ -755,7 +755,10 @@ fn edit_matl_entry(
         )
     }) {
         ui.horizontal(|ui| {
-            ui.image(yellow_checkerboard, egui::Vec2::new(16.0, 16.0));
+            ui.image(SizedTexture {
+                id: yellow_checkerboard,
+                size: egui::Vec2::new(16.0, 16.0),
+            });
             ui.heading("Vertex Attribute Errors");
         });
         ui.label(
@@ -1132,7 +1135,10 @@ fn edit_texture(
         })
         .map(|t| t.1)
     {
-        ui.image(thumbnail, egui::Vec2::new(24.0, 24.0));
+        ui.image(SizedTexture {
+            id: thumbnail,
+            size: egui::Vec2::new(24.0, 24.0),
+        });
     } else {
         // The missing texture validation error doesn't contain the ParamID.
         // Assume missing textures aren't present in the thumbnail cache.
@@ -1171,7 +1177,10 @@ fn edit_texture(
 
                         // TODO: Show a texture as selected even if the case doesn't match?
                         ui.horizontal(|ui| {
-                            ui.image(*thumbnail, egui::Vec2::new(24.0, 24.0));
+                            ui.image(SizedTexture {
+                                id: *thumbnail,
+                                size: egui::Vec2::new(24.0, 24.0),
+                            });
                             changed |= ui
                                 .selectable_value(&mut param.data, text.clone(), text)
                                 .changed();

@@ -1,5 +1,5 @@
 use crate::{
-    app::{display_validation_errors, warning_icon_text, Icons, MeshEditorState},
+    app::{display_validation_errors, draggable_icon, warning_icon_text, MeshEditorState},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -32,7 +32,6 @@ pub fn mesh_editor(
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
     state: &mut MeshEditorState,
-    icons: &Icons,
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
@@ -99,7 +98,6 @@ pub fn mesh_editor(
                         state,
                         validation_errors,
                         skel,
-                        icons,
                         dark_mode,
                     );
                 });
@@ -119,7 +117,6 @@ fn edit_mesh(
     state: &mut MeshEditorState,
     validation_errors: &[MeshValidationError],
     skel: Option<&SkelData>,
-    icons: &Icons,
     dark_mode: bool,
 ) -> bool {
     let mut changed = false;
@@ -134,7 +131,7 @@ fn edit_mesh(
     let response = dnd(ui, "mesh_dnd").show_vec(&mut items, |ui, item, handle, _| {
         ui.horizontal(|ui| {
             handle.ui(ui, |ui| {
-                ui.add(icons.draggable(ui, dark_mode));
+                draggable_icon(ui, dark_mode);
             });
 
             let mesh_object = &mut mesh.objects[item.0];

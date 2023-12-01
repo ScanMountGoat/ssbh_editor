@@ -26,11 +26,10 @@ use crate::{
     RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, Image, Label, Response,
-    RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
+    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, Image, ImageSource,
+    Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
 };
 use egui_commonmark::CommonMarkCache;
-use egui_extras::RetainedImage;
 use log::error;
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
@@ -62,7 +61,6 @@ trait Editor {
         render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        icons: &Icons,
         dark_mode: bool,
     ) -> Option<EditorResponse>;
 
@@ -78,7 +76,6 @@ impl Editor for AdjData {
         _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
-        _: &Icons,
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
@@ -106,7 +103,6 @@ impl Editor for HlpbData {
         _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
-        _: &Icons,
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
@@ -133,7 +129,6 @@ impl Editor for SkelData {
         _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        icons: &Icons,
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, skel) = get_file_to_edit(&mut model.model.skels, *open_file_index)?;
@@ -143,7 +138,6 @@ impl Editor for SkelData {
             name,
             skel,
             state,
-            icons,
             dark_mode,
         ))
     }
@@ -162,7 +156,6 @@ impl Editor for AnimData {
         _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        _: &Icons,
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
@@ -183,7 +176,6 @@ impl Editor for MeshExData {
         render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
-        _: &Icons,
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
@@ -211,7 +203,6 @@ impl Editor for MeshData {
         render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        icons: &Icons,
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
@@ -224,7 +215,6 @@ impl Editor for MeshData {
             find_file(&model.model.skels, "model.nusktb"),
             &model.validation.mesh_errors,
             state,
-            icons,
             dark_mode,
         ))
     }
@@ -242,7 +232,6 @@ impl Editor for ModlData {
         render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        icons: &Icons,
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, modl) = get_file_to_edit(&mut model.model.modls, *open_file_index)?;
@@ -256,7 +245,6 @@ impl Editor for ModlData {
             &model.validation.modl_errors,
             state,
             render_model,
-            icons,
             dark_mode,
         ))
     }
@@ -281,18 +269,9 @@ fn open_editor<T: Editor>(
     render_model: &mut Option<&mut RenderModel>,
     open_file_index: &mut Option<usize>,
     state: &mut T::EditorState,
-    icons: &Icons,
     dark_mode: bool,
 ) -> bool {
-    if let Some(response) = T::editor(
-        ctx,
-        model,
-        render_model,
-        open_file_index,
-        state,
-        icons,
-        dark_mode,
-    ) {
+    if let Some(response) = T::editor(ctx, model, render_model, open_file_index, state, dark_mode) {
         if let Some(index) = open_file_index {
             T::set_changed(&response, &mut model.changed, *index);
         }
@@ -356,77 +335,54 @@ pub struct SsbhApp {
 
     pub preferences: AppPreferences,
 
-    pub icons: Icons,
-
     pub markdown_cache: CommonMarkCache,
 }
 
-pub struct Icons {
-    draggable: RetainedImage,
-    mesh: RetainedImage,
-    matl: RetainedImage,
-    adj: RetainedImage,
-    anim: RetainedImage,
-    skel: RetainedImage,
-    hlpb: RetainedImage,
+// All the icons are designed to render properly at 16x16 pixels.
+pub fn draggable_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(
+        ui,
+        egui::include_image!("icons/carbon_draggable.svg"),
+        dark_mode,
+    )
 }
 
-impl Icons {
-    pub fn new() -> Self {
-        // All the icons are designed to render properly at 16x16 pixels.
-        // Render at 32x32 to handle up to 200% display scaling.
-        let svg_image = |name: &str, bytes: &[u8]| {
-            let size = egui_extras::image::FitTo::Size(32, 32);
-            RetainedImage::from_svg_bytes_with_size(name, bytes, size).unwrap()
-        };
-
-        Self {
-            draggable: svg_image("draggable", include_bytes!("icons/carbon_draggable.svg")),
-            mesh: svg_image("mesh", include_bytes!("icons/mesh.svg")),
-            matl: svg_image("matl", include_bytes!("icons/matl.svg")),
-            adj: svg_image("adj", include_bytes!("icons/adj.svg")),
-            anim: svg_image("anim", include_bytes!("icons/anim.svg")),
-            skel: svg_image("skel", include_bytes!("icons/skel.svg")),
-            hlpb: svg_image("hlpb", include_bytes!("icons/hlpb.svg")),
-        }
-    }
-
-    pub fn draggable(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.draggable, dark_mode)
-    }
-
-    pub fn mesh(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.mesh, dark_mode)
-    }
-
-    pub fn matl(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.matl, dark_mode)
-    }
-
-    pub fn adj(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.adj, dark_mode)
-    }
-
-    pub fn anim(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.anim, dark_mode)
-    }
-
-    pub fn skel(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.skel, dark_mode)
-    }
-
-    pub fn hlpb(&self, ui: &Ui, dark_mode: bool) -> Image {
-        file_icon(ui, &self.hlpb, dark_mode)
-    }
+pub fn mesh_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/mesh.svg"), dark_mode)
 }
 
-fn file_icon(ui: &Ui, image: &RetainedImage, dark_mode: bool) -> Image {
+pub fn matl_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/matl.svg"), dark_mode)
+}
+
+pub fn adj_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/adj.svg"), dark_mode)
+}
+
+pub fn anim_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/anim.svg"), dark_mode)
+}
+
+pub fn skel_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/skel.svg"), dark_mode)
+}
+
+pub fn hlpb_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/hlpb.svg"), dark_mode)
+}
+
+fn file_icon(ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
     let tint = if dark_mode {
         TEXT_COLOR_DARK
     } else {
         TEXT_COLOR_LIGHT
     };
-    Image::new(image.texture_id(ui.ctx()), egui::vec2(16.0, 16.0)).tint(tint)
+
+    ui.add(
+        Image::new(image)
+            .tint(tint)
+            .fit_to_exact_size(egui::vec2(16.0, 16.0)),
+    )
 }
 
 #[derive(PartialEq, Eq)]
@@ -938,7 +894,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_mesh,
                     &mut self.ui_state.mesh_editor,
-                    &self.icons,
                     self.preferences.dark_mode,
                 ) {
                     // The mesh editor has no high frequency edits (sliders), so reload on any change.
@@ -952,7 +907,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_skel,
                     &mut self.ui_state.skel_editor,
-                    &self.icons,
                     self.preferences.dark_mode,
                 );
 
@@ -962,7 +916,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_modl,
                     &mut self.ui_state.modl_editor,
-                    &self.icons,
                     self.preferences.dark_mode,
                 ) {
                     // TODO: Pass an onchanged closure to avoid redundant lookups.
@@ -980,7 +933,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_hlpb,
                     &mut (),
-                    &self.icons,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animation constraints in the viewport.
@@ -994,7 +946,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_adj,
                     &mut (),
-                    &self.icons,
                     self.preferences.dark_mode,
                 );
 
@@ -1004,7 +955,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_anim,
                     &mut self.ui_state.anim_editor,
-                    &self.icons,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animations in the viewport.
@@ -1018,7 +968,6 @@ impl SsbhApp {
                     render_model,
                     &mut self.ui_state.open_meshex,
                     &mut (),
-                    &self.icons,
                     self.preferences.dark_mode,
                 ) {
                     // MeshEx settings require reloading the render model.
@@ -1099,7 +1048,6 @@ impl SsbhApp {
                                 model,
                                 ui,
                                 folder_index,
-                                &self.icons,
                                 self.preferences.dark_mode,
                             );
                         })

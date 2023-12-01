@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    app::{Icons, SkelEditorState, SkelMode},
+    app::{draggable_icon, SkelEditorState, SkelMode},
     path::folder_editor_title,
     widgets::enum_combo_box,
     EditorResponse,
@@ -21,7 +21,6 @@ pub fn skel_editor(
     file_name: &str,
     skel: &mut SkelData,
     state: &mut SkelEditorState,
-    icons: &Icons,
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
@@ -108,7 +107,7 @@ pub fn skel_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| match state.mode {
                     SkelMode::List => {
-                        changed |= edit_bones_list(ui, skel, icons, dark_mode);
+                        changed |= edit_bones_list(ui, skel, dark_mode);
                     }
                     SkelMode::Hierarchy => {
                         changed |= edit_bones_hierarchy(ui, skel);
@@ -123,7 +122,7 @@ pub fn skel_editor(
     }
 }
 
-fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, icons: &Icons, dark_mode: bool) -> bool {
+fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) -> bool {
     let mut changed = false;
 
     // TODO: Do this without clone?
@@ -137,7 +136,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, icons: &Icons, dark_m
             let bone = &mut skel.bones[item.0];
 
             handle.ui(ui, |ui| {
-                ui.add(icons.draggable(ui, dark_mode));
+                draggable_icon(ui, dark_mode);
             });
 
             // Grids don't work with egui_dnd, so set the label size manually.

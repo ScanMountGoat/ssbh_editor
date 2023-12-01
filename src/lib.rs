@@ -168,6 +168,9 @@ pub struct RenderState {
     pub lighting_data: LightingData,
     // TODO: where to put this?
     pub camera_anim: Option<AnimData>,
+
+    // HACK: A workaround for weird renderpass lifetime issues.
+    pub clipped_primitives: Vec<egui::ClippedPrimitive>,
 }
 
 // Most files are selected from currently loaded folders.
@@ -198,6 +201,7 @@ impl RenderState {
             adapter_info,
             lighting_data: Default::default(),
             camera_anim: None,
+            clipped_primitives: Vec::new(),
         }
     }
 }
@@ -370,7 +374,7 @@ fn create_egui_texture(
             wgpu::FilterMode::Nearest,
         ),
         _ => {
-            let painter: &TexturePainter = egui_rpass.paint_callback_resources.get().unwrap();
+            let painter: &TexturePainter = egui_rpass.callback_resources.get().unwrap();
 
             // Convert cube maps and 3d textures to 2D.
             let new_texture = painter.renderer.render_to_texture_2d_rgba(

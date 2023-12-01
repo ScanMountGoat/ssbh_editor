@@ -54,12 +54,11 @@ impl<'a> Widget for EyeCheckBox<'a> {
                 rect.center().y - 0.5 * text.size().y,
             );
             let (_small_icon_rect, big_icon_rect) = ui.spacing().icon_rectangles(rect);
-            ui.painter().add(epaint::RectShape {
-                rect: big_icon_rect.expand(visuals.expansion),
-                rounding: visuals.rounding,
-                fill: visuals.bg_fill,
-                stroke: visuals.bg_stroke,
-            });
+            ui.painter().add(epaint::RectShape::filled(
+                big_icon_rect.expand(visuals.expansion),
+                visuals.rounding,
+                visuals.bg_fill,
+            ));
 
             if *checked {
                 // TODO: Use a custom shape?

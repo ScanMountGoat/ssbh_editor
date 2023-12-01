@@ -1,5 +1,6 @@
 use crate::{horizontal_separator_empty, TexturePainter};
 use egui::{special_emojis::GITHUB, DragValue};
+use egui_wgpu::CallbackTrait;
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;
 
@@ -121,22 +122,25 @@ pub fn nutexb_viewer(
 
                 let (_, rect) = ui.allocate_space(dimensions);
 
-                let cb = egui_wgpu::CallbackFn::new()
-                    .prepare(move |_device, _queue, _encoder, _paint_callback_resources| Vec::new())
-                    .paint(move |_info, rpass, paint_callback_resources| {
-                        let resources: &TexturePainter = paint_callback_resources.get().unwrap();
-                        resources.paint(rpass);
-                    });
-
-                let callback = egui::PaintCallback {
-                    rect,
-                    callback: std::sync::Arc::new(cb),
-                };
-
-                ui.painter().add(callback);
+                let cb = egui_wgpu::Callback::new_paint_callback(rect, PaintTextureCallback);
+                ui.painter().add(cb);
             });
         });
     open
+}
+
+struct PaintTextureCallback;
+
+impl CallbackTrait for PaintTextureCallback {
+    fn paint<'a>(
+        &'a self,
+        _info: egui::PaintCallbackInfo,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        callback_resources: &'a egui_wgpu::CallbackResources,
+    ) {
+        let painter: &TexturePainter = callback_resources.get().unwrap();
+        painter.paint(render_pass);
+    }
 }
 
 fn format_name(format: NutexbFormat) -> &'static str {

@@ -1,5 +1,5 @@
 use crate::{
-    app::{warning_icon_text, Icons, ModlEditorState},
+    app::{draggable_icon, warning_icon_text, ModlEditorState},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -26,7 +26,6 @@ pub fn modl_editor(
     validation_errors: &[ModlValidationError],
     state: &mut ModlEditorState,
     render_model: &mut Option<&mut RenderModel>,
-    icons: &Icons,
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
@@ -136,7 +135,7 @@ pub fn modl_editor(
                                 let id = egui::Id::new("modl").with(item.0);
 
                                 handle.ui(ui, |ui| {
-                                    ui.add(icons.draggable(ui, dark_mode));
+                                    draggable_icon(ui, dark_mode);
                                 });
 
                                 // Check for assignment errors for the current entry.
