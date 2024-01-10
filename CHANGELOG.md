@@ -4,8 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
+### Added
+* Added an option to adjust application zoom with Ctrl +/- or Cmd +/-. Reset the zoom with Ctrl + 0 or Cmd + 0.
+
+### Changed
+* Reduced CPU and GPU usage while the application is idle.
+* Enabled text wrapping for log messages.
+* Adjusted Nutexb Viewer to show the raw image color to make sRGB vs non sRGB formats render consistently.
+* Camera animations will now be unloaded when clicking File > Clear Workspace.
+
 ### Fixed
 * Fixed an issue on Windows where the main window would flash white on startup.
+* Fixed an issue where some models would render as black due to incorrectly applying SH ambient lighting.
 
 ### 0.9.0 - 2023-10-06
 ### Added

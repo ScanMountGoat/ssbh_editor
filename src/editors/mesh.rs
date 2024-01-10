@@ -92,6 +92,7 @@ pub fn mesh_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     changed |= edit_mesh(
+                        ctx,
                         ui,
                         mesh,
                         render_model,
@@ -111,6 +112,7 @@ pub fn mesh_editor(
 }
 
 fn edit_mesh(
+    ctx: &egui::Context,
     ui: &mut Ui,
     mesh: &mut MeshData,
     render_model: &mut Option<&mut RenderModel>,
@@ -131,7 +133,7 @@ fn edit_mesh(
     let response = dnd(ui, "mesh_dnd").show_vec(&mut items, |ui, item, handle, _| {
         ui.horizontal(|ui| {
             handle.ui(ui, |ui| {
-                draggable_icon(ui, dark_mode);
+                draggable_icon(ctx, ui, dark_mode);
             });
 
             let mesh_object = &mut mesh.objects[item.0];

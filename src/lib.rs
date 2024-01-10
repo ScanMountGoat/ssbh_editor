@@ -1,25 +1,25 @@
 use ::log::error;
-use app::{SsbhApp, StageLightingState};
+use app::StageLightingState;
 use egui::{
     style::{WidgetVisuals, Widgets},
-    Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle,
+    Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle, Visuals,
 };
 use model_folder::ModelFolderState;
 use nutexb::NutexbFile;
 use nutexb_wgpu::TextureRenderer;
+use preferences::AppPreferences;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
 use ssbh_data::{matl_data::ParamId, prelude::*};
 use ssbh_wgpu::{
-    swing::SwingPrc, ModelRenderOptions, RenderModel, RenderSettings, SharedRenderData,
-    SkinningSettings,
+    swing::SwingPrc, BoneNameRenderer, ModelRenderOptions, RenderModel, RenderSettings,
+    SharedRenderData, SkinningSettings, SsbhRenderer,
 };
 use std::{
     collections::{BTreeMap, HashSet},
     error::Error,
     path::{Path, PathBuf},
 };
-use winit::dpi::PhysicalPosition;
 
 pub mod app;
 pub mod capture;
@@ -51,32 +51,13 @@ impl EditorResponse {
     }
 }
 
-pub struct TexturePainter<'a> {
-    pub renderer: TextureRenderer,
-    pub texture: Option<(&'a wgpu::Texture, &'a wgpu::TextureViewDimension)>,
-}
-
-impl<'a> TexturePainter<'a> {
-    pub fn paint<'rpass>(&'rpass self, render_pass: &mut wgpu::RenderPass<'rpass>) {
-        self.renderer.render(render_pass);
-    }
-}
-
 // TODO: Separate input state and camera UI state?
 pub struct CameraState {
-    pub input: InputState,
     pub values: CameraValues,
     pub anim_path: Option<PathBuf>,
 
     // TODO: Where to put this?
     pub mvp_matrix: glam::Mat4,
-}
-
-#[derive(Default)]
-pub struct InputState {
-    pub previous_cursor_position: PhysicalPosition<f64>,
-    pub is_mouse_left_clicked: bool,
-    pub is_mouse_right_clicked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -90,7 +71,6 @@ pub struct CameraValues {
 impl Default for CameraState {
     fn default() -> Self {
         Self {
-            input: InputState::default(),
             values: CameraValues::default(),
             anim_path: None,
             mvp_matrix: glam::Mat4::IDENTITY,
@@ -153,24 +133,20 @@ impl From<&wgpu::TextureViewDimension> for TextureDimension {
 }
 
 pub struct RenderState {
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
     pub render_settings: RenderSettings,
     pub skinning_settings: SkinningSettings,
     pub model_render_options: ModelRenderOptions,
     pub texture_render_settings: nutexb_wgpu::RenderSettings,
     pub shared_data: SharedRenderData,
-    pub viewport_left: Option<f32>,
-    pub viewport_right: Option<f32>,
-    pub viewport_top: Option<f32>,
-    pub viewport_bottom: Option<f32>,
     pub adapter_info: wgpu::AdapterInfo,
     pub lighting_data: LightingData,
     // TODO: where to put this?
     pub camera_anim: Option<AnimData>,
-
-    // HACK: A workaround for weird renderpass lifetime issues.
-    pub clipped_primitives: Vec<egui::ClippedPrimitive>,
+    // TODO: Is this the best place for this?
+    pub render_models: Vec<RenderModel>,
+    pub renderer: SsbhRenderer,
+    pub texture_renderer: TextureRenderer,
+    bone_name_renderer: BoneNameRenderer,
 }
 
 // Most files are selected from currently loaded folders.
@@ -184,24 +160,28 @@ pub struct LightingData {
 }
 
 impl RenderState {
-    pub fn new(device: wgpu::Device, queue: wgpu::Queue, adapter_info: wgpu::AdapterInfo) -> Self {
-        let shared_data = SharedRenderData::new(&device, &queue);
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        adapter_info: wgpu::AdapterInfo,
+        renderer: SsbhRenderer,
+        texture_renderer: TextureRenderer,
+        bone_name_renderer: BoneNameRenderer,
+    ) -> Self {
+        let shared_data = SharedRenderData::new(device, queue);
         Self {
-            device,
-            queue,
             render_settings: RenderSettings::default(),
             skinning_settings: SkinningSettings::default(),
             model_render_options: ModelRenderOptions::default(),
             texture_render_settings: nutexb_wgpu::RenderSettings::default(),
             shared_data,
-            viewport_left: None,
-            viewport_right: None,
-            viewport_top: None,
-            viewport_bottom: None,
             adapter_info,
             lighting_data: Default::default(),
             camera_anim: None,
-            clipped_primitives: Vec::new(),
+            render_models: Vec::new(),
+            renderer,
+            texture_renderer,
+            bone_name_renderer,
         }
     }
 }
@@ -322,15 +302,16 @@ impl AnimationIndex {
     }
 }
 
+// TODO: Create a dedicated struct for this?
 pub type Thumbnail = (String, egui::TextureId, TextureDimension);
 
 pub fn generate_model_thumbnails(
-    egui_rpass: &mut egui_wgpu::renderer::Renderer,
+    egui_renderer: &egui_wgpu::renderer::Renderer,
     model: &ssbh_wgpu::ModelFolder,
     render_model: &ssbh_wgpu::RenderModel,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-) -> Vec<Thumbnail> {
+) -> Vec<(String, wgpu::TextureView, TextureDimension)> {
     model
         .nutexbs
         .iter()
@@ -339,8 +320,8 @@ pub fn generate_model_thumbnails(
             // TODO: Will this correctly handle missing thumbnails?
             let (texture, dimension) = render_model.get_texture(file_name)?;
 
-            let egui_texture = create_egui_texture(
-                egui_rpass,
+            let view = create_thumbnail_texture_view(
+                egui_renderer,
                 device,
                 queue,
                 texture,
@@ -350,13 +331,13 @@ pub fn generate_model_thumbnails(
                 n.footer.depth,
             );
 
-            Some((file_name.clone(), egui_texture, dimension.into()))
+            Some((file_name.clone(), view, dimension.into()))
         })
         .collect()
 }
 
-fn create_egui_texture(
-    egui_rpass: &mut egui_wgpu::renderer::Renderer,
+fn create_thumbnail_texture_view(
+    egui_renderer: &egui_wgpu::renderer::Renderer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     texture: &wgpu::Texture,
@@ -364,20 +345,18 @@ fn create_egui_texture(
     width: u32,
     height: u32,
     depth: u32,
-) -> egui::TextureId {
+) -> wgpu::TextureView {
     // Assume the textures have the appropriate usage to work with egui.
     // egui is expecting a 2D RGBA texture.
-    let egui_texture = match dimension {
-        wgpu::TextureViewDimension::D2 => egui_rpass.register_native_texture(
-            device,
-            &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-            wgpu::FilterMode::Nearest,
-        ),
+    match dimension {
+        wgpu::TextureViewDimension::D2 => {
+            texture.create_view(&wgpu::TextureViewDescriptor::default())
+        }
         _ => {
-            let painter: &TexturePainter = egui_rpass.callback_resources.get().unwrap();
+            let render_state: &RenderState = egui_renderer.callback_resources.get().unwrap();
 
             // Convert cube maps and 3d textures to 2D.
-            let new_texture = painter.renderer.render_to_texture_2d_rgba(
+            let new_texture = render_state.texture_renderer.render_to_texture_2d_rgba(
                 device,
                 queue,
                 texture,
@@ -389,20 +368,15 @@ fn create_egui_texture(
             );
 
             // We forced 2D above, so we don't need to set the descriptor dimensions.
-            egui_rpass.register_native_texture(
-                device,
-                &new_texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                wgpu::FilterMode::Nearest,
-            )
+            new_texture.create_view(&wgpu::TextureViewDescriptor::default())
         }
-    };
-    egui_texture
+    }
 }
 
 pub fn checkerboard_texture(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    egui_rpass: &mut egui_wgpu::renderer::Renderer,
+    egui_renderer: &mut egui_wgpu::renderer::Renderer,
     color: [u8; 4],
 ) -> egui::TextureId {
     let texture_size = wgpu::Extent3d {
@@ -441,7 +415,7 @@ pub fn checkerboard_texture(
         texture_size,
     );
 
-    egui_rpass.register_native_texture(
+    egui_renderer.register_native_texture(
         device,
         &texture.create_view(&wgpu::TextureViewDescriptor::default()),
         wgpu::FilterMode::Nearest,
@@ -449,19 +423,22 @@ pub fn checkerboard_texture(
 }
 
 pub fn generate_default_thumbnails(
-    egui_rpass: &mut egui_wgpu::renderer::Renderer,
-    default_textures: &[(String, wgpu::Texture, wgpu::TextureViewDimension)],
+    egui_renderer: &mut egui_wgpu::renderer::Renderer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
 ) -> Vec<Thumbnail> {
-    default_textures
+    // Split into two steps to avoid mutably and immutably borrowing egui renderer.
+    let render_state: &RenderState = egui_renderer.callback_resources.get().unwrap();
+    let thumbnails: Vec<_> = render_state
+        .shared_data
+        .default_textures()
         .iter()
         .map(|(name, texture, dimension)| {
             // Assume the textures have the appropriate usage to work with egui.
             // TODO: Are there other default cube textures?
-            let egui_texture = if name == "#replace_cubemap" {
-                create_egui_texture(
-                    egui_rpass,
+            let view = if name == "#replace_cubemap" {
+                create_thumbnail_texture_view(
+                    egui_renderer,
                     device,
                     queue,
                     texture,
@@ -471,14 +448,19 @@ pub fn generate_default_thumbnails(
                     1,
                 )
             } else {
-                egui_rpass.register_native_texture(
-                    device,
-                    &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                    wgpu::FilterMode::Nearest,
-                )
+                texture.create_view(&wgpu::TextureViewDescriptor::default())
             };
 
-            (name.clone(), egui_texture, dimension.into())
+            (name.clone(), view, dimension.into())
+        })
+        .collect();
+
+    thumbnails
+        .into_iter()
+        .map(|(name, view, dimension)| {
+            let id =
+                egui_renderer.register_native_texture(device, &view, wgpu::FilterMode::Nearest);
+            (name, id, dimension)
         })
         .collect()
 }
@@ -649,66 +631,14 @@ fn horizontal_separator_empty(ui: &mut egui::Ui) {
     ui.allocate_space(egui::vec2(available_space.x, 6.0));
 }
 
-pub fn animate_models(app: &mut SsbhApp) {
-    for ((render_model, model), model_animations) in app
-        .render_models
-        .iter_mut()
-        .zip(app.models.iter())
-        .zip(app.animation_state.animations.iter())
-    {
-        // Only render enabled animations.
-        let animations = model_animations
-            .iter()
-            .filter(|anim_slot| anim_slot.is_enabled)
-            .filter_map(|anim_slot| {
-                anim_slot
-                    .animation
-                    .and_then(|anim_index| anim_index.get_animation(&app.models))
-                    .and_then(|(_, a)| a.as_ref().ok())
-            });
-
-        render_model.apply_anims(
-            &app.render_state.queue,
-            animations,
-            model
-                .model
-                .skels
-                .iter()
-                .find(|(f, _)| f == "model.nusktb")
-                .and_then(|(_, m)| m.as_ref().ok()),
-            model
-                .model
-                .matls
-                .iter()
-                .find(|(f, _)| f == "model.numatb")
-                .and_then(|(_, m)| m.as_ref().ok()),
-            if app.enable_helper_bones {
-                model
-                    .model
-                    .hlpbs
-                    .iter()
-                    .find(|(f, _)| f == "model.nuhlpb")
-                    .and_then(|(_, m)| m.as_ref().ok())
-            } else {
-                None
-            },
-            &app.render_state.shared_data,
-            app.animation_state.current_frame,
-        );
-    }
-}
-
 fn load_model_render_model(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
     path: PathBuf,
     model: ssbh_wgpu::ModelFolder,
     render_state: &RenderState,
 ) -> (RenderModel, ModelFolderState) {
-    let render_model = RenderModel::from_folder(
-        &render_state.device,
-        &render_state.queue,
-        &model,
-        &render_state.shared_data,
-    );
+    let render_model = RenderModel::from_folder(device, queue, &model, &render_state.shared_data);
 
     let swing_prc_path = path.join("swing.prc");
     let swing_prc = SwingPrc::from_file(swing_prc_path);
@@ -804,5 +734,19 @@ fn save_file_as<T: SsbhData>(
         }
     } else {
         false
+    }
+}
+
+pub fn update_color_theme(preferences: &AppPreferences, ctx: &egui::Context) {
+    if preferences.dark_mode {
+        ctx.set_visuals(Visuals {
+            widgets: widgets_dark(),
+            ..Default::default()
+        });
+    } else {
+        ctx.set_visuals(Visuals {
+            widgets: widgets_light(),
+            ..Visuals::light()
+        });
     }
 }

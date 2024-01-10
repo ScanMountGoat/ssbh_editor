@@ -1,4 +1,4 @@
-use crate::{horizontal_separator_empty, TexturePainter};
+use crate::{horizontal_separator_empty, RenderState};
 use egui::{special_emojis::GITHUB, DragValue};
 use egui_wgpu::CallbackTrait;
 use nutexb::{NutexbFile, NutexbFormat};
@@ -132,14 +132,15 @@ pub fn nutexb_viewer(
 struct PaintTextureCallback;
 
 impl CallbackTrait for PaintTextureCallback {
+    // TODO: Handle the size of the texture?
     fn paint<'a>(
         &'a self,
         _info: egui::PaintCallbackInfo,
         render_pass: &mut wgpu::RenderPass<'a>,
         callback_resources: &'a egui_wgpu::CallbackResources,
     ) {
-        let painter: &TexturePainter = callback_resources.get().unwrap();
-        painter.paint(render_pass);
+        let render_state: &RenderState = callback_resources.get().unwrap();
+        render_state.texture_renderer.render(render_pass);
     }
 }
 

@@ -378,7 +378,7 @@ fn validate_premultiplied_blend(
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         if let Some(program) = shader_database.get(&entry.shader_label) {
-            if let Some(blend_state) = entry.blend_states.get(0) {
+            if let Some(blend_state) = entry.blend_states.first() {
                 if program.premultiplied
                     && blend_state.data.source_color == BlendFactor::SourceAlpha
                 {

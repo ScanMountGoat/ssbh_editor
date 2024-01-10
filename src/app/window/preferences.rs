@@ -50,45 +50,54 @@ pub fn preferences_window(
             });
             ui.separator();
 
-            // TODO: Add a toggle widget instead.
-            changed |= ui
-                .checkbox(&mut preferences.dark_mode, "Dark Mode")
-                .changed();
-            ui.horizontal(|ui| {
-                changed |= ui
-                    .color_edit_button_srgb(&mut preferences.viewport_color)
-                    .changed();
-                ui.label("Viewport Background");
-            });
-            changed |= ui
-                .checkbox(
-                    &mut preferences.autohide_expressions,
-                    "Automatically Hide Expressions",
-                )
-                .changed();
-            ui.horizontal(|ui| {
-                ui.label("Graphics Backend")
-                    .on_hover_text("The preferred graphics backend. Requires an application restart to take effect.");
-
-                changed |= edit_graphics_backend(&mut preferences.graphics_backend, ui);
-            });
-
-            // TODO: update the UI scale when changing these values.
-            changed |= ui.checkbox(&mut preferences.use_custom_scale_factor, "Use Custom UI Scale Factor")
-                .on_hover_text("Override OS scaling settings. Requires an application restart to take effect.")
-                .changed();
-            if preferences.use_custom_scale_factor {
-                ui.horizontal(|ui| {
-                    ui.label("Scale Factor").on_hover_text("Requires an application restart to take effect.");
-                    changed |= ui.add(DragValue::new(&mut preferences.scale_factor).speed(0.5).clamp_range(1.0..=4.0)).changed();
-                });
-            }
-
-            if ui.button("Reset Preferences").clicked() {
-                *preferences = AppPreferences::default();
-                changed = true;
-            }
+            changed |= edit_preferences(ui, preferences);
         });
+    changed
+}
+
+fn edit_preferences(ui: &mut Ui, preferences: &mut AppPreferences) -> bool {
+    let mut changed = false;
+    // TODO: Add a toggle widget instead.
+    changed |= ui
+        .checkbox(&mut preferences.dark_mode, "Dark Mode")
+        .changed();
+    ui.horizontal(|ui| {
+        changed |= ui
+            .color_edit_button_srgb(&mut preferences.viewport_color)
+            .changed();
+        ui.label("Viewport Background");
+    });
+    changed |= ui
+        .checkbox(
+            &mut preferences.autohide_expressions,
+            "Automatically Hide Expressions",
+        )
+        .changed();
+    ui.horizontal(|ui| {
+        ui.label("Graphics Backend").on_hover_text(
+            "The preferred graphics backend. Requires an application restart to take effect.",
+        );
+
+        changed |= edit_graphics_backend(&mut preferences.graphics_backend, ui);
+    });
+
+    ui.horizontal(|ui| {
+        ui.label("UI Scale");
+        changed |= ui
+            .add(
+                DragValue::new(&mut preferences.scale_factor)
+                    .update_while_editing(false)
+                    .speed(0.05)
+                    .clamp_range(0.5..=2.0),
+            )
+            .changed();
+    });
+
+    if ui.button("Reset Preferences").clicked() {
+        *preferences = AppPreferences::default();
+        changed = true;
+    }
+
     changed
 }
 

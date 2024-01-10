@@ -405,7 +405,7 @@ pub fn load_json_presets(json: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
 
 fn first_child(node: &Element) -> anyhow::Result<&Element> {
     node.children
-        .get(0)
+        .first()
         .and_then(XMLNode::as_element)
         .ok_or_else(|| anyhow!("XML node {} has no children.", node.name))
 }

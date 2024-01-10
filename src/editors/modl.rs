@@ -56,7 +56,7 @@ pub fn modl_editor(
 
                         // Pick an arbitrary material to make the mesh visible in the viewport.
                         let default_material = matl
-                            .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
+                            .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
                             .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
                         modl.entries.push(ModlEntryData {
@@ -98,7 +98,7 @@ pub fn modl_editor(
 
                 // Pick an arbitrary material to make the mesh visible in the viewport.
                 let default_material = matl
-                    .and_then(|m| m.entries.get(0).map(|e| e.material_label.clone()))
+                    .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
                     .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
                 if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
@@ -135,7 +135,7 @@ pub fn modl_editor(
                                 let id = egui::Id::new("modl").with(item.0);
 
                                 handle.ui(ui, |ui| {
-                                    draggable_icon(ui, dark_mode);
+                                    draggable_icon(ctx, ui, dark_mode);
                                 });
 
                                 // Check for assignment errors for the current entry.

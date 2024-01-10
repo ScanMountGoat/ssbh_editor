@@ -1,4 +1,4 @@
-use egui::{Context, ScrollArea, Window};
+use egui::{Context, Label, ScrollArea, Window};
 
 use crate::app::{log_level_icon, LOGGER};
 
@@ -18,7 +18,7 @@ pub fn log_window(ctx: &Context, open: &mut bool) {
                             let clean_message = strip_ansi_escapes::strip(message)
                                 .map(|m| String::from_utf8_lossy(&m).to_string())
                                 .unwrap_or_else(|_| message.clone());
-                            ui.label(clean_message);
+                            ui.add(Label::new(clean_message).wrap(true));
                         });
                     }
                 });

@@ -1,9 +1,11 @@
 use self::{
-    animation_bar::display_animation_bar, file_list::show_folder_files, menu::menu_bar, window::*,
+    animation_bar::display_animation_bar, file_list::show_folder_files, menu::menu_bar,
+    rendering::calculate_mvp, window::*,
 };
 use crate::{
     app::anim_list::anim_list,
     app::swing_list::swing_list,
+    capture::{render_animation_sequence, render_screenshot},
     editors::{
         adj::{add_missing_adj_entries, adj_editor},
         anim::anim_editor,
@@ -15,27 +17,30 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    hide_expressions, load_model_render_model,
+    generate_model_thumbnails, hide_expressions, load_model_render_model,
     log::AppLogger,
     model_folder::{FileChanged, ModelFolderState},
     path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
     update::LatestReleaseInfo,
+    update_color_theme,
     widgets::*,
     AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorResponse, FileResult,
     RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
-    collapsing_header::CollapsingState, Button, CollapsingHeader, Context, Image, ImageSource,
-    Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
+    collapsing_header::CollapsingState, ecolor::linear_f32_from_gamma_u8, Button, CentralPanel,
+    CollapsingHeader, Context, Image, ImageSource, Label, Response, RichText, ScrollArea,
+    SidePanel, TextureOptions, TopBottomPanel, Ui,
 };
 use egui_commonmark::CommonMarkCache;
+use egui_wgpu::{CallbackResources, CallbackTrait};
 use log::error;
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{ModelFiles, RenderModel};
+use ssbh_wgpu::{next_frame, ModelFiles, RenderModel};
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
@@ -46,6 +51,7 @@ mod anim_list;
 mod animation_bar;
 mod file_list;
 mod menu;
+mod rendering;
 mod swing_list;
 mod window;
 
@@ -319,13 +325,10 @@ pub struct SsbhApp {
     pub ui_state: UiState,
     // TODO: Is parallel list with models the best choice here?
     pub models: Vec<ModelFolderState>,
-    pub render_models: Vec<RenderModel>,
-
+    // pub render_models: Vec<RenderModel>,
     pub default_thumbnails: Vec<Thumbnail>,
     pub animation_state: AnimationState,
     pub swing_state: SwingState,
-
-    pub render_state: RenderState,
 
     pub show_left_panel: bool,
     pub show_right_panel: bool,
@@ -336,53 +339,73 @@ pub struct SsbhApp {
     pub preferences: AppPreferences,
 
     pub markdown_cache: CommonMarkCache,
+
+    pub previous_viewport_width: f32,
+    pub previous_viewport_height: f32,
+
+    pub has_initialized_zoom_factor: bool,
 }
 
 // All the icons are designed to render properly at 16x16 pixels.
-pub fn draggable_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+pub fn draggable_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
     file_icon(
+        ctx,
         ui,
         egui::include_image!("icons/carbon_draggable.svg"),
         dark_mode,
     )
 }
 
-pub fn mesh_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/mesh.svg"), dark_mode)
+pub fn mesh_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ctx, ui, egui::include_image!("icons/mesh.svg"), dark_mode)
 }
 
-pub fn matl_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/matl.svg"), dark_mode)
+pub fn matl_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ctx, ui, egui::include_image!("icons/matl.svg"), dark_mode)
 }
 
-pub fn adj_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/adj.svg"), dark_mode)
+pub fn adj_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ctx, ui, egui::include_image!("icons/adj.svg"), dark_mode)
 }
 
-pub fn anim_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/anim.svg"), dark_mode)
+pub fn anim_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ctx, ui, egui::include_image!("icons/anim.svg"), dark_mode)
 }
 
-pub fn skel_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/skel.svg"), dark_mode)
+pub fn skel_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ctx, ui, egui::include_image!("icons/skel.svg"), dark_mode)
 }
 
-pub fn hlpb_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/hlpb.svg"), dark_mode)
+pub fn hlpb_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ctx, ui, egui::include_image!("icons/hlpb.svg"), dark_mode)
 }
 
-fn file_icon(ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
+fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
     let tint = if dark_mode {
         TEXT_COLOR_DARK
     } else {
         TEXT_COLOR_LIGHT
     };
 
-    ui.add(
-        Image::new(image)
-            .tint(tint)
-            .fit_to_exact_size(egui::vec2(16.0, 16.0)),
-    )
+    // Render at twice the desired size to handle high DPI displays.
+    match image
+        .load(ctx, TextureOptions::default(), egui::SizeHint::Size(32, 32))
+        .unwrap()
+    {
+        egui::load::TexturePoll::Pending { .. } => ui.allocate_response(
+            egui::vec2(16.0, 16.0),
+            egui::Sense {
+                click: false,
+                drag: false,
+                focusable: false,
+            },
+        ),
+        egui::load::TexturePoll::Ready { texture } => ui.add(
+            Image::new(texture)
+                .tint(tint)
+                .fit_to_exact_size(egui::vec2(16.0, 16.0)),
+        ),
+    }
 }
 
 #[derive(PartialEq, Eq)]
@@ -528,16 +551,29 @@ impl Default for PanelTab {
 }
 
 impl SsbhApp {
-    pub fn add_folder_to_workspace_from_dialog(&mut self, clear_workspace: bool) {
+    pub fn add_folder_to_workspace_from_dialog(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        render_state: &mut RenderState,
+        clear_workspace: bool,
+    ) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            self.add_folder_to_workspace(folder, clear_workspace);
+            self.add_folder_to_workspace(device, queue, folder, render_state, clear_workspace);
         }
     }
 
-    pub fn add_folder_to_workspace<P: AsRef<Path>>(&mut self, folder: P, clear_workspace: bool) {
+    pub fn add_folder_to_workspace<P: AsRef<Path>>(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        folder: P,
+        render_state: &mut RenderState,
+        clear_workspace: bool,
+    ) {
         // Don't clear existing files if the user cancels the dialog.
         if clear_workspace {
-            self.clear_workspace();
+            self.clear_workspace(render_state);
         }
 
         // Load recursively for nested folders like stages.
@@ -582,7 +618,7 @@ impl SsbhApp {
         // TODO: Handle this with models to update?
         for (path, model) in new_models {
             let (mut render_model, model_state) =
-                load_model_render_model(path, model, &self.render_state);
+                load_model_render_model(device, queue, path, model, render_state);
 
             // Only hide expressions on new models to preserve visibility edits.
             if self.preferences.autohide_expressions {
@@ -590,7 +626,7 @@ impl SsbhApp {
             }
 
             self.models.push(model_state);
-            self.render_models.push(render_model);
+            render_state.render_models.push(render_model);
         }
 
         self.sort_files();
@@ -636,13 +672,15 @@ impl SsbhApp {
         self.animation_state.should_update_animations = true;
     }
 
-    pub fn clear_workspace(&mut self) {
+    pub fn clear_workspace(&mut self, render_state: &mut RenderState) {
         // TODO: Is it easier to have dedicated reset methods?
         self.models = Vec::new();
-        self.render_models = Vec::new();
+        render_state.render_models = Vec::new();
         self.animation_state.animations = Vec::new();
         self.swing_state.selected_swing_folders = Vec::new();
         self.swing_state.hidden_collisions = Vec::new();
+        self.camera_state.anim_path = None;
+        self.should_update_camera = true;
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }
@@ -661,71 +699,250 @@ impl SsbhApp {
         }
     }
 
-    pub fn write_state_to_disk(&self) {
-        let path = last_update_check_file();
-        if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
-            error!("Failed to write update check time to {path:?}: {e}");
-        }
+    fn update_model_thumbnails(&mut self, wgpu_state: &egui_wgpu::RenderState) {
+        if self.should_update_thumbnails {
+            for (i, model) in self.models.iter_mut().enumerate() {
+                let binding = &mut wgpu_state.renderer.write();
+                let render_state: &RenderState = binding.callback_resources.get().unwrap();
 
-        self.preferences.write_to_file();
+                // Split into two steps to avoid mutably and immutably borrowing egui renderer.
+                let thumbnails = generate_model_thumbnails(
+                    binding,
+                    &model.model,
+                    &render_state.render_models[i],
+                    &wgpu_state.device,
+                    &wgpu_state.queue,
+                );
+
+                model.thumbnails = thumbnails
+                    .into_iter()
+                    .map(|(name, view, dimension)| {
+                        let id = binding.register_native_texture(
+                            &wgpu_state.device,
+                            &view,
+                            wgpu::FilterMode::Nearest,
+                        );
+                        (name, id, dimension)
+                    })
+                    .collect();
+            }
+            self.should_update_thumbnails = false;
+        }
     }
 
-    pub fn viewport_rect(&self, width: u32, height: u32, scale_factor: f32) -> [u32; 4] {
-        // Calculate [origin x, origin y, width, height]
-        // ssbh_wgpu expects physical instead of logical pixels.
-        let f = |x| (x * scale_factor) as u32;
-        let left = self
-            .render_state
-            .viewport_left
-            .map(f)
-            .unwrap_or(0)
-            .clamp(0, width.saturating_sub(1));
-        let right = self
-            .render_state
-            .viewport_right
-            .map(f)
-            .unwrap_or(width)
-            .clamp(0, width.saturating_sub(1));
-        let top = self
-            .render_state
-            .viewport_top
-            .map(f)
-            .unwrap_or(0)
-            .clamp(0, height.saturating_sub(1));
-        let bottom = self
-            .render_state
-            .viewport_bottom
-            .map(f)
-            .unwrap_or(height)
-            .clamp(0, height.saturating_sub(1));
-        let width = right.saturating_sub(left).clamp(1, width - left);
-        let height = bottom.saturating_sub(top).clamp(1, height - top);
-        [left, top, width, height]
+    fn get_hovered_material_label(&self, folder_index: usize) -> Option<&str> {
+        Some(
+            self.models
+                .get(folder_index)?
+                .model
+                .find_matl()?
+                .entries
+                .get(self.ui_state.matl_editor.hovered_material_index?)?
+                .material_label
+                .as_str(),
+        )
+    }
+
+    fn render_animation_to_gif(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        render_state: &mut RenderState,
+        width: u32,
+        height: u32,
+        file: std::path::PathBuf,
+        surface_format: wgpu::TextureFormat,
+    ) {
+        // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
+        let images = render_animation_sequence(
+            self,
+            device,
+            queue,
+            render_state,
+            width,
+            height,
+            surface_format,
+        );
+
+        // TODO: Add progress indication.
+        std::thread::spawn(move || match std::fs::File::create(&file) {
+            Ok(file_out) => {
+                let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
+                if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
+                    error!("Error saving GIF to {file:?}: {e}");
+                }
+            }
+            Err(e) => error!("Error creating file {file:?}: {e}"),
+        });
+    }
+
+    fn render_animation_to_image_sequence(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        render_state: &mut RenderState,
+        width: u32,
+        height: u32,
+        file: std::path::PathBuf,
+        surface_format: wgpu::TextureFormat,
+    ) {
+        // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
+        let images = render_animation_sequence(
+            self,
+            device,
+            queue,
+            render_state,
+            width,
+            height,
+            surface_format,
+        );
+
+        // TODO: Add progress indication.
+        std::thread::spawn(move || {
+            for (i, image) in images.iter().enumerate() {
+                // TODO: Find a simpler way to do this.
+                let file_name = file
+                    .with_extension("")
+                    .file_name()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "img".to_owned());
+                let extension = file
+                    .extension()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "png".to_owned());
+                let output = file
+                    .with_file_name(file_name + &i.to_string())
+                    .with_extension(extension);
+                if let Err(e) = image.save(output) {
+                    error!("Error saving image to {:?}: {}", file, e);
+                }
+            }
+        });
+    }
+
+    fn update_clear_color(&mut self, render_state: &mut RenderState, is_srgb: bool) {
+        // Account for the framebuffer gamma.
+        // egui adds an additional sRGB conversion we need to account for.
+        let clear_color = self.preferences.viewport_color.map(|c| {
+            if is_srgb {
+                linear_f32_from_gamma_u8(c) as f64
+            } else {
+                linear_f32_from_gamma_u8(c) as f64
+            }
+        });
+        // This must be opaque to composite properly with egui.
+        // Screenshots can set this to transparent for alpha support.
+        render_state.renderer.set_clear_color([
+            clear_color[0],
+            clear_color[1],
+            clear_color[2],
+            1.0,
+        ]);
     }
 }
 
-impl SsbhApp {
-    pub fn update(&mut self, ctx: &Context) {
+impl eframe::App for SsbhApp {
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+        let current_frame_start = std::time::Instant::now();
+
+        let binding = frame.wgpu_render_state();
+        let wgpu_state = binding.as_ref().unwrap();
+        let device = &wgpu_state.device;
+        let queue = &wgpu_state.queue;
+
+        self.update_model_thumbnails(wgpu_state);
+
+        // TODO: Create a function for updating rendering stuff?
+        // Access all the rendering state from a single item in the type map.
+        // This avoids deadlock from trying to lock for each resource type.
+        let binding = &mut wgpu_state.renderer.write();
+        let render_state: &mut RenderState = binding.callback_resources.get_mut().unwrap();
+
+        // TODO: Rework these fields to use Option<T>.
+        let mask_model_index = self.ui_state.selected_folder_index.unwrap_or(0);
+        render_state.model_render_options.mask_model_index = mask_model_index;
+        render_state.model_render_options.mask_material_label = self
+            .get_hovered_material_label(mask_model_index)
+            .unwrap_or("")
+            .to_owned();
+
+        if self.should_update_clear_color {
+            self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+            self.should_update_clear_color = false;
+        }
+
+        if self.animation_state.is_playing {
+            let final_frame_index = self.max_final_frame_index(render_state);
+
+            self.animation_state.current_frame = next_frame(
+                self.animation_state.current_frame,
+                current_frame_start.duration_since(self.animation_state.previous_frame_start),
+                final_frame_index,
+                self.animation_state.playback_speed,
+                self.animation_state.should_loop,
+            );
+            // eframe is reactive by default, so we need to repaint.
+            ctx.request_repaint();
+        }
+        // Always update the frame times even if no animation is playing.
+        // This avoids skipping when resuming playback.
+        self.animation_state.previous_frame_start = current_frame_start;
+
+        if let Some((texture, dimension, size)) =
+            self.get_nutexb_to_render(&render_state.render_models)
+        {
+            render_state.texture_renderer.update(
+                device,
+                queue,
+                texture,
+                *dimension,
+                size,
+                &render_state.texture_render_settings,
+            );
+        }
+
+        ctx.input(|input| {
+            for file in &input.raw.dropped_files {
+                if let Some(path) = file.path.as_ref() {
+                    if path.is_file() {
+                        // Load the parent folder for files.
+                        if let Some(parent) = path.parent() {
+                            self.add_folder_to_workspace(
+                                device,
+                                queue,
+                                parent,
+                                render_state,
+                                false,
+                            );
+                        }
+                    } else {
+                        self.add_folder_to_workspace(device, queue, path, render_state, false);
+                    }
+                }
+            }
+        });
+
+        if !self.has_initialized_zoom_factor {
+            // Set zoom factor here instead of creation to avoid crashes.
+            ctx.set_zoom_factor(self.preferences.scale_factor);
+            self.has_initialized_zoom_factor = true;
+        }
+
         // This can be set by the mesh list and mesh editor.
         // Clear every frame so both sources can set is_selected to true.
-        self.clear_selected_meshes();
+        self.clear_selected_meshes(render_state);
 
         // Set the region for the 3D viewport to reduce overdraw.
-        self.render_state.viewport_top = Some(
-            egui::TopBottomPanel::top("top_panel")
-                .show(ctx, |ui| menu_bar(self, ui))
-                .response
-                .rect
-                .bottom(),
-        );
+        egui::TopBottomPanel::top("top_panel")
+            .show(ctx, |ui| menu_bar(self, ui, device, queue, render_state));
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
         render_settings_window(
             ctx,
-            &mut self.render_state.render_settings,
-            &mut self.render_state.model_render_options,
-            &mut self.render_state.skinning_settings,
+            &mut render_state.render_settings,
+            &mut render_state.model_render_options,
+            &mut render_state.skinning_settings,
             &mut self.ui_state.render_settings_open,
             &mut self.draw_bone_names,
             &mut self.enable_helper_bones,
@@ -744,7 +961,7 @@ impl SsbhApp {
         device_info_window(
             ctx,
             &mut self.ui_state.device_info_window_open,
-            &self.render_state.adapter_info,
+            &render_state.adapter_info,
         );
 
         self.should_update_lighting |= stage_lighting_window(
@@ -755,11 +972,17 @@ impl SsbhApp {
 
         log_window(ctx, &mut self.ui_state.log_window_open);
 
-        self.should_update_clear_color |= preferences_window(
+        if preferences_window(
             ctx,
             &mut self.preferences,
             &mut self.ui_state.preferences_window_open,
-        );
+        ) {
+            update_color_theme(&self.preferences, ctx);
+            self.should_update_clear_color = true;
+            ctx.set_zoom_factor(self.preferences.scale_factor);
+        } else {
+            self.preferences.scale_factor = ctx.zoom_factor().into();
+        }
 
         // Only edit the user presets.
         preset_editor(
@@ -767,7 +990,7 @@ impl SsbhApp {
             &mut self.ui_state,
             &mut self.material_presets,
             &self.default_thumbnails,
-            self.render_state.shared_data.database(),
+            render_state.shared_data.database(),
             self.red_checkerboard,
             self.yellow_checkerboard,
         );
@@ -777,49 +1000,251 @@ impl SsbhApp {
             new_release_window(ctx, &mut self.release_info, &mut self.markdown_cache);
         }
 
-        self.should_validate_models |= self.file_editors(ctx);
+        self.should_validate_models |= self.file_editors(ctx, device, render_state);
 
-        self.render_state.viewport_left = if self.show_left_panel {
-            Some(
-                SidePanel::left("left_panel")
-                    .default_width(200.0)
-                    .show(ctx, |ui| self.files_list(ui))
-                    .response
-                    .rect
-                    .right(),
-            )
-        } else {
-            None
-        };
+        if self.show_left_panel {
+            SidePanel::left("left_panel")
+                .default_width(200.0)
+                .show(ctx, |ui| self.files_list(ctx, ui, render_state));
+        }
 
-        self.render_state.viewport_bottom = if self.show_bottom_panel {
-            Some(
-                TopBottomPanel::bottom("bottom panel")
-                    .show(ctx, |ui| self.bottom_panel(ui))
-                    .response
-                    .rect
-                    .top(),
-            )
-        } else {
-            None
-        };
+        if self.show_bottom_panel {
+            TopBottomPanel::bottom("bottom panel")
+                .show(ctx, |ui| self.bottom_panel(ui, render_state));
+        }
 
-        self.render_state.viewport_right = if self.show_right_panel {
-            Some(
-                SidePanel::right("right panel")
-                    .default_width(450.0)
-                    .show(ctx, |ui| self.right_panel(ctx, ui))
-                    .response
-                    .rect
-                    .left(),
-            )
-        } else {
-            None
-        };
+        if self.show_right_panel {
+            SidePanel::right("right panel")
+                .default_width(450.0)
+                .show(ctx, |ui| self.right_panel(ctx, ui, render_state));
+        }
+
+        CentralPanel::default().show(ctx, |ui| {
+            let rect = ui.available_rect_before_wrap();
+
+            // Convert logical points to physical pixels.
+            let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
+            let width = rect.width() * scale_factor;
+            let height = rect.height() * scale_factor;
+
+            // It's possible to interact with the UI with the mouse over the viewport.
+            // Disable tracking the mouse in this case to prevent unwanted camera rotations.
+            // This mostly affects resizing the left and right side panels.
+            if !ctx.wants_keyboard_input() && !ctx.wants_pointer_input() {
+                ctx.input(|input| {
+                    // Handle camera input here to get the viewport's actual size.
+                    handle_input(&mut self.camera_state, input, height);
+                });
+            }
+
+            if width > 0.0 && height > 0.0 {
+                self.refresh_render_state(device, queue, render_state, width, height, 1.0);
+
+                // Cache previous dimensions since we don't have a resize event handler.
+                if width != self.previous_viewport_width || height != self.previous_viewport_height
+                {
+                    render_state
+                        .renderer
+                        .resize(device, width as u32, height as u32, 1.0);
+
+                    self.previous_viewport_width = width;
+                    self.previous_viewport_height = height;
+                }
+            }
+
+            // TODO: Avoid calculating the camera twice?
+            let (_, _, mvp_matrix) = calculate_mvp(
+                width,
+                height,
+                self.camera_state.values.translation,
+                self.camera_state.values.rotation_radians,
+                self.camera_state.values.fov_y_radians,
+            );
+            // TODO: Find a way to avoid clone?
+            let cb = egui_wgpu::Callback::new_paint_callback(
+                rect,
+                ViewportCallback {
+                    width,
+                    height,
+                    scale_factor,
+                    draw_bone_names: self.draw_bone_names,
+                    mvp_matrix,
+                    hidden_collisions: self.swing_state.hidden_collisions.clone(),
+                },
+            );
+            ui.painter().add(cb);
+
+            // TODO: Run these on another thread?
+            // TODO: Avoid clone?
+            // TODO: This will be cleaner if the main renderer isn't mutated?
+            if let Some(file) = self.animation_gif_to_render.clone() {
+                self.render_animation_to_gif(
+                    device,
+                    queue,
+                    render_state,
+                    width as u32,
+                    height as u32,
+                    file,
+                    wgpu_state.target_format,
+                );
+                self.animation_gif_to_render = None;
+                self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+            }
+
+            if let Some(file) = self.animation_image_sequence_to_render.clone() {
+                self.render_animation_to_image_sequence(
+                    device,
+                    queue,
+                    render_state,
+                    width as u32,
+                    height as u32,
+                    file,
+                    wgpu_state.target_format,
+                );
+                self.animation_image_sequence_to_render = None;
+                self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+            }
+
+            if let Some(file) = &self.screenshot_to_render {
+                let image = render_screenshot(
+                    device,
+                    queue,
+                    render_state,
+                    width as u32,
+                    height as u32,
+                    wgpu_state.target_format,
+                );
+                if let Err(e) = image.save(file) {
+                    error!("Error saving screenshot to {:?}: {}", file, e);
+                }
+                self.screenshot_to_render = None;
+                self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+            }
+        });
     }
 
-    fn clear_selected_meshes(&mut self) {
-        for model in &mut self.render_models {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        let path = last_update_check_file();
+        if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
+            error!("Failed to write update check time to {path:?}: {e}");
+        }
+
+        self.preferences.write_to_file();
+    }
+}
+
+// TODO: Create a separate module for input handling?
+fn handle_input(camera: &mut CameraState, input: &egui::InputState, viewport_height: f32) {
+    // Assume zero deltas if no updates are needed.
+    if input.pointer.primary_down() {
+        // Left click rotation.
+        // Swap XY so that dragging left right rotates left right.
+        let delta = input.pointer.delta();
+        camera.values.rotation_radians.x += delta.y * 0.01;
+        camera.values.rotation_radians.y += delta.x * 0.01;
+    } else if input.pointer.secondary_down() {
+        // Right click panning.
+        // Translate an equivalent distance in screen space based on the camera.
+        // The viewport height and vertical field of view define the conversion.
+        let fac =
+            camera.values.fov_y_radians.sin() * camera.values.translation.z.abs() / viewport_height;
+
+        // Negate y so that dragging up "drags" the model up.
+        let delta = input.pointer.delta();
+        camera.values.translation.x += delta.x * fac;
+        camera.values.translation.y -= delta.y * fac;
+    }
+
+    // Scale zoom speed with distance to make it easier to zoom out large scenes.
+    let delta_z = input.scroll_delta.y * camera.values.translation.z.abs() * 0.002;
+    // Clamp to prevent the user from zooming through the origin.
+    camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
+
+    // Keyboard panning.
+    if input.key_down(egui::Key::ArrowLeft) {
+        camera.values.translation.x += 0.25;
+    }
+    if input.key_down(egui::Key::ArrowRight) {
+        camera.values.translation.x -= 0.25;
+    }
+    if input.key_down(egui::Key::ArrowUp) {
+        camera.values.translation.y -= 0.25;
+    }
+    if input.key_down(egui::Key::ArrowDown) {
+        camera.values.translation.y += 0.25;
+    }
+}
+
+struct ViewportCallback {
+    width: f32,
+    height: f32,
+    scale_factor: f32,
+    draw_bone_names: bool,
+    mvp_matrix: glam::Mat4,
+    hidden_collisions: Vec<HashSet<u64>>,
+}
+
+impl CallbackTrait for ViewportCallback {
+    fn prepare(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        egui_encoder: &mut wgpu::CommandEncoder,
+        callback_resources: &mut CallbackResources,
+    ) -> Vec<wgpu::CommandBuffer> {
+        let state: &mut RenderState = callback_resources.get_mut().unwrap();
+
+        state.renderer.begin_render_models(
+            egui_encoder,
+            &state.render_models,
+            state.shared_data.database(),
+            &state.model_render_options,
+        );
+
+        // TODO: Make the font size configurable.
+        if state.model_render_options.draw_bones && self.draw_bone_names {
+            state.bone_name_renderer.prepare(
+                device,
+                queue,
+                &state.render_models,
+                self.width as u32,
+                self.height as u32,
+                self.mvp_matrix,
+                18.0 * self.scale_factor as f32,
+            );
+        }
+
+        Vec::new()
+    }
+
+    fn paint<'a>(
+        &'a self,
+        _info: egui::PaintCallbackInfo,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        callback_resources: &'a egui_wgpu::CallbackResources,
+    ) {
+        let state: &RenderState = callback_resources.get().unwrap();
+        state.renderer.end_render_models(render_pass);
+
+        for (render_model, hidden_collisions) in state
+            .render_models
+            .iter()
+            .zip(self.hidden_collisions.iter())
+        {
+            state
+                .renderer
+                .render_swing(render_pass, render_model, hidden_collisions);
+        }
+
+        if state.model_render_options.draw_bones && self.draw_bone_names {
+            state.bone_name_renderer.render(render_pass);
+        }
+    }
+}
+
+impl SsbhApp {
+    fn clear_selected_meshes(&mut self, render_state: &mut RenderState) {
+        for model in &mut render_state.render_models {
             model.is_selected = false;
             for mesh in &mut model.meshes {
                 mesh.is_selected = false;
@@ -827,14 +1252,19 @@ impl SsbhApp {
         }
     }
 
-    fn file_editors(&mut self, ctx: &Context) -> bool {
+    fn file_editors(
+        &mut self,
+        ctx: &Context,
+        device: &wgpu::Device,
+        render_state: &mut RenderState,
+    ) -> bool {
         let mut file_changed = false;
 
         // TODO: Use some sort of trait to clean up repetitive code?
         // The functions would take an additional ui parameter.
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
-                let render_model = &mut self.render_models.get_mut(folder_index);
+                let render_model = &mut render_state.render_models.get_mut(folder_index);
 
                 // TODO: Group added state and implement the Editor trait.
                 if let Some(matl_index) = self.ui_state.open_matl {
@@ -849,7 +1279,7 @@ impl SsbhApp {
                             &model.validation.matl_errors,
                             &model.thumbnails,
                             &self.default_thumbnails,
-                            self.render_state.shared_data.database(),
+                            render_state.shared_data.database(),
                             &mut self.material_presets,
                             &self.default_presets,
                             self.red_checkerboard,
@@ -871,9 +1301,9 @@ impl SsbhApp {
                                 // TODO: Move rendering code out of app.rs.
                                 if name == "model.numatb" {
                                     render_model.recreate_materials(
-                                        &self.render_state.device,
+                                        device,
                                         &matl.entries,
-                                        &self.render_state.shared_data,
+                                        &render_state.shared_data,
                                     );
                                     if let Some(modl) =
                                         find_file(&model.model.modls, "model.numdlb")
@@ -981,7 +1411,7 @@ impl SsbhApp {
                             ctx,
                             &folder_editor_title(&model.folder_path, name),
                             nutexb,
-                            &mut self.render_state.texture_render_settings,
+                            &mut render_state.texture_render_settings,
                         ) {
                             // Close the window.
                             self.ui_state.open_nutexb = None;
@@ -994,7 +1424,7 @@ impl SsbhApp {
         file_changed
     }
 
-    pub fn max_final_frame_index(&mut self) -> f32 {
+    pub fn max_final_frame_index(&self, render_state: &RenderState) -> f32 {
         // Find the minimum number of frames to cover all animations.
         // This should include stage animations like lighting and cameras.
         self.animation_state
@@ -1010,14 +1440,14 @@ impl SsbhApp {
                     })
             })
             .chain(
-                self.render_state
+                render_state
                     .lighting_data
                     .light
                     .as_ref()
                     .map(|a| a.final_frame_index),
             )
             .chain(
-                self.render_state
+                render_state
                     .camera_anim
                     .as_ref()
                     .map(|a| a.final_frame_index),
@@ -1025,7 +1455,7 @@ impl SsbhApp {
             .fold(0.0, f32::max)
     }
 
-    fn files_list(&mut self, ui: &mut Ui) {
+    fn files_list(&mut self, ctx: &Context, ui: &mut Ui, render_state: &mut RenderState) {
         ui.heading("Files");
         ScrollArea::vertical()
             .auto_shrink([false; 2])
@@ -1046,6 +1476,7 @@ impl SsbhApp {
                             show_folder_files(
                                 &mut self.ui_state,
                                 model,
+                                ctx,
                                 ui,
                                 folder_index,
                                 self.preferences.dark_mode,
@@ -1119,16 +1550,16 @@ impl SsbhApp {
                     if self.models.get(folder_to_remove).is_some() {
                         self.models.remove(folder_to_remove);
                     }
-                    if self.render_models.get(folder_to_remove).is_some() {
-                        self.render_models.remove(folder_to_remove);
+                    if render_state.render_models.get(folder_to_remove).is_some() {
+                        render_state.render_models.remove(folder_to_remove);
                     }
                 }
             });
     }
 
-    fn bottom_panel(&mut self, ui: &mut Ui) {
+    fn bottom_panel(&mut self, ui: &mut Ui, render_state: &mut RenderState) {
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-            let final_frame_index = self.max_final_frame_index();
+            let final_frame_index = self.max_final_frame_index(render_state);
             display_animation_bar(ui, &mut self.animation_state, final_frame_index);
 
             // The next layout needs to be min since it's nested inside a centered layout.
@@ -1158,7 +1589,7 @@ impl SsbhApp {
         }
     }
 
-    fn right_panel(&mut self, ctx: &Context, ui: &mut Ui) {
+    fn right_panel(&mut self, ctx: &Context, ui: &mut Ui, render_state: &mut RenderState) {
         ui.horizontal(|ui| {
             ui.selectable_value(
                 &mut self.ui_state.right_panel_tab,
@@ -1180,10 +1611,105 @@ impl SsbhApp {
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| match self.ui_state.right_panel_tab {
-                PanelTab::Mesh => mesh_list(ctx, self, ui),
+                PanelTab::Mesh => mesh_list(ctx, self, ui, render_state),
                 PanelTab::Anim => anim_list(ctx, self, ui),
                 PanelTab::Swing => swing_list(ctx, self, ui),
             });
+    }
+
+    pub fn get_nutexb_to_render<'a>(
+        &self,
+        render_models: &'a [RenderModel],
+    ) -> Option<(
+        &'a wgpu::Texture,
+        &'a wgpu::TextureViewDimension,
+        (u32, u32, u32),
+    )> {
+        let folder_index = self.ui_state.selected_folder_index?;
+        let model = self.models.get(folder_index)?;
+        let render_model = render_models.get(folder_index)?;
+
+        // Assume file names are unique, so use the name instead of the index.
+        let (name, _) = model.model.nutexbs.get(self.ui_state.open_nutexb?)?;
+
+        render_model.get_texture(name).map(|(texture, dim)| {
+            (
+                texture,
+                dim,
+                (
+                    texture.width(),
+                    texture.height(),
+                    if *dim == wgpu::TextureViewDimension::D3 {
+                        texture.depth_or_array_layers()
+                    } else {
+                        1
+                    },
+                ),
+            )
+        })
+    }
+
+    fn reload_render_models(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        render_state: &mut RenderState,
+    ) {
+        // Only load render models that need to change to improve performance.
+        // Attempt to preserve the model and mesh visibility if possible.
+        match self.models_to_update {
+            ItemsToUpdate::None => (),
+            ItemsToUpdate::One(i) => {
+                if let (Some(render_model), Some(model)) =
+                    (render_state.render_models.get_mut(i), self.models.get(i))
+                {
+                    let mut new_render_model = RenderModel::from_folder(
+                        device,
+                        queue,
+                        &model.model,
+                        &render_state.shared_data,
+                    );
+                    copy_visibility(&mut new_render_model, render_model);
+
+                    *render_model = new_render_model;
+                }
+            }
+            ItemsToUpdate::All => {
+                let mut new_render_models = ssbh_wgpu::load_render_models(
+                    device,
+                    queue,
+                    self.models.iter().map(|m| &m.model),
+                    &render_state.shared_data,
+                );
+
+                for (new_render_model, old_render_model) in new_render_models
+                    .iter_mut()
+                    .zip(render_state.render_models.iter())
+                {
+                    copy_visibility(new_render_model, old_render_model);
+                }
+
+                render_state.render_models = new_render_models;
+            }
+        }
+
+        self.models_to_update = ItemsToUpdate::None;
+    }
+}
+
+fn copy_visibility(new_render_model: &mut RenderModel, render_model: &RenderModel) {
+    // Preserve the visibility from the old render model.
+    new_render_model.is_visible = render_model.is_visible;
+
+    // The new render meshes may be renamed, added, or deleted.
+    // This makes it impossible to always find the old mesh in general.
+    // Assume the mesh ordering remains the same for simplicity.
+    for (new_mesh, old_mesh) in new_render_model
+        .meshes
+        .iter_mut()
+        .zip(render_model.meshes.iter())
+    {
+        new_mesh.is_visible = old_mesh.is_visible;
     }
 }
 
@@ -1250,7 +1776,7 @@ pub fn error_icon(ui: &mut Ui) -> Response {
     )
 }
 
-fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
+fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui, render_state: &mut RenderState) {
     // Don't show non model folders like animation or texture folders.
     for (i, folder) in app
         .models
@@ -1262,7 +1788,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 
         CollapsingState::load_with_default_open(ctx, id, true)
             .show_header(ui, |ui| {
-                if let Some(render_model) = app.render_models.get_mut(i) {
+                if let Some(render_model) = render_state.render_models.get_mut(i) {
                     render_model.is_selected |= ui
                         .add(EyeCheckBox::new(
                             &mut render_model.is_visible,
@@ -1273,7 +1799,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
             })
             .body(|ui| {
                 // TODO: How to ensure the render models stay in sync with the model folder?
-                if let Some(render_model) = app.render_models.get_mut(i) {
+                if let Some(render_model) = render_state.render_models.get_mut(i) {
                     ui.add_enabled_ui(render_model.is_visible, |ui| {
                         // Indent without the vertical line.
                         ui.visuals_mut().widgets.noninteractive.bg_stroke.width = 0.0;

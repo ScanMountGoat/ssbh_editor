@@ -1,24 +1,25 @@
-use crate::{animate_models, app::SsbhApp};
+use crate::{app::SsbhApp, RenderState};
 use futures::executor::block_on;
-use ssbh_wgpu::SsbhRenderer;
 
 pub fn render_animation_sequence(
-    renderer: &mut SsbhRenderer,
     app: &mut SsbhApp,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_state: &mut RenderState,
     width: u32,
     height: u32,
-    output_rect: [u32; 4],
+    surface_format: wgpu::TextureFormat,
 ) -> Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
     let saved_frame = app.animation_state.current_frame;
 
     let mut frames = Vec::new();
 
     // Render out an animation sequence using the loaded animations.
-    let final_frame = app.max_final_frame_index();
+    let final_frame = app.max_final_frame_index(render_state);
     app.animation_state.current_frame = 0.0;
     while app.animation_state.current_frame <= final_frame {
-        animate_models(app);
-        let frame = render_screenshot(renderer, app, width, height, output_rect);
+        app.animate_models(queue, render_state);
+        let frame = render_screenshot(device, queue, render_state, width, height, surface_format);
         frames.push(frame);
 
         app.animation_state.current_frame += 1.0;
@@ -30,61 +31,58 @@ pub fn render_animation_sequence(
     frames
 }
 
-// TODO: Add an option to make the background transparent.
 pub fn render_screenshot(
-    renderer: &mut SsbhRenderer,
-    app: &SsbhApp,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_state: &mut RenderState,
     width: u32,
     height: u32,
-    output_rect: [u32; 4],
+    surface_format: wgpu::TextureFormat,
 ) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
+    // Force transparent for screenshots.
+    render_state.renderer.set_clear_color([0.0; 4]);
+
     // Round up to satisfy alignment requirements for texture copies.
     let round_up = |x, n| ((x + n - 1) / n) * n;
     let screenshot_width = round_up(width, 64);
     let screenshot_height = height;
 
     // Use a separate texture for drawing since the swapchain isn't COPY_SRC.
-    let screenshot_texture = app
-        .render_state
-        .device
-        .create_texture(&wgpu::TextureDescriptor {
-            label: Some("screenshot texture"),
-            size: wgpu::Extent3d {
-                width: screenshot_width,
-                height: screenshot_height,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: ssbh_wgpu::RGBA_COLOR_FORMAT,
-            usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
+    let screenshot_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("screenshot texture"),
+        size: wgpu::Extent3d {
+            width: screenshot_width,
+            height: screenshot_height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: surface_format,
+        usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
+        view_formats: &[],
+    });
     let screenshot_view = screenshot_texture.create_view(&wgpu::TextureViewDescriptor::default());
-    let mut encoder =
-        app.render_state
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Screenshot Render Encoder"),
-            });
-    let final_pass = renderer.render_models(
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("Screenshot Render Encoder"),
+    });
+    let final_pass = render_state.renderer.render_models(
         &mut encoder,
         &screenshot_view,
-        &app.render_models,
-        app.render_state.shared_data.database(),
-        &app.render_state.model_render_options,
+        &render_state.render_models,
+        render_state.shared_data.database(),
+        &render_state.model_render_options,
     );
     drop(final_pass);
 
     read_texture_to_image(
         encoder,
-        &app.render_state.device,
-        &app.render_state.queue,
+        device,
+        queue,
         &screenshot_texture,
         screenshot_width,
         screenshot_height,
-        output_rect,
+        surface_format,
     )
 }
 
@@ -95,7 +93,7 @@ fn read_texture_to_image(
     output: &wgpu::Texture,
     width: u32,
     height: u32,
-    output_rect: [u32; 4],
+    surface_format: wgpu::TextureFormat,
 ) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     let output_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         size: width as u64 * height as u64 * 4,
@@ -114,7 +112,7 @@ fn read_texture_to_image(
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: ssbh_wgpu::RGBA_COLOR_FORMAT,
+        format: surface_format,
         usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
         view_formats: &[],
     };
@@ -140,7 +138,7 @@ fn read_texture_to_image(
 
     queue.submit([encoder.finish()]);
 
-    let image = read_buffer_to_image(&output_buffer, device, width, height, output_rect);
+    let image = read_buffer_to_image(&output_buffer, device, width, height);
     output_buffer.unmap();
 
     image
@@ -151,7 +149,6 @@ fn read_buffer_to_image(
     device: &wgpu::Device,
     width: u32,
     height: u32,
-    output_rect: [u32; 4],
 ) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     // Save the output texture.
     // Adapted from WGPU Example https://github.com/gfx-rs/wgpu/tree/master/wgpu/examples/capture
@@ -171,15 +168,5 @@ fn read_buffer_to_image(
     // Convert BGRA to RGBA.
     buffer.pixels_mut().for_each(|p| p.0.swap(0, 2));
 
-    // Crop the image to the viewport region.
-    // This also removes any padding needed to meet alignment requirements.
-    // TODO: This doesn't always crop correctly.
-    image::imageops::crop(
-        &mut buffer,
-        output_rect[0],
-        output_rect[1],
-        output_rect[2],
-        output_rect[3],
-    )
-    .to_image()
+    buffer
 }
