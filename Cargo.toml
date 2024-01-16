@@ -11,9 +11,8 @@ pollster = "0.2"
 egui = { version = "0.24.0", default-features = false }
 egui_extras = { version = "0.24.0", features = ["svg"] }
 egui-wgpu = "0.24.0"
-egui-winit = "0.24.0"
 egui_plot = "0.24.1"
-eframe = { version = "0.24.1", features = ["wgpu"] }
+eframe = { version = "0.24.1", default-features = false, features = ["wayland", "x11", "wgpu"] }
 egui_dnd = "0.5.0"
 egui_commonmark = "0.10.0"
 wgpu = "0.18.0"

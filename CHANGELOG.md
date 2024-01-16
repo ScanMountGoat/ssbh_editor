@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### unreleased
+### Fixed
+* Fixed a regression where the application would crash immediately when entering values in the material editor.
+
 ### 0.9.1 - 2024-01-11
 ### Added
 * Added an option to adjust application zoom with Ctrl +/- or Cmd +/-. Reset the zoom with Ctrl + 0 or Cmd + 0.

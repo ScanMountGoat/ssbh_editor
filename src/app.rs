@@ -1123,7 +1123,7 @@ impl eframe::App for SsbhApp {
         });
     }
 
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+    fn on_exit(&mut self) {
         let path = last_update_check_file();
         if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
             error!("Failed to write update check time to {path:?}: {e}");
