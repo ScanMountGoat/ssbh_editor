@@ -7,7 +7,6 @@ description = "View, edit, and validate models for Smash Ultimate"
 
 [dependencies]
 chrono = "0.4"
-pollster = "0.2"
 egui = { version = "0.26.0", default-features = false }
 egui_extras = { version = "0.26.0", features = ["svg"] }
 egui-wgpu = "0.26.0"
