@@ -820,16 +820,14 @@ impl SsbhApp {
         });
     }
 
-    fn update_clear_color(&mut self, render_state: &mut RenderState, is_srgb: bool) {
+    fn update_clear_color(&mut self, render_state: &mut RenderState, _is_srgb: bool) {
         // Account for the framebuffer gamma.
         // egui adds an additional sRGB conversion we need to account for.
-        let clear_color = self.preferences.viewport_color.map(|c| {
-            if is_srgb {
-                linear_f32_from_gamma_u8(c) as f64
-            } else {
-                linear_f32_from_gamma_u8(c) as f64
-            }
-        });
+        // TODO: Should this account for sRGB gamma?
+        let clear_color = self
+            .preferences
+            .viewport_color
+            .map(|c| linear_f32_from_gamma_u8(c) as f64);
         // This must be opaque to composite properly with egui.
         // Screenshots can set this to transparent for alpha support.
         render_state.renderer.set_clear_color([
@@ -981,7 +979,7 @@ impl eframe::App for SsbhApp {
             self.should_update_clear_color = true;
             ctx.set_zoom_factor(self.preferences.scale_factor);
         } else {
-            self.preferences.scale_factor = ctx.zoom_factor().into();
+            self.preferences.scale_factor = ctx.zoom_factor();
         }
 
         // Only edit the user presets.
@@ -1156,7 +1154,7 @@ fn handle_input(camera: &mut CameraState, input: &egui::InputState, viewport_hei
     }
 
     // Scale zoom speed with distance to make it easier to zoom out large scenes.
-    let delta_z = input.raw_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
+    let delta_z = input.smooth_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
     // Clamp to prevent the user from zooming through the origin.
     camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
 
@@ -1211,7 +1209,7 @@ impl CallbackTrait for ViewportCallback {
                 self.width as u32,
                 self.height as u32,
                 self.mvp_matrix,
-                18.0 * self.scale_factor as f32,
+                18.0 * self.scale_factor,
             );
         }
 

@@ -973,16 +973,16 @@ fn shader_grid(
             .selected_text(entry.shader_label.get(25..).unwrap_or(""))
             .show_ui(ui, |ui| {
                 for pass in [
-                    shader.clone() + "_opaque",
-                    shader.clone() + "_far",
-                    shader.clone() + "_sort",
-                    shader.clone() + "_near",
+                    "_opaque",
+                    "_far",
+                    "_sort",
+                    "_near",
                 ] {
                     *changed |= ui
                         .selectable_value(
                             &mut entry.shader_label,
-                            pass.clone(),
-                            pass.get(25..).unwrap_or(""),
+                            shader.clone() + pass,
+                            pass,
                         )
                         .changed();
                 }

@@ -33,8 +33,11 @@ fn main() {
         .map(|()| log::set_max_level(log::LevelFilter::Info))
         .unwrap();
 
-    let icon =
-        eframe::icon_data::from_png_bytes(include_bytes!("icons/ssbh_editor32.png")).unwrap();
+    #[cfg(target_os = "macos")]
+    let icon_bytes = include_bytes!("icons/SsbhEditor512_mac.png");
+    #[cfg(not(target_os = "macos"))]
+    let icon_bytes = include_bytes!("icons/ssbh_editor32.png");
+    let icon = eframe::icon_data::from_png_bytes(icon_bytes).unwrap();
 
     let mut preferences = AppPreferences::load_from_file();
 
@@ -129,7 +132,7 @@ fn main() {
             );
 
             // TODO: What to use for the initial size?
-            let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0).into();
+            let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
             let renderer = SsbhRenderer::new(
                 &wgpu_state.device,
                 &wgpu_state.queue,
