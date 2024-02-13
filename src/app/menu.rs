@@ -276,7 +276,7 @@ fn format_shortcut(shortcut: &KeyboardShortcut) -> String {
         "Ctrl+Shift+"
     };
 
-    let key = shortcut.key.name();
+    let key = shortcut.logical_key.name();
     if shortcut.modifiers.command {
         if shortcut.modifiers.shift {
             format!("{ctrl_shift}{key}")

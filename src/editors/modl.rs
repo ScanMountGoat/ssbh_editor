@@ -196,7 +196,10 @@ pub fn modl_editor(
                                 // TODO: Add a menu option to match the numshb order (in game convention?).
                                 // Outline the selected mesh in the viewport.
                                 // Check the response first to only have to search for one render mesh.
-                                if name_response.hovered() {
+                                if name_response
+                                    .map(|r| r.response.hovered())
+                                    .unwrap_or_default()
+                                {
                                     if let Some(render_mesh) =
                                         render_model.as_mut().and_then(|model| {
                                             model.meshes.iter_mut().find(|m| {

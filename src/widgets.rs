@@ -71,10 +71,11 @@ impl<'a> Widget for EyeCheckBox<'a> {
                 );
                 // TODO: How to center this?
                 let eye_text_pos = pos2(big_icon_rect.min.x - 1.0, big_icon_rect.center().y - 13.0);
-                eye_text.paint_with_visuals(ui.painter(), eye_text_pos, visuals);
+                ui.painter()
+                    .galley(eye_text_pos, eye_text, visuals.text_color());
             }
 
-            text.paint_with_visuals(ui.painter(), text_pos, visuals);
+            ui.painter().galley(text_pos, text, visuals.text_color());
         }
 
         response

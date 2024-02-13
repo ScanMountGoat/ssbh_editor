@@ -34,7 +34,7 @@ use egui::{
     SidePanel, TextureOptions, TopBottomPanel, Ui,
 };
 use egui_commonmark::CommonMarkCache;
-use egui_wgpu::{CallbackResources, CallbackTrait};
+use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
 use log::error;
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
@@ -1156,7 +1156,7 @@ fn handle_input(camera: &mut CameraState, input: &egui::InputState, viewport_hei
     }
 
     // Scale zoom speed with distance to make it easier to zoom out large scenes.
-    let delta_z = input.scroll_delta.y * camera.values.translation.z.abs() * 0.002;
+    let delta_z = input.raw_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
     // Clamp to prevent the user from zooming through the origin.
     camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
 
@@ -1189,6 +1189,7 @@ impl CallbackTrait for ViewportCallback {
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        _screen_descriptor: &ScreenDescriptor,
         egui_encoder: &mut wgpu::CommandEncoder,
         callback_resources: &mut CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {

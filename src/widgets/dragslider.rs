@@ -1,8 +1,6 @@
 use egui::{
-    text::CCursor,
-    text_edit::{CCursorRange, TextEditState},
-    CursorIcon, Id, Key, Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2, Widget,
-    WidgetText,
+    text::CCursor, text_edit::TextEditState, text_selection::CCursorRange, CursorIcon, Id, Key,
+    Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2, Widget, WidgetText,
 };
 
 /// A combined slider and text edit that fills up like an [egui::ProgressBar].
@@ -143,7 +141,7 @@ impl<'a> Widget for DragSlider<'a> {
                     .align_size_within_rect(text.size(), outer_rect)
                     .min;
 
-                text.paint_with_visuals(ui.painter(), text_pos, visuals);
+                ui.painter().galley(text_pos, text, visuals.text_color());
             }
             response
         };
@@ -156,7 +154,7 @@ fn select_all_text(ui: &mut Ui, kb_edit_id: Id) {
     // This mimics selecting text with the mouse or keyboard.
     // Choose a large index to select all text.
     let mut state = TextEditState::default();
-    state.set_ccursor_range(Some(CCursorRange {
+    state.cursor.set_char_range(Some(CCursorRange {
         primary: CCursor::new(1000),
         secondary: CCursor::new(0),
     }));

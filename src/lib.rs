@@ -306,7 +306,7 @@ impl AnimationIndex {
 pub type Thumbnail = (String, egui::TextureId, TextureDimension);
 
 pub fn generate_model_thumbnails(
-    egui_renderer: &egui_wgpu::renderer::Renderer,
+    egui_renderer: &egui_wgpu::Renderer,
     model: &ssbh_wgpu::ModelFolder,
     render_model: &ssbh_wgpu::RenderModel,
     device: &wgpu::Device,
@@ -337,7 +337,7 @@ pub fn generate_model_thumbnails(
 }
 
 fn create_thumbnail_texture_view(
-    egui_renderer: &egui_wgpu::renderer::Renderer,
+    egui_renderer: &egui_wgpu::Renderer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     texture: &wgpu::Texture,
@@ -376,7 +376,7 @@ fn create_thumbnail_texture_view(
 pub fn checkerboard_texture(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    egui_renderer: &mut egui_wgpu::renderer::Renderer,
+    egui_renderer: &mut egui_wgpu::Renderer,
     color: [u8; 4],
 ) -> egui::TextureId {
     let texture_size = wgpu::Extent3d {
@@ -423,7 +423,7 @@ pub fn checkerboard_texture(
 }
 
 pub fn generate_default_thumbnails(
-    egui_renderer: &mut egui_wgpu::renderer::Renderer,
+    egui_renderer: &mut egui_wgpu::Renderer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
 ) -> Vec<Thumbnail> {

@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Fixed
+* Fixed an issue where models would render with posterization artifacts in the viewport.
+
 ### 0.9.2 - 2024-01-16
 ### Fixed
 * Fixed a regression where the application would crash immediately when entering values in the material editor.

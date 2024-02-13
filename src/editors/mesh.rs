@@ -178,13 +178,18 @@ fn edit_mesh(
             if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(item.0))
             {
                 // Outline the selected mesh in the viewport.
-                render_mesh.is_selected |= header_response.hovered();
+                render_mesh.is_selected |= header_response
+                    .as_ref()
+                    .map(|r| r.response.hovered())
+                    .unwrap_or_default();
             }
 
             if !errors.is_empty() {
-                header_response.on_hover_ui(|ui| {
-                    display_validation_errors(ui, validation_errors);
-                });
+                if let Some(r) = &header_response {
+                    r.response.clone().on_hover_ui(|ui| {
+                        display_validation_errors(ui, validation_errors);
+                    });
+                };
             }
         });
     });
