@@ -5,7 +5,7 @@ use crate::{
     save_file, save_file_as,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
-    EditorResponse,
+    EditorMessage, EditorResponse,
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,
@@ -17,7 +17,6 @@ use ssbh_data::{
     mesh_data::{AttributeData, MeshObjectData, VectorData},
     prelude::*,
 };
-use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
 #[derive(Hash)]
@@ -28,7 +27,6 @@ pub fn mesh_editor(
     folder_name: &Path,
     file_name: &str,
     mesh: &mut MeshData,
-    render_model: &mut Option<&mut RenderModel>,
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
     state: &mut MeshEditorState,
@@ -37,6 +35,7 @@ pub fn mesh_editor(
     let mut open = true;
     let mut changed = false;
     let mut saved = false;
+    let mut message = None;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Mesh Editor ({title})"))
@@ -95,11 +94,11 @@ pub fn mesh_editor(
                         ctx,
                         ui,
                         mesh,
-                        render_model,
                         state,
                         validation_errors,
                         skel,
                         dark_mode,
+                        &mut message,
                     );
                 });
         });
@@ -108,6 +107,7 @@ pub fn mesh_editor(
         open,
         changed,
         saved,
+        message,
     }
 }
 
@@ -115,11 +115,11 @@ fn edit_mesh(
     ctx: &egui::Context,
     ui: &mut Ui,
     mesh: &mut MeshData,
-    render_model: &mut Option<&mut RenderModel>,
     state: &mut MeshEditorState,
     validation_errors: &[MeshValidationError],
     skel: Option<&SkelData>,
     dark_mode: bool,
+    message: &mut Option<EditorMessage>,
 ) -> bool {
     let mut changed = false;
 
@@ -165,31 +165,28 @@ fn edit_mesh(
                         validation_errors,
                     );
                 })
-                .header_response
-                .context_menu(|ui| {
-                    if ui.button("Delete").clicked() {
-                        ui.close_menu();
-                        mesh_to_remove = Some(item.0);
-                        changed = true;
-                    }
-                });
+                .header_response;
 
-            // TODO: Move this out of the function?
-            if let Some(render_mesh) = render_model.as_mut().and_then(|m| m.meshes.get_mut(item.0))
-            {
-                // Outline the selected mesh in the viewport.
-                render_mesh.is_selected |= header_response
-                    .as_ref()
-                    .map(|r| r.response.hovered())
-                    .unwrap_or_default();
+            header_response.context_menu(|ui| {
+                if ui.button("Delete").clicked() {
+                    ui.close_menu();
+                    mesh_to_remove = Some(item.0);
+                    changed = true;
+                }
+            });
+
+            // Outline the selected mesh in the viewport.
+            if header_response.hovered() {
+                *message = Some(EditorMessage::SelectMesh {
+                    mesh_object_name: mesh.objects[item.0].name.clone(),
+                    mesh_object_subindex: mesh.objects[item.0].subindex,
+                });
             }
 
             if !errors.is_empty() {
-                if let Some(r) = &header_response {
-                    r.response.clone().on_hover_ui(|ui| {
-                        display_validation_errors(ui, validation_errors);
-                    });
-                };
+                header_response.on_hover_ui(|ui| {
+                    display_validation_errors(ui, validation_errors);
+                });
             }
         });
     });

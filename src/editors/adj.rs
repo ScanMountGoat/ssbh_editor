@@ -89,6 +89,7 @@ pub fn adj_editor(
         open,
         changed,
         saved,
+        message: None,
     }
 }
 

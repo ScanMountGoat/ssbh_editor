@@ -1,8 +1,7 @@
-use crate::{path::folder_editor_title, save_file, save_file_as, EditorResponse};
+use crate::{path::folder_editor_title, save_file, save_file_as, EditorMessage, EditorResponse};
 use egui::{special_emojis::GITHUB, Grid, Label, Response, ScrollArea, Sense, Ui};
 
 use ssbh_data::prelude::*;
-use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
 pub fn meshex_editor(
@@ -11,11 +10,11 @@ pub fn meshex_editor(
     file_name: &str,
     meshex: &mut MeshExData,
     mesh: Option<&MeshData>,
-    render_model: &mut Option<&mut RenderModel>,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
     let mut saved = false;
+    let mut message = None;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("MeshEx Editor ({title})"))
@@ -80,16 +79,13 @@ pub fn meshex_editor(
                                 let response1 = hoverable_label(ui, &group.mesh_object_full_name);
                                 let response2 = hoverable_label(ui, &group.mesh_object_name);
 
+                                // TODO: Return a message enum instead.
                                 if response1.hovered() || response2.hovered() {
-                                    if let Some(render_mesh) = render_model.as_mut().and_then(|m| {
-                                        m.meshes.iter_mut().find(|m| {
-                                            m.name == group.mesh_object_full_name
-                                                && m.subindex == subindex as u64
-                                        })
-                                    }) {
-                                        // Outline the selected mesh in the viewport.
-                                        render_mesh.is_selected = true
-                                    }
+                                    // Outline the selected mesh in the viewport.
+                                    message = Some(EditorMessage::SelectMesh {
+                                        mesh_object_name: group.mesh_object_full_name.clone(),
+                                        mesh_object_subindex: subindex as u64,
+                                    });
                                 }
 
                                 changed |=
@@ -107,6 +103,7 @@ pub fn meshex_editor(
         open,
         changed,
         saved,
+        message,
     }
 }
 

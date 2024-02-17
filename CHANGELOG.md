@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Fixed
+* Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.
+
 ## 0.9.3 - 2024-02-13
 ### Fixed
 * Fixed an issue where models would render with color banding artifacts in the viewport.

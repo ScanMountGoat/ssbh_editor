@@ -4,13 +4,12 @@ use crate::{
     path::folder_editor_title,
     save_file, save_file_as,
     validation::{ModlValidationError, ModlValidationErrorKind},
-    EditorResponse,
+    EditorMessage, EditorResponse,
 };
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::dnd;
 
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
-use ssbh_wgpu::RenderModel;
 use std::path::Path;
 
 #[derive(Hash)]
@@ -25,12 +24,12 @@ pub fn modl_editor(
     matl: Option<&MatlData>,
     validation_errors: &[ModlValidationError],
     state: &mut ModlEditorState,
-    render_model: &mut Option<&mut RenderModel>,
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
     let mut saved = false;
+    let mut message = None;
 
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Modl Editor ({title})"))
@@ -176,7 +175,7 @@ pub fn modl_editor(
                                     .add(Label::new(mesh_text).sense(egui::Sense::click()))
                                 };
 
-                                let name_response = name_response.context_menu(|ui| {
+                                name_response.context_menu(|ui| {
                                     if ui.button("Delete").clicked() {
                                         ui.close_menu();
                                         entry_to_remove = Some(item.0);
@@ -196,20 +195,12 @@ pub fn modl_editor(
                                 // TODO: Add a menu option to match the numshb order (in game convention?).
                                 // Outline the selected mesh in the viewport.
                                 // Check the response first to only have to search for one render mesh.
-                                if name_response
-                                    .map(|r| r.response.hovered())
-                                    .unwrap_or_default()
-                                {
-                                    if let Some(render_mesh) =
-                                        render_model.as_mut().and_then(|model| {
-                                            model.meshes.iter_mut().find(|m| {
-                                                m.name == entry.mesh_object_name
-                                                    && m.subindex == entry.mesh_object_subindex
-                                            })
-                                        })
-                                    {
-                                        render_mesh.is_selected = true;
-                                    }
+                                // TODO: This response check isn't working.
+                                if name_response.hovered() {
+                                    message = Some(EditorMessage::SelectMesh {
+                                        mesh_object_name: entry.mesh_object_name.clone(),
+                                        mesh_object_subindex: entry.mesh_object_subindex,
+                                    });
                                 }
                             });
                         });
@@ -229,6 +220,7 @@ pub fn modl_editor(
         open,
         changed,
         saved,
+        message,
     }
 }
 

@@ -119,6 +119,7 @@ pub fn skel_editor(
         open,
         changed,
         saved,
+        message: None,
     }
 }
 

@@ -1,35 +1,6 @@
 use crate::{app::SsbhApp, RenderState};
 use futures::executor::block_on;
-
-pub fn render_animation_sequence(
-    app: &mut SsbhApp,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    render_state: &mut RenderState,
-    width: u32,
-    height: u32,
-    surface_format: wgpu::TextureFormat,
-) -> Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
-    let saved_frame = app.animation_state.current_frame;
-
-    let mut frames = Vec::new();
-
-    // Render out an animation sequence using the loaded animations.
-    let final_frame = app.max_final_frame_index(render_state);
-    app.animation_state.current_frame = 0.0;
-    while app.animation_state.current_frame <= final_frame {
-        app.animate_models(queue, render_state);
-        let frame = render_screenshot(device, queue, render_state, width, height, surface_format);
-        frames.push(frame);
-
-        app.animation_state.current_frame += 1.0;
-    }
-
-    // Restore any state we modified while animating.
-    app.animation_state.current_frame = saved_frame;
-
-    frames
-}
+use log::error;
 
 pub fn render_screenshot(
     device: &wgpu::Device,
@@ -169,4 +140,111 @@ fn read_buffer_to_image(
     buffer.pixels_mut().for_each(|p| p.0.swap(0, 2));
 
     buffer
+}
+
+pub fn render_animation_to_gif(
+    app: &mut SsbhApp,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_state: &mut RenderState,
+    width: u32,
+    height: u32,
+    file: std::path::PathBuf,
+    surface_format: wgpu::TextureFormat,
+) {
+    // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
+    let images = render_animation_sequence(
+        app,
+        device,
+        queue,
+        render_state,
+        width,
+        height,
+        surface_format,
+    );
+
+    // TODO: Add progress indication.
+    std::thread::spawn(move || match std::fs::File::create(&file) {
+        Ok(file_out) => {
+            let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
+            if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
+                error!("Error saving GIF to {file:?}: {e}");
+            }
+        }
+        Err(e) => error!("Error creating file {file:?}: {e}"),
+    });
+}
+
+pub fn render_animation_to_image_sequence(
+    app: &mut SsbhApp,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_state: &mut RenderState,
+    width: u32,
+    height: u32,
+    file: std::path::PathBuf,
+    surface_format: wgpu::TextureFormat,
+) {
+    // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
+    let images = render_animation_sequence(
+        app,
+        device,
+        queue,
+        render_state,
+        width,
+        height,
+        surface_format,
+    );
+
+    // TODO: Add progress indication.
+    std::thread::spawn(move || {
+        for (i, image) in images.iter().enumerate() {
+            // TODO: Find a simpler way to do this.
+            let file_name = file
+                .with_extension("")
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| "img".to_owned());
+            let extension = file
+                .extension()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| "png".to_owned());
+            let output = file
+                .with_file_name(file_name + &i.to_string())
+                .with_extension(extension);
+            if let Err(e) = image.save(output) {
+                error!("Error saving image to {:?}: {}", file, e);
+            }
+        }
+    });
+}
+
+fn render_animation_sequence(
+    app: &mut SsbhApp,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_state: &mut RenderState,
+    width: u32,
+    height: u32,
+    surface_format: wgpu::TextureFormat,
+) -> Vec<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
+    let saved_frame = app.animation_state.current_frame;
+
+    let mut frames = Vec::new();
+
+    // Render out an animation sequence using the loaded animations.
+    let final_frame = app.max_final_frame_index(render_state);
+    app.animation_state.current_frame = 0.0;
+    while app.animation_state.current_frame <= final_frame {
+        app.animate_models(queue, render_state);
+        let frame = render_screenshot(device, queue, render_state, width, height, surface_format);
+        frames.push(frame);
+
+        app.animation_state.current_frame += 1.0;
+    }
+
+    // Restore any state we modified while animating.
+    app.animation_state.current_frame = saved_frame;
+
+    frames
 }

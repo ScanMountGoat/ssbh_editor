@@ -1,6 +1,7 @@
 use ::log::error;
 use app::{RenderModelAction, StageLightingState};
 use egui::{
+    ecolor::linear_f32_from_gamma_u8,
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle, Visuals,
 };
@@ -16,7 +17,7 @@ use ssbh_wgpu::{
     SharedRenderData, SkinningSettings, SsbhRenderer,
 };
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, HashSet, VecDeque},
     error::Error,
     path::{Path, PathBuf},
 };
@@ -42,6 +43,16 @@ pub struct EditorResponse {
     pub open: bool,
     pub changed: bool,
     pub saved: bool,
+    pub message: Option<EditorMessage>,
+}
+
+// TODO: Separate message types for each editor?
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum EditorMessage {
+    SelectMesh {
+        mesh_object_name: String,
+        mesh_object_subindex: u64,
+    },
 }
 
 impl EditorResponse {
@@ -190,64 +201,96 @@ impl RenderState {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         models: &[ModelFolderState],
-        action: RenderModelAction,
+        actions: &mut VecDeque<RenderModelAction>,
         autohide_expressions: bool,
     ) {
         // Only load render models that need to change to improve performance.
         // Attempt to preserve the model and mesh visibility if possible.
-        match action {
-            RenderModelAction::None => (),
-            RenderModelAction::Update(i) => {
-                if let (Some(render_model), Some(model)) =
-                    (self.render_models.get_mut(i), models.get(i))
-                {
-                    let mut new_render_model =
-                        RenderModel::from_folder(device, queue, &model.model, &self.shared_data);
-                    copy_visibility(&mut new_render_model, render_model);
+        while let Some(action) = actions.pop_front() {
+            match action {
+                RenderModelAction::Update(i) => {
+                    if let (Some(render_model), Some(model)) =
+                        (self.render_models.get_mut(i), models.get(i))
+                    {
+                        let mut new_render_model = RenderModel::from_folder(
+                            device,
+                            queue,
+                            &model.model,
+                            &self.shared_data,
+                        );
+                        copy_visibility(&mut new_render_model, render_model);
 
-                    *render_model = new_render_model;
+                        *render_model = new_render_model;
+                    }
                 }
-            }
-            RenderModelAction::Refresh => {
-                let mut new_render_models = ssbh_wgpu::load_render_models(
-                    device,
-                    queue,
-                    models.iter().map(|m| &m.model),
-                    &self.shared_data,
-                );
+                RenderModelAction::Remove(i) => {
+                    self.render_models.remove(i);
+                }
+                RenderModelAction::Refresh => {
+                    let mut new_render_models = ssbh_wgpu::load_render_models(
+                        device,
+                        queue,
+                        models.iter().map(|m| &m.model),
+                        &self.shared_data,
+                    );
 
-                if autohide_expressions {
-                    for render_model in &mut new_render_models {
+                    if autohide_expressions {
+                        for render_model in &mut new_render_models {
+                            hide_expressions(render_model);
+                        }
+                    }
+
+                    // Preserve visibility edits if no models were added.
+                    for (new_render_model, old_render_model) in
+                        new_render_models.iter_mut().zip(self.render_models.iter())
+                    {
+                        copy_visibility(new_render_model, old_render_model);
+                    }
+
+                    self.render_models = new_render_models;
+                }
+                RenderModelAction::Clear => self.render_models = Vec::new(),
+                RenderModelAction::HideAll => {
+                    for render_model in &mut self.render_models {
+                        render_model.is_visible = false;
+                    }
+                }
+                RenderModelAction::ShowAll => {
+                    for render_model in &mut self.render_models {
+                        render_model.is_visible = true;
+                    }
+                }
+                RenderModelAction::HideExpressions => {
+                    for render_model in &mut self.render_models {
                         hide_expressions(render_model);
                     }
                 }
-
-                // Preserve visibility edits if no models were added.
-                for (new_render_model, old_render_model) in
-                    new_render_models.iter_mut().zip(self.render_models.iter())
-                {
-                    copy_visibility(new_render_model, old_render_model);
-                }
-
-                self.render_models = new_render_models;
-            }
-            RenderModelAction::Clear => self.render_models = Vec::new(),
-            RenderModelAction::HideAll => {
-                for render_model in &mut self.render_models {
-                    render_model.is_visible = false;
-                }
-            }
-            RenderModelAction::ShowAll => {
-                for render_model in &mut self.render_models {
-                    render_model.is_visible = true;
-                }
-            }
-            RenderModelAction::HideExpressions => {
-                for render_model in &mut self.render_models {
-                    hide_expressions(render_model);
+                RenderModelAction::SelectMesh {
+                    index,
+                    mesh_object_name,
+                    mesh_object_subindex,
+                } => {
+                    if let Some(render_mesh) = self.render_models[index]
+                        .meshes
+                        .iter_mut()
+                        .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
+                    {
+                        render_mesh.is_selected = true;
+                    }
                 }
             }
         }
+    }
+
+    pub fn update_clear_color(&mut self, color: [u8; 3]) {
+        // Account for the framebuffer gamma.
+        // egui adds an additional sRGB conversion we need to account for.
+        // TODO: Should this account for sRGB gamma?
+        let clear_color = color.map(|c| linear_f32_from_gamma_u8(c) as f64);
+        // This must be opaque to composite properly with egui.
+        // Screenshots can set this to transparent for alpha support.
+        self.renderer
+            .set_clear_color([clear_color[0], clear_color[1], clear_color[2], 1.0]);
     }
 }
 

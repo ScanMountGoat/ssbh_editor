@@ -87,6 +87,7 @@ pub fn anim_editor(
         open,
         changed,
         saved,
+        message: None,
     }
 }
 

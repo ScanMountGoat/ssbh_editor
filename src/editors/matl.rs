@@ -5,8 +5,7 @@ use crate::{
     },
     horizontal_separator_empty,
     material::*,
-    path::folder_editor_title,
-    path::presets_file,
+    path::{folder_editor_title, presets_file},
     presets::{load_json_presets, load_xml_presets},
     save_file, save_file_as,
     validation::{MatlValidationError, MatlValidationErrorKind},
@@ -105,6 +104,7 @@ pub fn matl_editor(
         open,
         changed,
         saved,
+        message: None,
     }
 }
 

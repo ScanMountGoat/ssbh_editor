@@ -131,6 +131,7 @@ pub fn hlpb_editor(
         open,
         changed,
         saved,
+        message: None,
     }
 }
 

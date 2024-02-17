@@ -4,7 +4,7 @@ use ssbh_wgpu::{animation::camera::animate_camera, CameraTransforms, SsbhRendere
 
 use crate::{CameraState, LightingData, RenderState};
 
-use super::{RenderModelAction, SsbhApp};
+use super::SsbhApp;
 
 // TODO: Make these configurable?
 const NEAR_CLIP: f32 = 1.0;
@@ -25,10 +25,9 @@ impl SsbhApp {
             device,
             queue,
             &self.models,
-            self.render_model_action,
+            &mut self.render_model_actions,
             self.preferences.autohide_expressions,
         );
-        self.render_model_action = RenderModelAction::None;
 
         if self.should_update_lighting {
             self.update_lighting(render_state, device, queue);

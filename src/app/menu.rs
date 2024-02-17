@@ -183,17 +183,20 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
         ui.menu_button("Meshes", |ui| {
             if ui.button("Show All").clicked() {
                 ui.close_menu();
-                app.render_model_action = RenderModelAction::ShowAll;
+                app.render_model_actions
+                    .push_back(RenderModelAction::ShowAll);
             }
 
             if ui.button("Hide All").clicked() {
                 ui.close_menu();
-                app.render_model_action = RenderModelAction::HideAll;
+                app.render_model_actions
+                    .push_back(RenderModelAction::HideAll);
             }
 
             if ui.button("Hide Expressions").clicked() {
                 ui.close_menu();
-                app.render_model_action = RenderModelAction::HideExpressions;
+                app.render_model_actions
+                    .push_back(RenderModelAction::HideExpressions);
             }
         });
 

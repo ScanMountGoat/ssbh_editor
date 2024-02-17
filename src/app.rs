@@ -3,9 +3,8 @@ use self::{
     rendering::calculate_mvp, window::*,
 };
 use crate::{
-    app::anim_list::anim_list,
-    app::swing_list::swing_list,
-    capture::{render_animation_sequence, render_screenshot},
+    app::{anim_list::anim_list, swing_list::swing_list},
+    capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
         adj::{add_missing_adj_entries, adj_editor},
         anim::anim_editor,
@@ -29,9 +28,9 @@ use crate::{
     RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
-    collapsing_header::CollapsingState, ecolor::linear_f32_from_gamma_u8, Button, CentralPanel,
-    CollapsingHeader, Context, Image, ImageSource, Label, Response, RichText, ScrollArea,
-    SidePanel, TextureOptions, TopBottomPanel, Ui,
+    collapsing_header::CollapsingState, Button, CentralPanel, CollapsingHeader, Context, Image,
+    ImageSource, Label, Response, RichText, ScrollArea, SidePanel, TextureOptions, TopBottomPanel,
+    Ui,
 };
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
@@ -42,7 +41,7 @@ use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{next_frame, ModelFiles, RenderModel};
 use std::{
-    collections::HashSet,
+    collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
     sync::Mutex,
 };
@@ -64,7 +63,6 @@ trait Editor {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
         dark_mode: bool,
@@ -79,7 +77,6 @@ impl Editor for AdjData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
         _: bool,
@@ -106,7 +103,6 @@ impl Editor for HlpbData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
         _: bool,
@@ -132,7 +128,6 @@ impl Editor for SkelData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
         dark_mode: bool,
@@ -159,7 +154,6 @@ impl Editor for AnimData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        _: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
         _: bool,
@@ -179,7 +173,6 @@ impl Editor for MeshExData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
         _: bool,
@@ -191,7 +184,6 @@ impl Editor for MeshExData {
             name,
             meshex,
             find_file(&model.model.meshes, "model.numshb"),
-            render_model,
         ))
     }
 
@@ -206,7 +198,6 @@ impl Editor for MeshData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
         dark_mode: bool,
@@ -217,7 +208,6 @@ impl Editor for MeshData {
             &model.folder_path,
             name,
             mesh,
-            render_model,
             find_file(&model.model.skels, "model.nusktb"),
             &model.validation.mesh_errors,
             state,
@@ -235,7 +225,6 @@ impl Editor for ModlData {
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
-        render_model: &mut Option<&mut RenderModel>,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
         dark_mode: bool,
@@ -250,7 +239,6 @@ impl Editor for ModlData {
             find_file(&model.model.matls, "model.numatb"),
             &model.validation.modl_errors,
             state,
-            render_model,
             dark_mode,
         ))
     }
@@ -272,14 +260,29 @@ fn get_file_to_edit<T>(
 fn open_editor<T: Editor>(
     ctx: &Context,
     model: &mut ModelFolderState,
-    render_model: &mut Option<&mut RenderModel>,
     open_file_index: &mut Option<usize>,
     state: &mut T::EditorState,
+    model_actions: &mut VecDeque<RenderModelAction>,
     dark_mode: bool,
 ) -> bool {
-    if let Some(response) = T::editor(ctx, model, render_model, open_file_index, state, dark_mode) {
+    if let Some(response) = T::editor(ctx, model, open_file_index, state, dark_mode) {
         if let Some(index) = open_file_index {
             T::set_changed(&response, &mut model.changed, *index);
+
+            if let Some(message) = response.message {
+                match message {
+                    crate::EditorMessage::SelectMesh {
+                        mesh_object_name,
+                        mesh_object_subindex,
+                    } => {
+                        model_actions.push_back(RenderModelAction::SelectMesh {
+                            index: *index,
+                            mesh_object_name,
+                            mesh_object_subindex,
+                        });
+                    }
+                }
+            }
         }
 
         if !response.open {
@@ -297,11 +300,38 @@ pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
 });
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum RenderAction {
+    UpdateRenderSettings,
+    UpdateCamera,
+    Model(RenderModelAction),
+    UpdateLighting,
+    // TODO: Store the color here?
+    UpdateClearColor,
+    // TODO: thumbnails
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum RenderModelAction {
+    Update(usize),
+    Remove(usize),
+    Refresh,
+    Clear,
+    HideAll,
+    ShowAll,
+    HideExpressions,
+    SelectMesh {
+        index: usize,
+        mesh_object_name: String,
+        mesh_object_subindex: u64,
+    },
+}
+
 pub struct SsbhApp {
     // TODO: Group into an enum?
     pub should_refresh_render_settings: bool,
     pub should_update_camera: bool,
-    pub render_model_action: RenderModelAction,
+    pub render_model_actions: VecDeque<RenderModelAction>,
     pub should_update_thumbnails: bool,
     pub should_update_lighting: bool,
     pub should_update_clear_color: bool,
@@ -408,17 +438,6 @@ fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) ->
                 .fit_to_exact_size(egui::vec2(16.0, 16.0)),
         ),
     }
-}
-
-#[derive(PartialEq, Eq, Clone, Copy)]
-pub enum RenderModelAction {
-    None,
-    Update(usize),
-    Refresh,
-    Clear,
-    HideAll,
-    ShowAll,
-    HideExpressions,
 }
 
 #[derive(Default)]
@@ -618,7 +637,8 @@ impl SsbhApp {
         self.should_validate_models = true;
         self.should_update_thumbnails = true;
         // TODO: Only load new render models for better performance.
-        self.render_model_action = RenderModelAction::Refresh;
+        self.render_model_actions
+            .push_back(RenderModelAction::Refresh);
 
         self.add_recent_folder(folder);
     }
@@ -649,7 +669,8 @@ impl SsbhApp {
         }
         self.sort_files();
 
-        self.render_model_action = RenderModelAction::Refresh;
+        self.render_model_actions
+            .push_back(RenderModelAction::Refresh);
         self.should_update_thumbnails = true;
         self.should_validate_models = true;
         // Reloaded models should have their animations applied.
@@ -660,7 +681,8 @@ impl SsbhApp {
     pub fn clear_workspace(&mut self) {
         // TODO: Is it easier to have dedicated reset methods?
         self.models = Vec::new();
-        self.render_model_action = RenderModelAction::Clear;
+        self.render_model_actions
+            .push_back(RenderModelAction::Clear);
         self.animation_state.animations = Vec::new();
         self.swing_state.selected_swing_folders = Vec::new();
         self.swing_state.hidden_collisions = Vec::new();
@@ -727,105 +749,10 @@ impl SsbhApp {
                 .as_str(),
         )
     }
-
-    fn render_animation_to_gif(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        render_state: &mut RenderState,
-        width: u32,
-        height: u32,
-        file: std::path::PathBuf,
-        surface_format: wgpu::TextureFormat,
-    ) {
-        // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
-        let images = render_animation_sequence(
-            self,
-            device,
-            queue,
-            render_state,
-            width,
-            height,
-            surface_format,
-        );
-
-        // TODO: Add progress indication.
-        std::thread::spawn(move || match std::fs::File::create(&file) {
-            Ok(file_out) => {
-                let mut encoder = image::codecs::gif::GifEncoder::new(file_out);
-                if let Err(e) = encoder.encode_frames(images.into_iter().map(image::Frame::new)) {
-                    error!("Error saving GIF to {file:?}: {e}");
-                }
-            }
-            Err(e) => error!("Error creating file {file:?}: {e}"),
-        });
-    }
-
-    fn render_animation_to_image_sequence(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        render_state: &mut RenderState,
-        width: u32,
-        height: u32,
-        file: std::path::PathBuf,
-        surface_format: wgpu::TextureFormat,
-    ) {
-        // TODO: Rendering modifies the app, so this needs to be on the UI thread for now.
-        let images = render_animation_sequence(
-            self,
-            device,
-            queue,
-            render_state,
-            width,
-            height,
-            surface_format,
-        );
-
-        // TODO: Add progress indication.
-        std::thread::spawn(move || {
-            for (i, image) in images.iter().enumerate() {
-                // TODO: Find a simpler way to do this.
-                let file_name = file
-                    .with_extension("")
-                    .file_name()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "img".to_owned());
-                let extension = file
-                    .extension()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "png".to_owned());
-                let output = file
-                    .with_file_name(file_name + &i.to_string())
-                    .with_extension(extension);
-                if let Err(e) = image.save(output) {
-                    error!("Error saving image to {:?}: {}", file, e);
-                }
-            }
-        });
-    }
-
-    fn update_clear_color(&mut self, render_state: &mut RenderState, _is_srgb: bool) {
-        // Account for the framebuffer gamma.
-        // egui adds an additional sRGB conversion we need to account for.
-        // TODO: Should this account for sRGB gamma?
-        let clear_color = self
-            .preferences
-            .viewport_color
-            .map(|c| linear_f32_from_gamma_u8(c) as f64);
-        // This must be opaque to composite properly with egui.
-        // Screenshots can set this to transparent for alpha support.
-        render_state.renderer.set_clear_color([
-            clear_color[0],
-            clear_color[1],
-            clear_color[2],
-            1.0,
-        ]);
-    }
 }
 
 impl eframe::App for SsbhApp {
-    // TODO: split into view and update functions to simplify render updates.
+    // TODO: split into view and update functions to simplify render updates (elm/mvu).
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         let current_frame_start = std::time::Instant::now();
 
@@ -850,8 +777,9 @@ impl eframe::App for SsbhApp {
             .unwrap_or("")
             .to_owned();
 
+        // TODO: Store an action enum instead of booleans?
         if self.should_update_clear_color {
-            self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+            render_state.update_clear_color(self.preferences.viewport_color);
             self.should_update_clear_color = false;
         }
 
@@ -982,7 +910,7 @@ impl eframe::App for SsbhApp {
         if self.show_left_panel {
             SidePanel::left("left_panel")
                 .default_width(200.0)
-                .show(ctx, |ui| self.files_list(ctx, ui, render_state));
+                .show(ctx, |ui| self.files_list(ctx, ui));
         }
 
         if self.show_bottom_panel {
@@ -1055,7 +983,8 @@ impl eframe::App for SsbhApp {
             // TODO: Avoid clone?
             // TODO: This will be cleaner if the main renderer isn't mutated?
             if let Some(file) = self.animation_gif_to_render.clone() {
-                self.render_animation_to_gif(
+                render_animation_to_gif(
+                    self,
                     device,
                     queue,
                     render_state,
@@ -1065,11 +994,12 @@ impl eframe::App for SsbhApp {
                     wgpu_state.target_format,
                 );
                 self.animation_gif_to_render = None;
-                self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+                render_state.update_clear_color(self.preferences.viewport_color);
             }
 
             if let Some(file) = self.animation_image_sequence_to_render.clone() {
-                self.render_animation_to_image_sequence(
+                render_animation_to_image_sequence(
+                    self,
                     device,
                     queue,
                     render_state,
@@ -1079,7 +1009,7 @@ impl eframe::App for SsbhApp {
                     wgpu_state.target_format,
                 );
                 self.animation_image_sequence_to_render = None;
-                self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+                render_state.update_clear_color(self.preferences.viewport_color);
             }
 
             if let Some(file) = &self.screenshot_to_render {
@@ -1095,7 +1025,7 @@ impl eframe::App for SsbhApp {
                     error!("Error saving screenshot to {:?}: {}", file, e);
                 }
                 self.screenshot_to_render = None;
-                self.update_clear_color(render_state, wgpu_state.target_format.is_srgb());
+                render_state.update_clear_color(self.preferences.viewport_color);
             }
         });
     }
@@ -1299,31 +1229,32 @@ impl SsbhApp {
                 if open_editor::<MeshData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_mesh,
                     &mut self.ui_state.mesh_editor,
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 ) {
                     // The mesh editor has no high frequency edits (sliders), so reload on any change.
-                    self.render_model_action = RenderModelAction::Update(folder_index);
+                    self.render_model_actions
+                        .push_back(RenderModelAction::Update(folder_index));
                     file_changed = true;
                 }
 
                 file_changed |= open_editor::<SkelData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_skel,
                     &mut self.ui_state.skel_editor,
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 );
 
                 if open_editor::<ModlData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_modl,
                     &mut self.ui_state.modl_editor,
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 ) {
                     // TODO: Pass an onchanged closure to avoid redundant lookups.
@@ -1338,9 +1269,9 @@ impl SsbhApp {
                 if open_editor::<HlpbData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_hlpb,
                     &mut (),
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animation constraints in the viewport.
@@ -1351,18 +1282,18 @@ impl SsbhApp {
                 file_changed |= open_editor::<AdjData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_adj,
                     &mut (),
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 );
 
                 if open_editor::<AnimData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_anim,
                     &mut self.ui_state.anim_editor,
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animations in the viewport.
@@ -1373,13 +1304,14 @@ impl SsbhApp {
                 if open_editor::<MeshExData>(
                     ctx,
                     model,
-                    render_model,
                     &mut self.ui_state.open_meshex,
                     &mut (),
+                    &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 ) {
                     // MeshEx settings require reloading the render model.
-                    self.render_model_action = RenderModelAction::Update(folder_index);
+                    self.render_model_actions
+                        .push_back(RenderModelAction::Update(folder_index));
                     file_changed = true;
                 }
 
@@ -1433,7 +1365,7 @@ impl SsbhApp {
             .fold(0.0, f32::max)
     }
 
-    fn files_list(&mut self, ctx: &Context, ui: &mut Ui, render_state: &mut RenderState) {
+    fn files_list(&mut self, ctx: &Context, ui: &mut Ui) {
         ui.heading("Files");
         ScrollArea::vertical()
             .auto_shrink([false; 2])
@@ -1528,9 +1460,8 @@ impl SsbhApp {
                     if self.models.get(folder_to_remove).is_some() {
                         self.models.remove(folder_to_remove);
                     }
-                    if render_state.render_models.get(folder_to_remove).is_some() {
-                        render_state.render_models.remove(folder_to_remove);
-                    }
+                    self.render_model_actions
+                        .push_back(RenderModelAction::Remove(folder_to_remove));
                 }
             });
     }
