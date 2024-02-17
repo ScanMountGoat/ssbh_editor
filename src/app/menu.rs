@@ -1,18 +1,12 @@
 use std::path::Path;
 
-use crate::{hide_expressions, CameraState, RenderState};
+use crate::CameraState;
 
-use super::SsbhApp;
+use super::{RenderModelAction, SsbhApp};
 use egui::{special_emojis::GITHUB, Button, KeyboardShortcut, Ui};
 use rfd::FileDialog;
 
-pub fn menu_bar(
-    app: &mut SsbhApp,
-    ui: &mut Ui,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    render_state: &mut RenderState,
-) {
+pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
     let open_shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::O);
     let add_shortcut = egui::KeyboardShortcut::new(
         egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
@@ -22,11 +16,11 @@ pub fn menu_bar(
 
     // Shortcuts need to be handled even while the menu is not open.
     if ui.input_mut(|i| i.consume_shortcut(&open_shortcut)) {
-        app.add_folder_to_workspace_from_dialog(device, queue, render_state, true);
+        app.add_folder_to_workspace_from_dialog(true);
     }
 
     if ui.input_mut(|i| i.consume_shortcut(&add_shortcut)) {
-        app.add_folder_to_workspace_from_dialog(device, queue, render_state, false)
+        app.add_folder_to_workspace_from_dialog(false)
     }
 
     if ui.input_mut(|i| i.consume_shortcut(&reload_shortcut)) {
@@ -47,7 +41,7 @@ pub fn menu_bar(
             if shortcut_button(ui, "🗀 Open Folder...", &open_shortcut).clicked() {
                 ui.close_menu();
                 if let Some(folder) = FileDialog::new().pick_folder() {
-                    app.add_folder_to_workspace(device, queue, folder, render_state, true);
+                    app.add_folder_to_workspace(folder, true);
                 }
             }
 
@@ -66,14 +60,14 @@ pub fn menu_bar(
                 }
             });
             if let Some(recent) = recent {
-                app.add_folder_to_workspace(device, queue, Path::new(&recent), render_state, true);
+                app.add_folder_to_workspace(Path::new(&recent), true);
             }
             ui.separator();
 
             if shortcut_button(ui, "🗀 Add Folder to Workspace...", &add_shortcut).clicked() {
                 ui.close_menu();
                 if let Some(folder) = FileDialog::new().pick_folder() {
-                    app.add_folder_to_workspace(device, queue, folder, render_state, false);
+                    app.add_folder_to_workspace(folder, false);
                 }
             }
 
@@ -92,7 +86,7 @@ pub fn menu_bar(
                 }
             });
             if let Some(recent) = recent {
-                app.add_folder_to_workspace(device, queue, Path::new(&recent), render_state, false);
+                app.add_folder_to_workspace(Path::new(&recent), false);
             }
             ui.separator();
 
@@ -103,7 +97,7 @@ pub fn menu_bar(
 
             if button(ui, "Clear Workspace").clicked() {
                 ui.close_menu();
-                app.clear_workspace(render_state);
+                app.clear_workspace();
             }
         });
 
@@ -189,32 +183,17 @@ pub fn menu_bar(
         ui.menu_button("Meshes", |ui| {
             if ui.button("Show All").clicked() {
                 ui.close_menu();
-
-                for model in &mut render_state.render_models {
-                    model.is_visible = true;
-                    for mesh in &mut model.meshes {
-                        mesh.is_visible = true;
-                    }
-                }
+                app.render_model_action = RenderModelAction::ShowAll;
             }
 
             if ui.button("Hide All").clicked() {
                 ui.close_menu();
-
-                for model in &mut render_state.render_models {
-                    model.is_visible = false;
-                    for mesh in &mut model.meshes {
-                        mesh.is_visible = false;
-                    }
-                }
+                app.render_model_action = RenderModelAction::HideAll;
             }
 
             if ui.button("Hide Expressions").clicked() {
                 ui.close_menu();
-
-                for model in &mut render_state.render_models {
-                    hide_expressions(model);
-                }
+                app.render_model_action = RenderModelAction::HideExpressions;
             }
         });
 

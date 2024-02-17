@@ -17,7 +17,7 @@ use crate::{
         nutexb::nutexb_viewer,
         skel::skel_editor,
     },
-    generate_model_thumbnails, hide_expressions, load_model_render_model,
+    generate_model_thumbnails, load_model,
     log::AppLogger,
     model_folder::{FileChanged, ModelFolderState},
     path::{folder_display_name, folder_editor_title, last_update_check_file},
@@ -298,14 +298,16 @@ pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
 });
 
 pub struct SsbhApp {
+    // TODO: Group into an enum?
     pub should_refresh_render_settings: bool,
     pub should_update_camera: bool,
-    // TODO: Track what files changed in each folder?
-    pub models_to_update: ItemsToUpdate,
+    pub render_model_action: RenderModelAction,
     pub should_update_thumbnails: bool,
-    pub should_validate_models: bool,
     pub should_update_lighting: bool,
     pub should_update_clear_color: bool,
+
+    pub should_validate_models: bool,
+
     // TODO: Add a mesh_to_refresh index? Option<folder, mesh>
     pub release_info: LatestReleaseInfo,
 
@@ -408,11 +410,15 @@ fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) ->
     }
 }
 
-#[derive(PartialEq, Eq)]
-pub enum ItemsToUpdate {
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum RenderModelAction {
     None,
-    One(usize),
-    All,
+    Update(usize),
+    Refresh,
+    Clear,
+    HideAll,
+    ShowAll,
+    HideExpressions,
 }
 
 #[derive(Default)]
@@ -551,29 +557,16 @@ impl Default for PanelTab {
 }
 
 impl SsbhApp {
-    pub fn add_folder_to_workspace_from_dialog(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        render_state: &mut RenderState,
-        clear_workspace: bool,
-    ) {
+    pub fn add_folder_to_workspace_from_dialog(&mut self, clear_workspace: bool) {
         if let Some(folder) = FileDialog::new().pick_folder() {
-            self.add_folder_to_workspace(device, queue, folder, render_state, clear_workspace);
+            self.add_folder_to_workspace(folder, clear_workspace);
         }
     }
 
-    pub fn add_folder_to_workspace<P: AsRef<Path>>(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        folder: P,
-        render_state: &mut RenderState,
-        clear_workspace: bool,
-    ) {
+    pub fn add_folder_to_workspace<P: AsRef<Path>>(&mut self, folder: P, clear_workspace: bool) {
         // Don't clear existing files if the user cancels the dialog.
         if clear_workspace {
-            self.clear_workspace(render_state);
+            self.clear_workspace();
         }
 
         // Load recursively for nested folders like stages.
@@ -614,19 +607,9 @@ impl SsbhApp {
             .hidden_collisions
             .extend(std::iter::repeat(HashSet::new()).take(new_models.len()));
 
-        // Only load new render models for better performance.
-        // TODO: Handle this with models to update?
         for (path, model) in new_models {
-            let (mut render_model, model_state) =
-                load_model_render_model(device, queue, path, model, render_state);
-
-            // Only hide expressions on new models to preserve visibility edits.
-            if self.preferences.autohide_expressions {
-                hide_expressions(&mut render_model);
-            }
-
+            let model_state = load_model(path, model);
             self.models.push(model_state);
-            render_state.render_models.push(render_model);
         }
 
         self.sort_files();
@@ -634,6 +617,8 @@ impl SsbhApp {
         // TODO: Only validate the models that were added?
         self.should_validate_models = true;
         self.should_update_thumbnails = true;
+        // TODO: Only load new render models for better performance.
+        self.render_model_action = RenderModelAction::Refresh;
 
         self.add_recent_folder(folder);
     }
@@ -664,7 +649,7 @@ impl SsbhApp {
         }
         self.sort_files();
 
-        self.models_to_update = ItemsToUpdate::All;
+        self.render_model_action = RenderModelAction::Refresh;
         self.should_update_thumbnails = true;
         self.should_validate_models = true;
         // Reloaded models should have their animations applied.
@@ -672,10 +657,10 @@ impl SsbhApp {
         self.animation_state.should_update_animations = true;
     }
 
-    pub fn clear_workspace(&mut self, render_state: &mut RenderState) {
+    pub fn clear_workspace(&mut self) {
         // TODO: Is it easier to have dedicated reset methods?
         self.models = Vec::new();
-        render_state.render_models = Vec::new();
+        self.render_model_action = RenderModelAction::Clear;
         self.animation_state.animations = Vec::new();
         self.swing_state.selected_swing_folders = Vec::new();
         self.swing_state.hidden_collisions = Vec::new();
@@ -840,6 +825,7 @@ impl SsbhApp {
 }
 
 impl eframe::App for SsbhApp {
+    // TODO: split into view and update functions to simplify render updates.
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         let current_frame_start = std::time::Instant::now();
 
@@ -905,16 +891,10 @@ impl eframe::App for SsbhApp {
                     if path.is_file() {
                         // Load the parent folder for files.
                         if let Some(parent) = path.parent() {
-                            self.add_folder_to_workspace(
-                                device,
-                                queue,
-                                parent,
-                                render_state,
-                                false,
-                            );
+                            self.add_folder_to_workspace(parent, false);
                         }
                     } else {
-                        self.add_folder_to_workspace(device, queue, path, render_state, false);
+                        self.add_folder_to_workspace(path, false);
                     }
                 }
             }
@@ -931,8 +911,7 @@ impl eframe::App for SsbhApp {
         self.clear_selected_meshes(render_state);
 
         // Set the region for the 3D viewport to reduce overdraw.
-        egui::TopBottomPanel::top("top_panel")
-            .show(ctx, |ui| menu_bar(self, ui, device, queue, render_state));
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| menu_bar(self, ui));
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
@@ -1326,7 +1305,7 @@ impl SsbhApp {
                     self.preferences.dark_mode,
                 ) {
                     // The mesh editor has no high frequency edits (sliders), so reload on any change.
-                    self.models_to_update = ItemsToUpdate::One(folder_index);
+                    self.render_model_action = RenderModelAction::Update(folder_index);
                     file_changed = true;
                 }
 
@@ -1400,7 +1379,7 @@ impl SsbhApp {
                     self.preferences.dark_mode,
                 ) {
                     // MeshEx settings require reloading the render model.
-                    self.models_to_update = ItemsToUpdate::One(folder_index);
+                    self.render_model_action = RenderModelAction::Update(folder_index);
                     file_changed = true;
                 }
 
@@ -1646,69 +1625,6 @@ impl SsbhApp {
                 ),
             )
         })
-    }
-
-    fn reload_render_models(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        render_state: &mut RenderState,
-    ) {
-        // Only load render models that need to change to improve performance.
-        // Attempt to preserve the model and mesh visibility if possible.
-        match self.models_to_update {
-            ItemsToUpdate::None => (),
-            ItemsToUpdate::One(i) => {
-                if let (Some(render_model), Some(model)) =
-                    (render_state.render_models.get_mut(i), self.models.get(i))
-                {
-                    let mut new_render_model = RenderModel::from_folder(
-                        device,
-                        queue,
-                        &model.model,
-                        &render_state.shared_data,
-                    );
-                    copy_visibility(&mut new_render_model, render_model);
-
-                    *render_model = new_render_model;
-                }
-            }
-            ItemsToUpdate::All => {
-                let mut new_render_models = ssbh_wgpu::load_render_models(
-                    device,
-                    queue,
-                    self.models.iter().map(|m| &m.model),
-                    &render_state.shared_data,
-                );
-
-                for (new_render_model, old_render_model) in new_render_models
-                    .iter_mut()
-                    .zip(render_state.render_models.iter())
-                {
-                    copy_visibility(new_render_model, old_render_model);
-                }
-
-                render_state.render_models = new_render_models;
-            }
-        }
-
-        self.models_to_update = ItemsToUpdate::None;
-    }
-}
-
-fn copy_visibility(new_render_model: &mut RenderModel, render_model: &RenderModel) {
-    // Preserve the visibility from the old render model.
-    new_render_model.is_visible = render_model.is_visible;
-
-    // The new render meshes may be renamed, added, or deleted.
-    // This makes it impossible to always find the old mesh in general.
-    // Assume the mesh ordering remains the same for simplicity.
-    for (new_mesh, old_mesh) in new_render_model
-        .meshes
-        .iter_mut()
-        .zip(render_model.meshes.iter())
-    {
-        new_mesh.is_visible = old_mesh.is_visible;
     }
 }
 

@@ -4,7 +4,7 @@ use ssbh_wgpu::{animation::camera::animate_camera, CameraTransforms, SsbhRendere
 
 use crate::{CameraState, LightingData, RenderState};
 
-use super::SsbhApp;
+use super::{RenderModelAction, SsbhApp};
 
 // TODO: Make these configurable?
 const NEAR_CLIP: f32 = 1.0;
@@ -21,7 +21,14 @@ impl SsbhApp {
         scale_factor: f64,
     ) {
         // TODO: Load models on a separate thread to avoid freezing the UI.
-        self.reload_render_models(device, queue, render_state);
+        render_state.update_models(
+            device,
+            queue,
+            &self.models,
+            self.render_model_action,
+            self.preferences.autohide_expressions,
+        );
+        self.render_model_action = RenderModelAction::None;
 
         if self.should_update_lighting {
             self.update_lighting(render_state, device, queue);

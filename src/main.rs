@@ -11,7 +11,7 @@ use egui_commonmark::CommonMarkCache;
 use egui_wgpu::WgpuConfiguration;
 use log::error;
 use nutexb_wgpu::TextureRenderer;
-use ssbh_editor::app::{ItemsToUpdate, SsbhApp, UiState};
+use ssbh_editor::app::{RenderModelAction, SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
 use ssbh_editor::presets::default_presets;
@@ -204,7 +204,7 @@ fn create_app(
     SsbhApp {
         models: Vec::new(),
         default_thumbnails,
-        models_to_update: ItemsToUpdate::None,
+        render_model_action: RenderModelAction::None,
         release_info,
         should_update_lighting: false,
         should_refresh_render_settings: false,

@@ -1,5 +1,5 @@
 use ::log::error;
-use app::StageLightingState;
+use app::{RenderModelAction, StageLightingState};
 use egui::{
     style::{WidgetVisuals, Widgets},
     Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle, Visuals,
@@ -183,6 +183,87 @@ impl RenderState {
             texture_renderer,
             bone_name_renderer,
         }
+    }
+
+    fn update_models(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        models: &[ModelFolderState],
+        action: RenderModelAction,
+        autohide_expressions: bool,
+    ) {
+        // Only load render models that need to change to improve performance.
+        // Attempt to preserve the model and mesh visibility if possible.
+        match action {
+            RenderModelAction::None => (),
+            RenderModelAction::Update(i) => {
+                if let (Some(render_model), Some(model)) =
+                    (self.render_models.get_mut(i), models.get(i))
+                {
+                    let mut new_render_model =
+                        RenderModel::from_folder(device, queue, &model.model, &self.shared_data);
+                    copy_visibility(&mut new_render_model, render_model);
+
+                    *render_model = new_render_model;
+                }
+            }
+            RenderModelAction::Refresh => {
+                let mut new_render_models = ssbh_wgpu::load_render_models(
+                    device,
+                    queue,
+                    models.iter().map(|m| &m.model),
+                    &self.shared_data,
+                );
+
+                if autohide_expressions {
+                    for render_model in &mut new_render_models {
+                        hide_expressions(render_model);
+                    }
+                }
+
+                // Preserve visibility edits if no models were added.
+                for (new_render_model, old_render_model) in
+                    new_render_models.iter_mut().zip(self.render_models.iter())
+                {
+                    copy_visibility(new_render_model, old_render_model);
+                }
+
+                self.render_models = new_render_models;
+            }
+            RenderModelAction::Clear => self.render_models = Vec::new(),
+            RenderModelAction::HideAll => {
+                for render_model in &mut self.render_models {
+                    render_model.is_visible = false;
+                }
+            }
+            RenderModelAction::ShowAll => {
+                for render_model in &mut self.render_models {
+                    render_model.is_visible = true;
+                }
+            }
+            RenderModelAction::HideExpressions => {
+                for render_model in &mut self.render_models {
+                    hide_expressions(render_model);
+                }
+            }
+        }
+    }
+}
+
+fn copy_visibility(new_render_model: &mut RenderModel, render_model: &RenderModel) {
+    // Preserve the visibility from the old render model.
+    new_render_model.is_visible = render_model.is_visible;
+
+    // The new render meshes may be renamed, added, or deleted.
+    // This makes it impossible to always find the old mesh in general.
+    // Assume the mesh ordering remains the same for simplicity.
+    for (new_mesh, old_mesh) in new_render_model
+        .meshes
+        .iter_mut()
+        .zip(render_model.meshes.iter())
+    {
+        new_mesh.is_visible = old_mesh.is_visible;
     }
 }
 
@@ -631,21 +712,10 @@ fn horizontal_separator_empty(ui: &mut egui::Ui) {
     ui.allocate_space(egui::vec2(available_space.x, 6.0));
 }
 
-fn load_model_render_model(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    path: PathBuf,
-    model: ssbh_wgpu::ModelFolder,
-    render_state: &RenderState,
-) -> (RenderModel, ModelFolderState) {
-    let render_model = RenderModel::from_folder(device, queue, &model, &render_state.shared_data);
-
+fn load_model(path: PathBuf, model: ssbh_wgpu::ModelFolder) -> ModelFolderState {
     let swing_prc_path = path.join("swing.prc");
     let swing_prc = SwingPrc::from_file(swing_prc_path);
-
-    let model_state = ModelFolderState::from_model_and_swing(path, model, swing_prc);
-
-    (render_model, model_state)
+    ModelFolderState::from_model_and_swing(path, model, swing_prc)
 }
 
 fn hide_expressions(render_model: &mut RenderModel) {
