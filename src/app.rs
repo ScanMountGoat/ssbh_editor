@@ -958,13 +958,7 @@ impl eframe::App for SsbhApp {
             }
 
             // TODO: Avoid calculating the camera twice?
-            let (_, _, mvp_matrix) = calculate_mvp(
-                width,
-                height,
-                self.camera_state.values.translation,
-                self.camera_state.values.rotation_radians,
-                self.camera_state.values.fov_y_radians,
-            );
+            let (_, _, mvp_matrix) = calculate_mvp(width, height, self.camera_state.values);
             // TODO: Find a way to avoid clone?
             let cb = egui_wgpu::Callback::new_paint_callback(
                 rect,

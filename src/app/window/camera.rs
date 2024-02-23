@@ -103,6 +103,26 @@ pub fn camera_settings_window(
                     changed = true;
                 }
                 ui.end_row();
+
+                ui.label("Near Clip")
+                    .on_hover_text("The nearest distance visible.");
+                changed |= ui
+                    .add(
+                        DragValue::new(&mut camera_state.values.near_clip)
+                            .clamp_range(0.001..=camera_state.values.far_clip),
+                    )
+                    .changed();
+                ui.end_row();
+
+                ui.label("Far Clip")
+                    .on_hover_text("The farthest distance visible.");
+                changed |= ui
+                    .add(
+                        DragValue::new(&mut camera_state.values.far_clip)
+                            .clamp_range(camera_state.values.near_clip..=f32::MAX),
+                    )
+                    .changed();
+                ui.end_row();
             });
             horizontal_separator_empty(ui);
 

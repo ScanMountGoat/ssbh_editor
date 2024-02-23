@@ -2,13 +2,9 @@ use log::error;
 use ssbh_data::{anim_data::AnimData, SsbhData};
 use ssbh_wgpu::{animation::camera::animate_camera, CameraTransforms, SsbhRenderer};
 
-use crate::{CameraState, LightingData, RenderState};
+use crate::{CameraState, CameraValues, LightingData, RenderState};
 
 use super::SsbhApp;
-
-// TODO: Make these configurable?
-const NEAR_CLIP: f32 = 1.0;
-const FAR_CLIP: f32 = 400000.0;
 
 impl SsbhApp {
     pub fn refresh_render_state(
@@ -167,8 +163,8 @@ impl SsbhApp {
                 anim,
                 self.animation_state.current_frame,
                 self.camera_state.values.fov_y_radians,
-                NEAR_CLIP,
-                FAR_CLIP,
+                self.camera_state.values.near_clip,
+                self.camera_state.values.far_clip,
             ) {
                 let transforms = values.to_transforms(width as u32, height as u32, scale_factor);
                 render_state.renderer.update_camera(queue, transforms);
@@ -244,13 +240,8 @@ fn update_camera(
     height: f32,
     scale_factor: f64,
 ) {
-    let (camera_pos, model_view_matrix, mvp_matrix) = calculate_mvp(
-        width,
-        height,
-        camera_state.values.translation,
-        camera_state.values.rotation_radians,
-        camera_state.values.fov_y_radians,
-    );
+    let (camera_pos, model_view_matrix, mvp_matrix) =
+        calculate_mvp(width, height, camera_state.values);
     let transforms = CameraTransforms {
         model_view_matrix,
         mvp_matrix,
@@ -268,20 +259,23 @@ fn update_camera(
 pub fn calculate_mvp(
     width: f32,
     height: f32,
-    translation_xyz: glam::Vec3,
-    rotation_xyz_radians: glam::Vec3,
-    fov_y_radians: f32,
+    camera_values: CameraValues,
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
     let aspect = width / height;
 
     let rotation = glam::Mat4::from_euler(
         glam::EulerRot::XYZ,
-        rotation_xyz_radians.x,
-        rotation_xyz_radians.y,
-        rotation_xyz_radians.z,
+        camera_values.rotation_radians.x,
+        camera_values.rotation_radians.y,
+        camera_values.rotation_radians.z,
     );
-    let model_view_matrix = glam::Mat4::from_translation(translation_xyz) * rotation;
-    let perspective_matrix = glam::Mat4::perspective_rh(fov_y_radians, aspect, NEAR_CLIP, FAR_CLIP);
+    let model_view_matrix = glam::Mat4::from_translation(camera_values.translation) * rotation;
+    let perspective_matrix = glam::Mat4::perspective_rh(
+        camera_values.fov_y_radians,
+        aspect,
+        camera_values.near_clip,
+        camera_values.far_clip,
+    );
 
     let camera_pos = model_view_matrix.inverse().col(3);
 

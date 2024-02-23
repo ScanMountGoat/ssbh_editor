@@ -71,12 +71,14 @@ pub struct CameraState {
     pub mvp_matrix: glam::Mat4,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(default)]
 pub struct CameraValues {
     pub translation: glam::Vec3,
     pub rotation_radians: glam::Vec3,
     pub fov_y_radians: f32,
+    pub near_clip: f32,
+    pub far_clip: f32,
 }
 
 impl Default for CameraState {
@@ -95,6 +97,8 @@ impl Default for CameraValues {
             translation: glam::Vec3::new(0.0, -8.0, -60.0),
             rotation_radians: glam::Vec3::new(0.0, 0.0, 0.0),
             fov_y_radians: 30f32.to_radians(),
+            near_clip: 1.0f32,
+            far_clip: 400000.0f32,
         }
     }
 }
