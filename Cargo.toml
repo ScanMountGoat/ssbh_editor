@@ -15,13 +15,13 @@ eframe = { version = "0.26.0", default-features = false, features = ["wayland", 
 egui_dnd = "0.7.0"
 egui_commonmark = "0.12.1"
 wgpu = "0.19.0"
-glam = { version = "0.22.0", features = ["mint", "bytemuck", "serde"] }
+glam = { version = "0.25.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.10.0"
 ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
 nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }
-ssbh_data = { version = "0.17.0", features = ["strum", "serde"] }
+ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", rev = "1a014fa", features = ["strum", "serde"] }
 strum = "0.24.1"
-nutexb = "0.6.0"
+nutexb = "0.7.0"
 octocrab = "0.19.0"
 tokio = { version = "1", features = ["rt"] }
 open = "2.1.3"
