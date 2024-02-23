@@ -109,7 +109,7 @@ pub fn camera_settings_window(
                 changed |= ui
                     .add(
                         DragValue::new(&mut camera_state.values.near_clip)
-                            .clamp_range(f32::MIN_POSITIVE..=camera_state.values.far_clip),
+                            .clamp_range(0.001..=camera_state.values.far_clip),
                     )
                     .changed();
                 ui.end_row();
