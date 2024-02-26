@@ -392,6 +392,15 @@ impl RenderState {
         self.renderer
             .set_clear_color([clear_color[0], clear_color[1], clear_color[2], 1.0]);
     }
+
+    fn clear_selected_meshes(&mut self) {
+        for model in &mut self.render_models {
+            model.is_selected = false;
+            for mesh in &mut model.meshes {
+                mesh.is_selected = false;
+            }
+        }
+    }
 }
 
 fn copy_visibility(new_render_model: &mut RenderModel, render_model: &RenderModel) {

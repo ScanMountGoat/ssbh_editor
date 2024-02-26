@@ -772,6 +772,10 @@ impl eframe::App for SsbhApp {
         let binding = &mut wgpu_state.renderer.write();
         let render_state: &mut RenderState = binding.callback_resources.get_mut().unwrap();
 
+        // This can be set by the mesh list and mesh editor.
+        // Clear every frame so both sources can set is_selected to true.
+        render_state.clear_selected_meshes();
+
         // TODO: Rework these fields to use Option<T>.
         let mask_model_index = self.ui_state.selected_folder_index.unwrap_or(0);
         render_state.model_render_options.mask_model_index = mask_model_index;
@@ -830,10 +834,6 @@ impl eframe::App for SsbhApp {
             ctx.set_zoom_factor(self.preferences.scale_factor);
             self.has_initialized_zoom_factor = true;
         }
-
-        // This can be set by the mesh list and mesh editor.
-        // Clear every frame so both sources can set is_selected to true.
-        self.clear_selected_meshes(render_state);
 
         // Set the region for the 3D viewport to reduce overdraw.
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| menu_bar(self, ui));
@@ -1148,15 +1148,6 @@ impl CallbackTrait for ViewportCallback {
 }
 
 impl SsbhApp {
-    fn clear_selected_meshes(&mut self, render_state: &mut RenderState) {
-        for model in &mut render_state.render_models {
-            model.is_selected = false;
-            for mesh in &mut model.meshes {
-                mesh.is_selected = false;
-            }
-        }
-    }
-
     fn file_editors(&mut self, ctx: &Context, render_state: &mut RenderState) -> bool {
         let mut file_changed = false;
 
