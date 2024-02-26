@@ -1,0 +1,98 @@
+name: Compile Release
+
+on: 
+  release:
+    types: [created]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --release
+    - name: Create Release Zip
+      run: zip -j ssbh_editor_linux_x64.zip target/release/ssbh_editor
+    - name: Upload Zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ssbh_editor_linux
+        path: ssbh_editor_linux_x64.zip
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ssbh_editor_linux_x64.zip
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --release
+    - name: Set Icon
+      run: |
+        curl.exe -sSL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
+        rcedit.exe target/release/ssbh_editor.exe --set-icon src/icons/SsbhEditor.ico
+    - name: Create Release Zip
+      run: Compress-Archive -path target/release/ssbh_editor.exe -destinationPath ssbh_editor_win_x64.zip
+    - name: Upload Zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ssbh_editor_win
+        path: ssbh_editor_win_x64.zip
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ssbh_editor_win_x64.zip
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin]
+        desc: [intel]
+        include:
+          - target: aarch64-apple-darwin
+            desc: apple_silicon
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust Toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{matrix.target}}
+    - name: Install Cargo Bundle
+      uses: baptiste0928/cargo-install@v2
+      with:
+        crate: cargo-bundle
+        version: "0.6.0"
+    - name: Bundle App
+      run: cargo bundle --release --target ${{matrix.target}}
+    - name: Sign Binaries
+      run: codesign -s - target/${{matrix.target}}/release/bundle/macos/ssbh_editor.app
+    - name: Create Release Zip
+      run: |
+        cp -r target/${{matrix.target}}/release/bundle/macos/ssbh_editor.app ssbh_editor.app
+        zip -r ssbh_editor_macos_${{matrix.desc}}.zip ssbh_editor.app
+    - name: Upload Zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ssbh_editor_macos_${{matrix.desc}}
+        path: ssbh_editor_macos_${{matrix.desc}}.zip
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ssbh_editor_macos_${{matrix.desc}}.zip
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
