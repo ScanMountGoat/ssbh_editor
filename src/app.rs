@@ -262,7 +262,7 @@ fn open_editor<T: Editor>(
     model: &mut ModelFolderState,
     open_file_index: &mut Option<usize>,
     state: &mut T::EditorState,
-    model_actions: &mut VecDeque<RenderModelAction>,
+    model_actions: &mut VecDeque<RenderAction>,
     dark_mode: bool,
 ) -> bool {
     if let Some(response) = T::editor(ctx, model, open_file_index, state, dark_mode) {
@@ -275,11 +275,13 @@ fn open_editor<T: Editor>(
                         mesh_object_name,
                         mesh_object_subindex,
                     } => {
-                        model_actions.push_back(RenderModelAction::SelectMesh {
-                            index: *index,
-                            mesh_object_name,
-                            mesh_object_subindex,
-                        });
+                        model_actions.push_back(RenderAction::Model(
+                            RenderModelAction::SelectMesh {
+                                index: *index,
+                                mesh_object_name,
+                                mesh_object_subindex,
+                            },
+                        ));
                     }
                 }
             }
@@ -335,14 +337,9 @@ pub enum RenderModelAction {
 }
 
 pub struct SsbhApp {
-    // TODO: Group into an enum?
-    pub should_refresh_render_settings: bool,
-    pub should_update_camera: bool,
-    pub render_model_actions: VecDeque<RenderModelAction>,
-    pub should_update_thumbnails: bool,
-    pub should_update_lighting: bool,
-    pub should_update_clear_color: bool,
+    pub render_actions: VecDeque<RenderAction>,
 
+    pub should_update_thumbnails: bool,
     pub should_validate_models: bool,
 
     pub release_info: LatestReleaseInfo,
@@ -643,8 +640,8 @@ impl SsbhApp {
         self.should_validate_models = true;
         self.should_update_thumbnails = true;
         // TODO: Only load new render models for better performance.
-        self.render_model_actions
-            .push_back(RenderModelAction::Refresh);
+        self.render_actions
+            .push_back(RenderAction::Model(RenderModelAction::Refresh));
 
         self.add_recent_folder(folder);
     }
@@ -675,8 +672,8 @@ impl SsbhApp {
         }
         self.sort_files();
 
-        self.render_model_actions
-            .push_back(RenderModelAction::Refresh);
+        self.render_actions
+            .push_back(RenderAction::Model(RenderModelAction::Refresh));
         self.should_update_thumbnails = true;
         self.should_validate_models = true;
         // Reloaded models should have their animations applied.
@@ -687,13 +684,13 @@ impl SsbhApp {
     pub fn clear_workspace(&mut self) {
         // TODO: Is it easier to have dedicated reset methods?
         self.models = Vec::new();
-        self.render_model_actions
-            .push_back(RenderModelAction::Clear);
+        self.render_actions
+            .push_back(RenderAction::Model(RenderModelAction::Clear));
         self.animation_state.animations = Vec::new();
         self.swing_state.selected_swing_folders = Vec::new();
         self.swing_state.hidden_collisions = Vec::new();
         self.camera_state.anim_path = None;
-        self.should_update_camera = true;
+        self.render_actions.push_back(RenderAction::UpdateCamera);
         // TODO: Reset selected indices?
         // TODO: Is there an easy way to write this?
     }
@@ -783,12 +780,6 @@ impl eframe::App for SsbhApp {
             .unwrap_or("")
             .to_owned();
 
-        // TODO: Store an action enum instead of booleans?
-        if self.should_update_clear_color {
-            render_state.update_clear_color(self.preferences.viewport_color);
-            self.should_update_clear_color = false;
-        }
-
         if self.animation_state.is_playing {
             let final_frame_index = self.max_final_frame_index(render_state);
 
@@ -859,15 +850,18 @@ impl eframe::App for SsbhApp {
             &mut self.enable_helper_bones,
         );
         if self.ui_state.render_settings_open {
-            self.should_refresh_render_settings = true;
+            self.render_actions
+                .push_back(RenderAction::UpdateRenderSettings);
         }
 
-        self.should_update_camera |= camera_settings_window(
+        if camera_settings_window(
             ctx,
             &mut self.ui_state.camera_settings_open,
             &mut self.camera_state,
             &mut self.preferences.default_camera,
-        );
+        ) {
+            self.render_actions.push_back(RenderAction::UpdateCamera);
+        }
 
         device_info_window(
             ctx,
@@ -875,11 +869,13 @@ impl eframe::App for SsbhApp {
             &render_state.adapter_info,
         );
 
-        self.should_update_lighting |= stage_lighting_window(
+        if stage_lighting_window(
             ctx,
             &mut self.ui_state.stage_lighting_open,
             &mut self.ui_state.stage_lighting,
-        );
+        ) {
+            self.render_actions.push_back(RenderAction::UpdateLighting);
+        }
 
         log_window(ctx, &mut self.ui_state.log_window_open);
 
@@ -889,7 +885,8 @@ impl eframe::App for SsbhApp {
             &mut self.ui_state.preferences_window_open,
         ) {
             update_color_theme(&self.preferences, ctx);
-            self.should_update_clear_color = true;
+            self.render_actions
+                .push_back(RenderAction::UpdateClearColor);
             ctx.set_zoom_factor(self.preferences.scale_factor);
         } else {
             self.preferences.scale_factor = ctx.zoom_factor();
@@ -1202,13 +1199,13 @@ impl SsbhApp {
                                 // Reassign materials in case material or shader labels changed.
                                 // This is necessary for error checkerboards to display properly.
                                 // Perform a cheap clone to avoid lifetime issues.
-                                self.render_model_actions.push_back(
+                                self.render_actions.push_back(RenderAction::Model(
                                     RenderModelAction::UpdateMaterials {
                                         model_index: folder_index,
                                         modl: model.model.find_modl().cloned(),
-                                        matl: None,
+                                        matl: model.model.find_matl().cloned(),
                                     },
-                                );
+                                ));
                             }
                         }
                     }
@@ -1219,12 +1216,12 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_mesh,
                     &mut self.ui_state.mesh_editor,
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {
                     // The mesh editor has no high frequency edits (sliders), so reload on any change.
-                    self.render_model_actions
-                        .push_back(RenderModelAction::Update(folder_index));
+                    self.render_actions
+                        .push_back(RenderAction::Model(RenderModelAction::Update(folder_index)));
                     file_changed = true;
                 }
 
@@ -1233,7 +1230,7 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_skel,
                     &mut self.ui_state.skel_editor,
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 );
 
@@ -1242,16 +1239,17 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_modl,
                     &mut self.ui_state.modl_editor,
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {
                     // Perform a cheap clone to avoid lifetime issues.
-                    self.render_model_actions
-                        .push_back(RenderModelAction::UpdateMaterials {
+                    self.render_actions.push_back(RenderAction::Model(
+                        RenderModelAction::UpdateMaterials {
                             model_index: folder_index,
                             modl: model.model.find_modl().cloned(),
-                            matl: None,
-                        });
+                            matl: model.model.find_matl().cloned(),
+                        },
+                    ));
                     file_changed = true;
                 }
 
@@ -1260,7 +1258,7 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_hlpb,
                     &mut (),
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animation constraints in the viewport.
@@ -1273,7 +1271,7 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_adj,
                     &mut (),
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 );
 
@@ -1282,7 +1280,7 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_anim,
                     &mut self.ui_state.anim_editor,
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animations in the viewport.
@@ -1295,12 +1293,12 @@ impl SsbhApp {
                     model,
                     &mut self.ui_state.open_meshex,
                     &mut (),
-                    &mut self.render_model_actions,
+                    &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {
                     // MeshEx settings require reloading the render model.
-                    self.render_model_actions
-                        .push_back(RenderModelAction::Update(folder_index));
+                    self.render_actions
+                        .push_back(RenderAction::Model(RenderModelAction::Update(folder_index)));
                     file_changed = true;
                 }
 
@@ -1449,8 +1447,10 @@ impl SsbhApp {
                     if self.models.get(folder_to_remove).is_some() {
                         self.models.remove(folder_to_remove);
                     }
-                    self.render_model_actions
-                        .push_back(RenderModelAction::Remove(folder_to_remove));
+                    self.render_actions
+                        .push_back(RenderAction::Model(RenderModelAction::Remove(
+                            folder_to_remove,
+                        )));
                 }
             });
     }

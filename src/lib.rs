@@ -1,5 +1,5 @@
 use ::log::error;
-use app::{RenderModelAction, StageLightingState};
+use app::{RenderAction, RenderModelAction, StageLightingState};
 use egui::{
     ecolor::linear_f32_from_gamma_u8,
     style::{WidgetVisuals, Widgets},
@@ -200,107 +200,186 @@ impl RenderState {
         }
     }
 
-    fn update_models(
+    fn update(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         models: &[ModelFolderState],
-        actions: &mut VecDeque<RenderModelAction>,
+        actions: &mut VecDeque<RenderAction>,
+        stage_lighting: &StageLightingState,
+        camera_state: &CameraState,
         autohide_expressions: bool,
+        current_frame: f32,
+        viewport_color: [u8; 3]
     ) {
         // Only load render models that need to change to improve performance.
         while let Some(action) = actions.pop_front() {
             match action {
-                RenderModelAction::Update(i) => {
-                    if let (Some(render_model), Some(model)) =
-                        (self.render_models.get_mut(i), models.get(i))
-                    {
-                        let mut new_render_model = RenderModel::from_folder(
-                            device,
-                            queue,
-                            &model.model,
-                            &self.shared_data,
-                        );
-                        // Attempt to preserve the model and mesh visibility if possible.
-                        copy_visibility(&mut new_render_model, render_model);
+                RenderAction::UpdateRenderSettings => {
+                    self.renderer
+                        .update_render_settings(queue, &self.render_settings);
+                    self.renderer
+                        .update_skinning_settings(queue, &self.skinning_settings);
+                }
+                RenderAction::UpdateCamera => {
+                    self.camera_anim = camera_state.anim_path.as_ref().and_then(|path| {
+                        AnimData::from_file(path)
+                            .map_err(|e| {
+                                error!("Error reading {:?}: {}", path, e);
+                                e
+                            })
+                            .ok()
+                    });
+        
+                },
+                RenderAction::Model(model_action) => {
+                    self.update_models(model_action, models, device, queue, autohide_expressions)
+                }
+                RenderAction::UpdateLighting => {
+                    self.update_lighting(device, queue, stage_lighting, models, current_frame)
+                }
+                RenderAction::UpdateClearColor => {
+                    self.update_clear_color(viewport_color);
+                },
+            }
+        }
+    }
 
-                        *render_model = new_render_model;
-                    }
-                }
-                RenderModelAction::Remove(i) => {
-                    self.render_models.remove(i);
-                }
-                RenderModelAction::Refresh => {
-                    let mut new_render_models = ssbh_wgpu::load_render_models(
-                        device,
-                        queue,
-                        models.iter().map(|m| &m.model),
-                        &self.shared_data,
-                    );
+    fn update_models(
+        &mut self,
+        model_action: RenderModelAction,
+        models: &[ModelFolderState],
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        autohide_expressions: bool,
+    ) {
+        match model_action {
+            RenderModelAction::Update(i) => {
+                if let (Some(render_model), Some(model)) =
+                    (self.render_models.get_mut(i), models.get(i))
+                {
+                    let mut new_render_model =
+                        RenderModel::from_folder(device, queue, &model.model, &self.shared_data);
+                    // Attempt to preserve the model and mesh visibility if possible.
+                    copy_visibility(&mut new_render_model, render_model);
 
-                    if autohide_expressions {
-                        for render_model in &mut new_render_models {
-                            hide_expressions(render_model);
-                        }
-                    }
+                    *render_model = new_render_model;
+                }
+            }
+            RenderModelAction::Remove(i) => {
+                self.render_models.remove(i);
+            }
+            RenderModelAction::Refresh => {
+                let mut new_render_models = ssbh_wgpu::load_render_models(
+                    device,
+                    queue,
+                    models.iter().map(|m| &m.model),
+                    &self.shared_data,
+                );
 
-                    // Preserve visibility edits if no models were added.
-                    for (new_render_model, old_render_model) in
-                        new_render_models.iter_mut().zip(self.render_models.iter())
-                    {
-                        copy_visibility(new_render_model, old_render_model);
-                    }
-
-                    self.render_models = new_render_models;
-                }
-                RenderModelAction::Clear => self.render_models = Vec::new(),
-                RenderModelAction::HideAll => {
-                    for render_model in &mut self.render_models {
-                        render_model.is_visible = false;
-                    }
-                }
-                RenderModelAction::ShowAll => {
-                    for render_model in &mut self.render_models {
-                        render_model.is_visible = true;
-                    }
-                }
-                RenderModelAction::HideExpressions => {
-                    for render_model in &mut self.render_models {
+                if autohide_expressions {
+                    for render_model in &mut new_render_models {
                         hide_expressions(render_model);
                     }
                 }
-                RenderModelAction::SelectMesh {
-                    index,
-                    mesh_object_name,
-                    mesh_object_subindex,
-                } => {
-                    if let Some(render_mesh) = self.render_models[index]
-                        .meshes
-                        .iter_mut()
-                        .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
-                    {
-                        render_mesh.is_selected = true;
-                    }
+
+                // Preserve visibility edits if no models were added.
+                for (new_render_model, old_render_model) in
+                    new_render_models.iter_mut().zip(self.render_models.iter())
+                {
+                    copy_visibility(new_render_model, old_render_model);
                 }
-                RenderModelAction::UpdateMaterials {
-                    model_index,
-                    modl,
-                    matl,
-                } => {
-                    if let Some(render_model) = self.render_models.get_mut(model_index) {
-                        if let Some(matl) = &matl {
-                            render_model.recreate_materials(
-                                device,
-                                &matl.entries,
-                                &self.shared_data,
-                            );
-                        }
-                        if let Some(modl) = &modl {
-                            render_model.reassign_materials(modl, matl.as_ref());
-                        }
+
+                self.render_models = new_render_models;
+            }
+            RenderModelAction::Clear => self.render_models = Vec::new(),
+            RenderModelAction::HideAll => {
+                for render_model in &mut self.render_models {
+                    render_model.is_visible = false;
+                }
+            }
+            RenderModelAction::ShowAll => {
+                for render_model in &mut self.render_models {
+                    render_model.is_visible = true;
+                }
+            }
+            RenderModelAction::HideExpressions => {
+                for render_model in &mut self.render_models {
+                    hide_expressions(render_model);
+                }
+            }
+            RenderModelAction::SelectMesh {
+                index,
+                mesh_object_name,
+                mesh_object_subindex,
+            } => {
+                if let Some(render_mesh) = self.render_models[index]
+                    .meshes
+                    .iter_mut()
+                    .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
+                {
+                    render_mesh.is_selected = true;
+                }
+            }
+            RenderModelAction::UpdateMaterials {
+                model_index,
+                modl,
+                matl,
+            } => {
+                if let Some(render_model) = self.render_models.get_mut(model_index) {
+                    if let Some(matl) = &matl {
+                        render_model.recreate_materials(device, &matl.entries, &self.shared_data);
+                    }
+                    if let Some(modl) = &modl {
+                        render_model.reassign_materials(modl, matl.as_ref());
                     }
                 }
             }
+        }
+    }
+
+    fn update_lighting(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        stage_lighting: &StageLightingState,
+        models: &[ModelFolderState],
+        current_frame: f32,
+    ) {
+        self.lighting_data = LightingData::from_ui(stage_lighting);
+
+        // light00.nuamb
+        self.animate_lighting(queue, current_frame);
+
+        // color_grading_lut.nutexb
+        match &self.lighting_data.color_grading_lut {
+            Some(lut) => self.renderer.update_color_lut(device, queue, lut),
+            None => self.renderer.reset_color_lut(device, queue),
+        };
+
+        // reflection_cubemap.nutexb
+        match &self.lighting_data.reflection_cube_map {
+            Some(cube) => self.shared_data.update_stage_cube_map(device, queue, cube),
+            None => {
+                self.shared_data.reset_stage_cube_map(device, queue);
+            }
+        }
+
+        // Updating the cube map requires reassigning model textures.
+        for (render_model, model) in self.render_models.iter_mut().zip(models.iter()) {
+            if let Some(matl) = model.model.find_matl() {
+                render_model.recreate_materials(device, &matl.entries, &self.shared_data);
+            }
+        }
+    }
+
+    fn animate_lighting(&mut self, queue: &wgpu::Queue, current_frame: f32) {
+        // Only the light00.nuanmb needs to animate.
+        match &self.lighting_data.light {
+            Some(light) => self
+                .renderer
+                .update_stage_uniforms(queue, light, current_frame),
+            None => self.renderer.reset_stage_uniforms(queue),
         }
     }
 

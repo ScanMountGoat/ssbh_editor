@@ -4,7 +4,6 @@
     windows_subsystem = "windows"
 )]
 
-use std::collections::VecDeque;
 use std::sync::Arc;
 
 use egui::ViewportBuilder;
@@ -12,7 +11,7 @@ use egui_commonmark::CommonMarkCache;
 use egui_wgpu::WgpuConfiguration;
 use log::error;
 use nutexb_wgpu::TextureRenderer;
-use ssbh_editor::app::{SsbhApp, UiState};
+use ssbh_editor::app::{RenderAction, SsbhApp, UiState};
 use ssbh_editor::material::load_material_presets;
 use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
 use ssbh_editor::presets::default_presets;
@@ -205,13 +204,9 @@ fn create_app(
     SsbhApp {
         models: Vec::new(),
         default_thumbnails,
-        render_model_actions: VecDeque::new(),
+        render_actions: [RenderAction::UpdateClearColor].into(),
         release_info,
-        should_update_lighting: false,
-        should_refresh_render_settings: false,
-        should_update_camera: true,
         should_validate_models: false,
-        should_update_clear_color: true,
         should_update_thumbnails: false,
         material_presets,
         default_presets: default_presets(),

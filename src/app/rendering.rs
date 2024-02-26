@@ -1,8 +1,6 @@
-use log::error;
-use ssbh_data::anim_data::AnimData;
 use ssbh_wgpu::{animation::camera::animate_camera, CameraTransforms, SsbhRenderer};
 
-use crate::{CameraState, CameraValues, LightingData, RenderState};
+use crate::{CameraState, CameraValues, RenderState};
 
 use super::SsbhApp;
 
@@ -17,41 +15,19 @@ impl SsbhApp {
         scale_factor: f64,
     ) {
         // TODO: Load models on a separate thread to avoid freezing the UI.
-        render_state.update_models(
+        // TODO: Just take the entire app as a parameter?
+        render_state.update(
             device,
             queue,
             &self.models,
-            &mut self.render_model_actions,
+            &mut self.render_actions,
+            &self.ui_state.stage_lighting,
+            &self.camera_state,
             self.preferences.autohide_expressions,
+            self.animation_state.current_frame,
+            self.preferences.viewport_color,
         );
 
-        if self.should_update_lighting {
-            self.update_lighting(render_state, device, queue);
-            self.should_update_lighting = false;
-        }
-
-        if self.should_refresh_render_settings {
-            render_state
-                .renderer
-                .update_render_settings(queue, &render_state.render_settings);
-            render_state
-                .renderer
-                .update_skinning_settings(queue, &render_state.skinning_settings);
-            self.should_refresh_render_settings = false;
-        }
-
-        if self.should_update_camera {
-            render_state.camera_anim = self.camera_state.anim_path.as_ref().and_then(|path| {
-                AnimData::from_file(path)
-                    .map_err(|e| {
-                        error!("Error reading {:?}: {}", path, e);
-                        e
-                    })
-                    .ok()
-            });
-
-            self.should_update_camera = false;
-        }
         // TODO: Does this need to be updated every frame?
         update_camera(
             queue,
@@ -92,61 +68,10 @@ impl SsbhApp {
         }
 
         if self.animation_state.is_playing || self.animation_state.should_update_animations {
-            self.animate_lighting(render_state, queue);
+            render_state.animate_lighting(queue, self.animation_state.current_frame);
             self.animate_viewport_camera(render_state, queue, width, height, scale_factor);
             self.animate_models(queue, render_state);
             self.animation_state.should_update_animations = false;
-        }
-    }
-
-    fn update_lighting(
-        &self,
-        render_state: &mut RenderState,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) {
-        render_state.lighting_data = LightingData::from_ui(&self.ui_state.stage_lighting);
-
-        // light00.nuamb
-        self.animate_lighting(render_state, queue);
-
-        // color_grading_lut.nutexb
-        match &render_state.lighting_data.color_grading_lut {
-            Some(lut) => render_state.renderer.update_color_lut(device, queue, lut),
-            None => render_state.renderer.reset_color_lut(device, queue),
-        };
-
-        // reflection_cubemap.nutexb
-        match &render_state.lighting_data.reflection_cube_map {
-            Some(cube) => render_state
-                .shared_data
-                .update_stage_cube_map(device, queue, cube),
-            None => {
-                render_state.shared_data.reset_stage_cube_map(device, queue);
-            }
-        }
-
-        // Updating the cube map requires reassigning model textures.
-        for (render_model, model) in render_state
-            .render_models
-            .iter_mut()
-            .zip(self.models.iter())
-        {
-            if let Some(matl) = model.model.find_matl() {
-                render_model.recreate_materials(device, &matl.entries, &render_state.shared_data);
-            }
-        }
-    }
-
-    fn animate_lighting(&self, render_state: &mut RenderState, queue: &wgpu::Queue) {
-        // Only the light00.nuanmb needs to animate.
-        match &render_state.lighting_data.light {
-            Some(light) => render_state.renderer.update_stage_uniforms(
-                queue,
-                light,
-                self.animation_state.current_frame,
-            ),
-            None => render_state.renderer.reset_stage_uniforms(queue),
         }
     }
 
