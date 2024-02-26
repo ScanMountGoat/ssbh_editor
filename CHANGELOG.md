@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## unreleased
+### Added
+* Added support for editing the near and far clip distance to the Camera Settings window.
+
 ### Fixed
 * Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.
 
