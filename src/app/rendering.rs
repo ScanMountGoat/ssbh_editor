@@ -1,5 +1,5 @@
 use log::error;
-use ssbh_data::{anim_data::AnimData, SsbhData};
+use ssbh_data::anim_data::AnimData;
 use ssbh_wgpu::{animation::camera::animate_camera, CameraTransforms, SsbhRenderer};
 
 use crate::{CameraState, CameraValues, LightingData, RenderState};

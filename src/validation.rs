@@ -852,7 +852,7 @@ mod tests {
             data: Vec::new(),
             layer_mipmaps: Vec::new(),
             footer: NutexbFooter {
-                string: Vec::new().into(),
+                string: Default::default(),
                 width: 1,
                 height: 1,
                 depth: 1,
@@ -872,7 +872,7 @@ mod tests {
             data: Vec::new(),
             layer_mipmaps: Vec::new(),
             footer: NutexbFooter {
-                string: Vec::new().into(),
+                string: Default::default(),
                 width: 64,
                 height: 64,
                 depth: 1,

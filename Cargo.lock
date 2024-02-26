@@ -189,7 +189,7 @@ checksum = "c980ee35e870bd1a4d2c8294d4c04d0499e67bca1e4b5cefcc693c2fa00caea9"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -390,7 +390,7 @@ checksum = "965ab7eb5f8f97d2a083c799f3a1b994fc397b2fe2da5d1da1626ce15a39f2b1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -449,9 +449,9 @@ checksum = "fd6c0e7b807d60291f42f33f58480c0bfafe28ed08286446f45e463728cf9c1c"
 
 [[package]]
 name = "cc"
-version = "1.0.86"
+version = "1.0.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f9fa1897e4325be0d68d48df6aa1a71ac2ed4d27723887e7754192705350730"
+checksum = "02f341c093d19155a6e41631ce5971aac4e9a868262212153124c15fa22d1cdc"
 dependencies = [
  "libc",
 ]
@@ -602,7 +602,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f76990911f2267d837d9d0ad060aa63aaad170af40904b29461734c339030d4d"
 dependencies = [
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -1036,7 +1036,7 @@ checksum = "92959a9e8d13eaa13b8ae8c7b583c3bf1669ca7a8e7708a088d12587ba86effc"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -1066,7 +1066,7 @@ checksum = "f282cfdfe92516eb26c2af8589c274c7c17681f5ecc03c18255fe741c6aa64eb"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -1077,7 +1077,7 @@ checksum = "6fd000fd6988e73bbe993ea3db9b1aa64906ab88766d654973924340c8cddb42"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -1115,9 +1115,9 @@ dependencies = [
 
 [[package]]
 name = "error-code"
-version = "3.0.0"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "281e452d3bad4005426416cdba5ccfd4f5c1280e10099e21db27f7c1c28347fc"
+checksum = "26a147e1a6641a55d994b3e4e9fa4d9b180c8d652c09b363af8c9bf1b8e04139"
 
 [[package]]
 name = "etagere"
@@ -1256,7 +1256,7 @@ checksum = "1a5c6c585bc94aaf2c7b51dd4c2ba22680844aba4c687be581871a6f518c5742"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -1353,7 +1353,7 @@ checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -1643,9 +1643,9 @@ dependencies = [
 
 [[package]]
 name = "half"
-version = "2.3.1"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc52e53916c08643f1b56ec082790d1e86a32e58dc5268f897f313fbae7b4872"
+checksum = "b5eceaaeec696539ddaf7b333340f1af35a5aa87ae3e4f3ead0532f72affab2e"
 dependencies = [
  "cfg-if",
  "crunchy",
@@ -1714,9 +1714,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.3.6"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd5256b483761cd23699d0da46cc6fd2ee3be420bbe6d020ae4a091e70b7e9fd"
+checksum = "379dada1584ad501b383485dd706b8afb7a70fcbc7f4da7d780638a5a6124a60"
 
 [[package]]
 name = "hexf-parse"
@@ -2098,9 +2098,9 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
 name = "lru"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2c024b41519440580066ba82aab04092b333e09066a5eb86c7c4890df31f22"
+checksum = "d3262e75e648fce39813cb56ac41f3c3e3f65217ebf3844d818d1f9398cfb0dc"
 dependencies = [
  "hashbrown 0.14.3",
 ]
@@ -2357,7 +2357,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -2373,7 +2373,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#031627bf59803698886ce8abb2c0521dad3be26f"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7d953f0e10f3445b364e8e6e8329a2c14ff8f0e9"
 dependencies = [
  "bytemuck",
  "log",
@@ -2518,7 +2518,7 @@ checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -3183,7 +3183,7 @@ checksum = "389894603bd18c46fa56231694f8d827779c0951a667087194cf9de94ed24682"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -3395,8 +3395,9 @@ dependencies = [
 
 [[package]]
 name = "ssbh_data"
-version = "0.17.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa#1a014faebdde9a964499f624d043fc430a0b78c4"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e33935e27b52aacc4e04c5dcfbb50a0bbe5dee2e6e077eb0d218a170a9ef935"
 dependencies = [
  "ahash",
  "binrw 0.13.3",
@@ -3407,8 +3408,8 @@ dependencies = [
  "itertools",
  "modular-bitfield",
  "serde",
- "ssbh_lib 0.17.0 (git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa)",
- "ssbh_write 0.17.0 (git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa)",
+ "ssbh_lib",
+ "ssbh_write",
  "strum",
  "thiserror",
 ]
@@ -3455,26 +3456,15 @@ dependencies = [
 
 [[package]]
 name = "ssbh_lib"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e486125fa782aee2ede0145da225e8c7d50114c513dbde26113118b13b64f674"
-dependencies = [
- "binrw 0.11.2",
- "modular-bitfield",
- "ssbh_write 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
-]
-
-[[package]]
-name = "ssbh_lib"
-version = "0.17.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa#1a014faebdde9a964499f624d043fc430a0b78c4"
+checksum = "7a04485f0091a1d10edade9c71ecada73a42fc522580d0f1dbf69c1e87cd6ef9"
 dependencies = [
  "binrw 0.13.3",
  "modular-bitfield",
  "serde",
  "serde_bytes",
- "ssbh_write 0.17.0 (git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa)",
+ "ssbh_write",
  "strum",
  "thiserror",
 ]
@@ -3482,7 +3472,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#031627bf59803698886ce8abb2c0521dad3be26f"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7d953f0e10f3445b364e8e6e8329a2c14ff8f0e9"
 dependencies = [
  "bytemuck",
  "encase",
@@ -3506,36 +3496,18 @@ dependencies = [
 
 [[package]]
 name = "ssbh_write"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51174cc2460d97cf744000589fecd994957b2b5f85cfd0de8d407d00e66ec938"
+checksum = "0dae7615bcd366336d015739ab8d2dda8024fa5199ebf752068e145fb92667fe"
 dependencies = [
- "ssbh_write_derive 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "ssbh_write"
-version = "0.17.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa#1a014faebdde9a964499f624d043fc430a0b78c4"
-dependencies = [
- "ssbh_write_derive 0.17.0 (git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa)",
+ "ssbh_write_derive",
 ]
 
 [[package]]
 name = "ssbh_write_derive"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ddf14ed91beb61067c9d9ea31025546de0bafa3b4d576754e51eaff299fc106"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "ssbh_write_derive"
-version = "0.17.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=1a014fa#1a014faebdde9a964499f624d043fc430a0b78c4"
+checksum = "04fea1aaac68fb07f120ae8f524083c07f630a3d86e6292b6d930ea518227a0b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3628,9 +3600,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.50"
+version = "2.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74f1bdc9872430ce9b75da68329d1c1746faf50ffac5f19e02b71e37ff881ffb"
+checksum = "6ab617d94515e94ae53b8406c628598680aa0c9587474ecbe58188f7b345d66c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3742,7 +3714,7 @@ checksum = "a953cb265bef375dae3de6663da4d3804eee9682ea80d8e2542529b73c531c81"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -3941,7 +3913,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
@@ -4211,7 +4183,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
  "wasm-bindgen-shared",
 ]
 
@@ -4245,7 +4217,7 @@ checksum = "642f325be6301eb8107a83d12a8ac6c1e1c54345a7ef1a9261962dfefda09e66"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -4882,9 +4854,9 @@ checksum = "0770833d60a970638e989b3fa9fd2bb1aaadcf88963d1659fd7d9990196ed2d6"
 
 [[package]]
 name = "winit"
-version = "0.29.10"
+version = "0.29.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c824f11941eeae66ec71111cc2674373c772f482b58939bb4066b642aa2ffcf"
+checksum = "272be407f804517512fdf408f0fe6c067bf24659a913c61af97af176bfd5aa92"
 dependencies = [
  "ahash",
  "android-activity",
@@ -5024,12 +4996,12 @@ checksum = "054a8e68b76250b253f671d1268cb7f1ae089ec35e195b2efb2a4e9a836d0621"
 [[package]]
 name = "xmb_lib"
 version = "0.1.0"
-source = "git+https://github.com/ultimate-research/xmb_lib?rev=c71253d#c71253d9f7853939fee88780f07ac0c2f7fd9fd7"
+source = "git+https://github.com/ultimate-research/xmb_lib?rev=faea683#faea6830dafb5962a6ddeb144b7529af51e71286"
 dependencies = [
- "binrw 0.11.2",
+ "binrw 0.13.3",
  "indexmap 1.9.3",
- "ssbh_lib 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ssbh_write 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ssbh_lib",
+ "ssbh_write",
  "thiserror",
  "xmltree",
 ]
@@ -5085,7 +5057,7 @@ checksum = "9ce1b18ccd8e73a9321186f97e46f9f04b778851177567b1975109d26a08d2a6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn 2.0.51",
 ]
 
 [[package]]
