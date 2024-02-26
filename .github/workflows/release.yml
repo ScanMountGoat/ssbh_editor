@@ -13,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gdk-3.0
     - name: Build
       run: cargo build --release
     - name: Create Release Zip
@@ -39,7 +43,7 @@ jobs:
     - name: Set Icon
       run: |
         curl.exe -sSL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-        rcedit.exe target/release/ssbh_editor.exe --set-icon src/icons/SsbhEditor.ico
+        .\rcedit.exe target/release/ssbh_editor.exe --set-icon src/icons/SsbhEditor.ico
     - name: Create Release Zip
       run: Compress-Archive -path target/release/ssbh_editor.exe -destinationPath ssbh_editor_win_x64.zip
     - name: Upload Zip
@@ -79,10 +83,10 @@ jobs:
     - name: Bundle App
       run: cargo bundle --release --target ${{matrix.target}}
     - name: Sign Binaries
-      run: codesign -s - target/${{matrix.target}}/release/bundle/macos/ssbh_editor.app
+      run: codesign -s - target/${{matrix.target}}/release/bundle/osx/ssbh_editor.app
     - name: Create Release Zip
       run: |
-        cp -r target/${{matrix.target}}/release/bundle/macos/ssbh_editor.app ssbh_editor.app
+        cp -r target/${{matrix.target}}/release/bundle/osx/ssbh_editor.app ssbh_editor.app
         zip -r ssbh_editor_macos_${{matrix.desc}}.zip ssbh_editor.app
     - name: Upload Zip
       uses: actions/upload-artifact@v3
