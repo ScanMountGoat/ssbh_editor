@@ -166,7 +166,7 @@ fn update_camera(
     scale_factor: f64,
 ) {
     let (camera_pos, model_view_matrix, mvp_matrix) =
-        calculate_mvp(width, height, camera_state.values);
+        calculate_mvp(width, height, &camera_state.values);
     let transforms = CameraTransforms {
         model_view_matrix,
         mvp_matrix,
@@ -184,7 +184,7 @@ fn update_camera(
 pub fn calculate_mvp(
     width: f32,
     height: f32,
-    camera_values: CameraValues,
+    camera_values: &CameraValues,
 ) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
     let aspect = width / height;
 

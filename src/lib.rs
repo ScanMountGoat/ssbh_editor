@@ -71,7 +71,7 @@ pub struct CameraState {
     pub mvp_matrix: glam::Mat4,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct CameraValues {
     pub translation: glam::Vec3,
@@ -210,7 +210,7 @@ impl RenderState {
         camera_state: &CameraState,
         autohide_expressions: bool,
         current_frame: f32,
-        viewport_color: [u8; 3]
+        viewport_color: [u8; 3],
     ) {
         // Only load render models that need to change to improve performance.
         while let Some(action) = actions.pop_front() {
@@ -230,8 +230,7 @@ impl RenderState {
                             })
                             .ok()
                     });
-        
-                },
+                }
                 RenderAction::Model(model_action) => {
                     self.update_models(model_action, models, device, queue, autohide_expressions)
                 }
@@ -240,7 +239,7 @@ impl RenderState {
                 }
                 RenderAction::UpdateClearColor => {
                     self.update_clear_color(viewport_color);
-                },
+                }
             }
         }
     }
