@@ -209,7 +209,6 @@ impl RenderState {
         autohide_expressions: bool,
     ) {
         // Only load render models that need to change to improve performance.
-        // Attempt to preserve the model and mesh visibility if possible.
         while let Some(action) = actions.pop_front() {
             match action {
                 RenderModelAction::Update(i) => {
@@ -222,6 +221,7 @@ impl RenderState {
                             &model.model,
                             &self.shared_data,
                         );
+                        // Attempt to preserve the model and mesh visibility if possible.
                         copy_visibility(&mut new_render_model, render_model);
 
                         *render_model = new_render_model;
@@ -280,6 +280,24 @@ impl RenderState {
                         .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
                     {
                         render_mesh.is_selected = true;
+                    }
+                }
+                RenderModelAction::UpdateMaterials {
+                    model_index,
+                    modl,
+                    matl,
+                } => {
+                    if let Some(render_model) = self.render_models.get_mut(model_index) {
+                        if let Some(matl) = &matl {
+                            render_model.recreate_materials(
+                                device,
+                                &matl.entries,
+                                &self.shared_data,
+                            );
+                        }
+                        if let Some(modl) = &modl {
+                            render_model.reassign_materials(modl, matl.as_ref());
+                        }
                     }
                 }
             }

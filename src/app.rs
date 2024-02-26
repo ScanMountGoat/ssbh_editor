@@ -300,7 +300,9 @@ pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
 });
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+// Create messages for updates instead of updating directly.
+// This avoids mixing rendering and UI logic in the same function.
+#[derive(Debug, PartialEq, Clone)]
 pub enum RenderAction {
     UpdateRenderSettings,
     UpdateCamera,
@@ -311,10 +313,15 @@ pub enum RenderAction {
     // TODO: thumbnails
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum RenderModelAction {
     Update(usize),
     Remove(usize),
+    UpdateMaterials {
+        model_index: usize,
+        modl: Option<ModlData>,
+        matl: Option<MatlData>,
+    },
     Refresh,
     Clear,
     HideAll,
@@ -338,7 +345,6 @@ pub struct SsbhApp {
 
     pub should_validate_models: bool,
 
-    // TODO: Add a mesh_to_refresh index? Option<folder, mesh>
     pub release_info: LatestReleaseInfo,
 
     pub screenshot_to_render: Option<PathBuf>,
@@ -905,7 +911,7 @@ impl eframe::App for SsbhApp {
             new_release_window(ctx, &mut self.release_info, &mut self.markdown_cache);
         }
 
-        self.should_validate_models |= self.file_editors(ctx, device, render_state);
+        self.should_validate_models |= self.file_editors(ctx, render_state);
 
         if self.show_left_panel {
             SidePanel::left("left_panel")
@@ -1154,20 +1160,13 @@ impl SsbhApp {
         }
     }
 
-    fn file_editors(
-        &mut self,
-        ctx: &Context,
-        device: &wgpu::Device,
-        render_state: &mut RenderState,
-    ) -> bool {
+    fn file_editors(&mut self, ctx: &Context, render_state: &mut RenderState) -> bool {
         let mut file_changed = false;
 
         // TODO: Use some sort of trait to clean up repetitive code?
         // The functions would take an additional ui parameter.
         if let Some(folder_index) = self.ui_state.selected_folder_index {
             if let Some(model) = self.models.get_mut(folder_index) {
-                let render_model = &mut render_state.render_models.get_mut(folder_index);
-
                 // TODO: Group added state and implement the Editor trait.
                 if let Some(matl_index) = self.ui_state.open_matl {
                     if let Some((name, Ok(matl))) = model.model.matls.get_mut(matl_index) {
@@ -1198,23 +1197,18 @@ impl SsbhApp {
 
                         // Update on change to avoid costly state changes every frame.
                         if response.changed {
-                            if let Some(render_model) = render_model {
-                                // Only the model.numatb is rendered in the viewport for now.
-                                // TODO: Move rendering code out of app.rs.
-                                if name == "model.numatb" {
-                                    render_model.recreate_materials(
-                                        device,
-                                        &matl.entries,
-                                        &render_state.shared_data,
-                                    );
-                                    if let Some(modl) =
-                                        find_file(&model.model.modls, "model.numdlb")
-                                    {
-                                        // Reassign materials in case material or shader labels changed.
-                                        // This is necessary for error checkerboards to display properly.
-                                        render_model.reassign_materials(modl, Some(matl))
-                                    }
-                                }
+                            // Only the model.numatb is rendered in the viewport for now.
+                            if name == "model.numatb" {
+                                // Reassign materials in case material or shader labels changed.
+                                // This is necessary for error checkerboards to display properly.
+                                // Perform a cheap clone to avoid lifetime issues.
+                                self.render_model_actions.push_back(
+                                    RenderModelAction::UpdateMaterials {
+                                        model_index: folder_index,
+                                        modl: model.model.find_modl().cloned(),
+                                        matl: None,
+                                    },
+                                );
                             }
                         }
                     }
@@ -1251,12 +1245,13 @@ impl SsbhApp {
                     &mut self.render_model_actions,
                     self.preferences.dark_mode,
                 ) {
-                    // TODO: Pass an onchanged closure to avoid redundant lookups.
-                    if let (Some(modl), matl) = (model.model.find_modl(), model.model.find_matl()) {
-                        if let Some(render_model) = render_model {
-                            render_model.reassign_materials(modl, matl);
-                        }
-                    }
+                    // Perform a cheap clone to avoid lifetime issues.
+                    self.render_model_actions
+                        .push_back(RenderModelAction::UpdateMaterials {
+                            model_index: folder_index,
+                            modl: model.model.find_modl().cloned(),
+                            matl: None,
+                        });
                     file_changed = true;
                 }
 

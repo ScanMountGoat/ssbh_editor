@@ -100,7 +100,7 @@ impl SsbhApp {
     }
 
     fn update_lighting(
-        &mut self,
+        &self,
         render_state: &mut RenderState,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
