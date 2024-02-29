@@ -1373,15 +1373,11 @@ fn edit_vector(
 
 fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) -> bool {
     // TODO: Edit alpha for params with alpha?
-    let mut color = [
-        (255.0 * data.x) as u8,
-        (255.0 * data.y) as u8,
-        (255.0 * data.z) as u8,
-    ];
-    if ui.color_edit_button_srgb(&mut color).changed() {
-        data.x = (color[0] as f32) / 255.0;
-        data.y = (color[1] as f32) / 255.0;
-        data.z = (color[2] as f32) / 255.0;
+    let mut color = [data.x, data.y, data.z];
+    if ui.color_edit_button_rgb(&mut color).changed() {
+        data.x = color[0];
+        data.y = color[1];
+        data.z = color[2];
         true
     } else {
         false
