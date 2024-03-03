@@ -366,6 +366,30 @@ fn edit_matl_entries(
             editor_state.is_editing_material_label = true;
         }
 
+        //Move Material Up
+        if !editor_state.advanced_mode && ui.button("▲").clicked() {
+            if editor_state.selected_material_index > 0 {
+                entries.swap(
+                    editor_state.selected_material_index - 1,
+                    editor_state.selected_material_index,
+                );
+                editor_state.selected_material_index -= 1;
+                changed = true;
+            }
+        }
+
+        //Move Material Down
+        if !editor_state.advanced_mode && ui.button("▼").clicked() {
+            if editor_state.selected_material_index < entries.len() - 1 {
+                entries.swap(
+                    editor_state.selected_material_index,
+                    editor_state.selected_material_index + 1,
+                );
+                editor_state.selected_material_index += 1;
+                changed = true;
+            }
+        }
+
         if editor_state.advanced_mode && ui.button("Delete").clicked() {
             // TODO: Potential panic?
             entries.remove(editor_state.selected_material_index);
@@ -589,6 +613,38 @@ fn menu_bar(
                     remove_unused_materials(&mut matl.entries, &modl.entries);
                     changed = true;
                 }
+            }
+        });
+
+        ui.menu_button("Reorder", |ui| {
+            if ui.button("Move Material to Top").clicked() {
+                ui.close_menu();
+                matl.entries.swap(0, state.selected_material_index);
+                state.selected_material_index = 0;
+                changed = true;
+            }
+
+            if ui.button("Move Material to Bottom").clicked() {
+                ui.close_menu();
+                let last_index = matl.entries.len() - 1;
+                matl.entries.swap(state.selected_material_index, last_index);
+                state.selected_material_index = last_index;
+                changed = true;
+            }
+
+            ui.separator();
+
+            if ui.button("Sort Materials").clicked() {
+                ui.close_menu();
+                let selected_material = matl.entries[state.selected_material_index].clone();
+                matl.entries
+                    .sort_by_key(|k| k.material_label.to_lowercase());
+                state.selected_material_index = matl
+                    .entries
+                    .iter()
+                    .position(|e| e == &selected_material)
+                    .unwrap_or_default();
+                changed = true;
             }
         });
 
