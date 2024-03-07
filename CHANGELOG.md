@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Changed the color space of the color picker in the Matl Editor to be linear to be consistent with the linear float values used in game.
 * Adjusted animation bar to show final frame index for all loaded animations.
+* Changed the appearance of the visibility toggle icons.
 
 ### Fixed
 * Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.

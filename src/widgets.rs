@@ -1,6 +1,6 @@
 use egui::{
-    epaint, pos2, vec2, NumExt, Response, RichText, Sense, TextStyle, Ui, Widget, WidgetInfo,
-    WidgetText, WidgetType,
+    epaint, pos2, vec2, NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText,
+    WidgetType,
 };
 use ssbh_data::skel_data::SkelData;
 
@@ -47,7 +47,6 @@ impl<'a> Widget for EyeCheckBox<'a> {
         response.widget_info(|| WidgetInfo::selected(WidgetType::Checkbox, *checked, text.text()));
 
         if ui.is_rect_visible(rect) {
-            // let visuals = ui.style().interact_selectable(&response, *checked); // too colorful
             let visuals = ui.style().interact(&response);
             let text_pos = pos2(
                 rect.min.x + button_padding.x + icon_width + icon_spacing,
@@ -61,18 +60,11 @@ impl<'a> Widget for EyeCheckBox<'a> {
             ));
 
             if *checked {
-                // TODO: Use a custom shape?
-                // TODO: Make this easier to see when hidden (add a closed eye icon like blender?)
-                let eye_text = WidgetText::RichText(RichText::new("👁").size(20.0)).into_galley(
-                    ui,
-                    None,
-                    wrap_width,
-                    TextStyle::Button,
-                );
-                // TODO: How to center this?
-                let eye_text_pos = pos2(big_icon_rect.min.x - 1.0, big_icon_rect.center().y - 13.0);
-                ui.painter()
-                    .galley(eye_text_pos, eye_text, visuals.text_color());
+                egui::Image::new(egui::include_image!("icons/eye_visibility_open.svg"))
+                    .tint(visuals.text_color())
+                    .paint_at(ui, big_icon_rect);
+            } else {
+                // TODO: closed eye icon.
             }
 
             ui.painter().galley(text_pos, text, visuals.text_color());
