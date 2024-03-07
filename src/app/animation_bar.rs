@@ -62,6 +62,7 @@ pub fn display_animation_bar(
                 // Manually trigger an update in case the playback is paused.
                 animation_state.should_update_animations = true;
             }
+            ui.label(&format!("/ {final_frame_index}"));
         });
     });
 }
