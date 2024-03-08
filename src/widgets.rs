@@ -1,6 +1,6 @@
 use egui::{
-    epaint, pos2, vec2, NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText,
-    WidgetType,
+    epaint, pos2, vec2, Image, NumExt, Response, Sense, TextStyle, TextureOptions, Ui, Widget,
+    WidgetInfo, WidgetText, WidgetType,
 };
 use ssbh_data::skel_data::SkelData;
 
@@ -60,9 +60,7 @@ impl<'a> Widget for EyeCheckBox<'a> {
             ));
 
             if *checked {
-                egui::Image::new(egui::include_image!("icons/eye_visibility_open.svg"))
-                    .tint(visuals.text_color())
-                    .paint_at(ui, big_icon_rect);
+                eye_open_icon(ui, big_icon_rect, visuals);
             } else {
                 // TODO: closed eye icon.
             }
@@ -71,6 +69,24 @@ impl<'a> Widget for EyeCheckBox<'a> {
         }
 
         response
+    }
+}
+
+fn eye_open_icon(ui: &Ui, rect: egui::Rect, visuals: &egui::style::WidgetVisuals) {
+    // Render at twice the desired size to handle high DPI displays.
+    let image = egui::include_image!("icons/eye_visibility_open.svg");
+    match image
+        .load(
+            ui.ctx(),
+            TextureOptions::default(),
+            egui::SizeHint::Size(rect.width() as u32 * 2, rect.height() as u32 * 2),
+        )
+        .unwrap()
+    {
+        egui::load::TexturePoll::Pending { .. } => (),
+        egui::load::TexturePoll::Ready { texture } => Image::new(texture)
+            .tint(visuals.text_color())
+            .paint_at(ui, rect),
     }
 }
 
