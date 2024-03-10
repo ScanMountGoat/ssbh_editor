@@ -198,6 +198,21 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 app.render_actions
                     .push_back(RenderAction::Model(RenderModelAction::HideExpressions));
             }
+            ui.separator();
+
+            if ui.button("Expand All").clicked() {
+                ui.close_menu();
+                for folder in &mut app.models {
+                    folder.is_meshlist_open = true;
+                }
+            }
+
+            if ui.button("Collapse All").clicked() {
+                ui.close_menu();
+                for folder in &mut app.models {
+                    folder.is_meshlist_open = false;
+                }
+            }
         });
 
         ui.menu_button("View", |ui| {

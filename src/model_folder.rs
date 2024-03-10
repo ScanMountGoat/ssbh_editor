@@ -11,6 +11,7 @@ pub struct ModelFolderState {
     pub validation: ModelValidationErrors,
     pub changed: FileChanged,
     pub swing_prc: Option<SwingPrc>, // TODO: Add animation slots?
+    pub is_meshlist_open: bool,
 }
 
 impl ModelFolderState {
@@ -27,6 +28,7 @@ impl ModelFolderState {
             validation: ModelValidationErrors::default(),
             changed,
             swing_prc,
+            is_meshlist_open: true,
         }
     }
 
@@ -151,6 +153,7 @@ mod tests {
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
             changed: FileChanged::default(),
+            is_meshlist_open: true,
         }
     }
 
@@ -181,6 +184,7 @@ mod tests {
             thumbnails: Vec::new(),
             validation: ModelValidationErrors::default(),
             changed: FileChanged::default(),
+            is_meshlist_open: true,
         }
     }
 

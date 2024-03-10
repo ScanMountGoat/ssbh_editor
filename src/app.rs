@@ -1612,7 +1612,10 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui, render_state: &mut R
     {
         let id = ui.make_persistent_id("meshlist").with(i);
 
-        CollapsingState::load_with_default_open(ctx, id, true)
+        // Allow programmatically toggling the open state of each folder.
+        let mut state = CollapsingState::load_with_default_open(ctx, id, true);
+        state.set_open(folder.is_meshlist_open);
+        state
             .show_header(ui, |ui| {
                 if let Some(render_model) = render_state.render_models.get_mut(i) {
                     render_model.is_selected |= ui
@@ -1640,6 +1643,8 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui, render_state: &mut R
                     });
                 }
             });
+        let state = CollapsingState::load_with_default_open(ctx, id, true);
+        folder.is_meshlist_open = state.is_open();
     }
 }
 

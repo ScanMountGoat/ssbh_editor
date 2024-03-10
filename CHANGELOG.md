@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## unreleased
 ### Added
 * Added support for editing the near and far clip distance to the Camera Settings window.
+* Added Meshes > Expand All and Meshes Collapse All menu options.
 
 ### Changed
 * Changed the color space of the color picker in the Matl Editor to be linear to be consistent with the linear float values used in game.
