@@ -13,8 +13,9 @@ use crate::{
     EditorResponse, TextureDimension, Thumbnail,
 };
 use egui::{
-    load::SizedTexture, special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Context,
-    DragValue, Grid, Label, RichText, ScrollArea, TextEdit, Ui, Window,
+    load::SizedTexture, special_emojis::GITHUB, Button, CentralPanel, CollapsingHeader, ComboBox,
+    Context, DragValue, Grid, Label, RichText, ScrollArea, SidePanel, TextEdit, TopBottomPanel, Ui,
+    Window,
 };
 use log::error;
 use rfd::FileDialog;
@@ -53,51 +54,112 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(400.0, 700.0))
         .resizable(true)
         .show(ctx, |ui| {
-            let (menu_changed, menu_saved) = menu_bar(
-                ui,
-                matl,
-                &modl,
-                state,
-                material_presets,
-                folder_name,
-                file_name,
-            );
-            changed |= menu_changed;
-            saved |= menu_saved;
-            ui.separator();
+            TopBottomPanel::top("matl_top_panel").show_inside(ui, |ui| {
+                let (menu_changed, menu_saved) = menu_bar(
+                    ui,
+                    matl,
+                    &modl,
+                    state,
+                    material_presets,
+                    folder_name,
+                    file_name,
+                );
+                changed |= menu_changed;
+                saved |= menu_saved;
+            });
 
-            // TODO: Simplify logic for closing window.
-            let entry = matl.entries.get_mut(state.selected_material_index);
-            let (open, preset_changed) = preset_window(
-                state,
-                ctx,
-                material_presets,
-                default_presets,
-                entry,
-                shader_database,
-            );
-            if !open {
-                state.matl_preset_window_open = false;
-            }
-            changed |= preset_changed;
+            SidePanel::left("matl_left_panel")
+                .default_width(300.0)
+                .show_inside(ui, |ui| {
+                    // Only display a single material at a time.
+                    // This avoids cluttering the UI.
+                    for (i, entry) in matl.entries.iter().enumerate() {
+                        if ui.selectable_label(state.selected_material_index == i, &entry.material_label).clicked() {
+                            state.selected_material_index = i;
+                        }
+                    }
+                    // let entry = matl.entries.get_mut(state.selected_material_index);
+                    // let mut modl_entries: Vec<_> = entry
+                    //     .and_then(|entry| {
+                    //         modl.map(|modl| {
+                    //             modl.entries
+                    //                 .iter_mut()
+                    //                 .filter(|e| e.material_label == entry.material_label)
+                    //                 .collect()
+                    //         })
+                    //     })
+                    //     .unwrap_or_default();
 
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    changed |= edit_matl_entries(
-                        ctx,
-                        ui,
-                        &mut matl.entries,
-                        modl,
-                        validation_errors,
-                        folder_thumbnails,
-                        default_thumbnails,
-                        shader_database,
-                        red_checkerboard,
-                        yellow_checkerboard,
-                        state,
-                    );
+                    // let mut changed = false;
+
+                    // ui.heading("Material");
+                    // ui.horizontal(|ui| {
+                    //     ui.label("Material");
+                    //     let entry = entries.get_mut(editor_state.selected_material_index);
+                    //     if editor_state.is_editing_material_label {
+                    //         changed |= edit_material_label(
+                    //             entry,
+                    //             &mut editor_state.is_editing_material_label,
+                    //             ui,
+                    //             &mut modl_entries,
+                    //         );
+                    //     } else {
+                    //         changed |= material_combo_box(
+                    //             ui,
+                    //             &mut editor_state.selected_material_index,
+                    //             &mut editor_state.hovered_material_index,
+                    //             entries,
+                    //             validation_errors,
+                    //         );
+                    //     }
+
+                    //     if !state.is_editing_material_label && ui.button("Rename").clicked()
+                    //     {
+                    //         state.is_editing_material_label = true;
+                    //     }
+
+                    //     if state.advanced_mode && ui.button("Delete").clicked() {
+                    //         // TODO: Potential panic?
+                    //         entries.remove(state.selected_material_index);
+                    //         changed = true;
+                    //     }
+                    // });
                 });
+
+            CentralPanel::default().show_inside(ui, |ui| {
+                // TODO: Simplify logic for closing window.
+                let entry = matl.entries.get_mut(state.selected_material_index);
+                let (open, preset_changed) = preset_window(
+                    state,
+                    ctx,
+                    material_presets,
+                    default_presets,
+                    entry,
+                    shader_database,
+                );
+                if !open {
+                    state.matl_preset_window_open = false;
+                }
+                changed |= preset_changed;
+
+                ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        changed |= edit_matl_entries(
+                            ctx,
+                            ui,
+                            &mut matl.entries,
+                            modl,
+                            validation_errors,
+                            folder_thumbnails,
+                            default_thumbnails,
+                            shader_database,
+                            red_checkerboard,
+                            yellow_checkerboard,
+                            state,
+                        );
+                    });
+            });
         });
 
     EditorResponse {
@@ -325,55 +387,7 @@ fn edit_matl_entries(
     yellow_checkerboard: egui::TextureId,
     editor_state: &mut MatlEditorState,
 ) -> bool {
-    // Only display a single material at a time.
-    // This avoids cluttering the UI.
-    let entry = entries.get_mut(editor_state.selected_material_index);
-    let mut modl_entries: Vec<_> = entry
-        .and_then(|entry| {
-            modl.map(|modl| {
-                modl.entries
-                    .iter_mut()
-                    .filter(|e| e.material_label == entry.material_label)
-                    .collect()
-            })
-        })
-        .unwrap_or_default();
-
     let mut changed = false;
-
-    ui.heading("Material");
-    ui.horizontal(|ui| {
-        ui.label("Material");
-        let entry = entries.get_mut(editor_state.selected_material_index);
-        if editor_state.is_editing_material_label {
-            changed |= edit_material_label(
-                entry,
-                &mut editor_state.is_editing_material_label,
-                ui,
-                &mut modl_entries,
-            );
-        } else {
-            changed |= material_combo_box(
-                ui,
-                &mut editor_state.selected_material_index,
-                &mut editor_state.hovered_material_index,
-                entries,
-                validation_errors,
-            );
-        }
-
-        if !editor_state.is_editing_material_label && ui.button("Rename").clicked() {
-            editor_state.is_editing_material_label = true;
-        }
-
-        if editor_state.advanced_mode && ui.button("Delete").clicked() {
-            // TODO: Potential panic?
-            entries.remove(editor_state.selected_material_index);
-            changed = true;
-        }
-    });
-    horizontal_separator_empty(ui);
-
     // Advanced mode has more detailed information that most users won't want to edit.
     ui.checkbox(&mut editor_state.advanced_mode, "Advanced Settings");
     horizontal_separator_empty(ui);
