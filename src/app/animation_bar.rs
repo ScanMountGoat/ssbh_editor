@@ -25,15 +25,25 @@ pub fn display_animation_bar(
             // TODO: How to fill available space?
             // TODO: Get the space that would normally be taken up by the central panel?
             ui.spacing_mut().slider_width = (ui.available_width() - 520.0).max(0.0);
-            if ui
-                .add(
-                    // TODO: Show ticks?
-                    egui::Slider::new(&mut animation_state.current_frame, 0.0..=final_frame_index)
-                        .step_by(1.0)
-                        .show_value(false),
-                )
-                .changed()
-            {
+            let response = ui.add(
+                // TODO: Show ticks?
+                egui::Slider::new(&mut animation_state.current_frame, 0.0..=final_frame_index)
+                    .step_by(1.0)
+                    .show_value(false),
+            );
+            if response.hovered() {
+                ui.ctx().input_mut(|i| {
+                    if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowRight) {
+                        animation_state.current_frame += 1.0;
+                        animation_state.should_update_animations = true;
+                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowLeft) {
+                        animation_state.current_frame -= 1.0;
+                        animation_state.should_update_animations = true;
+                    }
+                })
+            };
+
+            if response.changed() {
                 // Manually trigger an update in case the playback is paused.
                 animation_state.should_update_animations = true;
             }
