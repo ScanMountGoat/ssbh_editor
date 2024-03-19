@@ -512,7 +512,6 @@ impl Default for PresetMode {
 pub struct MatlEditorState {
     pub advanced_mode: bool,
     pub selected_material_index: usize,
-    pub is_editing_material_label: bool,
     pub hovered_material_index: Option<usize>,
     pub matl_preset_window_open: bool,
     pub selected_preset_index: usize,
@@ -1173,6 +1172,7 @@ impl SsbhApp {
                             &self.default_presets,
                             self.red_checkerboard,
                             self.yellow_checkerboard,
+                            self.preferences.dark_mode,
                         );
                         // TODO: This modifies the model.numdlb when renaming materials.
                         response.set_changed(&mut model.changed.matls[matl_index]);

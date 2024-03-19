@@ -125,6 +125,7 @@ pub fn modl_editor(
                     let mut entry_to_remove = None;
 
                     // TODO: Avoid allocating here.
+                    // TODO: Don't need a wrapper type?
                     let mut items: Vec<_> = (0..modl.entries.len()).map(ModlEntryIndex).collect();
 
                     let response =

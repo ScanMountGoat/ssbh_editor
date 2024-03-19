@@ -1,7 +1,7 @@
 use crate::{
     app::{
-        display_validation_errors, warning_icon, warning_icon_text, MatlEditorState, PresetMode,
-        UiState,
+        display_validation_errors, draggable_icon, warning_icon, warning_icon_text,
+        MatlEditorState, PresetMode, UiState,
     },
     horizontal_separator_empty,
     material::*,
@@ -17,6 +17,7 @@ use egui::{
     Context, DragValue, Grid, Label, RichText, ScrollArea, SidePanel, TextEdit, TopBottomPanel, Ui,
     Window,
 };
+use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*, Color4f, Vector4};
@@ -43,6 +44,7 @@ pub fn matl_editor(
     default_presets: &[MatlEntryData],
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -71,59 +73,65 @@ pub fn matl_editor(
             SidePanel::left("matl_left_panel")
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
-                    // Only display a single material at a time.
-                    // This avoids cluttering the UI.
-                    for (i, entry) in matl.entries.iter().enumerate() {
-                        if ui.selectable_label(state.selected_material_index == i, &entry.material_label).clicked() {
-                            state.selected_material_index = i;
-                        }
+                    // TODO: Avoid allocating here.
+                    let mut item_indices: Vec<_> = (0..matl.entries.len()).collect();
+
+                    let response = dnd(ui, "matl_dnd").show_vec(
+                        &mut item_indices,
+                        |ui, item_index, handle, _| {
+                            ui.horizontal(|ui| {
+                                let entry = &matl.entries[*item_index];
+
+                                handle.ui(ui, |ui| {
+                                    draggable_icon(ctx, ui, dark_mode);
+                                });
+
+                                // TODO: This doesn't work properly when reordering items.
+                                // TODO: Show details for validation errors?
+                                let error_count = validation_errors
+                                    .iter()
+                                    .filter(|e| e.entry_index == *item_index)
+                                    .count();
+                                let text = if error_count > 0 {
+                                    warning_icon_text(&entry.material_label)
+                                } else {
+                                    RichText::new(&entry.material_label)
+                                };
+
+                                // TODO: wrap text?
+                                let mut response = ui.selectable_label(
+                                    state.selected_material_index == *item_index,
+                                    text,
+                                );
+
+                                if response.clicked() {
+                                    state.selected_material_index = *item_index;
+                                }
+
+                                if error_count > 0 {
+                                    response = response.on_hover_text(format!(
+                                        "{error_count} validation errors detected."
+                                    ));
+                                }
+
+                                // TODO: This needs to be cleared every frame.
+                                // TODO: Use a messages instead?
+                                if response.hovered() {
+                                    // Used for material mask rendering.
+                                    state.hovered_material_index = Some(*item_index);
+                                }
+                            });
+                        },
+                    );
+
+                    if let Some(response) = response.final_update() {
+                        egui_dnd::utils::shift_vec(response.from, response.to, &mut matl.entries);
+                        state.selected_material_index = item_indices
+                            .iter()
+                            .position(|i| *i == state.selected_material_index)
+                            .unwrap_or_default();
+                        changed = true;
                     }
-                    // let entry = matl.entries.get_mut(state.selected_material_index);
-                    // let mut modl_entries: Vec<_> = entry
-                    //     .and_then(|entry| {
-                    //         modl.map(|modl| {
-                    //             modl.entries
-                    //                 .iter_mut()
-                    //                 .filter(|e| e.material_label == entry.material_label)
-                    //                 .collect()
-                    //         })
-                    //     })
-                    //     .unwrap_or_default();
-
-                    // let mut changed = false;
-
-                    // ui.heading("Material");
-                    // ui.horizontal(|ui| {
-                    //     ui.label("Material");
-                    //     let entry = entries.get_mut(editor_state.selected_material_index);
-                    //     if editor_state.is_editing_material_label {
-                    //         changed |= edit_material_label(
-                    //             entry,
-                    //             &mut editor_state.is_editing_material_label,
-                    //             ui,
-                    //             &mut modl_entries,
-                    //         );
-                    //     } else {
-                    //         changed |= material_combo_box(
-                    //             ui,
-                    //             &mut editor_state.selected_material_index,
-                    //             &mut editor_state.hovered_material_index,
-                    //             entries,
-                    //             validation_errors,
-                    //         );
-                    //     }
-
-                    //     if !state.is_editing_material_label && ui.button("Rename").clicked()
-                    //     {
-                    //         state.is_editing_material_label = true;
-                    //     }
-
-                    //     if state.advanced_mode && ui.button("Delete").clicked() {
-                    //         // TODO: Potential panic?
-                    //         entries.remove(state.selected_material_index);
-                    //         changed = true;
-                    //     }
-                    // });
                 });
 
             CentralPanel::default().show_inside(ui, |ui| {
@@ -145,19 +153,21 @@ pub fn matl_editor(
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
-                        changed |= edit_matl_entries(
-                            ctx,
-                            ui,
-                            &mut matl.entries,
-                            modl,
-                            validation_errors,
-                            folder_thumbnails,
-                            default_thumbnails,
-                            shader_database,
-                            red_checkerboard,
-                            yellow_checkerboard,
-                            state,
-                        );
+                        if let Some(entry) = matl.entries.get_mut(state.selected_material_index) {
+                            changed |= edit_matl_entry(
+                                ctx,
+                                ui,
+                                entry,
+                                modl,
+                                validation_errors,
+                                folder_thumbnails,
+                                default_thumbnails,
+                                shader_database,
+                                red_checkerboard,
+                                yellow_checkerboard,
+                                state,
+                            );
+                        }
                     });
             });
         });
@@ -246,19 +256,23 @@ pub fn preset_editor(
                 .show(ui, |ui| {
                     // Use an empty model thumbnail list to encourage using default textures.
                     // These textures will be replaced by param specific defaults anyway.
-                    edit_matl_entries(
-                        ctx,
-                        ui,
-                        user_presets,
-                        None,
-                        &[],
-                        &[],
-                        default_thumbnails,
-                        shader_database,
-                        red_checkerboard,
-                        yellow_checkerboard,
-                        &mut ui_state.preset_editor,
-                    );
+                    if let Some(entry) =
+                        user_presets.get_mut(ui_state.preset_editor.selected_material_index)
+                    {
+                        edit_matl_entry(
+                            ctx,
+                            ui,
+                            entry,
+                            None,
+                            &[],
+                            &[],
+                            default_thumbnails,
+                            shader_database,
+                            red_checkerboard,
+                            yellow_checkerboard,
+                            &mut ui_state.preset_editor,
+                        );
+                    }
                 });
         });
 }
@@ -374,10 +388,10 @@ fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {
     }
 }
 
-fn edit_matl_entries(
+fn edit_matl_entry(
     ctx: &Context,
     ui: &mut Ui,
-    entries: &mut Vec<MatlEntryData>,
+    entry: &mut MatlEntryData,
     modl: Option<&mut ModlData>,
     validation_errors: &[MatlValidationError],
     folder_thumbnails: &[Thumbnail],
@@ -385,34 +399,52 @@ fn edit_matl_entries(
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
-    editor_state: &mut MatlEditorState,
+    state: &mut MatlEditorState,
 ) -> bool {
     let mut changed = false;
     // Advanced mode has more detailed information that most users won't want to edit.
-    ui.checkbox(&mut editor_state.advanced_mode, "Advanced Settings");
+    ui.checkbox(&mut state.advanced_mode, "Advanced Settings");
     horizontal_separator_empty(ui);
 
-    let entry = entries.get_mut(editor_state.selected_material_index);
-    if let Some(entry) = entry {
-        // TODO: Avoid allocating here.
-        let entry_validation_errors: Vec<_> = validation_errors
-            .iter()
-            .filter(|e| e.entry_index == editor_state.selected_material_index)
-            .collect();
+    // TODO: Avoid allocating here.
+    let entry_validation_errors: Vec<_> = validation_errors
+        .iter()
+        .filter(|e| e.entry_index == state.selected_material_index)
+        .collect();
 
-        changed |= edit_matl_entry(
-            ctx,
-            ui,
-            entry,
-            &entry_validation_errors,
-            folder_thumbnails,
-            default_thumbnails,
-            editor_state.advanced_mode,
-            shader_database,
-            red_checkerboard,
-            yellow_checkerboard,
-        );
-    }
+    ui.horizontal(|ui| {
+        ui.label("Material Label");
+        let mut modl_entries: Vec<_> = modl
+            .map(|modl| {
+                modl.entries
+                    .iter_mut()
+                    .filter(|e| e.material_label == entry.material_label)
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        changed |= edit_material_label(entry, ui, &mut modl_entries);
+
+        // TODO: handle deletion using right click or menu option?
+        // if state.advanced_mode && ui.button("Delete").clicked() {
+        //     // TODO: Potential panic?
+        //     matl.entries.remove(state.selected_material_index);
+        //     changed = true;
+        // }
+    });
+
+    changed |= edit_matl_entry_inner(
+        ctx,
+        ui,
+        entry,
+        &entry_validation_errors,
+        folder_thumbnails,
+        default_thumbnails,
+        state.advanced_mode,
+        shader_database,
+        red_checkerboard,
+        yellow_checkerboard,
+    );
 
     changed
 }
@@ -644,80 +676,28 @@ fn help_menu(ui: &mut Ui) {
 }
 
 fn edit_material_label(
-    entry: Option<&mut MatlEntryData>,
-    is_editing_material_label: &mut bool,
+    entry: &mut MatlEntryData,
     ui: &mut Ui,
     modl_entries: &mut [&mut ModlEntryData],
 ) -> bool {
     // TODO: Get this to work with lost_focus for efficiency.
     // TODO: Show errors if these checks fail?
     let mut changed = false;
-    if let Some(entry) = entry {
-        let response = ui.add_sized(
-            egui::Vec2::new(400.0, 20.0),
-            egui::TextEdit::singleline(&mut entry.material_label),
-        );
+    let response = ui.add_sized(
+        egui::Vec2::new(400.0, 20.0),
+        egui::TextEdit::singleline(&mut entry.material_label),
+    );
 
-        changed = response.changed();
-        if changed {
-            // Rename any effected modl entries if the material label changes.
-            // Keep track of modl entries since materials may be renamed.
-            for modl_entry in modl_entries {
-                modl_entry.material_label = entry.material_label.clone();
-            }
-        }
-
-        if response.lost_focus() {
-            *is_editing_material_label = false;
+    changed = response.changed();
+    if changed {
+        // Rename any effected modl entries if the material label changes.
+        // Keep track of modl entries since materials may be renamed.
+        for modl_entry in modl_entries {
+            modl_entry.material_label = entry.material_label.clone();
         }
     }
 
     changed
-}
-
-fn material_combo_box(
-    ui: &mut Ui,
-    selected_index: &mut usize,
-    hovered_index: &mut Option<usize>,
-    entries: &[MatlEntryData],
-    validation: &[MatlValidationError],
-) -> bool {
-    let selected_text = entries
-        .get(*selected_index)
-        .map(|e| e.material_label.clone())
-        .unwrap_or_default();
-
-    let response = ComboBox::from_id_source("MatlEditorMaterialLabel")
-        .selected_text(selected_text)
-        .width(400.0)
-        .show_ui(ui, |ui| {
-            for (i, entry) in entries.iter().enumerate() {
-                let error_count = validation.iter().filter(|e| e.entry_index == i).count();
-                let text = if error_count > 0 {
-                    warning_icon_text(&entry.material_label)
-                } else {
-                    RichText::new(&entry.material_label)
-                };
-                let mut response = ui.selectable_value(selected_index, i, text);
-
-                if error_count > 0 {
-                    response = response
-                        .on_hover_text(format!("{error_count} validation errors detected."));
-                }
-
-                if response.hovered() {
-                    // Used for material mask rendering.
-                    *hovered_index = Some(i);
-                }
-            }
-        });
-
-    if response.inner.is_none() {
-        // The menu was closed, so disable the material mask.
-        *hovered_index = None;
-    }
-
-    response.response.changed()
 }
 
 fn edit_shader_label(
@@ -741,7 +721,7 @@ fn edit_shader_label(
     changed
 }
 
-fn edit_matl_entry(
+fn edit_matl_entry_inner(
     _ctx: &Context,
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
