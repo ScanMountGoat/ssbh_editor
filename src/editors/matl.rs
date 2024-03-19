@@ -366,30 +366,6 @@ fn edit_matl_entries(
             editor_state.is_editing_material_label = true;
         }
 
-        //Move Material Up
-        if !editor_state.advanced_mode && ui.button("▲").clicked() {
-            if editor_state.selected_material_index > 0 {
-                entries.swap(
-                    editor_state.selected_material_index - 1,
-                    editor_state.selected_material_index,
-                );
-                editor_state.selected_material_index -= 1;
-                changed = true;
-            }
-        }
-
-        //Move Material Down
-        if !editor_state.advanced_mode && ui.button("▼").clicked() {
-            if editor_state.selected_material_index < entries.len() - 1 {
-                entries.swap(
-                    editor_state.selected_material_index,
-                    editor_state.selected_material_index + 1,
-                );
-                editor_state.selected_material_index += 1;
-                changed = true;
-            }
-        }
-
         if editor_state.advanced_mode && ui.button("Delete").clicked() {
             // TODO: Potential panic?
             entries.remove(editor_state.selected_material_index);
