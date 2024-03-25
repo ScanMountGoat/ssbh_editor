@@ -53,7 +53,7 @@ pub fn matl_editor(
     let title = folder_editor_title(folder_name, file_name);
     Window::new(format!("Matl Editor ({title})"))
         .open(&mut open)
-        .default_size(egui::Vec2::new(400.0, 700.0))
+        .default_size(egui::Vec2::new(900.0, 900.0))
         .resizable(true)
         .show(ctx, |ui| {
             TopBottomPanel::top("matl_top_panel").show_inside(ui, |ui| {
@@ -73,65 +73,14 @@ pub fn matl_editor(
             SidePanel::left("matl_left_panel")
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
-                    // TODO: Avoid allocating here.
-                    let mut item_indices: Vec<_> = (0..matl.entries.len()).collect();
-
-                    let response = dnd(ui, "matl_dnd").show_vec(
-                        &mut item_indices,
-                        |ui, item_index, handle, _| {
-                            ui.horizontal(|ui| {
-                                let entry = &matl.entries[*item_index];
-
-                                handle.ui(ui, |ui| {
-                                    draggable_icon(ctx, ui, dark_mode);
-                                });
-
-                                // TODO: This doesn't work properly when reordering items.
-                                // TODO: Show details for validation errors?
-                                let error_count = validation_errors
-                                    .iter()
-                                    .filter(|e| e.entry_index == *item_index)
-                                    .count();
-                                let text = if error_count > 0 {
-                                    warning_icon_text(&entry.material_label)
-                                } else {
-                                    RichText::new(&entry.material_label)
-                                };
-
-                                // TODO: wrap text?
-                                let mut response = ui.selectable_label(
-                                    state.selected_material_index == *item_index,
-                                    text,
-                                );
-
-                                if response.clicked() {
-                                    state.selected_material_index = *item_index;
-                                }
-
-                                if error_count > 0 {
-                                    response = response.on_hover_text(format!(
-                                        "{error_count} validation errors detected."
-                                    ));
-                                }
-
-                                // TODO: This needs to be cleared every frame.
-                                // TODO: Use a messages instead?
-                                if response.hovered() {
-                                    // Used for material mask rendering.
-                                    state.hovered_material_index = Some(*item_index);
-                                }
-                            });
-                        },
+                    changed |= select_material_dnd(
+                        &mut matl.entries,
+                        ui,
+                        ctx,
+                        dark_mode,
+                        validation_errors,
+                        state,
                     );
-
-                    if let Some(response) = response.final_update() {
-                        egui_dnd::utils::shift_vec(response.from, response.to, &mut matl.entries);
-                        state.selected_material_index = item_indices
-                            .iter()
-                            .position(|i| *i == state.selected_material_index)
-                            .unwrap_or_default();
-                        changed = true;
-                    }
                 });
 
             CentralPanel::default().show_inside(ui, |ui| {
@@ -180,6 +129,73 @@ pub fn matl_editor(
     }
 }
 
+fn select_material_dnd(
+    entries: &mut [MatlEntryData],
+    ui: &mut Ui,
+    ctx: &Context,
+    dark_mode: bool,
+    validation_errors: &[MatlValidationError],
+    state: &mut MatlEditorState,
+) -> bool {
+    let mut changed = false;
+
+    // TODO: Avoid allocating here.
+    let mut item_indices: Vec<_> = (0..entries.len()).collect();
+
+    let response = dnd(ui, "matl_dnd").show_vec(&mut item_indices, |ui, item_index, handle, _| {
+        ui.horizontal(|ui| {
+            let entry = &entries[*item_index];
+
+            handle.ui(ui, |ui| {
+                draggable_icon(ctx, ui, dark_mode);
+            });
+
+            // TODO: This doesn't work properly when reordering items.
+            // TODO: Show details for validation errors?
+            let error_count = validation_errors
+                .iter()
+                .filter(|e| e.entry_index == *item_index)
+                .count();
+            let text = if error_count > 0 {
+                warning_icon_text(&entry.material_label)
+            } else {
+                RichText::new(&entry.material_label)
+            };
+
+            // TODO: wrap text?
+            let mut response =
+                ui.selectable_label(state.selected_material_index == *item_index, text);
+
+            if response.clicked() {
+                state.selected_material_index = *item_index;
+            }
+
+            if error_count > 0 {
+                response =
+                    response.on_hover_text(format!("{error_count} validation errors detected."));
+            }
+
+            // TODO: This needs to be cleared every frame.
+            // TODO: Use a messages instead?
+            if response.hovered() {
+                // Used for material mask rendering.
+                state.hovered_material_index = Some(*item_index);
+            }
+        });
+    });
+
+    if let Some(response) = response.final_update() {
+        egui_dnd::utils::shift_vec(response.from, response.to, entries);
+        state.selected_material_index = item_indices
+            .iter()
+            .position(|i| *i == state.selected_material_index)
+            .unwrap_or_default();
+        changed = true;
+    }
+
+    changed
+}
+
 // TODO: Validate presets?
 pub fn preset_editor(
     ctx: &egui::Context,
@@ -189,92 +205,115 @@ pub fn preset_editor(
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
+    dark_mode: bool,
 ) {
-    egui::Window::new("Material Preset Editor")
+    Window::new("Material Preset Editor")
         .open(&mut ui_state.preset_editor_open)
+        .default_size(egui::Vec2::new(900.0, 900.0))
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Save").clicked() {
-                        ui.close_menu();
-
-                        let path = presets_file();
-                        save_material_presets(user_presets, path);
-                    }
-                });
-
-                ui.menu_button("Import", |ui| {
-                    // Import presets from external formats.
-                    if ui
-                        .add(Button::new("JSON Presets (ssbh_data_json)").wrap(false))
-                        .clicked()
-                    {
-                        ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("Matl JSON", &["json"])
-                            .pick_file()
-                        {
-                            load_presets_from_file(user_presets, file, load_json_presets);
-                        }
-                    }
-
-                    if ui
-                        .add(Button::new("XML Presets (Cross Mod)").wrap(false))
-                        .clicked()
-                    {
-                        ui.close_menu();
-
-                        if let Some(file) = FileDialog::new()
-                            .add_filter("Matl XML", &["xml"])
-                            .pick_file()
-                        {
-                            load_presets_from_file(user_presets, file, load_xml_presets);
-                        }
-                    }
-                });
-
-                ui.menu_button("Material", |ui| {
-                    if ui.button("Add New Material").clicked() {
-                        ui.close_menu();
-
-                        let new_entry = default_material();
-                        user_presets.push(new_entry);
-                    }
-
-                    if ui.button("Remove Duplicates").clicked() {
-                        ui.close_menu();
-
-                        remove_duplicates(user_presets);
-                    }
-                });
-                help_menu(ui);
+            TopBottomPanel::top("matl_presets_top_panel").show_inside(ui, |ui| {
+                presets_menu(ui, user_presets);
             });
 
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    // Use an empty model thumbnail list to encourage using default textures.
-                    // These textures will be replaced by param specific defaults anyway.
-                    if let Some(entry) =
-                        user_presets.get_mut(ui_state.preset_editor.selected_material_index)
-                    {
-                        edit_matl_entry(
-                            ctx,
-                            ui,
-                            entry,
-                            None,
-                            &[],
-                            &[],
-                            default_thumbnails,
-                            shader_database,
-                            red_checkerboard,
-                            yellow_checkerboard,
-                            &mut ui_state.preset_editor,
-                        );
-                    }
+            SidePanel::left("matl_presets_left_panel")
+                .default_width(300.0)
+                .show_inside(ui, |ui| {
+                    select_material_dnd(
+                        user_presets,
+                        ui,
+                        ctx,
+                        dark_mode,
+                        &[],
+                        &mut ui_state.preset_editor,
+                    );
                 });
+
+            CentralPanel::default().show_inside(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        // Use an empty model thumbnail list to encourage using default textures.
+                        // These textures will be replaced by param specific defaults anyway.
+                        if let Some(entry) =
+                            user_presets.get_mut(ui_state.preset_editor.selected_material_index)
+                        {
+                            edit_matl_entry(
+                                ctx,
+                                ui,
+                                entry,
+                                None,
+                                &[],
+                                &[],
+                                default_thumbnails,
+                                shader_database,
+                                red_checkerboard,
+                                yellow_checkerboard,
+                                &mut ui_state.preset_editor,
+                            );
+                        }
+                    });
+            });
         });
+}
+
+fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
+    egui::menu::bar(ui, |ui| {
+        ui.menu_button("File", |ui| {
+            if ui.button("Save").clicked() {
+                ui.close_menu();
+
+                let path = presets_file();
+                save_material_presets(user_presets, path);
+            }
+        });
+
+        ui.menu_button("Import", |ui| {
+            // Import presets from external formats.
+            if ui
+                .add(Button::new("JSON Presets (ssbh_data_json)").wrap(false))
+                .clicked()
+            {
+                ui.close_menu();
+
+                if let Some(file) = FileDialog::new()
+                    .add_filter("Matl JSON", &["json"])
+                    .pick_file()
+                {
+                    load_presets_from_file(user_presets, file, load_json_presets);
+                }
+            }
+
+            if ui
+                .add(Button::new("XML Presets (Cross Mod)").wrap(false))
+                .clicked()
+            {
+                ui.close_menu();
+
+                if let Some(file) = FileDialog::new()
+                    .add_filter("Matl XML", &["xml"])
+                    .pick_file()
+                {
+                    load_presets_from_file(user_presets, file, load_xml_presets);
+                }
+            }
+        });
+
+        ui.menu_button("Material", |ui| {
+            if ui.button("Add New Material").clicked() {
+                ui.close_menu();
+
+                let new_entry = default_material();
+                user_presets.push(new_entry);
+            }
+
+            if ui.button("Remove Duplicates").clicked() {
+                ui.close_menu();
+
+                remove_duplicates(user_presets);
+            }
+        });
+        help_menu(ui);
+    });
 }
 
 fn remove_duplicates(entries: &mut Vec<MatlEntryData>) {
@@ -682,13 +721,12 @@ fn edit_material_label(
 ) -> bool {
     // TODO: Get this to work with lost_focus for efficiency.
     // TODO: Show errors if these checks fail?
-    let mut changed = false;
     let response = ui.add_sized(
         egui::Vec2::new(400.0, 20.0),
         egui::TextEdit::singleline(&mut entry.material_label),
     );
 
-    changed = response.changed();
+    let changed = response.changed();
     if changed {
         // Rename any effected modl entries if the material label changes.
         // Keep track of modl entries since materials may be renamed.

@@ -900,6 +900,7 @@ impl eframe::App for SsbhApp {
             render_state.shared_data.database(),
             self.red_checkerboard,
             self.yellow_checkerboard,
+            self.preferences.dark_mode,
         );
 
         // Don't reopen the window once closed.
