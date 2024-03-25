@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the color space of the color picker in the Matl Editor to be linear to be consistent with the linear float values used in game.
 * Adjusted animation bar to show final frame index for all loaded animations.
 * Changed the appearance of the visibility toggle icons.
+* Changed the Matl Editor and Preset Editor to use a side panel to select the entry to edit as well as manually reorder entries using drag and drop.
+* Moved material deletion to right clicking the selectable material label in the material list panel.
 
 ### Fixed
 * Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.
