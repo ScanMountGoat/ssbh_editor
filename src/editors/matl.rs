@@ -130,7 +130,7 @@ pub fn matl_editor(
 }
 
 fn select_material_dnd(
-    entries: &mut [MatlEntryData],
+    entries: &mut Vec<MatlEntryData>,
     ui: &mut Ui,
     ctx: &Context,
     dark_mode: bool,
@@ -141,6 +141,8 @@ fn select_material_dnd(
 
     // TODO: Avoid allocating here.
     let mut item_indices: Vec<_> = (0..entries.len()).collect();
+
+    let mut index_to_delete = None;
 
     let response = dnd(ui, "matl_dnd").show_vec(&mut item_indices, |ui, item_index, handle, _| {
         ui.horizontal(|ui| {
@@ -181,6 +183,14 @@ fn select_material_dnd(
                 // Used for material mask rendering.
                 state.hovered_material_index = Some(*item_index);
             }
+
+            response.context_menu(|ui| {
+                // TODO: Also add a menu option?
+                if ui.button("Delete").clicked() {
+                    ui.close_menu();
+                    index_to_delete = Some(*item_index);
+                }
+            });
         });
     });
 
@@ -190,6 +200,11 @@ fn select_material_dnd(
             .iter()
             .position(|i| *i == state.selected_material_index)
             .unwrap_or_default();
+        changed = true;
+    }
+
+    if let Some(i) = index_to_delete {
+        entries.remove(i);
         changed = true;
     }
 
@@ -463,13 +478,6 @@ fn edit_matl_entry(
             .unwrap_or_default();
 
         changed |= edit_material_label(entry, ui, &mut modl_entries);
-
-        // TODO: handle deletion using right click or menu option?
-        // if state.advanced_mode && ui.button("Delete").clicked() {
-        //     // TODO: Potential panic?
-        //     matl.entries.remove(state.selected_material_index);
-        //     changed = true;
-        // }
     });
 
     changed |= edit_matl_entry_inner(
