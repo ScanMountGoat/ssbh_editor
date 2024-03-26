@@ -783,6 +783,9 @@ impl eframe::App for SsbhApp {
             .unwrap_or("")
             .to_owned();
 
+        // TODO: Find a better way to clear this every frame.
+        self.ui_state.matl_editor.hovered_material_index = None;
+
         if self.animation_state.is_playing {
             let final_frame_index = self.max_final_frame_index(render_state);
 
