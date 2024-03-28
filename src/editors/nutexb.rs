@@ -1,5 +1,5 @@
 use crate::{horizontal_separator_empty, RenderState};
-use egui::{special_emojis::GITHUB, DragValue};
+use egui::{special_emojis::GITHUB, ComboBox, DragValue, Slider};
 use egui_wgpu::CallbackTrait;
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;
@@ -78,18 +78,37 @@ pub fn nutexb_viewer(
                 // TODO: Show a pixel grid in screen space?
                 // TODO: Composite with a background color for alpha?
 
-                if nutexb.footer.mipmap_count > 0 {
+                if nutexb.footer.mipmap_count > 1 {
                     ui.label("Mipmap");
-                    // TODO: Easier to use a slider?
-                    ui.add(
-                        DragValue::new(&mut settings.mipmap)
-                            .clamp_range(0..=nutexb.footer.mipmap_count - 1),
-                    );
+                    let mut mip = settings.mipmap as u32;
+                    if ui
+                        .add(Slider::new(
+                            &mut mip,
+                            0..=nutexb.footer.mipmap_count.saturating_sub(1),
+                        ))
+                        .changed()
+                    {
+                        settings.mipmap = mip as f32;
+                    }
                 }
 
-                // TODO: Disable UI if there are no mips/layers?
-                if nutexb.footer.layer_count > 1 {
-                    // TODO: Show cube map labels like X+?
+                if nutexb.footer.layer_count == 6 {
+                    let layers = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"];
+                    ui.label("Layer");
+                    ComboBox::from_id_source("nutexb_layer")
+                        .selected_text(
+                            layers
+                                .get(settings.layer as usize)
+                                .copied()
+                                .unwrap_or_default(),
+                        )
+                        .show_ui(ui, |ui| {
+                            for (i, layer) in layers.into_iter().enumerate() {
+                                ui.selectable_value(&mut settings.layer, i as u32, layer);
+                            }
+                        });
+                } else if nutexb.footer.layer_count > 1 {
+                    // This case won't be used for in game nutexb files.
                     ui.label("Layer");
                     ui.add(
                         DragValue::new(&mut settings.layer)

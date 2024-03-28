@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the appearance of the visibility toggle icons.
 * Changed the Matl Editor and Preset Editor to use a side panel to select the entry to edit as well as manually reorder entries using drag and drop.
 * Moved material deletion to right clicking the selectable material label in the material list panel.
+* Changed the Nutexb Viewer to make selecting mipmaps easier.
+* Changed the appearance of the layer selector in the Nutexb Viewer to include face names like "X+" or "Z-".
 
 ### Fixed
 * Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.
