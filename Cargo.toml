@@ -7,13 +7,13 @@ description = "View, edit, and validate models for Smash Ultimate"
 
 [dependencies]
 chrono = "0.4"
-egui = { version = "0.26.0", default-features = false }
-egui_extras = { version = "0.26.0", features = ["svg"] }
-egui-wgpu = "0.26.0"
-egui_plot = "0.26.0"
-eframe = { version = "0.26.0", default-features = false, features = ["wayland", "x11", "wgpu"] }
-egui_dnd = "0.7.0"
-egui_commonmark = "0.12.1"
+egui = { version = "0.27.2", default-features = false }
+egui_extras = { version = "0.27.2", features = ["svg"] }
+egui-wgpu = "0.27.2"
+egui_plot = "0.27.2"
+eframe = { version = "0.27.2", default-features = false, features = ["wayland", "x11", "wgpu"] }
+egui_dnd = "0.8.0"
+egui_commonmark = "0.15.0"
 wgpu = "0.19.0"
 glam = { version = "0.25.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.10.0"
