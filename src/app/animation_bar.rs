@@ -33,29 +33,42 @@ pub fn display_animation_bar(
             );
             if response.hovered() {
                 ui.ctx().input_mut(|i| {
-                    if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowLeft) { //Go back one frame
-                        animation_state.current_frame = (animation_state.current_frame - 1.0).ceil();
+                    if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowLeft) {
+                        //Go back one frame
+                        animation_state.current_frame =
+                            (animation_state.current_frame - 1.0).ceil();
                         animation_state.should_update_animations = true;
-                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowRight) { //Go forward one frame
-                        animation_state.current_frame = (animation_state.current_frame + 1.0).floor();
+                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowRight) {
+                        //Go forward one frame
+                        animation_state.current_frame =
+                            (animation_state.current_frame + 1.0).floor();
                         animation_state.should_update_animations = true;
-                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowLeft) { //Go back to first frame
+                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowLeft) {
+                        //Go back to first frame
                         animation_state.current_frame = 0.0;
                         animation_state.should_update_animations = true;
-                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowRight) { //Go forward to last frame
+                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowRight) {
+                        //Go forward to last frame
                         animation_state.current_frame = final_frame_index;
                         animation_state.should_update_animations = true;
-                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowUp) { //Speed up by 0.01
+                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowUp) {
+                        //Speed up by 0.01
                         animation_state.playback_speed += 0.01;
-                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowDown) { //Slow down by 0.01
+                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowDown) {
+                        //Slow down by 0.01
                         animation_state.playback_speed -= 0.01;
-                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowUp) { //Speed up to multiple of 0.25
-                        animation_state.playback_speed = (animation_state.playback_speed * 4.0 + 1.0).floor() / 4.0;
-                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowDown) { //Slow down to multiple of 0.25
-                        animation_state.playback_speed = (animation_state.playback_speed * 4.0 - 1.0).ceil() / 4.0;
-                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::Space) { //Play or Pause
+                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowUp) {
+                        //Speed up to multiple of 0.25
+                        animation_state.playback_speed =
+                            (animation_state.playback_speed * 4.0 + 1.0).floor() / 4.0;
+                    } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowDown) {
+                        //Slow down to multiple of 0.25
+                        animation_state.playback_speed =
+                            (animation_state.playback_speed * 4.0 - 1.0).ceil() / 4.0;
+                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::Space) {
+                        //Play or Pause
                         animation_state.is_playing = !animation_state.is_playing;
-                    }                    
+                    }
                 })
             };
 
