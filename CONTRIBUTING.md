@@ -21,7 +21,9 @@ ssbh_editor. If an issue on ssbh_editor requires a change to ssbh_data or ssbh_w
 ask on the ssbh_editor issue first about the difficulty of the required code changes.
 
 Before starting work on a change, make sure your fork is up to date with the latest main branch by running `git pull --rebase upstream main`.
-Try to keep changes to a single commit. If you need to make small changes to respond to feedback, you can combine commits and update the branch on your fork with `git push --force`. If the PR consists of many commits, I'll squash the commits when merging. Make sure to keep your fork up to date to avoid any complications when merginging the PR. There are numerous online resources for how to use git. Make a backup of your code folder first before trying anything unfamiliar with git in case something goes wrong.
+If the PR consists of many commits, I'll squash the commits when merging. Make sure to keep your fork up to date to avoid any complications when merging the PR.
+
+All pull requests should pass all tests with `cargo test` and be correctly formatted with `cargo fmt`. This will be checked using GitHub Actions for any commits made on your pull request.
 
 Once you've finished the implementation on your fork, open a PR for review. It's ok if the code isn't perfect or has a few bugs. 
 I'll review the code when I'm available and give any feedback on changes that need to be made before merging.
