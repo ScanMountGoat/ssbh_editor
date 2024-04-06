@@ -1,4 +1,5 @@
 use crate::{horizontal_separator_empty, widgets::*};
+use egui::ScrollArea;
 use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
 
 pub fn render_settings_window(
@@ -12,14 +13,15 @@ pub fn render_settings_window(
 ) {
     egui::Window::new("Render Settings")
         .open(open)
-        .resizable(false)
+        .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("Help", |ui| {
                     if ui.button("Render Settings Wiki").clicked() {
                         ui.close_menu();
 
-                        let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Render-Settings";
+                        let link =
+                            "https://github.com/ScanMountGoat/ssbh_editor/wiki/Render-Settings";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");
                         }
@@ -28,96 +30,120 @@ pub fn render_settings_window(
             });
             ui.separator();
 
-            ui.heading("Debug Shading");
-            egui::Grid::new("debug_shading_grid").show(ui, |ui| {
-                // TODO: Add descriptions.
-                ui.label("Debug Mode");
-
-                edit_debug_mode(settings, ui);
-
-                ui.end_row();
-
-                if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
-                    ui.label("Transition Material");
-                    enum_combo_box(ui, "Transition Material", &mut settings.transition_material);
-                    ui.end_row();
-
-                    ui.label("Transition Factor");
-                    ui.add(DragSlider::new(
-                        "transition_factor",
-                        &mut settings.transition_factor,
-                    ));
-                    ui.end_row();
-                }
-            });
-
-            if settings.debug_mode != DebugMode::Shaded {
-                debug_mode_options(ui, settings, options);
-            }
-            // TODO: Move this somewhere else.
-            // TODO: Add tabs or collapsing headers?
-            ui.checkbox(&mut options.draw_floor_grid, "Floor Grid");
-            horizontal_separator_empty(ui);
-
-            ui.heading("Render Passes");
-            ui.checkbox(&mut settings.render_diffuse, "Enable Diffuse");
-            ui.checkbox(&mut settings.render_specular, "Enable Specular");
-            ui.checkbox(&mut settings.render_emission, "Enable Emission");
-            ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting");
-            ui.checkbox(&mut settings.render_bloom, "Enable Bloom");
-            horizontal_separator_empty(ui);
-
-            ui.heading("Lighting");
-            ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
-            horizontal_separator_empty(ui);
-
-            ui.heading("Materials");
-            ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color")
-                .on_hover_text("Render vertex color attributes like colorSet3 or colorSet5.");
-            ui.checkbox(&mut settings.scale_vertex_color, "Scale Vertex Color")
-                .on_hover_text("Scale color sets by their in game scaling values. Disabling this will use the raw color values." );
-
-            egui::Grid::new("enable_texture_channels").show(ui, |ui| {
-                ui.label("Enable Nor Channels");
-                ui.horizontal(|ui| {
-                    ui.toggle_value(&mut settings.render_nor[0], "R");
-                    ui.toggle_value(&mut settings.render_nor[1], "G");
-                    ui.toggle_value(&mut settings.render_nor[2], "B");
-                    ui.toggle_value(&mut settings.render_nor[3], "A");
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    edit_render_settings(
+                        ui,
+                        settings,
+                        options,
+                        skinning_settings,
+                        enable_helper_bones,
+                        draw_bone_names,
+                    );
                 });
-                ui.end_row();
-
-                ui.label("Enable Prm Channels");
-                ui.horizontal(|ui| {
-                    ui.toggle_value(&mut settings.render_prm[0], "R");
-                    ui.toggle_value(&mut settings.render_prm[1], "G");
-                    ui.toggle_value(&mut settings.render_prm[2], "B");
-                    ui.toggle_value(&mut settings.render_prm[3], "A");
-                });
-            });
-            horizontal_separator_empty(ui);
-
-            ui.heading("Animation");
-
-            ui.checkbox(
-                &mut skinning_settings.enable_parenting,
-                "Enable Mesh Parenting",
-            ).on_hover_text("Apply the mesh object's parent bone transform");
-
-            ui.checkbox(
-                &mut skinning_settings.enable_skinning,
-                "Enable Vertex Skinning",
-            ).on_hover_text("Deform the vertices based on the vertex skin weights");
-
-            ui.checkbox(enable_helper_bones, "Enable Helper Bones")
-                .on_hover_text("Apply helper bone constraints from the .nuhlpb file");
-            horizontal_separator_empty(ui);
-
-            ui.heading("Skeleton");
-            ui.checkbox(&mut options.draw_bones, "Draw Bones");
-            ui.checkbox(&mut options.draw_bone_axes, "Draw Bone Axes");
-            ui.checkbox(draw_bone_names, "Draw Bone Names");
         });
+}
+
+fn edit_render_settings(
+    ui: &mut egui::Ui,
+    settings: &mut RenderSettings,
+    options: &mut ModelRenderOptions,
+    skinning_settings: &mut SkinningSettings,
+    enable_helper_bones: &mut bool,
+    draw_bone_names: &mut bool,
+) {
+    ui.heading("Debug Shading");
+    egui::Grid::new("debug_shading_grid").show(ui, |ui| {
+        // TODO: Add descriptions.
+        ui.label("Debug Mode");
+
+        edit_debug_mode(settings, ui);
+
+        ui.end_row();
+
+        if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
+            ui.label("Transition Material");
+            enum_combo_box(ui, "Transition Material", &mut settings.transition_material);
+            ui.end_row();
+
+            ui.label("Transition Factor");
+            ui.add(DragSlider::new(
+                "transition_factor",
+                &mut settings.transition_factor,
+            ));
+            ui.end_row();
+        }
+    });
+
+    if settings.debug_mode != DebugMode::Shaded {
+        debug_mode_options(ui, settings, options);
+    }
+    // TODO: Move this somewhere else.
+    // TODO: Add tabs or collapsing headers?
+    ui.checkbox(&mut options.draw_floor_grid, "Floor Grid");
+    horizontal_separator_empty(ui);
+
+    ui.heading("Render Passes");
+    ui.checkbox(&mut settings.render_diffuse, "Enable Diffuse");
+    ui.checkbox(&mut settings.render_specular, "Enable Specular");
+    ui.checkbox(&mut settings.render_emission, "Enable Emission");
+    ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting");
+    ui.checkbox(&mut settings.render_bloom, "Enable Bloom");
+    horizontal_separator_empty(ui);
+
+    ui.heading("Lighting");
+    ui.checkbox(&mut settings.render_shadows, "Enable Shadows");
+    horizontal_separator_empty(ui);
+
+    ui.heading("Materials");
+    ui.checkbox(&mut settings.render_vertex_color, "Enable Vertex Color")
+        .on_hover_text("Render vertex color attributes like colorSet3 or colorSet5.");
+    ui.checkbox(&mut settings.scale_vertex_color, "Scale Vertex Color")
+        .on_hover_text("Scale color sets by their in game scaling values. Disabling this will use the raw color values." );
+
+    egui::Grid::new("enable_texture_channels").show(ui, |ui| {
+        ui.label("Enable Nor Channels");
+        ui.horizontal(|ui| {
+            ui.toggle_value(&mut settings.render_nor[0], "R");
+            ui.toggle_value(&mut settings.render_nor[1], "G");
+            ui.toggle_value(&mut settings.render_nor[2], "B");
+            ui.toggle_value(&mut settings.render_nor[3], "A");
+        });
+        ui.end_row();
+
+        ui.label("Enable Prm Channels");
+        ui.horizontal(|ui| {
+            ui.toggle_value(&mut settings.render_prm[0], "R");
+            ui.toggle_value(&mut settings.render_prm[1], "G");
+            ui.toggle_value(&mut settings.render_prm[2], "B");
+            ui.toggle_value(&mut settings.render_prm[3], "A");
+        });
+    });
+    horizontal_separator_empty(ui);
+
+    ui.heading("Animation");
+
+    ui.checkbox(
+        &mut skinning_settings.enable_parenting,
+        "Enable Mesh Parenting",
+    )
+    .on_hover_text("Apply the mesh object's parent bone transform");
+
+    ui.checkbox(
+        &mut skinning_settings.enable_skinning,
+        "Enable Vertex Skinning",
+    )
+    .on_hover_text("Deform the vertices based on the vertex skin weights");
+
+    ui.checkbox(enable_helper_bones, "Enable Helper Bones")
+        .on_hover_text("Apply helper bone constraints from the .nuhlpb file");
+    horizontal_separator_empty(ui);
+
+    ui.heading("Skeleton");
+    ui.checkbox(&mut options.draw_bones, "Draw Bones");
+    ui.checkbox(&mut options.draw_bone_axes, "Draw Bone Axes");
+    ui.checkbox(draw_bone_names, "Draw Bone Names");
 }
 
 fn debug_mode_options(
