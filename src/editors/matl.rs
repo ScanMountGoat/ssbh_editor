@@ -53,7 +53,7 @@ pub fn matl_editor(
     let title = folder_editor_title(folder_name, file_name);
     Window::new(format!("Matl Editor ({title})"))
         .open(&mut open)
-        .default_size(egui::Vec2::new(900.0, 900.0))
+        .default_size(egui::Vec2::new(700.0, 900.0))
         .resizable(true)
         .show(ctx, |ui| {
             TopBottomPanel::top("matl_top_panel").show_inside(ui, |ui| {
@@ -919,17 +919,14 @@ fn edit_matl_entry_inner(
     }
     horizontal_separator_empty(ui);
 
-    Grid::new("vectors").show(ui, |ui| {
-        for param in entry.vectors.iter_mut() {
-            changed |= edit_vector(
-                ui,
-                param,
-                !unused_parameters.contains(&param.param_id),
-                program,
-            );
-            ui.end_row();
-        }
-    });
+    for param in entry.vectors.iter_mut() {
+        changed |= edit_vector(
+            ui,
+            param,
+            !unused_parameters.contains(&param.param_id),
+            program,
+        );
+    }
     horizontal_separator_empty(ui);
 
     Grid::new("matl textures").show(ui, |ui| {
@@ -1400,12 +1397,6 @@ fn edit_vector(
 ) -> bool {
     let mut changed = false;
 
-    // Disabling the entire row interferes with the grid columns.
-    // Disable each item individually.
-    ui.add_enabled_ui(enabled, |ui| {
-        changed |= edit_vector4_rgba(ui, &mut param.data);
-    });
-
     ui.add_enabled(enabled, Label::new(param_label(param.param_id)))
         .on_disabled_hover_text(UNUSED_PARAM);
 
@@ -1435,10 +1426,15 @@ fn edit_vector(
         ));
     };
 
-    edit_component(ui, &mut changed, 0, &mut param.data.x);
-    edit_component(ui, &mut changed, 1, &mut param.data.y);
-    edit_component(ui, &mut changed, 2, &mut param.data.z);
-    edit_component(ui, &mut changed, 3, &mut param.data.w);
+    ui.horizontal(|ui| {
+        ui.add_enabled_ui(enabled, |ui| {
+            changed |= edit_vector4_rgba(ui, &mut param.data);
+        });
+        edit_component(ui, &mut changed, 0, &mut param.data.x);
+        edit_component(ui, &mut changed, 1, &mut param.data.y);
+        edit_component(ui, &mut changed, 2, &mut param.data.z);
+        edit_component(ui, &mut changed, 3, &mut param.data.w);
+    });
 
     changed
 }
