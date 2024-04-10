@@ -152,13 +152,12 @@ fn select_material_dnd(
                 draggable_icon(ctx, ui, dark_mode);
             });
 
-            // TODO: This doesn't work properly when reordering items.
-            // TODO: Show details for validation errors?
-            let error_count = validation_errors
+            // TODO: Avoid collect.
+            let errors: Vec<_> = validation_errors
                 .iter()
                 .filter(|e| e.entry_index == *item_index)
-                .count();
-            let text = if error_count > 0 {
+                .collect();
+            let text = if !errors.is_empty() {
                 warning_icon_text(&entry.material_label)
             } else {
                 RichText::new(&entry.material_label)
@@ -172,9 +171,8 @@ fn select_material_dnd(
                 state.selected_material_index = *item_index;
             }
 
-            if error_count > 0 {
-                response =
-                    response.on_hover_text(format!("{error_count} validation errors detected."));
+            if !errors.is_empty() {
+                response = response.on_hover_ui(|ui| display_validation_errors(ui, &errors));
             }
 
             // TODO: This needs to be cleared every frame.

@@ -647,8 +647,8 @@ fn validate_renormal_material_entries(
     for (entry_index, entry) in matl
         .entries
         .iter()
-        .filter(|e| e.material_label.contains("RENORMAL"))
         .enumerate()
+        .filter(|(_, e)| e.material_label.contains("RENORMAL"))
     {
         if let Some(adj) = adj {
             if let Some(modl) = modl {
