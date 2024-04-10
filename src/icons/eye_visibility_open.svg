@@ -23,7 +23,7 @@
    inkscape:pageopacity="0.0"
    inkscape:pageshadow="2"
    inkscape:zoom="64"
-   inkscape:cx="5.7109375"
+   inkscape:cx="5.703125"
    inkscape:cy="8.4296875"
    inkscape:document-units="px"
    inkscape:current-layer="layer1"
@@ -59,6 +59,6 @@
      r="2" /><path
      id="path2"
      style="color:#000000;fill:#ffffff;fill-opacity:1;-inkscape-stroke:none"
-     d="M 15,8 C 12.839844,11 12,13.041212 8,13 4,13.041212 3,11 1,8 3,5 4.906097,3.0689492 8,3 11.093903,2.931051 12.839844,5 15,8 Z M 8,4.5 C 5.1778569,4.5446227 3.9857674,6 3.9804688,8 3.9751699,10.000088 6.000002,11.463355 8,11.5 9.999998,11.463355 12.089451,9.9988881 12.019531,8 11.953125,6.1015824 10.999868,4.4525672 8,4.5 Z"
+     d="M 15,8 C 12.839844,11 12,13.041212 8,13 4,13.041212 3,11 1,8 3,5 4.906097,3.0689492 8,3 11.093903,2.931051 12.839844,5 15,8 Z M 8,4 C 5.1778569,4.0446227 3.9857674,6 3.9804688,8 3.9751699,10.000088 6.000002,11.91648 8,11.953125 9.999998,11.91648 12.089451,9.9988881 12.019531,8 11.953125,6.1015824 10.999868,3.9525672 8,4 Z"
      transform="matrix(-1,0,0,1,16,0)"
      sodipodi:nodetypes="cccscsscss" /></g><inkscape:templateinfo><inkscape:name>default</inkscape:name><inkscape:date>2020-08-26</inkscape:date></inkscape:templateinfo></svg>
