@@ -651,20 +651,15 @@ fn validate_renormal_material_entries(
         .enumerate()
     {
         if let Some(adj) = adj {
-            // TODO: Get assigned meshes
             if let Some(modl) = modl {
                 if let Some(mesh) = mesh {
-                    for (mesh_index, mesh) in modl
-                        .entries
-                        .iter()
-                        .filter(|e| e.material_label == entry.material_label)
-                        .filter_map(|e| {
-                            mesh.objects.iter().find(|o| {
-                                o.name == e.mesh_object_name && o.subindex == e.mesh_object_subindex
-                            })
+                    for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
+                        modl.entries.iter().any(|e| {
+                            e.mesh_object_name == m.name
+                                && e.mesh_object_subindex == m.subindex
+                                && e.material_label == entry.material_label
                         })
-                        .enumerate()
-                    {
+                    }) {
                         if !adj
                             .entries
                             .iter()
@@ -837,6 +832,7 @@ fn validate_modl_entries(
 mod tests {
     use nutexb::{NutexbFile, NutexbFooter, NutexbFormat};
     use ssbh_data::{
+        adj_data::AdjEntryData,
         matl_data::{
             BlendFactor, BlendStateData, BlendStateParam, MatlEntryData, SamplerData, SamplerParam,
             TextureParam,
@@ -1038,26 +1034,46 @@ mod tests {
         let matl = MatlData {
             major_version: 1,
             minor_version: 6,
-            entries: vec![MatlEntryData {
-                material_label: "RENORMAL_a".to_owned(),
-                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
-                blend_states: Vec::new(),
-                floats: Vec::new(),
-                booleans: Vec::new(),
-                vectors: Vec::new(),
-                rasterizer_states: Vec::new(),
-                samplers: Vec::new(),
-                textures: Vec::new(),
-            }],
+            entries: vec![
+                MatlEntryData {
+                    material_label: "RENORMAL_a".to_owned(),
+                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+                MatlEntryData {
+                    material_label: "mat_a".to_owned(),
+                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+            ],
         };
         let mesh = MeshData {
             major_version: 1,
             minor_version: 10,
-            objects: vec![MeshObjectData {
-                name: "object1".to_owned(),
-                subindex: 0,
-                ..Default::default()
-            }],
+            objects: vec![
+                MeshObjectData {
+                    name: "object0".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "object1".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+            ],
         };
         let modl = ModlData {
             major_version: 1,
@@ -1067,14 +1083,29 @@ mod tests {
             material_file_names: Vec::new(),
             animation_file_name: None,
             mesh_file_name: String::new(),
-            entries: vec![ModlEntryData {
-                mesh_object_name: "object1".to_owned(),
-                mesh_object_subindex: 0,
-                material_label: "RENORMAL_a".to_owned(),
-            }],
+            entries: vec![
+                ModlEntryData {
+                    mesh_object_name: "object0".to_owned(),
+                    mesh_object_subindex: 0,
+                    material_label: "mat_a".to_owned(),
+                },
+                ModlEntryData {
+                    mesh_object_name: String::new(),
+                    mesh_object_subindex: 0,
+                    material_label: String::new(),
+                },
+                ModlEntryData {
+                    mesh_object_name: "object1".to_owned(),
+                    mesh_object_subindex: 0,
+                    material_label: "RENORMAL_a".to_owned(),
+                },
+            ],
         };
         let adj = AdjData {
-            entries: Vec::new(),
+            entries: vec![AdjEntryData {
+                mesh_object_index: 0,
+                vertex_adjacency: Vec::new(),
+            }],
         };
 
         let mut validation = ModelValidationErrors::default();
@@ -1104,7 +1135,7 @@ mod tests {
 
         assert_eq!(
             vec![AdjValidationError::MissingRenormalEntry {
-                mesh_object_index: 0,
+                mesh_object_index: 1,
                 mesh_name: "object1".to_owned(),
                 material_label: "RENORMAL_a".to_owned()
             }],

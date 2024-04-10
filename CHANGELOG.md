@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.
 * Fixed an issue where the application would crash immediately when enabling wireframe rendering.
+* Fixed an issue where RENORMAL material validation checks did not apply to the appropriate meshes.
 
 ## 0.9.3 - 2024-02-13
 ### Fixed
