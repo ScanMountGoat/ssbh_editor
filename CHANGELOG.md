@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the Nutexb Viewer to make selecting mipmaps easier.
 * Changed the appearance of the layer selector in the Nutexb Viewer to include face names like "X+" or "Z-".
 * Changed the Render Settings window to be resizable and support scrolling vertically.
+* Adjusted values to be editable in the List view for the Anim Editor.
 
 ### Fixed
 * Fixed an issue where the Modl Editor and Mesh Editor would not correctly highlight meshes in the viewport.

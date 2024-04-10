@@ -4,7 +4,8 @@ use crate::{
     save_file, save_file_as, EditorResponse,
 };
 use egui::{
-    special_emojis::GITHUB, CentralPanel, CollapsingHeader, Grid, RichText, ScrollArea, SidePanel,
+    special_emojis::GITHUB, CentralPanel, CollapsingHeader, DragValue, Grid, RichText, ScrollArea,
+    SidePanel,
 };
 use egui_plot::{Legend, Line, Plot, PlotPoint};
 
@@ -139,7 +140,7 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
 
         let mut shapes = Vec::new();
 
-        if let Some(track) = selected_track(&anim.groups, state) {
+        if let Some(track) = selected_track(&mut anim.groups, state) {
             match &track.values {
                 TrackValues::Transform(values) => {
                     let mut translation_x = Vec::new();
@@ -333,13 +334,16 @@ fn select_track_panel(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEd
         });
 }
 
-fn selected_track<'a>(groups: &'a [GroupData], state: &AnimEditorState) -> Option<&'a TrackData> {
+fn selected_track<'a>(
+    groups: &'a mut [GroupData],
+    state: &AnimEditorState,
+) -> Option<&'a mut TrackData> {
     groups
-        .get(state.selected_group_index?)?
+        .get_mut(state.selected_group_index?)?
         .nodes
-        .get(state.selected_node_index?)?
+        .get_mut(state.selected_node_index?)?
         .tracks
-        .get(state.selected_track_index?)
+        .get_mut(state.selected_track_index?)
 }
 
 fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) -> bool {
@@ -384,25 +388,29 @@ fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) ->
 fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
     select_track_panel(ui, anim, state);
 
+    let mut changed = false;
+
     CentralPanel::default().show_inside(ui, |ui| {
-        if let Some(track) = selected_track(&anim.groups, state) {
+        if let Some(track) = selected_track(&mut anim.groups, state) {
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    track_value_grid(ui, track);
+                    changed |= track_value_grid(ui, track);
                 });
         }
     });
 
-    // The list view is readonly.
-    false
+    changed
 }
 
-fn track_value_grid(ui: &mut egui::Ui, track: &TrackData) {
+fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
+    let mut changed = false;
+
     Grid::new("anim_grid")
         .striped(true)
-        .show(ui, |ui| match &track.values {
+        .show(ui, |ui| match &mut track.values {
             TrackValues::Transform(values) => {
+                ui.heading("frame");
                 ui.heading("scale.x");
                 ui.heading("scale.y");
                 ui.heading("scale.z");
@@ -415,24 +423,41 @@ fn track_value_grid(ui: &mut egui::Ui, track: &TrackData) {
                 ui.heading("translation.z");
                 ui.end_row();
 
-                for v in values {
-                    ui.label(v.scale.x.to_string());
-                    ui.label(v.scale.y.to_string());
-                    ui.label(v.scale.z.to_string());
+                for (i, v) in values.iter_mut().enumerate() {
+                    ui.label(i.to_string());
 
-                    ui.label(v.rotation.x.to_string());
-                    ui.label(v.rotation.y.to_string());
-                    ui.label(v.rotation.z.to_string());
-                    ui.label(v.rotation.w.to_string());
+                    changed |= ui.add(DragValue::new(&mut v.scale.x).speed(0.1)).changed();
+                    changed |= ui.add(DragValue::new(&mut v.scale.y).speed(0.1)).changed();
+                    changed |= ui.add(DragValue::new(&mut v.scale.z).speed(0.1)).changed();
 
-                    ui.label(v.translation.x.to_string());
-                    ui.label(v.translation.y.to_string());
-                    ui.label(v.translation.z.to_string());
+                    changed |= ui
+                        .add(DragValue::new(&mut v.rotation.x).speed(0.1))
+                        .changed();
+                    changed |= ui
+                        .add(DragValue::new(&mut v.rotation.y).speed(0.1))
+                        .changed();
+                    changed |= ui
+                        .add(DragValue::new(&mut v.rotation.z).speed(0.1))
+                        .changed();
+                    changed |= ui
+                        .add(DragValue::new(&mut v.rotation.w).speed(0.1))
+                        .changed();
+
+                    changed |= ui
+                        .add(DragValue::new(&mut v.translation.x).speed(0.1))
+                        .changed();
+                    changed |= ui
+                        .add(DragValue::new(&mut v.translation.y).speed(0.1))
+                        .changed();
+                    changed |= ui
+                        .add(DragValue::new(&mut v.translation.z).speed(0.1))
+                        .changed();
 
                     ui.end_row();
                 }
             }
             TrackValues::UvTransform(values) => {
+                ui.heading("frame");
                 ui.heading("scale_u");
                 ui.heading("scale_v");
                 ui.heading("rotation");
@@ -440,46 +465,62 @@ fn track_value_grid(ui: &mut egui::Ui, track: &TrackData) {
                 ui.heading("translate_v");
                 ui.end_row();
 
-                for v in values {
-                    ui.label(v.scale_u.to_string());
-                    ui.label(v.scale_v.to_string());
+                for (i, v) in values.iter_mut().enumerate() {
+                    ui.label(i.to_string());
 
-                    ui.label(v.rotation.to_string());
+                    changed |= ui.add(DragValue::new(&mut v.scale_u).speed(0.1)).changed();
+                    changed |= ui.add(DragValue::new(&mut v.scale_v).speed(0.1)).changed();
 
-                    ui.label(v.translate_u.to_string());
-                    ui.label(v.translate_v.to_string());
+                    changed |= ui.add(DragValue::new(&mut v.rotation).speed(0.1)).changed();
+
+                    changed |= ui
+                        .add(DragValue::new(&mut v.translate_u).speed(0.1))
+                        .changed();
+                    changed |= ui
+                        .add(DragValue::new(&mut v.translate_v).speed(0.1))
+                        .changed();
 
                     ui.end_row();
                 }
             }
             TrackValues::Float(values) => {
+                ui.heading("frame");
                 ui.heading("value");
                 ui.end_row();
 
-                for v in values {
-                    ui.label(v.to_string());
+                for (i, v) in values.iter_mut().enumerate() {
+                    ui.label(i.to_string());
+
+                    changed |= ui.add(DragValue::new(v)).changed();
                     ui.end_row();
                 }
             }
             TrackValues::PatternIndex(values) => {
+                ui.heading("frame");
                 ui.heading("value");
                 ui.end_row();
 
-                for v in values {
-                    ui.label(v.to_string());
+                for (i, v) in values.iter_mut().enumerate() {
+                    ui.label(i.to_string());
+
+                    changed |= ui.add(DragValue::new(v)).changed();
                     ui.end_row();
                 }
             }
             TrackValues::Boolean(values) => {
+                ui.heading("frame");
                 ui.heading("value");
                 ui.end_row();
 
-                for v in values {
-                    ui.label(v.to_string());
+                for (i, v) in values.iter_mut().enumerate() {
+                    ui.label(i.to_string());
+
+                    changed |= ui.checkbox(v, "").changed();
                     ui.end_row();
                 }
             }
             TrackValues::Vector4(values) => {
+                ui.heading("frame");
                 ui.heading("x");
                 ui.heading("y");
                 ui.heading("z");
@@ -487,13 +528,17 @@ fn track_value_grid(ui: &mut egui::Ui, track: &TrackData) {
 
                 ui.end_row();
 
-                for v in values {
-                    ui.label(v.x.to_string());
-                    ui.label(v.y.to_string());
-                    ui.label(v.z.to_string());
-                    ui.label(v.w.to_string());
+                for (i, v) in values.iter_mut().enumerate() {
+                    ui.label(i.to_string());
+
+                    changed |= ui.add(DragValue::new(&mut v.x).speed(0.1)).changed();
+                    changed |= ui.add(DragValue::new(&mut v.y).speed(0.1)).changed();
+                    changed |= ui.add(DragValue::new(&mut v.z).speed(0.1)).changed();
+                    changed |= ui.add(DragValue::new(&mut v.w).speed(0.1)).changed();
                     ui.end_row();
                 }
             }
         });
+
+    changed
 }
