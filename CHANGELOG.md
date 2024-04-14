@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Added
+* Added validation for duplicate material labels.
+* Added validation for invalid sampler filter modes when anisotropic filtering is enabled.
+
+### Fixed
+* Fixed an issue where the application would crash immediately when a sampler used nearest filtering and enabled anisotropic filtering.
+
 ## 0.10.0 - 2024-04-11
 ### Added
 * Added support for editing the near and far clip distance to the Camera Settings window.

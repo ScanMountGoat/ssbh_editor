@@ -963,7 +963,8 @@ fn edit_matl_entry_inner(
             .iter()
             .filter(|e| {
                 matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. }
-                if samplers.contains(&param.param_id))
+                if samplers.contains(&param.param_id)) 
+                || matches!(&e.kind, MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode { param_id, ..} if *param_id == param.param_id)
             })
             .collect();
 

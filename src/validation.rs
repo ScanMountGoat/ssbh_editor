@@ -2,7 +2,7 @@ use crate::{FileResult, TextureDimension};
 use approx::relative_eq;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
-    matl_data::{BlendFactor, ParamId, WrapMode},
+    matl_data::{BlendFactor, MagFilter, MinFilter, ParamId, WrapMode},
     mesh_data::VectorData,
     prelude::*,
 };
@@ -78,6 +78,8 @@ impl ModelValidationErrors {
                 model.find_modl(),
                 mesh,
             );
+            validate_material_labels(&mut validation, matl);
+            validate_sampler_anisotropy(&mut validation, matl);
         }
 
         validation
@@ -210,6 +212,19 @@ Use a Source Color of \"One\" or use a shader that does not premultiply alpha.")
     PremultipliedShaderSrcAlpha {
         material_label: String,
         shader_label: String,
+    },
+
+    #[error(
+        "The material label {material_label:?} is already used by another material. Material names should be unique."
+    )]
+    DuplicateMaterialLabel { material_label: String },
+
+    #[error(
+        "Material {material_label:?} enables anisotropic filtering for {param_id} with filter mode Nearest. Set anisotropy to None or use only linear filter modes."
+    )]
+    SamplerAnisotropyNonLinearFilterMode {
+        material_label: String,
+        param_id: ParamId,
     },
 }
 
@@ -693,6 +708,45 @@ fn validate_renormal_material_entries(
                 },
             };
             validation.matl_errors.push(error);
+        }
+    }
+}
+
+fn validate_material_labels(validation: &mut ModelValidationErrors, matl: &MatlData) {
+    let mut labels = HashSet::new();
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        if !labels.insert(&entry.material_label) {
+            let error = MatlValidationError {
+                entry_index,
+                kind: MatlValidationErrorKind::DuplicateMaterialLabel {
+                    material_label: entry.material_label.clone(),
+                },
+            };
+            validation.matl_errors.push(error);
+        }
+    }
+}
+
+fn validate_sampler_anisotropy(validation: &mut ModelValidationErrors, matl: &MatlData) {
+    for (entry_index, entry) in matl.entries.iter().enumerate() {
+        for s in &entry.samplers {
+            // Anisotropy of one is still technically disabled.
+            // TODO: Remove the 1x variant in ssbh_data?
+            if !matches!(
+                s.data.max_anisotropy,
+                Some(ssbh_data::matl_data::MaxAnisotropy::One) | None
+            ) && (s.data.min_filter == MinFilter::Nearest
+                || s.data.mag_filter == MagFilter::Nearest)
+            {
+                let error = MatlValidationError {
+                    entry_index,
+                    kind: MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
+                        material_label: entry.material_label.clone(),
+                        param_id: s.param_id,
+                    },
+                };
+                validation.matl_errors.push(error);
+            }
         }
     }
 }
@@ -1677,6 +1731,133 @@ mod tests {
 
         assert_eq!(
             r#"Shader label "SFX_PBS_777002000800824f_opaque" for material "b" is not a valid shader label."#,
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn duplicate_material_label() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![
+                MatlEntryData {
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+                MatlEntryData {
+                    material_label: "b".to_owned(),
+                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+                MatlEntryData {
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    blend_states: Vec::new(),
+                    floats: Vec::new(),
+                    booleans: Vec::new(),
+                    vectors: Vec::new(),
+                    rasterizer_states: Vec::new(),
+                    samplers: Vec::new(),
+                    textures: Vec::new(),
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_material_labels(&mut validation, &matl);
+
+        assert_eq!(
+            vec![MatlValidationError {
+                entry_index: 2,
+                kind: MatlValidationErrorKind::DuplicateMaterialLabel {
+                    material_label: "a".to_owned()
+                }
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"The material label "a" is already used by another material. Material names should be unique."#,
+            format!("{}", validation.matl_errors[0])
+        );
+    }
+
+    #[test]
+    fn anisotropic_filtering_with_nearest() {
+        let matl = MatlData {
+            major_version: 1,
+            minor_version: 6,
+            entries: vec![MatlEntryData {
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                blend_states: Vec::new(),
+                floats: Vec::new(),
+                booleans: Vec::new(),
+                vectors: Vec::new(),
+                rasterizer_states: Vec::new(),
+                samplers: vec![
+                    SamplerParam {
+                        param_id: ParamId::Sampler0,
+                        data: SamplerData {
+                            min_filter: MinFilter::Nearest,
+                            mag_filter: MagFilter::Linear2,
+                            max_anisotropy: Some(ssbh_data::matl_data::MaxAnisotropy::Eight),
+                            ..Default::default()
+                        },
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler1,
+                        data: SamplerData {
+                            min_filter: MinFilter::LinearMipmapLinear,
+                            mag_filter: MagFilter::Nearest,
+                            max_anisotropy: Some(ssbh_data::matl_data::MaxAnisotropy::One),
+                            ..Default::default()
+                        },
+                    },
+                    SamplerParam {
+                        param_id: ParamId::Sampler2,
+                        data: SamplerData {
+                            min_filter: MinFilter::Nearest,
+                            mag_filter: MagFilter::Nearest,
+                            max_anisotropy: None,
+                            ..Default::default()
+                        },
+                    },
+                ],
+                textures: Vec::new(),
+            }],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_sampler_anisotropy(&mut validation, &matl);
+
+        assert_eq!(
+            vec![MatlValidationError {
+                entry_index: 0,
+                kind: MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
+                    material_label: "a".to_owned(),
+                    param_id: ParamId::Sampler0
+                }
+            }],
+            validation.matl_errors
+        );
+
+        assert_eq!(
+            r#"Material "a" enables anisotropic filtering for Sampler0 with filter mode Nearest. Set anisotropy to None or use only linear filter modes."#,
             format!("{}", validation.matl_errors[0])
         );
     }

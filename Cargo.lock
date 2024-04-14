@@ -2059,7 +2059,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.4",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2400,7 +2400,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#e07b7c37daf18d8dd548d9a0d927cbf7838bf8bd"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#400c08300ae6d28e6c155dcb908c86f793aba36a"
 dependencies = [
  "bytemuck",
  "log",
@@ -3507,7 +3507,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#e07b7c37daf18d8dd548d9a0d927cbf7838bf8bd"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#400c08300ae6d28e6c155dcb908c86f793aba36a"
 dependencies = [
  "bytemuck",
  "encase",
@@ -4440,7 +4440,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle 0.6.0",
  "smallvec",
@@ -4468,7 +4468,7 @@ dependencies = [
  "log",
  "naga",
  "once_cell",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle 0.6.0",
  "rustc-hash",
@@ -4510,7 +4510,7 @@ dependencies = [
  "ndk-sys",
  "objc",
  "once_cell",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.6.0",
