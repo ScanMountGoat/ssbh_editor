@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.10.1 - 2024-04-17
 ### Added
 * Added validation for duplicate material labels.
 * Added validation for invalid sampler filter modes when anisotropic filtering is enabled.
