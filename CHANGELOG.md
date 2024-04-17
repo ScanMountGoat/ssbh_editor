@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Fixed an issue where the application would crash immediately when a sampler used nearest filtering and enabled anisotropic filtering.
+* Fixed an issue where the floor grid would not blend properly with models when using debug shading modes.
 
 ## 0.10.0 - 2024-04-11
 ### Added
