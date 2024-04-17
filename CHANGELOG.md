@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added validation for duplicate material labels.
 * Added validation for invalid sampler filter modes when anisotropic filtering is enabled.
+* Added validation for mesh vertices having at most 4 assigned skin weights.
 
 ### Fixed
 * Fixed an issue where the application would crash immediately when a sampler used nearest filtering and enabled anisotropic filtering.

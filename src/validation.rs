@@ -8,7 +8,7 @@ use ssbh_data::{
 };
 use ssbh_wgpu::{ModelFolder, ShaderDatabase};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt::Display,
     path::Path,
 };
@@ -118,6 +118,11 @@ pub enum MeshValidationErrorKind {
 
     #[error("Mesh {mesh_name:?} has vertex weights with a weight of 0.0 that can be removed.")]
     VertexWeightsZero { mesh_name: String },
+
+    #[error(
+        "Mesh {mesh_name:?} has vertices with more than 4 weights and may not deform as expected in game."
+    )]
+    MoreThan4WeightsPerVertex { mesh_name: String },
 }
 
 pub struct SkelValidationError;
@@ -803,10 +808,12 @@ fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &M
         let mut has_zero_weights = false;
 
         // TODO: Also validate 4 weights per vertex.
-        let mut weight_total_by_vertex = HashMap::<u32, f32>::new();
+        let mut weight_total_by_vertex = BTreeMap::<u32, f32>::new();
+        let mut weight_count_by_vertex = BTreeMap::<u32, u32>::new();
         for influence in &o.bone_influences {
             for w in &influence.vertex_weights {
                 *weight_total_by_vertex.entry(w.vertex_index).or_default() += w.vertex_weight;
+                *weight_count_by_vertex.entry(w.vertex_index).or_default() += 1;
 
                 if w.vertex_weight == 0.0 {
                     has_zero_weights = true;
@@ -816,8 +823,8 @@ fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &M
 
         // Use a threshold in case weights don't sum exactly to 1.0.
         if weight_total_by_vertex
-            .iter()
-            .any(|(_, t)| !relative_eq!(*t, 1.0, epsilon = 0.001))
+            .values()
+            .any(|t| !relative_eq!(*t, 1.0, epsilon = 0.001))
         {
             let error = MeshValidationError {
                 mesh_object_index: i,
@@ -832,6 +839,16 @@ fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &M
             let error = MeshValidationError {
                 mesh_object_index: i,
                 kind: MeshValidationErrorKind::VertexWeightsZero {
+                    mesh_name: o.name.clone(),
+                },
+            };
+            validation.mesh_errors.push(error);
+        }
+
+        if weight_count_by_vertex.values().any(|c| *c > 4) {
+            let error = MeshValidationError {
+                mesh_object_index: i,
+                kind: MeshValidationErrorKind::MoreThan4WeightsPerVertex {
                     mesh_name: o.name.clone(),
                 },
             };
@@ -2209,6 +2226,54 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
 
         assert_eq!(
             r#"Mesh "a" has vertex weights with a weight of 0.0 that can be removed."#,
+            format!("{}", validation.mesh_errors[0])
+        );
+    }
+
+    #[test]
+    fn mesh_more_than_4_weights() {
+        let mesh = MeshData {
+            major_version: 1,
+            minor_version: 10,
+            objects: vec![
+                MeshObjectData {
+                    name: "a".to_owned(),
+                    subindex: 0,
+                    bone_influences: vec![BoneInfluence {
+                        bone_name: "bone".to_owned(),
+                        vertex_weights: vec![
+                            VertexWeight {
+                                vertex_index: 0,
+                                vertex_weight: 1.0 / 5.0,
+                            };
+                            5
+                        ],
+                    }],
+                    ..Default::default()
+                },
+                MeshObjectData {
+                    name: "b".to_owned(),
+                    subindex: 0,
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let mut validation = ModelValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, &mesh);
+
+        assert_eq!(
+            vec![MeshValidationError {
+                mesh_object_index: 0,
+                kind: MeshValidationErrorKind::MoreThan4WeightsPerVertex {
+                    mesh_name: "a".to_owned(),
+                }
+            }],
+            validation.mesh_errors
+        );
+
+        assert_eq!(
+            r#"Mesh "a" has vertices with more than 4 weights and may not deform as expected in game."#,
             format!("{}", validation.mesh_errors[0])
         );
     }
