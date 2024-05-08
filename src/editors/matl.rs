@@ -73,14 +73,18 @@ pub fn matl_editor(
             SidePanel::left("matl_left_panel")
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
-                    changed |= select_material_dnd(
-                        &mut matl.entries,
-                        ui,
-                        ctx,
-                        dark_mode,
-                        validation_errors,
-                        state,
-                    );
+                    ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            changed |= select_material_dnd(
+                                &mut matl.entries,
+                                ui,
+                                ctx,
+                                dark_mode,
+                                validation_errors,
+                                state,
+                            );
+                        });
                 });
 
             CentralPanel::default().show_inside(ui, |ui| {
@@ -231,14 +235,18 @@ pub fn preset_editor(
             SidePanel::left("matl_presets_left_panel")
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
-                    select_material_dnd(
-                        user_presets,
-                        ui,
-                        ctx,
-                        dark_mode,
-                        &[],
-                        &mut ui_state.preset_editor,
-                    );
+                    ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            select_material_dnd(
+                                user_presets,
+                                ui,
+                                ctx,
+                                dark_mode,
+                                &[],
+                                &mut ui_state.preset_editor,
+                            );
+                        });
                 });
 
             CentralPanel::default().show_inside(ui, |ui| {

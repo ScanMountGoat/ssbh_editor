@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Changed
+* Adjusted material list side panels for Matl Editor and Material Preset Editor to support scrolling.
+
 ## 0.10.1 - 2024-04-17
 ### Added
 * Added validation for duplicate material labels.
