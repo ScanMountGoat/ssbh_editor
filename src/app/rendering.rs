@@ -165,11 +165,12 @@ fn update_camera(
     height: f32,
     scale_factor: f64,
 ) {
-    let (camera_pos, model_view_matrix, mvp_matrix) =
+    let (camera_pos, model_view_matrix, projection_matrix, mvp_matrix) =
         calculate_mvp(width, height, &camera_state.values);
     let transforms = CameraTransforms {
         model_view_matrix,
         mvp_matrix,
+        projection_matrix,
         mvp_inv_matrix: mvp_matrix.inverse(),
         camera_pos,
         screen_dimensions: glam::Vec4::new(width, height, scale_factor as f32, 0.0),
@@ -185,7 +186,7 @@ pub fn calculate_mvp(
     width: f32,
     height: f32,
     camera_values: &CameraValues,
-) -> (glam::Vec4, glam::Mat4, glam::Mat4) {
+) -> (glam::Vec4, glam::Mat4, glam::Mat4, glam::Mat4) {
     let aspect = width / height;
 
     let rotation = glam::Mat4::from_euler(
@@ -195,7 +196,7 @@ pub fn calculate_mvp(
         camera_values.rotation_radians.z,
     );
     let model_view_matrix = glam::Mat4::from_translation(camera_values.translation) * rotation;
-    let perspective_matrix = glam::Mat4::perspective_rh(
+    let projection_matrix = glam::Mat4::perspective_rh(
         camera_values.fov_y_radians,
         aspect,
         camera_values.near_clip,
@@ -207,6 +208,7 @@ pub fn calculate_mvp(
     (
         camera_pos,
         model_view_matrix,
-        perspective_matrix * model_view_matrix,
+        projection_matrix,
+        projection_matrix * model_view_matrix,
     )
 }

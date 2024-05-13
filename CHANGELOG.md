@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Fixed an issue where emission and CustomVector3 alpha did not render in the viewport.
+* Fixed an issue where the CustomFloat16 depth offset parameter did not interact properly with the camera in the viewport.
 
 ## 0.10.1 - 2024-04-17
 ### Added
