@@ -75,7 +75,7 @@ Most errors can be fixed by exporting the .numatb file to XML or JSON again usin
 SSBH Editor stores its configuration files and material presets in a dedicated directory in the user folder. See the [Preferences Wiki page](https://github.com/ScanMountGoat/ssbh_editor/wiki/Preferences) for details.
 
 ## Building
-With a recent version of the Rust toolchain installed, run `cargo build --release`. Removing the "lto = true" line from the Cargo.toml will result in faster release builds but a slightly larger executable.
+With a recent version of the Rust toolchain installed, run `cargo build --release`.
 
 ## Useful Tools
 SSBH Editor is designed for editing existing models from imports or in game. For other steps of the mod creation process, see the tools linked below.
