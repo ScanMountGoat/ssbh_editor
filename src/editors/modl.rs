@@ -301,7 +301,7 @@ fn mesh_combo_box(
                         )
                         .clicked()
                     {
-                        entry.mesh_object_name = mesh.name.clone();
+                        entry.mesh_object_name.clone_from(&mesh.name);
                         entry.mesh_object_subindex = mesh.subindex;
                         changed = true;
                     }

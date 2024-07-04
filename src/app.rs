@@ -778,10 +778,9 @@ impl eframe::App for SsbhApp {
         // TODO: Rework these fields to use Option<T>.
         let mask_model_index = self.ui_state.selected_folder_index.unwrap_or(0);
         render_state.model_render_options.mask_model_index = mask_model_index;
-        render_state.model_render_options.mask_material_label = self
-            .get_hovered_material_label(mask_model_index)
+        self.get_hovered_material_label(mask_model_index)
             .unwrap_or("")
-            .to_owned();
+            .clone_into(&mut render_state.model_render_options.mask_material_label);
 
         // TODO: Find a better way to clear this every frame.
         self.ui_state.matl_editor.hovered_material_index = None;

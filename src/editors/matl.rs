@@ -776,7 +776,7 @@ fn edit_material_label(
         // Rename any effected modl entries if the material label changes.
         // Keep track of modl entries since materials may be renamed.
         for modl_entry in modl_entries {
-            modl_entry.material_label = entry.material_label.clone();
+            modl_entry.material_label.clone_from(&entry.material_label);
         }
     }
 
