@@ -510,12 +510,12 @@ impl Default for PresetMode {
 
 #[derive(Default)]
 pub struct MatlEditorState {
-    pub advanced_mode: bool,
     pub selected_material_index: usize,
     pub hovered_material_index: Option<usize>,
     pub matl_preset_window_open: bool,
     pub selected_preset_index: usize,
     pub preset_mode: PresetMode,
+    pub texture_to_edit_index: Option<usize>,
 }
 
 #[derive(Default)]

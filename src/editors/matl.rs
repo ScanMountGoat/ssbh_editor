@@ -463,9 +463,6 @@ fn edit_matl_entry(
     state: &mut MatlEditorState,
 ) -> bool {
     let mut changed = false;
-    // Advanced mode has more detailed information that most users won't want to edit.
-    ui.checkbox(&mut state.advanced_mode, "Advanced Settings");
-    horizontal_separator_empty(ui);
 
     // TODO: Avoid allocating here.
     let entry_validation_errors: Vec<_> = validation_errors
@@ -491,10 +488,10 @@ fn edit_matl_entry(
         ctx,
         ui,
         entry,
+        state,
         &entry_validation_errors,
         folder_thumbnails,
         default_thumbnails,
-        state.advanced_mode,
         shader_database,
         red_checkerboard,
         yellow_checkerboard,
@@ -811,10 +808,10 @@ fn edit_matl_entry_inner(
     _ctx: &Context,
     ui: &mut Ui,
     entry: &mut ssbh_data::matl_data::MatlEntryData,
+    state: &mut MatlEditorState,
     validation_errors: &[&MatlValidationError],
     texture_thumbnails: &[Thumbnail],
     default_thumbnails: &[Thumbnail],
-    advanced_mode: bool,
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
@@ -938,7 +935,7 @@ fn edit_matl_entry_inner(
     horizontal_separator_empty(ui);
 
     Grid::new("matl textures").show(ui, |ui| {
-        for param in &mut entry.textures {
+        for (i, param) in entry.textures.iter_mut().enumerate() {
             // TODO: Avoid collect.
             let errors: Vec<_> = validation_errors
                 .iter()
@@ -955,10 +952,11 @@ fn edit_matl_entry_inner(
 
             changed |= edit_texture(
                 ui,
+                i,
                 param,
+                &mut state.texture_to_edit_index,
                 texture_thumbnails,
                 default_thumbnails,
-                advanced_mode,
                 !unused_parameters.contains(&param.param_id),
                 &errors,
             );
@@ -1181,10 +1179,11 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
 
 fn edit_texture(
     ui: &mut Ui,
+    i: usize,
     param: &mut TextureParam,
+    texture_to_edit_index: &mut Option<usize>,
     texture_thumbnails: &[Thumbnail],
     default_thumbnails: &[Thumbnail],
-    advanced_mode: bool,
     enabled: bool,
     errors: &[&&MatlValidationError],
 ) -> bool {
@@ -1228,11 +1227,13 @@ fn edit_texture(
 
     let mut changed = false;
 
-    if advanced_mode {
-        // Let users enter names manually if texture files aren't present.
-        changed |= ui
-            .add_enabled(enabled, TextEdit::singleline(&mut param.data))
-            .changed();
+    if *texture_to_edit_index == Some(i) {
+        // Validate on each keystroke but only disable editing when submitted.
+        let response = ui.add_enabled(enabled, TextEdit::singleline(&mut param.data));
+        changed |= response.changed();
+        if response.lost_focus() {
+            *texture_to_edit_index = None;
+        }
     } else {
         ui.add_enabled_ui(enabled, |ui| {
             ComboBox::from_id_source(param.param_id.to_string())
@@ -1263,6 +1264,12 @@ fn edit_texture(
                                 .selectable_value(&mut param.data, text.clone(), text)
                                 .changed();
                         });
+                    }
+                })
+                .response
+                .context_menu(|ui| {
+                    if ui.button("Edit").clicked() {
+                        *texture_to_edit_index = Some(i);
                     }
                 });
         });

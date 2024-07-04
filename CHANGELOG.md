@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Adjusted material list to wrap long material labels in Matl Editor and Material Preset Editor.
 
+### Removed
+* Removed the Advanced Settings toggle from the Matl Editor and Material Preset Editor. Right click textures to rename instead.
+
 ## 0.10.3 - 2024-05-15
 ### Fixed
 * Fixed an issue where bones and the floor grid did not render properly.
