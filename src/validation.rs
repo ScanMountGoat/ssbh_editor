@@ -970,6 +970,7 @@ mod tests {
                 rasterizer_states: Vec::new(),
                 samplers: Vec::new(),
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
         let mesh = MeshData {
@@ -1055,6 +1056,7 @@ mod tests {
                 rasterizer_states: Vec::new(),
                 samplers: Vec::new(),
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
         let mesh = MeshData {
@@ -1116,6 +1118,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
                 MatlEntryData {
                     material_label: "mat_a".to_owned(),
@@ -1127,6 +1130,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
             ],
         };
@@ -1243,6 +1247,7 @@ mod tests {
                         data: "texture4".to_owned(),
                     },
                 ],
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -1345,6 +1350,7 @@ mod tests {
                         data: "#replace_cubemap".to_owned(),
                     },
                 ],
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -1410,6 +1416,7 @@ mod tests {
                         data: "texture7".to_owned(),
                     },
                 ],
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -1584,6 +1591,7 @@ mod tests {
                     },
                 ],
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
         let mesh = MeshData {
@@ -1664,6 +1672,7 @@ mod tests {
                     },
                 }],
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
         let mesh = MeshData {
@@ -1717,6 +1726,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
                 MatlEntryData {
                     material_label: "b".to_owned(),
@@ -1728,6 +1738,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
             ],
         };
@@ -1768,6 +1779,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
                 MatlEntryData {
                     material_label: "b".to_owned(),
@@ -1779,6 +1791,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
                 MatlEntryData {
                     material_label: "a".to_owned(),
@@ -1790,6 +1803,7 @@ mod tests {
                     rasterizer_states: Vec::new(),
                     samplers: Vec::new(),
                     textures: Vec::new(),
+                    uv_transforms: Vec::new(),
                 },
             ],
         };
@@ -1856,6 +1870,7 @@ mod tests {
                     },
                 ],
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -1902,6 +1917,7 @@ mod tests {
                 rasterizer_states: Vec::new(),
                 samplers: Vec::new(),
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -1949,6 +1965,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 rasterizer_states: Vec::new(),
                 samplers: Vec::new(),
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -1981,6 +1998,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 rasterizer_states: Vec::new(),
                 samplers: Vec::new(),
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
 
@@ -2005,6 +2023,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 rasterizer_states: Vec::new(),
                 samplers: Vec::new(),
                 textures: Vec::new(),
+                uv_transforms: Vec::new(),
             }],
         };
         let mesh = MeshData {

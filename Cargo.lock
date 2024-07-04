@@ -450,6 +450,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "binrw"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f36b7cb3ab9ff6a2858650d8dc360e783a5d14dc29594db48c56a3c233cc265"
+dependencies = [
+ "array-init",
+ "binrw_derive 0.14.0",
+ "bytemuck",
+]
+
+[[package]]
 name = "binrw_derive"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -467,6 +478,19 @@ name = "binrw_derive"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb515fdd6f8d3a357c8e19b8ec59ef53880807864329b1cb1cba5c53bf76557e"
+dependencies = [
+ "either",
+ "owo-colors",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "binrw_derive"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20ea7a8c5c8eeffffac6d54d172444e15beffac6f817fac714460a9a9aa88da3"
 dependencies = [
  "either",
  "owo-colors",
@@ -1249,9 +1273,9 @@ dependencies = [
 
 [[package]]
 name = "encase"
-version = "0.7.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95ed933078d2e659745df651f4c180511cd582e5b9414ff896e7d50d207e3103"
+checksum = "0265fa0e7bcdb058128cdf7597cdacea42e33911713663a04d971a39cad16afa"
 dependencies = [
  "const_panic",
  "encase_derive",
@@ -1261,18 +1285,18 @@ dependencies = [
 
 [[package]]
 name = "encase_derive"
-version = "0.7.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4ce1449c7d19eba6cc0abd231150ad81620a8dce29601d7f8d236e5d431d72a"
+checksum = "e3b6f7502bafc52a60b5582560a2aaee16921eef79a742ae48dd411fe7a9263b"
 dependencies = [
  "encase_derive_impl",
 ]
 
 [[package]]
 name = "encase_derive_impl"
-version = "0.7.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92959a9e8d13eaa13b8ae8c7b583c3bf1669ca7a8e7708a088d12587ba86effc"
+checksum = "b36f2ddfca91251bed7f931f24b192e4eaf0a0e0fa70cf81cfb1416a1973620e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1690,9 +1714,9 @@ dependencies = [
 
 [[package]]
 name = "geometry_tools"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cb5d6e0f9181044cd4eeec5bcfc80b873084924c134d9ee841bebccc07413ac"
+checksum = "26366a111b24ca51add28b2c6a8de685f777f5503924730329e6f720a71ed820"
 dependencies = [
  "glam",
  "thiserror",
@@ -1750,9 +1774,9 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.25.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "151665d9be52f9bb40fc7966565d39666f2d1e69233571b71b87791c7e0528b3"
+checksum = "779ae4bf7e8421cf91c0b3b64e7e8b40b862fba4d393f59150042de7c4965a94"
 dependencies = [
  "bytemuck",
  "mint",
@@ -2849,7 +2873,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#977bc06f55cec7ff04296f91e67108af013061d1"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7e8d7d8b70d3109f5e1c00bff719862bb4815315"
 dependencies = [
  "bytemuck",
  "log",
@@ -4230,11 +4254,10 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e33935e27b52aacc4e04c5dcfbb50a0bbe5dee2e6e077eb0d218a170a9ef935"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
 dependencies = [
  "ahash",
- "binrw 0.13.3",
+ "binrw 0.14.0",
  "bitvec",
  "geometry_tools",
  "glam",
@@ -4291,10 +4314,9 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a04485f0091a1d10edade9c71ecada73a42fc522580d0f1dbf69c1e87cd6ef9"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
 dependencies = [
- "binrw 0.13.3",
+ "binrw 0.14.0",
  "modular-bitfield",
  "serde",
  "serde_bytes",
@@ -4306,7 +4328,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#977bc06f55cec7ff04296f91e67108af013061d1"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7e8d7d8b70d3109f5e1c00bff719862bb4815315"
 dependencies = [
  "bytemuck",
  "encase",
@@ -4330,8 +4352,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dae7615bcd366336d015739ab8d2dda8024fa5199ebf752068e145fb92667fe"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -4339,8 +4360,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04fea1aaac68fb07f120ae8f524083c07f630a3d86e6292b6d930ea518227a0b"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5834,6 +5854,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec107c4503ea0b4a98ef47356329af139c0a4f7750e621cf2973cd3385ebcb3d"
 
 [[package]]
+name = "xc3_write"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5388d746d87bf33f14e7a16c42e155cb35e97208942acf723b5667d49328c561"
+dependencies = [
+ "xc3_write_derive",
+]
+
+[[package]]
+name = "xc3_write_derive"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8af9f793cd0b670ad6d0cf5c5a41a130d4e893cc08c9249a3e4efd6e6806aa5f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
+]
+
+[[package]]
 name = "xcursor"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5871,13 +5911,12 @@ checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
 [[package]]
 name = "xmb_lib"
 version = "0.1.0"
-source = "git+https://github.com/ultimate-research/xmb_lib?rev=faea683#faea6830dafb5962a6ddeb144b7529af51e71286"
+source = "git+https://github.com/ultimate-research/xmb_lib?rev=57727db#57727dba9252f3f3d8f1272b8302ebd806bebcfe"
 dependencies = [
- "binrw 0.13.3",
+ "binrw 0.14.0",
  "indexmap 1.9.3",
- "ssbh_lib",
- "ssbh_write",
  "thiserror",
+ "xc3_write",
  "xmltree",
 ]
 

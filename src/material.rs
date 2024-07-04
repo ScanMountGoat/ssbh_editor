@@ -142,6 +142,7 @@ pub fn default_material() -> MatlEntryData {
                 data: default_texture(ParamId::Texture7).to_owned(),
             },
         ],
+        uv_transforms: Vec::new(),
     }
 }
 
@@ -666,6 +667,7 @@ mod tests {
             rasterizer_states: Vec::new(),
             samplers: Vec::new(),
             textures: Vec::new(),
+            uv_transforms: Vec::new(),
         };
 
         let required_parameters = missing_parameters(
@@ -724,6 +726,7 @@ mod tests {
                     param_id: ParamId::Texture0,
                     data: "/common/shader/sfxpbs/default_white".to_owned(),
                 }],
+                uv_transforms: Vec::new()
             },
             entry
         );
@@ -762,6 +765,7 @@ mod tests {
                 param_id: ParamId::Texture0,
                 data: Default::default(),
             }],
+            uv_transforms: Vec::new(),
         };
 
         let unused_parameters = unused_parameters(
@@ -803,6 +807,7 @@ mod tests {
                 param_id: ParamId::Texture0,
                 data: "a".to_owned(),
             }],
+            uv_transforms: Vec::new(),
         };
 
         let preset = MatlEntryData {
@@ -848,6 +853,7 @@ mod tests {
                     data: "c".to_owned(),
                 },
             ],
+            uv_transforms: Vec::new(),
         };
 
         entry = apply_preset(&entry, &preset);
@@ -896,6 +902,7 @@ mod tests {
                         data: "/common/shader/sfxpbs/default_white".to_owned(),
                     }
                 ],
+                uv_transforms: Vec::new()
             },
             entry
         );

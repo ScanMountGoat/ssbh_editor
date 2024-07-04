@@ -44,6 +44,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "PRM Skin Opaque".into(),
@@ -82,6 +83,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "PRM Alpha Blend".into(),
@@ -123,6 +125,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "PRM Alpha Test".into(),
@@ -156,6 +159,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "PRM Anisotropic Alpha Test".into(),
@@ -199,6 +203,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "PRM Emi Opaque".into(),
@@ -238,6 +243,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "Glass Angle Fade".into(),
@@ -285,6 +291,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture6),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "Emi Nor Shadeless".into(),
@@ -324,6 +331,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture5),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "Emi Shadeless".into(),
@@ -344,6 +352,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamId::Texture5,
                 "/common/shader/sfxpbs/default_black".into(),
             )],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "CustomVector47 PRM Params".into(),
@@ -376,6 +385,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 default_texture_param(ParamId::Texture4),
                 default_texture_param(ParamId::Texture7),
             ],
+            uv_transforms: Vec::new(),
         },
         MatlEntryData {
             material_label: "Diffuse Cube Map".into(),
@@ -393,6 +403,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
             )],
             samplers: vec![ParamData::new(ParamId::Sampler8, Default::default())],
             textures: vec![default_texture_param(ParamId::Texture8)],
+            uv_transforms: Vec::new(),
         },
     ]
 }
@@ -489,6 +500,7 @@ pub fn load_xml_presets(xml_text: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
                 rasterizer_states,
                 samplers,
                 textures,
+                uv_transforms: Vec::new(),
             })
         })
         .collect()
