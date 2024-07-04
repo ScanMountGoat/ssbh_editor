@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use egui::{Grid, Label, Ui, Window};
+use egui::{Grid, Label, TextWrapMode, Ui, Window};
 use rfd::FileDialog;
 
 use crate::app::StageLightingState;
@@ -89,7 +89,7 @@ fn path_label(ui: &mut Ui, path: &Option<PathBuf>) {
         Some(path) => {
             ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
                 .on_hover_ui(|ui| {
-                    ui.add(Label::new(path.to_string_lossy()).wrap(false));
+                    ui.add(Label::new(path.to_string_lossy()).wrap_mode(TextWrapMode::Extend));
                 });
         }
         None => {

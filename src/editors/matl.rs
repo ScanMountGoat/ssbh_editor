@@ -14,8 +14,8 @@ use crate::{
 };
 use egui::{
     load::SizedTexture, special_emojis::GITHUB, Button, CentralPanel, CollapsingHeader, ComboBox,
-    Context, DragValue, Grid, Label, RichText, ScrollArea, SidePanel, TextEdit, TopBottomPanel, Ui,
-    Window,
+    Context, DragValue, Grid, Label, RichText, ScrollArea, SidePanel, TextEdit, TextWrapMode,
+    TopBottomPanel, Ui, Window,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -291,7 +291,7 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
         ui.menu_button("Import", |ui| {
             // Import presets from external formats.
             if ui
-                .add(Button::new("JSON Presets (ssbh_data_json)").wrap(false))
+                .add(Button::new("JSON Presets (ssbh_data_json)").wrap_mode(TextWrapMode::Extend))
                 .clicked()
             {
                 ui.close_menu();
@@ -305,7 +305,7 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
             }
 
             if ui
-                .add(Button::new("XML Presets (Cross Mod)").wrap(false))
+                .add(Button::new("XML Presets (Cross Mod)").wrap_mode(TextWrapMode::Extend))
                 .clicked()
             {
                 ui.close_menu();
@@ -626,7 +626,8 @@ fn menu_bar(
         });
 
         ui.menu_button("Material", |ui| {
-            let button = |ui: &mut Ui, text| ui.add(Button::new(text).wrap(false));
+            let button =
+                |ui: &mut Ui, text| ui.add(Button::new(text).wrap_mode(TextWrapMode::Extend));
             if ui.button("Add New Material").clicked() {
                 ui.close_menu();
 
@@ -731,7 +732,7 @@ fn menu_bar(
 
 fn help_menu(ui: &mut Ui) {
     ui.menu_button("Help", |ui| {
-        let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
+        let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap_mode(TextWrapMode::Extend));
 
         if button(ui, &format!("{GITHUB} Material Parameter Reference")).clicked() {
             ui.close_menu();
@@ -971,7 +972,7 @@ fn edit_matl_entry_inner(
             .iter()
             .filter(|e| {
                 matches!(&e.kind, MatlValidationErrorKind::WrapModeClampsUvs { samplers, .. }
-                if samplers.contains(&param.param_id)) 
+                if samplers.contains(&param.param_id))
                 || matches!(&e.kind, MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode { param_id, ..} if *param_id == param.param_id)
             })
             .collect();

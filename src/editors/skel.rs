@@ -6,7 +6,9 @@ use crate::{
     widgets::enum_combo_box,
     EditorResponse,
 };
-use egui::{special_emojis::GITHUB, Button, CollapsingHeader, Label, RichText, ScrollArea};
+use egui::{
+    special_emojis::GITHUB, Button, CollapsingHeader, Label, RichText, ScrollArea, TextWrapMode,
+};
 use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
@@ -61,7 +63,10 @@ pub fn skel_editor(
 
                 ui.menu_button("Skeleton", |ui| {
                     if ui
-                        .add(Button::new("Match Reference Bone Order...").wrap(false))
+                        .add(
+                            Button::new("Match Reference Bone Order...")
+                                .wrap_mode(TextWrapMode::Extend),
+                        )
                         .clicked()
                     {
                         ui.close_menu();
@@ -149,7 +154,7 @@ fn edit_bones_list(
             // Use a workaround for left aligning the text.
             // TODO: Highlight the selected bone on hover.
             let (_, rect) = ui.allocate_space(egui::Vec2::new(250.0, 20.0));
-            ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center))
+            ui.child_ui(rect, egui::Layout::left_to_right(egui::Align::Center), None)
                 .add(Label::new(&bone.name).sense(egui::Sense::click()));
 
             let id = egui::Id::new("bone").with(item.0);

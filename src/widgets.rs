@@ -44,7 +44,9 @@ impl<'a> Widget for EyeCheckBox<'a> {
             *checked = !*checked;
             response.mark_changed();
         }
-        response.widget_info(|| WidgetInfo::selected(WidgetType::Checkbox, *checked, text.text()));
+        response.widget_info(|| {
+            WidgetInfo::selected(WidgetType::Checkbox, true, *checked, text.text())
+        });
 
         if ui.is_rect_visible(rect) {
             let visuals = ui.style().interact(&response);

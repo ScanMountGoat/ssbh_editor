@@ -172,6 +172,7 @@ pub fn modl_editor(
                                     ui.child_ui(
                                         rect,
                                         egui::Layout::left_to_right(egui::Align::Center),
+                                        None,
                                     )
                                     .add(Label::new(mesh_text).sense(egui::Sense::click()))
                                 };

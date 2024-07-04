@@ -15,7 +15,7 @@ pub fn display_animation_bar(
                 DragValue::new(&mut animation_state.playback_speed)
                     .min_decimals(2)
                     .speed(0.01)
-                    .clamp_range(0.25..=2.0),
+                    .range(0.25..=2.0),
             );
 
             // TODO: Custom checkbox widget so label is on the left side.
@@ -94,7 +94,7 @@ pub fn display_animation_bar(
                 .add_sized(
                     [60.0, 20.0],
                     egui::DragValue::new(&mut animation_state.current_frame)
-                        .clamp_range(0.0..=final_frame_index),
+                        .range(0.0..=final_frame_index),
                 )
                 .changed()
             {

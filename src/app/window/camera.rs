@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use egui::{Button, DragValue, Label, Ui};
+use egui::{Button, DragValue, Label, TextWrapMode, Ui};
 use rfd::FileDialog;
 
 use crate::{horizontal_separator_empty, CameraState, CameraValues};
@@ -20,7 +20,10 @@ pub fn camera_settings_window(
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("Defaults", |ui| {
                     if ui
-                        .add(Button::new("Save Current Settings as Default").wrap(false))
+                        .add(
+                            Button::new("Save Current Settings as Default")
+                                .wrap_mode(TextWrapMode::Extend),
+                        )
                         .clicked()
                     {
                         ui.close_menu();
@@ -95,7 +98,7 @@ pub fn camera_settings_window(
                     .add(
                         DragValue::new(&mut fov_degrees)
                             .speed(1.0)
-                            .clamp_range(0.0..=180.0),
+                            .range(0.0..=180.0),
                     )
                     .changed()
                 {
@@ -109,7 +112,7 @@ pub fn camera_settings_window(
                 changed |= ui
                     .add(
                         DragValue::new(&mut camera_state.values.near_clip)
-                            .clamp_range(0.001..=camera_state.values.far_clip),
+                            .range(0.001..=camera_state.values.far_clip),
                     )
                     .changed();
                 ui.end_row();
@@ -119,7 +122,7 @@ pub fn camera_settings_window(
                 changed |= ui
                     .add(
                         DragValue::new(&mut camera_state.values.far_clip)
-                            .clamp_range(camera_state.values.near_clip..=f32::MAX),
+                            .range(camera_state.values.near_clip..=f32::MAX),
                     )
                     .changed();
                 ui.end_row();
@@ -172,7 +175,7 @@ fn path_label(ui: &mut Ui, path: &Option<PathBuf>) {
         Some(path) => {
             ui.label(path.file_name().and_then(|f| f.to_str()).unwrap_or(""))
                 .on_hover_ui(|ui| {
-                    ui.add(Label::new(path.to_string_lossy()).wrap(false));
+                    ui.add(Label::new(path.to_string_lossy()).wrap_mode(TextWrapMode::Extend));
                 });
         }
         None => {

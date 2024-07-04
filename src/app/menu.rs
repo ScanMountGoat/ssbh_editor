@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::CameraState;
 
 use super::{RenderAction, RenderModelAction, SsbhApp};
-use egui::{special_emojis::GITHUB, Button, KeyboardShortcut, Ui};
+use egui::{special_emojis::GITHUB, Button, KeyboardShortcut, TextWrapMode, Ui};
 use rfd::FileDialog;
 
 pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
@@ -29,11 +29,12 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
 
     egui::menu::bar(ui, |ui| {
         ui.menu_button("File", |ui| {
-            let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap(false));
+            let button =
+                |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap_mode(TextWrapMode::Extend));
             let shortcut_button = |ui: &mut Ui, text: &str, shortcut| {
                 ui.add(
                     Button::new(text)
-                        .wrap(false)
+                        .wrap_mode(TextWrapMode::Extend)
                         .shortcut_text(format_shortcut(shortcut)),
                 )
             };
@@ -156,7 +157,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
 
             ui.menu_button("Render Animation", |ui| {
                 if ui
-                    .add(Button::new("Render to Image Sequence...").wrap(false))
+                    .add(Button::new("Render to Image Sequence...").wrap_mode(TextWrapMode::Extend))
                     .clicked()
                 {
                     ui.close_menu();
@@ -169,7 +170,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 }
 
                 if ui
-                    .add(Button::new("Render to GIF...").wrap(false))
+                    .add(Button::new("Render to GIF...").wrap_mode(TextWrapMode::Extend))
                     .clicked()
                 {
                     ui.close_menu();

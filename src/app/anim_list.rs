@@ -4,7 +4,10 @@ use crate::{
     widgets::EyeCheckBox,
     AnimationIndex, AnimationSlot, ModelFolderState,
 };
-use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
+use egui::{
+    collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, TextWrapMode,
+    Ui,
+};
 
 pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     // Only assign animations to folders with model files.
@@ -165,7 +168,8 @@ fn anim_combo_box(
             // Iterate in decreasing order of affinity with the model folder.
             for (folder_index, folder) in anim_folders.iter().rev() {
                 ui.add(
-                    Label::new(RichText::new(folder_display_name(folder)).heading()).wrap(false),
+                    Label::new(RichText::new(folder_display_name(folder)).heading())
+                        .wrap_mode(TextWrapMode::Extend),
                 );
 
                 for (anim_index, (name, _)) in folder.model.anims.iter().enumerate() {

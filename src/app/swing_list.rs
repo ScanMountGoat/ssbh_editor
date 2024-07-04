@@ -6,7 +6,10 @@ use crate::{
     widgets::EyeCheckBox,
     SwingState,
 };
-use egui::{collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, Ui};
+use egui::{
+    collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, TextWrapMode,
+    Ui,
+};
 use ssbh_wgpu::swing::*;
 
 pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
@@ -140,7 +143,8 @@ fn swing_combo_box(
                 // TODO: Is it worth grouping by folder if there's only one swing?
                 // TODO: Just show the full path for each swing.prc?
                 ui.add(
-                    Label::new(RichText::new(folder_display_name(folder)).heading()).wrap(false),
+                    Label::new(RichText::new(folder_display_name(folder)).heading())
+                        .wrap_mode(TextWrapMode::Extend),
                 );
                 if folder.swing_prc.is_some() {
                     changed |= ui

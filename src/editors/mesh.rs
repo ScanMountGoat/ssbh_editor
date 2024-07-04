@@ -8,7 +8,8 @@ use crate::{
     EditorMessage, EditorResponse,
 };
 use egui::{
-    special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea, Ui,
+    special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea,
+    TextWrapMode, Ui,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -57,7 +58,10 @@ pub fn mesh_editor(
 
                 ui.menu_button("Mesh", |ui| {
                     if ui
-                        .add(Button::new("Match reference mesh order...").wrap(false))
+                        .add(
+                            Button::new("Match reference mesh order...")
+                                .wrap_mode(TextWrapMode::Extend),
+                        )
                         .clicked()
                     {
                         ui.close_menu();

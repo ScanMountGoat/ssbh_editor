@@ -7,7 +7,7 @@ use crate::{
 
 use egui::{
     special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
-    DragValue, Ui, Window,
+    DragValue, TextWrapMode, Ui, Window,
 };
 use strum::VariantNames;
 
@@ -25,7 +25,10 @@ pub fn preferences_window(
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui
-                        .add(egui::Button::new("Open Preferences Directory...").wrap(false))
+                        .add(
+                            egui::Button::new("Open Preferences Directory...")
+                                .wrap_mode(TextWrapMode::Extend),
+                        )
                         .clicked()
                     {
                         ui.close_menu();
@@ -88,7 +91,7 @@ fn edit_preferences(ui: &mut Ui, preferences: &mut AppPreferences) -> bool {
                 DragValue::new(&mut preferences.scale_factor)
                     .update_while_editing(false)
                     .speed(0.05)
-                    .clamp_range(0.5..=2.0),
+                    .range(0.5..=2.0),
             )
             .changed();
     });

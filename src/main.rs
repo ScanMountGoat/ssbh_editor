@@ -183,7 +183,7 @@ fn main() {
                 preferences,
             );
 
-            Box::new(app)
+            Ok(Box::new(app))
         }),
     )
     .unwrap();

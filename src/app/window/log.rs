@@ -18,7 +18,7 @@ pub fn log_window(ctx: &Context, open: &mut bool) {
                             let clean_message = strip_ansi_escapes::strip(message)
                                 .map(|m| String::from_utf8_lossy(&m).to_string())
                                 .unwrap_or_else(|_| message.clone());
-                            ui.add(Label::new(clean_message).wrap(true));
+                            ui.add(Label::new(clean_message).wrap());
                         });
                     }
                 });
