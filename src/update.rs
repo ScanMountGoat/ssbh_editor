@@ -72,7 +72,6 @@ fn should_check_for_release(
     }
 }
 
-// TODO: Display a changelog from the repository.
 fn get_latest_release() -> Option<Release> {
     let rt = tokio::runtime::Runtime::new().ok()?;
     let _guard = rt.enter();

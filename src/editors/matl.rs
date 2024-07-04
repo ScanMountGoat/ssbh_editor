@@ -167,10 +167,11 @@ fn select_material_dnd(
                 RichText::new(&entry.material_label)
             };
 
-            // TODO: wrap text?
+            // Wrap long material labels.
+            ui.style_mut().wrap_mode = Some(TextWrapMode::Wrap);
+
             let mut response =
                 ui.selectable_label(state.selected_material_index == *item_index, text);
-
             if response.clicked() {
                 state.selected_material_index = *item_index;
             }
