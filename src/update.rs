@@ -74,16 +74,15 @@ fn should_check_for_release(
 
 // TODO: Display a changelog from the repository.
 fn get_latest_release() -> Option<Release> {
-    let octocrab = octocrab::instance();
-    tokio::runtime::Runtime::new()
-        .ok()?
-        .block_on(
-            octocrab
-                .repos("ScanMountGoat", "ssbh_editor")
-                .releases()
-                .get_latest(),
-        )
-        .ok()
+    let rt = tokio::runtime::Runtime::new().ok()?;
+    let _guard = rt.enter();
+    rt.block_on(
+        octocrab::instance()
+            .repos("ScanMountGoat", "ssbh_editor")
+            .releases()
+            .get_latest(),
+    )
+    .ok()
 }
 
 fn get_release_notes(current_tag: &str, latest_tag: &str) -> Option<String> {
