@@ -1,5 +1,5 @@
 use crate::{
-    app::{display_validation_errors, draggable_icon, warning_icon_text, MeshEditorState},
+    app::{display_validation_errors, draggable_icon, warning_icon_text},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -9,7 +9,7 @@ use crate::{
 };
 use egui::{
     special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea,
-    TextWrapMode, Ui,
+    TextEdit, TextWrapMode, Ui,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -30,7 +30,6 @@ pub fn mesh_editor(
     mesh: &mut MeshData,
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
-    state: &mut MeshEditorState,
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
@@ -98,7 +97,6 @@ pub fn mesh_editor(
                         ctx,
                         ui,
                         mesh,
-                        state,
                         validation_errors,
                         skel,
                         dark_mode,
@@ -119,7 +117,6 @@ fn edit_mesh(
     ctx: &egui::Context,
     ui: &mut Ui,
     mesh: &mut MeshData,
-    state: &mut MeshEditorState,
     validation_errors: &[MeshValidationError],
     skel: Option<&SkelData>,
     dark_mode: bool,
@@ -127,8 +124,6 @@ fn edit_mesh(
 ) -> bool {
     let mut changed = false;
 
-    // TODO: Remove advanced settings.
-    ui.checkbox(&mut state.advanced_mode, "Advanced Settings");
     let mut mesh_to_remove = None;
 
     // TODO: Avoid allocating here.
@@ -162,7 +157,6 @@ fn edit_mesh(
                         id,
                         ui,
                         mesh_object,
-                        state.advanced_mode,
                         skel,
                         item.0,
                         &errors,
@@ -211,7 +205,6 @@ fn edit_mesh_object(
     id: egui::Id,
     ui: &mut Ui,
     mesh_object: &mut MeshObjectData,
-    advanced_mode: bool,
     skel: Option<&SkelData>,
     i: usize,
     errors: &[&MeshValidationError],
@@ -222,19 +215,19 @@ fn edit_mesh_object(
     // TODO: Reorder mesh objects?
     // TODO: Show errors on the appropriate field?
     Grid::new(id.with("mesh_grid")).show(ui, |ui| {
+        // TODO: Link name edits with the numdlb and numshexb.
+        // This will need to check for duplicate names.
         ui.label("Name");
-        changed |= edit_name(ui, mesh_object, advanced_mode);
+        changed |= ui
+            .add(TextEdit::singleline(&mut mesh_object.name).clip_text(false))
+            .changed();
         ui.end_row();
 
         // TODO: Is it possible to edit the subindex without messing up influence assignments?
         ui.label("Subindex");
-        if advanced_mode {
-            changed |= ui
-                .add(egui::DragValue::new(&mut mesh_object.subindex))
-                .changed();
-        } else {
-            ui.label(mesh_object.subindex.to_string());
-        }
+        changed |= ui
+            .add(egui::DragValue::new(&mut mesh_object.subindex))
+            .changed();
         ui.end_row();
 
         ui.label("Sort Bias");
@@ -242,19 +235,19 @@ fn edit_mesh_object(
             .add(egui::DragValue::new(&mut mesh_object.sort_bias))
             .changed();
         ui.end_row();
-
-        changed |= ui
-            .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
-            .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
-            .changed();
-        ui.end_row();
-
-        changed |= ui
-            .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
-            .on_hover_text("Disabling depth testing causes the mesh to render on top of previous meshes.")
-            .changed();
-        ui.end_row();
     });
+
+    changed |= ui
+    .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
+    .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
+    .changed();
+
+    changed |= ui
+        .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
+        .on_hover_text(
+            "Disabling depth testing causes the mesh to render on top of previous meshes.",
+        )
+        .changed();
     horizontal_separator_empty(ui);
 
     CollapsingHeader::new("Bone Influences")
@@ -336,18 +329,6 @@ fn edit_mesh_object(
             changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
         });
 
-    changed
-}
-
-fn edit_name(ui: &mut egui::Ui, mesh_object: &mut MeshObjectData, advanced_mode: bool) -> bool {
-    let mut changed = false;
-    if advanced_mode {
-        // TODO: Link name edits with the numdlb and numshexb.
-        // This will need to check for duplicate names.
-        changed |= ui.text_edit_singleline(&mut mesh_object.name).changed();
-    } else {
-        ui.label(&mesh_object.name);
-    }
     changed
 }
 

@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## unreleased
 ### Changed
 * Adjusted material list to wrap long material labels in Matl Editor and Material Preset Editor.
+* Adjusted mesh name text boxes in the Mesh Editor to not clip.
 
 ### Removed
 * Removed the Advanced Settings toggle from the Matl Editor and Material Preset Editor. Right click textures to rename instead.
+* Removed the Advanced Settings toggle from the Mesh Editor. Advanced editing options are now always enabled.
 
 ## 0.10.3 - 2024-05-15
 ### Fixed
