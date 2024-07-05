@@ -518,7 +518,19 @@ pub struct MatlEditorState {
 
 #[derive(Default)]
 pub struct ModlEditorState {
-    pub advanced_mode: bool,
+    pub editor_tab: ModlEditorTab,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum ModlEditorTab {
+    Assignments,
+    Files,
+}
+
+impl Default for ModlEditorTab {
+    fn default() -> Self {
+        Self::Assignments
+    }
 }
 
 #[derive(Default)]

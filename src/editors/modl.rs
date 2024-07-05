@@ -1,12 +1,12 @@
 use crate::{
-    app::{draggable_icon, warning_icon_text, ModlEditorState},
+    app::{draggable_icon, warning_icon_text, ModlEditorState, ModlEditorTab},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
     validation::{ModlValidationError, ModlValidationErrorKind},
     EditorMessage, EditorResponse,
 };
-use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
+use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit, TextWrapMode};
 use egui_dnd::dnd;
 
 use ssbh_data::{modl_data::ModlEntryData, prelude::*};
@@ -50,19 +50,14 @@ pub fn modl_editor(
                 });
 
                 ui.menu_button("Modl", |ui| {
-                    if ui.button("Add Entry").clicked() {
+                    if ui.button("Rebuild from Mesh").clicked() {
                         changed = true;
 
+                        // TODO: Add missing and remove unused entries.
                         // Pick an arbitrary material to make the mesh visible in the viewport.
-                        let default_material = matl
+                        let _default_material = matl
                             .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
                             .unwrap_or_else(|| String::from("PLACEHOLDER"));
-
-                        modl.entries.push(ModlEntryData {
-                            mesh_object_name: String::from("PLACEHOLDER"),
-                            mesh_object_subindex: 0,
-                            material_label: default_material,
-                        });
                     }
                 });
 
@@ -79,143 +74,32 @@ pub fn modl_editor(
             });
             ui.separator();
 
-            // Advanced mode has more detailed information that most users won't want to edit.
-            ui.checkbox(&mut state.advanced_mode, "Advanced Settings");
+            ui.horizontal(|ui| {
+                ui.selectable_value(
+                    &mut state.editor_tab,
+                    ModlEditorTab::Assignments,
+                    RichText::new("Materials").heading(),
+                );
+                ui.selectable_value(
+                    &mut state.editor_tab,
+                    ModlEditorTab::Files,
+                    RichText::new("Files").heading(),
+                );
+            });
 
-            if let Some(mesh) = mesh {
-                // TODO: Optimize this?
-                let missing_entries: Vec<_> = mesh
-                    .objects
-                    .iter()
-                    .filter(|mesh| {
-                        !modl.entries.iter().any(|e| {
-                            e.mesh_object_name == mesh.name
-                                && e.mesh_object_subindex == mesh.subindex
-                        })
-                    })
-                    .collect();
-
-                // Pick an arbitrary material to make the mesh visible in the viewport.
-                let default_material = matl
-                    .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
-                    .unwrap_or_else(|| String::from("PLACEHOLDER"));
-
-                if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
-                    changed = true;
-
-                    for mesh in missing_entries {
-                        modl.entries.push(ModlEntryData {
-                            mesh_object_name: mesh.name.clone(),
-                            mesh_object_subindex: mesh.subindex,
-                            material_label: default_material.clone(),
-                        });
-                    }
-                }
+            changed |= match state.editor_tab {
+                ModlEditorTab::Assignments => edit_modl_entries(
+                    ctx,
+                    ui,
+                    modl,
+                    mesh,
+                    matl,
+                    validation_errors,
+                    dark_mode,
+                    &mut message,
+                ),
+                ModlEditorTab::Files => edit_modl_file_names(ui, modl),
             }
-            horizontal_separator_empty(ui);
-
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    if state.advanced_mode {
-                        changed |= edit_modl_file_names(ui, modl);
-                        horizontal_separator_empty(ui);
-                    }
-
-                    let mut entry_to_remove = None;
-
-                    // TODO: Avoid allocating here.
-                    // TODO: Don't need a wrapper type?
-                    let mut items: Vec<_> = (0..modl.entries.len()).map(ModlEntryIndex).collect();
-
-                    let response =
-                        dnd(ui, "modl_dnd").show_vec(&mut items, |ui, item, handle, _| {
-                            ui.horizontal(|ui| {
-                                let entry = &mut modl.entries[item.0];
-                                let id = egui::Id::new("modl").with(item.0);
-
-                                handle.ui(ui, |ui| {
-                                    draggable_icon(ctx, ui, dark_mode);
-                                });
-
-                                // Check for assignment errors for the current entry.
-                                let mut valid_mesh = true;
-                                let mut valid_material = true;
-                                for e in
-                                    validation_errors.iter().filter(|e| e.entry_index == item.0)
-                                {
-                                    match &e.kind {
-                                        ModlValidationErrorKind::InvalidMeshObject { .. } => {
-                                            valid_mesh = false
-                                        }
-                                        ModlValidationErrorKind::InvalidMaterial { .. } => {
-                                            valid_material = false
-                                        }
-                                    }
-                                }
-
-                                // Show errors for the selected mesh object for this entry.
-                                let mesh_text = if valid_mesh {
-                                    RichText::new(&entry.mesh_object_name)
-                                } else {
-                                    warning_icon_text(&entry.mesh_object_name)
-                                };
-
-                                let name_response = if state.advanced_mode {
-                                    let (response, name_changed) =
-                                        mesh_combo_box(ui, entry, id.with("mesh"), mesh, mesh_text);
-                                    changed |= name_changed;
-                                    response
-                                } else {
-                                    // TODO: Find a way to get a grid layout working with egui_dnd.
-                                    let (_, rect) = ui.allocate_space(egui::vec2(300.0, 20.0));
-                                    ui.child_ui(
-                                        rect,
-                                        egui::Layout::left_to_right(egui::Align::Center),
-                                        None,
-                                    )
-                                    .add(Label::new(mesh_text).sense(egui::Sense::click()))
-                                };
-
-                                name_response.context_menu(|ui| {
-                                    if ui.button("Delete").clicked() {
-                                        ui.close_menu();
-                                        entry_to_remove = Some(item.0);
-                                        changed = true;
-                                    }
-                                });
-
-                                changed |= material_label_combo_box(
-                                    ui,
-                                    &mut entry.material_label,
-                                    id.with("matl"),
-                                    matl,
-                                    valid_material,
-                                );
-                                ui.end_row();
-
-                                // TODO: Add a menu option to match the numshb order (in game convention?).
-                                // Outline the selected mesh in the viewport.
-                                // Check the response first to only have to search for one render mesh.
-                                // TODO: This response check isn't working.
-                                if name_response.hovered() {
-                                    message = Some(EditorMessage::SelectMesh {
-                                        mesh_object_name: entry.mesh_object_name.clone(),
-                                        mesh_object_subindex: entry.mesh_object_subindex,
-                                    });
-                                }
-                            });
-                        });
-
-                    if let Some(i) = entry_to_remove {
-                        modl.entries.remove(i);
-                    }
-
-                    if let Some(response) = response.final_update() {
-                        egui_dnd::utils::shift_vec(response.from, response.to, &mut modl.entries);
-                        changed = true;
-                    }
-                });
         });
 
     EditorResponse {
@@ -224,6 +108,137 @@ pub fn modl_editor(
         saved,
         message,
     }
+}
+
+fn edit_modl_entries(
+    ctx: &egui::Context,
+    ui: &mut egui::Ui,
+    modl: &mut ModlData,
+    mesh: Option<&MeshData>,
+    matl: Option<&MatlData>,
+    validation_errors: &[ModlValidationError],
+    dark_mode: bool,
+    message: &mut Option<EditorMessage>,
+) -> bool {
+    let mut changed = false;
+
+    if let Some(mesh) = mesh {
+        // TODO: Optimize this?
+        let missing_entries: Vec<_> = mesh
+            .objects
+            .iter()
+            .filter(|mesh| {
+                !modl.entries.iter().any(|e| {
+                    e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex
+                })
+            })
+            .collect();
+        // TODO: Also collect unused entries.
+
+        // Pick an arbitrary material to make the mesh visible in the viewport.
+        let default_material = matl
+            .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
+            .unwrap_or_else(|| String::from("PLACEHOLDER"));
+
+        // TODO: add an option to remove unused entries.
+        if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
+            changed = true;
+
+            for mesh in missing_entries {
+                modl.entries.push(ModlEntryData {
+                    mesh_object_name: mesh.name.clone(),
+                    mesh_object_subindex: mesh.subindex,
+                    material_label: default_material.clone(),
+                });
+            }
+        }
+    }
+    horizontal_separator_empty(ui);
+
+    ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            let mut entry_to_remove = None;
+
+            // TODO: Avoid allocating here.
+            // TODO: Don't need a wrapper type?
+            let mut items: Vec<_> = (0..modl.entries.len()).map(ModlEntryIndex).collect();
+
+            let response = dnd(ui, "modl_dnd").show_vec(&mut items, |ui, item, handle, _| {
+                ui.horizontal(|ui| {
+                    let entry = &mut modl.entries[item.0];
+                    let id = egui::Id::new("modl").with(item.0);
+
+                    handle.ui(ui, |ui| {
+                        draggable_icon(ctx, ui, dark_mode);
+                    });
+
+                    // Check for assignment errors for the current entry.
+                    let mut valid_mesh = true;
+                    let mut valid_material = true;
+                    for e in validation_errors.iter().filter(|e| e.entry_index == item.0) {
+                        match &e.kind {
+                            ModlValidationErrorKind::InvalidMeshObject { .. } => valid_mesh = false,
+                            ModlValidationErrorKind::InvalidMaterial { .. } => {
+                                valid_material = false
+                            }
+                        }
+                    }
+
+                    // Show errors for the selected mesh object for this entry.
+                    let mesh_text = if valid_mesh {
+                        RichText::new(&entry.mesh_object_name)
+                    } else {
+                        warning_icon_text(&entry.mesh_object_name)
+                    };
+
+                    // TODO: Find a way to get a grid layout working with egui_dnd.
+                    let (_, rect) = ui.allocate_space(egui::vec2(300.0, 20.0));
+                    let name_response = ui
+                        .child_ui(rect, egui::Layout::left_to_right(egui::Align::Center), None)
+                        .add(Label::new(mesh_text).sense(egui::Sense::click()));
+
+                    name_response.context_menu(|ui| {
+                        if ui.button("Delete").clicked() {
+                            ui.close_menu();
+                            entry_to_remove = Some(item.0);
+                            changed = true;
+                        }
+                    });
+
+                    changed |= material_label_combo_box(
+                        ui,
+                        &mut entry.material_label,
+                        id.with("matl"),
+                        matl,
+                        valid_material,
+                    );
+                    ui.end_row();
+
+                    // TODO: Add a menu option to match the numshb order (in game convention?).
+                    // Outline the selected mesh in the viewport.
+                    // Check the response first to only have to search for one render mesh.
+                    // TODO: This response check isn't working.
+                    if name_response.hovered() {
+                        *message = Some(EditorMessage::SelectMesh {
+                            mesh_object_name: entry.mesh_object_name.clone(),
+                            mesh_object_subindex: entry.mesh_object_subindex,
+                        });
+                    }
+                });
+            });
+
+            if let Some(i) = entry_to_remove {
+                modl.entries.remove(i);
+            }
+
+            if let Some(response) = response.final_update() {
+                egui_dnd::utils::shift_vec(response.from, response.to, &mut modl.entries);
+                changed = true;
+            }
+        });
+
+    changed
 }
 
 fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
@@ -277,41 +292,6 @@ fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
     changed
 }
 
-// TODO: Create a function that handles displaying combo box errors?
-fn mesh_combo_box(
-    ui: &mut egui::Ui,
-    entry: &mut ModlEntryData,
-    id: impl std::hash::Hash,
-    mesh: Option<&MeshData>,
-    selected_text: RichText,
-) -> (egui::Response, bool) {
-    let mut changed = false;
-    let response = egui::ComboBox::from_id_source(id)
-        .selected_text(selected_text)
-        .width(300.0)
-        .show_ui(ui, |ui| {
-            // TODO: Just use text boxes if the mesh is missing?
-            if let Some(mesh) = mesh {
-                for mesh in &mesh.objects {
-                    if ui
-                        .selectable_label(
-                            entry.mesh_object_name == mesh.name
-                                && entry.mesh_object_subindex == mesh.subindex,
-                            &mesh.name,
-                        )
-                        .clicked()
-                    {
-                        entry.mesh_object_name.clone_from(&mesh.name);
-                        entry.mesh_object_subindex = mesh.subindex;
-                        changed = true;
-                    }
-                }
-            }
-        })
-        .response;
-    (response, changed)
-}
-
 fn material_label_combo_box(
     ui: &mut egui::Ui,
     material_label: &mut String,
@@ -328,7 +308,8 @@ fn material_label_combo_box(
     };
     egui::ComboBox::from_id_source(id)
         .selected_text(text)
-        .width(400.0)
+        .width(300.0)
+        .wrap_mode(TextWrapMode::Wrap)
         .show_ui(ui, |ui| {
             // TODO: Just use text boxes if the matl is missing?
             if let Some(matl) = matl {
