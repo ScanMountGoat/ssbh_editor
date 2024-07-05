@@ -9,7 +9,7 @@ use crate::{
 use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit, TextWrapMode};
 use egui_dnd::dnd;
 
-use ssbh_data::{modl_data::ModlEntryData, prelude::*};
+use ssbh_data::{mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
 use std::path::Path;
 
 #[derive(Hash)]
@@ -51,13 +51,11 @@ pub fn modl_editor(
 
                 ui.menu_button("Modl", |ui| {
                     if ui.button("Rebuild from Mesh").clicked() {
-                        changed = true;
+                        ui.close_menu();
 
-                        // TODO: Add missing and remove unused entries.
-                        // Pick an arbitrary material to make the mesh visible in the viewport.
-                        let _default_material = matl
-                            .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
-                            .unwrap_or_else(|| String::from("PLACEHOLDER"));
+                        if let Some(mesh) = mesh {
+                            changed |= rebuild_from_mesh(modl, mesh, matl);
+                        }
                     }
                 });
 
@@ -110,6 +108,41 @@ pub fn modl_editor(
     }
 }
 
+fn rebuild_from_mesh(modl: &mut ModlData, mesh: &MeshData, matl: Option<&MatlData>) -> bool {
+    let mut changed = false;
+
+    // TODO: Optimize this?
+    let missing_entries = missing_mesh_objects(modl, mesh);
+    let has_unused_entries = has_unused_entries(modl, mesh);
+
+    // Pick an arbitrary material to make the mesh visible in the viewport.
+    let default_material = matl
+        .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
+        .unwrap_or_else(|| String::from("PLACEHOLDER"));
+
+    if !missing_entries.is_empty() {
+        for mesh in missing_entries {
+            modl.entries.push(ModlEntryData {
+                mesh_object_name: mesh.name.clone(),
+                mesh_object_subindex: mesh.subindex,
+                material_label: default_material.clone(),
+            });
+        }
+        changed = true;
+    }
+
+    if has_unused_entries {
+        modl.entries.retain(|e| {
+            mesh.objects.iter().any(|mesh| {
+                e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex
+            })
+        });
+        changed = true;
+    }
+
+    changed
+}
+
 fn edit_modl_entries(
     ctx: &egui::Context,
     ui: &mut egui::Ui,
@@ -124,23 +157,14 @@ fn edit_modl_entries(
 
     if let Some(mesh) = mesh {
         // TODO: Optimize this?
-        let missing_entries: Vec<_> = mesh
-            .objects
-            .iter()
-            .filter(|mesh| {
-                !modl.entries.iter().any(|e| {
-                    e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex
-                })
-            })
-            .collect();
-        // TODO: Also collect unused entries.
+        let missing_entries = missing_mesh_objects(modl, mesh);
+        let has_unused_entries = has_unused_entries(modl, mesh);
 
         // Pick an arbitrary material to make the mesh visible in the viewport.
         let default_material = matl
             .and_then(|m| m.entries.first().map(|e| e.material_label.clone()))
             .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
-        // TODO: add an option to remove unused entries.
         if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
             changed = true;
 
@@ -151,6 +175,16 @@ fn edit_modl_entries(
                     material_label: default_material.clone(),
                 });
             }
+        }
+
+        if has_unused_entries && ui.button("Remove Unused Entries").clicked() {
+            changed = true;
+
+            modl.entries.retain(|e| {
+                mesh.objects.iter().any(|mesh| {
+                    e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex
+                })
+            });
         }
     }
     horizontal_separator_empty(ui);
@@ -239,6 +273,27 @@ fn edit_modl_entries(
         });
 
     changed
+}
+
+fn has_unused_entries(modl: &ModlData, mesh: &MeshData) -> bool {
+    modl.entries.iter().any(|e| {
+        !mesh
+            .objects
+            .iter()
+            .any(|mesh| e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex)
+    })
+}
+
+fn missing_mesh_objects<'a>(modl: &ModlData, mesh: &'a MeshData) -> Vec<&'a MeshObjectData> {
+    mesh.objects
+        .iter()
+        .filter(|mesh| {
+            !modl
+                .entries
+                .iter()
+                .any(|e| e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex)
+        })
+        .collect()
 }
 
 fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
