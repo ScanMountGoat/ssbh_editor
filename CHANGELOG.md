@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Adjusted long material labels to wrap instead of clip in the Modl Editor, Matl Editor, and Material Preset Editor.
 * Adjusted mesh name text boxes in the Mesh Editor to not clip.
-* Adjusted texture parameter names in the Matl Editor to show the color channels used by the shader.
+* Adjusted texture parameter names in the Matl Editor to show the color channels used by the shader on hover.
 * Moved editing of model files to a separate tab in the Modl Editor.
 
 ### Removed
