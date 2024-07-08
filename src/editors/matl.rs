@@ -14,8 +14,8 @@ use crate::{
 };
 use egui::{
     load::SizedTexture, special_emojis::GITHUB, Button, CentralPanel, CollapsingHeader, ComboBox,
-    Context, DragValue, Grid, Label, RichText, ScrollArea, SidePanel, TextEdit, TextWrapMode,
-    TopBottomPanel, Ui, Window,
+    Context, DragValue, Grid, Label, RichText, ScrollArea, Sense, SidePanel, TextEdit,
+    TextWrapMode, TopBottomPanel, Ui, Window,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -959,6 +959,7 @@ fn edit_matl_entry_inner(
                 default_thumbnails,
                 !unused_parameters.contains(&param.param_id),
                 &errors,
+                program,
             );
             ui.end_row();
         }
@@ -1186,13 +1187,24 @@ fn edit_texture(
     default_thumbnails: &[Thumbnail],
     enabled: bool,
     errors: &[&&MatlValidationError],
+    program: Option<&ShaderProgram>,
 ) -> bool {
-    // Show errors that apply to this param.
+    let channel_mask = program
+        .map(|p| p.accessed_channels(&param.param_id.to_string()))
+        .unwrap_or_default();
+    let channels: String = channel_mask
+        .iter()
+        .zip("RGBA".chars())
+        .filter_map(|(b, c)| if *b { Some(c) } else { None })
+        .collect();
+
     let text = param_text(param.param_id, errors);
     let response = ui
-        .add_enabled(enabled, Label::new(text))
+        .add_enabled(enabled, Label::new(text).sense(Sense::click()))
+        .on_hover_text(format!("Used channels: {channels}"))
         .on_disabled_hover_text(UNUSED_PARAM);
 
+    // Show errors that apply to this param.
     if !errors.is_empty() {
         response.on_hover_ui(|ui| display_validation_errors(ui, errors));
     }
@@ -1269,6 +1281,7 @@ fn edit_texture(
                 .response
                 .context_menu(|ui| {
                     if ui.button("Edit").clicked() {
+                        ui.close_menu();
                         *texture_to_edit_index = Some(i);
                     }
                 });
