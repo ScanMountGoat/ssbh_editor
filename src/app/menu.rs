@@ -199,6 +199,12 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 app.render_actions
                     .push_back(RenderAction::Model(RenderModelAction::HideExpressions));
             }
+
+            if ui.button("Hide Ink Meshes").clicked() {
+                ui.close_menu();
+                app.render_actions
+                    .push_back(RenderAction::Model(RenderModelAction::HideInkMeshes));
+            }
             ui.separator();
 
             if ui.button("Expand All").clicked() {

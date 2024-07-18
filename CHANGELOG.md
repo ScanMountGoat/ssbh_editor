@@ -7,12 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added an option to remove unused entries in the Modl Editor.
 * Added Modl > Rebuild from Mesh to the Modl Editor to both add missing entries and remove unused entries.
+* Added Meshes > Hide Ink Meshes for hiding stage ink meshes.
+* Added an option to automatically hide ink meshes to application preferences.
 
 ### Changed
 * Adjusted long material labels to wrap instead of clip in the Modl Editor, Matl Editor, and Material Preset Editor.
 * Adjusted mesh name text boxes in the Mesh Editor to not clip.
 * Adjusted texture parameter names in the Matl Editor to show the color channels used by the shader on hover.
 * Moved editing of model files to a separate tab in the Modl Editor.
+* Adjusted the behavior of Meshes > Show All to also show meshes instead of just models.
+* Adjusted the behavior of Meshes > Hide Expressions to not hide ink meshes.
 
 ### Removed
 * Removed the Advanced Settings toggle from the Matl Editor and Material Preset Editor. Right click textures to rename instead.

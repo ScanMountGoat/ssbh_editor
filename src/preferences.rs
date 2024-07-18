@@ -29,6 +29,7 @@ pub enum GraphicsBackend {
 pub struct AppPreferences {
     pub dark_mode: bool,
     pub autohide_expressions: bool,
+    pub autohide_ink_meshes: bool,
     pub viewport_color: [u8; 3],
     pub recent_folders: Vec<String>,
     pub graphics_backend: GraphicsBackend,
@@ -76,6 +77,7 @@ impl Default for AppPreferences {
         Self {
             dark_mode: true,
             autohide_expressions: false,
+            autohide_ink_meshes: false,
             viewport_color: [color.r(), color.g(), color.b()],
             recent_folders: Vec::new(),
             graphics_backend: GraphicsBackend::default(),

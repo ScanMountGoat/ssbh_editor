@@ -209,6 +209,7 @@ impl RenderState {
         stage_lighting: &StageLightingState,
         camera_state: &CameraState,
         autohide_expressions: bool,
+        autohide_ink_meshes: bool,
         current_frame: f32,
         viewport_color: [u8; 3],
     ) {
@@ -231,9 +232,14 @@ impl RenderState {
                             .ok()
                     });
                 }
-                RenderAction::Model(model_action) => {
-                    self.update_models(model_action, models, device, queue, autohide_expressions)
-                }
+                RenderAction::Model(model_action) => self.update_models(
+                    model_action,
+                    models,
+                    device,
+                    queue,
+                    autohide_expressions,
+                    autohide_ink_meshes,
+                ),
                 RenderAction::UpdateLighting => {
                     self.update_lighting(device, queue, stage_lighting, models, current_frame)
                 }
@@ -251,6 +257,7 @@ impl RenderState {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         autohide_expressions: bool,
+        autohide_ink_meshes: bool,
     ) {
         match model_action {
             RenderModelAction::Update(i) => {
@@ -281,6 +288,11 @@ impl RenderState {
                         hide_expressions(render_model);
                     }
                 }
+                if autohide_ink_meshes {
+                    for render_model in &mut new_render_models {
+                        hide_ink_meshes(render_model);
+                    }
+                }
 
                 // Preserve visibility edits if no models were added.
                 for (new_render_model, old_render_model) in
@@ -300,11 +312,19 @@ impl RenderState {
             RenderModelAction::ShowAll => {
                 for render_model in &mut self.render_models {
                     render_model.is_visible = true;
+                    for mesh in &mut render_model.meshes {
+                        mesh.is_visible = true;
+                    }
                 }
             }
             RenderModelAction::HideExpressions => {
                 for render_model in &mut self.render_models {
                     hide_expressions(render_model);
+                }
+            }
+            RenderModelAction::HideInkMeshes => {
+                for render_model in &mut self.render_models {
+                    hide_ink_meshes(render_model);
                 }
             }
             RenderModelAction::SelectMesh {
@@ -871,7 +891,9 @@ fn load_model(path: PathBuf, model: ssbh_wgpu::ModelFolder) -> ModelFolderState 
 }
 
 fn hide_expressions(render_model: &mut RenderModel) {
-    let patterns: [&str; 36] = [
+    // A more accurate check would use visibility from the wait animation.
+    // Use a simple heuristic instead.
+    let patterns = [
         "_bink",
         "_low",
         "appeal",
@@ -894,7 +916,6 @@ fn hide_expressions(render_model: &mut RenderModel) {
         "harf",
         "heavy",
         "hot",
-        "inkmesh",
         "laugh",
         "open_mouth",
         "ottotto",
@@ -920,6 +941,16 @@ fn hide_expressions(render_model: &mut RenderModel) {
         if !default_patterns.iter().any(|p| name.contains(p))
             && patterns.iter().any(|p| name.contains(p))
         {
+            mesh.is_visible = false;
+        }
+    }
+}
+
+fn hide_ink_meshes(render_model: &mut RenderModel) {
+    // A more accurate check would detect the "ink_color_set" attribute in the shader.
+    // Use a simple heuristic instead.
+    for mesh in &mut render_model.meshes {
+        if mesh.name.starts_with("inkMesh") {
             mesh.is_visible = false;
         }
     }

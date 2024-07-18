@@ -76,6 +76,12 @@ fn edit_preferences(ui: &mut Ui, preferences: &mut AppPreferences) -> bool {
             "Automatically Hide Expressions",
         )
         .changed();
+    changed |= ui
+        .checkbox(
+            &mut preferences.autohide_ink_meshes,
+            "Automatically Hide Ink Meshes",
+        )
+        .changed();
     ui.horizontal(|ui| {
         ui.label("Graphics Backend").on_hover_text(
             "The preferred graphics backend. Requires an application restart to take effect.",

@@ -24,6 +24,7 @@ impl SsbhApp {
             &self.ui_state.stage_lighting,
             &self.camera_state,
             self.preferences.autohide_expressions,
+            self.preferences.autohide_ink_meshes,
             self.animation_state.current_frame,
             self.preferences.viewport_color,
         );

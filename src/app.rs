@@ -328,6 +328,7 @@ pub enum RenderModelAction {
     HideAll,
     ShowAll,
     HideExpressions,
+    HideInkMeshes,
     SelectMesh {
         index: usize,
         mesh_object_name: String,
