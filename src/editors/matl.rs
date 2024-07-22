@@ -1266,15 +1266,19 @@ fn edit_texture(
                             .to_string_lossy()
                             .to_string();
 
-                        // TODO: Show a texture as selected even if the case doesn't match?
                         ui.horizontal(|ui| {
                             ui.image(SizedTexture {
                                 id: *thumbnail,
                                 size: egui::Vec2::new(24.0, 24.0),
                             });
-                            changed |= ui
-                                .selectable_value(&mut param.data, text.clone(), text)
-                                .changed();
+                            // Show a texture as selected even if the case doesn't match.
+                            if ui
+                                .selectable_label(param.data.eq_ignore_ascii_case(&text), &text)
+                                .clicked()
+                            {
+                                param.data = text;
+                                changed = true;
+                            }
                         });
                     }
                 })

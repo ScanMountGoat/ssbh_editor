@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Removed the Advanced Settings toggle from the Modl Editor. Advanced editing options are now always enabled.
 * Removed Modl > Add Entry from the Modl Editor. Add entries based on the current numshb instead.
 
+### Fixed
+* Fixed an issue where the texture drop down in the Matl Editor did not correctly ignore case.
+
 ## 0.10.3 - 2024-05-15
 ### Fixed
 * Fixed an issue where bones and the floor grid did not render properly.
