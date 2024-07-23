@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.10.4 - 2024-07-23
 ### Added
 * Added an option to remove unused entries in the Modl Editor.
 * Added Modl > Rebuild from Mesh to the Modl Editor to both add missing entries and remove unused entries.
