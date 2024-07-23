@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Moved editing of model files to a separate tab in the Modl Editor.
 * Adjusted the behavior of Meshes > Show All to also show meshes instead of just models.
 * Adjusted the behavior of Meshes > Hide Expressions to not hide ink meshes.
+* Changed the Max Anisotropy selector in the Matl Editor to not include the None variant to better reflect in game data.
 
 ### Removed
 * Removed the Advanced Settings toggle from the Matl Editor and Material Preset Editor. Right click textures to rename instead.

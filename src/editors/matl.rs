@@ -1371,15 +1371,11 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
                         .max_anisotropy)
                 )
                 .show_ui(ui, |ui| {
-                    changed |= ui.selectable_value(&mut param.data.max_anisotropy, None, "None").changed();
-                    ui.separator();
-
                     for variant in MaxAnisotropy::iter() {
-                        let value = Some(variant);
                         changed |= ui.selectable_value(
                             &mut param.data.max_anisotropy,
-                            value,
-                            anisotropy_label(value),
+                            variant,
+                            anisotropy_label(variant),
                         ).changed();
                     }
                 });
@@ -1409,16 +1405,13 @@ fn param_text(param_id: ParamId, errors: &[&&MatlValidationError]) -> RichText {
     }
 }
 
-fn anisotropy_label(v: Option<MaxAnisotropy>) -> &'static str {
+fn anisotropy_label(v: MaxAnisotropy) -> &'static str {
     match v {
-        Some(v) => match v {
-            MaxAnisotropy::One => "1x",
-            MaxAnisotropy::Two => "2x",
-            MaxAnisotropy::Four => "4x",
-            MaxAnisotropy::Eight => "8x",
-            MaxAnisotropy::Sixteen => "16x",
-        },
-        None => "None",
+        MaxAnisotropy::One => "1x",
+        MaxAnisotropy::Two => "2x",
+        MaxAnisotropy::Four => "4x",
+        MaxAnisotropy::Eight => "8x",
+        MaxAnisotropy::Sixteen => "16x",
     }
 }
 

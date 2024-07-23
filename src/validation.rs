@@ -735,13 +735,9 @@ fn validate_material_labels(validation: &mut ModelValidationErrors, matl: &MatlD
 fn validate_sampler_anisotropy(validation: &mut ModelValidationErrors, matl: &MatlData) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for s in &entry.samplers {
-            // Anisotropy of one is still technically disabled.
-            // TODO: Remove the 1x variant in ssbh_data?
-            if !matches!(
-                s.data.max_anisotropy,
-                Some(ssbh_data::matl_data::MaxAnisotropy::One) | None
-            ) && (s.data.min_filter == MinFilter::Nearest
-                || s.data.mag_filter == MagFilter::Nearest)
+            if s.data.max_anisotropy != ssbh_data::matl_data::MaxAnisotropy::One
+                && (s.data.min_filter == MinFilter::Nearest
+                    || s.data.mag_filter == MagFilter::Nearest)
             {
                 let error = MatlValidationError {
                     entry_index,
@@ -1846,7 +1842,7 @@ mod tests {
                         data: SamplerData {
                             min_filter: MinFilter::Nearest,
                             mag_filter: MagFilter::Linear2,
-                            max_anisotropy: Some(ssbh_data::matl_data::MaxAnisotropy::Eight),
+                            max_anisotropy: ssbh_data::matl_data::MaxAnisotropy::Eight,
                             ..Default::default()
                         },
                     },
@@ -1855,7 +1851,7 @@ mod tests {
                         data: SamplerData {
                             min_filter: MinFilter::LinearMipmapLinear,
                             mag_filter: MagFilter::Nearest,
-                            max_anisotropy: Some(ssbh_data::matl_data::MaxAnisotropy::One),
+                            max_anisotropy: ssbh_data::matl_data::MaxAnisotropy::One,
                             ..Default::default()
                         },
                     },
@@ -1864,7 +1860,7 @@ mod tests {
                         data: SamplerData {
                             min_filter: MinFilter::Nearest,
                             mag_filter: MagFilter::Nearest,
-                            max_anisotropy: None,
+                            max_anisotropy: ssbh_data::matl_data::MaxAnisotropy::One,
                             ..Default::default()
                         },
                     },
@@ -1909,6 +1905,7 @@ mod tests {
                         source_color: BlendFactor::SourceAlpha,
                         destination_color: BlendFactor::OneMinusSourceAlpha,
                         alpha_sample_to_coverage: false,
+                        ..Default::default()
                     },
                 }],
                 floats: Vec::new(),
@@ -1957,6 +1954,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                         source_color: BlendFactor::One,
                         destination_color: BlendFactor::OneMinusSourceAlpha,
                         alpha_sample_to_coverage: false,
+                        ..Default::default()
                     },
                 }],
                 floats: Vec::new(),
@@ -1990,6 +1988,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                         source_color: BlendFactor::SourceAlpha,
                         destination_color: BlendFactor::OneMinusSourceAlpha,
                         alpha_sample_to_coverage: false,
+                        ..Default::default()
                     },
                 }],
                 floats: Vec::new(),

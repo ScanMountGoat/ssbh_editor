@@ -92,7 +92,11 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamId::BlendState0,
                 BlendStateData {
                     source_color: BlendFactor::One,
+                    color_operation: BlendOperation::Add,
                     destination_color: BlendFactor::OneMinusSourceAlpha,
+                    source_alpha: BlendFactor::One,
+                    alpha_operation: BlendOperation::Add,
+                    destination_alpha: BlendFactor::Zero,
                     alpha_sample_to_coverage: false,
                 },
             )],
@@ -168,7 +172,11 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamId::BlendState0,
                 BlendStateData {
                     source_color: BlendFactor::One,
+                    color_operation: BlendOperation::Add,
                     destination_color: BlendFactor::Zero,
+                    source_alpha: BlendFactor::One,
+                    alpha_operation: BlendOperation::Add,
+                    destination_alpha: BlendFactor::Zero,
                     alpha_sample_to_coverage: true,
                 },
             )],
@@ -252,7 +260,11 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamId::BlendState0,
                 BlendStateData {
                     source_color: BlendFactor::One,
+                    color_operation: BlendOperation::Add,
                     destination_color: BlendFactor::OneMinusSourceAlpha,
+                    source_alpha: BlendFactor::One,
+                    alpha_operation: BlendOperation::Add,
+                    destination_alpha: BlendFactor::Zero,
                     alpha_sample_to_coverage: false,
                 },
             )],
@@ -300,7 +312,11 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamId::BlendState0,
                 BlendStateData {
                     source_color: BlendFactor::One,
+                    color_operation: BlendOperation::Add,
                     destination_color: BlendFactor::Zero,
+                    source_alpha: BlendFactor::One,
+                    alpha_operation: BlendOperation::Add,
+                    destination_alpha: BlendFactor::Zero,
                     alpha_sample_to_coverage: false,
                 },
             )],
@@ -459,6 +475,7 @@ pub fn load_xml_presets(xml_text: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
                         source_color: parse_xml_text(child_node, 0)?,
                         destination_color: parse_xml_text(child_node, 2)?,
                         alpha_sample_to_coverage: parse_xml_text::<usize>(child_node, 6)? != 0,
+                        ..Default::default()
                     };
                     blend_states.push(ParamData::new(param_id, data))
                 } else if is_bool(param_id) {

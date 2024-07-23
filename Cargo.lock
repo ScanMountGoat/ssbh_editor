@@ -2516,7 +2516,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2926,7 +2926,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7e8d7d8b70d3109f5e1c00bff719862bb4815315"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#cdfb111fc11b4e7de38e8cce5ab3d142078e35c3"
 dependencies = [
  "bytemuck",
  "log",
@@ -4331,8 +4331,9 @@ dependencies = [
 
 [[package]]
 name = "ssbh_data"
-version = "0.18.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75ab6392d4504d2be129b105902a9f0cbf1c756871e36bd586c8aee0f8344cbe"
 dependencies = [
  "ahash",
  "binrw 0.14.0",
@@ -4391,8 +4392,9 @@ dependencies = [
 
 [[package]]
 name = "ssbh_lib"
-version = "0.18.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "484c9a9047ffce5b3e456f9f69657a33df341023b1d126b74f155e98a546d5d1"
 dependencies = [
  "binrw 0.14.0",
  "modular-bitfield",
@@ -4406,7 +4408,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#7e8d7d8b70d3109f5e1c00bff719862bb4815315"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu#cdfb111fc11b4e7de38e8cce5ab3d142078e35c3"
 dependencies = [
  "bytemuck",
  "encase",
@@ -4429,16 +4431,18 @@ dependencies = [
 
 [[package]]
 name = "ssbh_write"
-version = "0.18.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7bbb6a711a2f418fc98d5016e04229410914f58de13bd1118d98b0f7ec020e6"
 dependencies = [
  "ssbh_write_derive",
 ]
 
 [[package]]
 name = "ssbh_write_derive"
-version = "0.18.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=acda3a2#acda3a23d3e05b55bda4cd4dba8b5a60fe7a1c4f"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3709db29d9b56ba3ff955589062353fe2cee20c28ca65ca6e19b72c4defe96db"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5467,7 +5471,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.3",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle",
  "smallvec",
@@ -5496,7 +5500,7 @@ dependencies = [
  "log",
  "naga",
  "once_cell",
- "parking_lot 0.12.3",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle",
  "rustc-hash",
@@ -5538,7 +5542,7 @@ dependencies = [
  "ndk-sys",
  "objc",
  "once_cell",
- "parking_lot 0.12.3",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle",
