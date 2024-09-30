@@ -146,7 +146,7 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
 
                 // Append the helper bone name to make it easier to find constraints.
                 CollapsingHeader::new(format!("{} ({})", o.name, o.target_bone_name))
-                    .id_source(id.with(&o.name))
+                    .id_salt(id.with(&o.name))
                     .default_open(false)
                     .show(ui, |ui| {
                         Grid::new(id).show(ui, |ui| {
@@ -178,7 +178,7 @@ fn orient_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>)
 
                             // TODO: Make this an enum in ssbh_data eventually.
                             ui.label("Unk Type");
-                            egui::ComboBox::from_id_source(id.with(4))
+                            egui::ComboBox::from_id_salt(id.with(4))
                                 .selected_text(o.unk_type.to_string())
                                 .show_ui(ui, |ui| {
                                     changed |=
@@ -246,7 +246,7 @@ fn aim_constraints(ui: &mut Ui, hlpb: &mut HlpbData, skel: Option<&SkelData>) ->
                     "{} ({} / {})",
                     aim.name, aim.target_bone_name1, aim.target_bone_name2
                 ))
-                .id_source(id.with(&aim.name))
+                .id_salt(id.with(&aim.name))
                 .default_open(false)
                 .show(ui, |ui| {
                     egui::Grid::new(id).show(ui, |ui| {

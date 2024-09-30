@@ -165,7 +165,7 @@ fn edit_bones_list(
                 .unwrap_or("None");
 
             ui.label("Parent Bone");
-            egui::ComboBox::from_id_source(id)
+            egui::ComboBox::from_id_salt(id)
                 .selected_text(parent_bone_name)
                 .width(250.0)
                 .show_ui(ui, |ui| {
@@ -237,7 +237,7 @@ fn display_bones_recursive(ui: &mut egui::Ui, root_index: usize, bones: &[BoneDa
     let id = ui.make_persistent_id("skel").with(name).with(root_index);
 
     CollapsingHeader::new(name)
-        .id_source(id)
+        .id_salt(id)
         .default_open(true)
         .show(ui, |ui| {
             // Recursively iterate over the child bones.

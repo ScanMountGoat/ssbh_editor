@@ -678,6 +678,7 @@ mod tests {
                 receives_shadow: false,
                 sh: false,
                 lighting: false,
+                anisotropic_rotation: false,
                 vertex_attributes: Vec::new(),
                 material_parameters: vec![
                     "BlendState0".to_owned(),
@@ -776,6 +777,7 @@ mod tests {
                 receives_shadow: false,
                 sh: false,
                 lighting: false,
+                anisotropic_rotation: false,
                 vertex_attributes: Vec::new(),
                 material_parameters: Vec::new(),
                 complexity: 0.0,

@@ -174,7 +174,7 @@ fn debug_mode_options(
 }
 
 fn edit_debug_mode(settings: &mut RenderSettings, ui: &mut egui::Ui) {
-    let mode_response = egui::ComboBox::from_id_source("Debug Mode")
+    let mode_response = egui::ComboBox::from_id_salt("Debug Mode")
         .width(200.0)
         .selected_text(debug_mode_label(settings.debug_mode))
         .show_ui(ui, |ui| {

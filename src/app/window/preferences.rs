@@ -122,7 +122,7 @@ fn edit_graphics_backend(graphics_backend: &mut GraphicsBackend, ui: &mut Ui) ->
 
     // TODO: Create a helper function for custom variant labels on enums?
     // TODO: Limit backends based on the current platform.
-    egui::ComboBox::from_id_source("graphics_backend")
+    egui::ComboBox::from_id_salt("graphics_backend")
         .width(200.0)
         .selected_text(backend_label(graphics_backend))
         .show_ui(ui, |ui| {

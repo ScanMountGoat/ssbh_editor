@@ -23,7 +23,7 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
     {
         let id = ui.make_persistent_id("swinglist").with(i);
         CollapsingHeader::new(folder_display_name(model))
-            .id_source(id)
+            .id_salt(id)
             .default_open(true)
             .show(ui, |ui| {
                 let available_folders = find_swing_folders(model, &app.models);
@@ -134,7 +134,7 @@ fn swing_combo_box(
 
     let name = if prc_index.is_some() { "swing.prc" } else { "" };
 
-    egui::ComboBox::from_id_source(id)
+    egui::ComboBox::from_id_salt(id)
         .width(200.0)
         .selected_text(name)
         .show_ui(ui, |ui| {

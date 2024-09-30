@@ -154,7 +154,7 @@ fn edit_mesh(
             };
 
             let header_response = CollapsingHeader::new(text)
-                .id_source(id.with("name"))
+                .id_salt(id.with("name"))
                 .show(ui, |ui| {
                     changed |= edit_mesh_object(
                         id,
@@ -254,7 +254,7 @@ fn edit_mesh_object(
     horizontal_separator_empty(ui);
 
     CollapsingHeader::new("Bone Influences")
-        .id_source(id.with("bone_influences"))
+        .id_salt(id.with("bone_influences"))
         .show(ui, |ui| {
             // Meshes should have influences or a parent bone but not both.
             if mesh_object.bone_influences.is_empty() {
@@ -312,7 +312,7 @@ fn edit_mesh_object(
     };
 
     CollapsingHeader::new(header_text)
-        .id_source(id.with("attributes"))
+        .id_salt(id.with("attributes"))
         .show(ui, |ui| {
             // TODO: Find a cleaner way to get the errors for the selected mesh.
             let missing_attributes = validation_errors
@@ -410,7 +410,7 @@ fn show_influences(ui: &mut Ui, mesh_object: &MeshObjectData) -> egui::InnerResp
 }
 
 fn edit_attribute_name(ui: &mut Ui, name: &mut String, id: egui::Id, valid_names: &[&str]) {
-    ComboBox::from_id_source(id)
+    ComboBox::from_id_salt(id)
         .selected_text(name.as_str())
         .show_ui(ui, |ui| {
             for n in valid_names {

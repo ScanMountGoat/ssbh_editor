@@ -77,9 +77,10 @@ fn main() {
             wgpu_options: WgpuConfiguration {
                 supported_backends: preferred_backends,
                 device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
+                    label: None,
                     required_features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
                     required_limits: wgpu::Limits::default(),
-                    label: None,
+                    memory_hints: wgpu::MemoryHints::default(),
                 }),
                 present_mode: wgpu::PresentMode::Fifo,
                 power_preference: wgpu::PowerPreference::HighPerformance,

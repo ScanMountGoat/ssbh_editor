@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## unreleased
 ### Added
 * Added an option to convert a parent bone to bone influences in the Mesh Editor.
+* Added anisotropic rotation to the shader information in the Matl Editor.
 
 ### Fixed
 * Fixed an issue where the "Remove Bone Influences" button in the Mesh Editor did not actually remove influences.
+* Fixed an issue where some materials would render with the wrong anisotropic highlight rotation.
 
 ## 0.10.4 - 2024-07-23
 ### Added

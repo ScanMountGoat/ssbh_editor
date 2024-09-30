@@ -98,7 +98,7 @@ where
 {
     // TODO: Return response and union instead?
     let mut changed = false;
-    egui::ComboBox::from_id_source(id_source)
+    egui::ComboBox::from_id_salt(id_source)
         .width(200.0)
         .selected_text(value.to_string())
         .show_ui(ui, |ui| {
@@ -119,7 +119,7 @@ pub fn bone_combo_box(
     extra_names: &[&str],
 ) -> bool {
     let mut changed = false;
-    egui::ComboBox::from_id_source(id)
+    egui::ComboBox::from_id_salt(id)
         .selected_text(bone_name.clone())
         .show_ui(ui, |ui| {
             for name in extra_names {

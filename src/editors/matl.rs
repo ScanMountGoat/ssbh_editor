@@ -595,6 +595,9 @@ fn program_attributes(program: &ShaderProgram) -> String {
     if program.lighting {
         attributes.push("Lightset Lighting");
     }
+    if program.anisotropic_rotation {
+        attributes.push("Anisotropic Rotation");
+    }
     attributes.join(", ")
 }
 
@@ -1046,7 +1049,7 @@ fn shader_grid(
         // TODO: Should this be part of the basic mode.
         ui.label("Render Pass");
         let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
-        ComboBox::from_id_source("render pass")
+        ComboBox::from_id_salt("render pass")
             .selected_text(entry.shader_label.get(25..).unwrap_or(""))
             .show_ui(ui, |ui| {
                 for pass in [
@@ -1092,6 +1095,7 @@ fn shader_info_values(ui: &mut Ui, program: &ShaderProgram) {
     ui.label(program.receives_shadow.to_string());
     ui.label(program.sh.to_string());
     ui.label(program.lighting.to_string());
+    ui.label(program.anisotropic_rotation.to_string());
 }
 
 fn shader_info_header(ui: &mut Ui) {
@@ -1106,6 +1110,8 @@ fn shader_info_header(ui: &mut Ui) {
         .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
     ui.label("Lightset Lighting")
         .on_hover_text("Uses directional lighting from the lighting nuanmb.");
+    ui.label("Anisotropic Rotation")
+        .on_hover_text("Use the PRM alpha to rotate the anisotropic highlight.");
 }
 
 fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) -> bool {
@@ -1248,7 +1254,7 @@ fn edit_texture(
         }
     } else {
         ui.add_enabled_ui(enabled, |ui| {
-            ComboBox::from_id_source(param.param_id.to_string())
+            ComboBox::from_id_salt(param.param_id.to_string())
                 .selected_text(&param.data)
                 .width(300.0)
                 .show_ui(ui, |ui| {
@@ -1299,7 +1305,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
     let mut changed = false;
 
     let text = param_text(param.param_id, errors);
-    let response = CollapsingHeader::new(text).id_source(param.param_id.to_string()).show(ui, |ui| {
+    let response = CollapsingHeader::new(text).id_salt(param.param_id.to_string()).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
         // TODO: List which wrap modes are the problem on error?
@@ -1364,7 +1370,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
             ui.end_row();
 
             ui.label("Max Anisotropy").on_hover_text("The amount of anisotropic filtering. Improves texture quality at extreme angles.");
-            egui::ComboBox::from_id_source(id.with("anis{:?}"))
+            egui::ComboBox::from_id_salt(id.with("anis{:?}"))
                 .selected_text(
                     anisotropy_label(param
                         .data

@@ -95,7 +95,7 @@ pub fn nutexb_viewer(
                 if nutexb.footer.layer_count == 6 {
                     let layers = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"];
                     ui.label("Layer");
-                    ComboBox::from_id_source("nutexb_layer")
+                    ComboBox::from_id_salt("nutexb_layer")
                         .selected_text(
                             layers
                                 .get(settings.layer as usize)
@@ -149,11 +149,11 @@ struct PaintTextureCallback;
 
 impl CallbackTrait for PaintTextureCallback {
     // TODO: Handle the size of the texture?
-    fn paint<'a>(
-        &'a self,
+    fn paint(
+        &self,
         _info: egui::PaintCallbackInfo,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        callback_resources: &'a egui_wgpu::CallbackResources,
+        render_pass: &mut wgpu::RenderPass<'static>,
+        callback_resources: &egui_wgpu::CallbackResources,
     ) {
         let render_state: &RenderState = callback_resources.get().unwrap();
         render_state.texture_renderer.render(render_pass);

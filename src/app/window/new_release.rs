@@ -33,7 +33,7 @@ pub fn new_release_window(
 
                 ScrollArea::vertical().show(ui, |ui| {
                     if let Some(release_notes) = &release_info.release_notes {
-                        CommonMarkViewer::new("release_markdown").show(ui, cache, release_notes);
+                        CommonMarkViewer::new().show(ui, cache, release_notes);
                     }
                 });
             });

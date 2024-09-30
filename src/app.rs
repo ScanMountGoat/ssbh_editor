@@ -1130,11 +1130,11 @@ impl CallbackTrait for ViewportCallback {
         Vec::new()
     }
 
-    fn paint<'a>(
-        &'a self,
+    fn paint(
+        &self,
         _info: egui::PaintCallbackInfo,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        callback_resources: &'a egui_wgpu::CallbackResources,
+        render_pass: &mut wgpu::RenderPass<'static>,
+        callback_resources: &egui_wgpu::CallbackResources,
     ) {
         let state: &RenderState = callback_resources.get().unwrap();
         state.renderer.end_render_models(render_pass);
@@ -1367,7 +1367,7 @@ impl SsbhApp {
                 {
                     // TODO: Use folder icons for open vs closed.
                     CollapsingHeader::new(folder_display_name(model))
-                        .id_source(format!("folder.{folder_index}"))
+                        .id_salt(format!("folder.{folder_index}"))
                         .default_open(true)
                         .show(ui, |ui| {
                             show_folder_files(

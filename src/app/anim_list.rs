@@ -21,7 +21,7 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 
         let id = ui.make_persistent_id("animlist").with(model_index);
         CollapsingHeader::new(folder_display_name(model))
-            .id_source(id)
+            .id_salt(id)
             .default_open(true)
             .show(ui, |ui| {
                 // Associate animations with the model folder by name.
@@ -161,7 +161,7 @@ fn anim_combo_box(
     let mut changed = false;
 
     // TODO: Reset animations?
-    egui::ComboBox::from_id_source(id)
+    egui::ComboBox::from_id_salt(id)
         .width(200.0)
         .selected_text(name)
         .show_ui(ui, |ui| {

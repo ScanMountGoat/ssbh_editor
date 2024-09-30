@@ -361,7 +361,7 @@ fn material_label_combo_box(
     } else {
         warning_icon_text(material_label)
     };
-    egui::ComboBox::from_id_source(id)
+    egui::ComboBox::from_id_salt(id)
         .selected_text(text)
         .width(300.0)
         .wrap_mode(TextWrapMode::Wrap)
