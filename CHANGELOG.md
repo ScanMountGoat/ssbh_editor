@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## unreleased
+### Added
+* Added an option to convert a parent bone to bone influences in the Mesh Editor.
+
 ### Fixed
 * Fixed an issue where the "Remove Bone Influences" button in the Mesh Editor did not actually remove influences.
 

@@ -15,7 +15,10 @@ use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
-    mesh_data::{AttributeData, MeshObjectData, VectorData},
+    mesh_data::{
+        transform_points, transform_vectors, AttributeData, BoneInfluence, MeshObjectData,
+        VectorData, VertexWeight,
+    },
     prelude::*,
 };
 use std::path::Path;
@@ -269,11 +272,14 @@ fn edit_mesh_object(
                     );
                 });
 
-                // TODO: Add an option to apply the parent transform or inverse parent transform?
-                // TODO: Add an option to convert to bone influences.
-                // 1. Transform the vertices based on the parent world transform.
-                // 2. Add bone influences for the parent bone.
-                // 3. Clear the parent bone to an empty string.
+                if ui
+                    .button("Convert to Bone Influences")
+                    .on_hover_text("Weight all vertices to the parent bone and apply its transform")
+                    .clicked()
+                {
+                    convert_parent_bone_to_influences(mesh_object, skel);
+                    changed = true;
+                }
             } else {
                 if ui
                     .button("Remove Bone Influences")
@@ -281,6 +287,7 @@ fn edit_mesh_object(
                     .clicked()
                 {
                     // TODO: What happens if there is a parent bone and influences?
+                    // TODO: Convert to parent bone if there is only one influence.
                     mesh_object.bone_influences = Vec::new();
                     changed = true;
                 }
@@ -330,6 +337,49 @@ fn edit_mesh_object(
         });
 
     changed
+}
+
+// TODO: Move this to ssbh_data?
+fn convert_parent_bone_to_influences(mesh_object: &mut MeshObjectData, skel: Option<&SkelData>) {
+    // Weight vertices to parent bone.
+    mesh_object.bone_influences = vec![BoneInfluence {
+        bone_name: mesh_object.parent_bone_name.clone(),
+        vertex_weights: (0..mesh_object.vertex_count().unwrap_or_default())
+            .map(|i| VertexWeight {
+                vertex_index: i as u32,
+                vertex_weight: 1.0,
+            })
+            .collect(),
+    }];
+
+    // Apply parent transform.
+    if let Some(parent_transform) = skel.and_then(|s| {
+        s.bones
+            .iter()
+            .find(|b| b.name == mesh_object.parent_bone_name)
+            .and_then(|b| s.calculate_world_transform(b).ok())
+    }) {
+        for attribute in &mut mesh_object.positions {
+            attribute.data = transform_points(&attribute.data, &parent_transform);
+        }
+        for attribute in &mut mesh_object.normals {
+            attribute.data = transform_vectors(&attribute.data, &parent_transform);
+        }
+        for attribute in &mut mesh_object.tangents {
+            attribute.data = transform_vectors(&attribute.data, &parent_transform);
+        }
+        for attribute in &mut mesh_object.binormals {
+            attribute.data = transform_vectors(&attribute.data, &parent_transform);
+        }
+    } else {
+        error!(
+            "Failed to apply transform for {:?}",
+            mesh_object.parent_bone_name
+        );
+    }
+
+    // Remove parent.
+    mesh_object.parent_bone_name = String::new();
 }
 
 fn match_mesh_order(mesh: &mut MeshData, reference: &MeshData) {
