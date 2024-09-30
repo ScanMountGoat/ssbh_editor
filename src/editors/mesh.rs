@@ -270,7 +270,7 @@ fn edit_mesh_object(
                 });
 
                 // TODO: Add an option to apply the parent transform or inverse parent transform?
-                // TODO: Add an option to convert to skin weights.
+                // TODO: Add an option to convert to bone influences.
                 // 1. Transform the vertices based on the parent world transform.
                 // 2. Add bone influences for the parent bone.
                 // 3. Clear the parent bone to an empty string.
@@ -281,7 +281,7 @@ fn edit_mesh_object(
                     .clicked()
                 {
                     // TODO: What happens if there is a parent bone and influences?
-                    mesh_object.parent_bone_name = String::new();
+                    mesh_object.bone_influences = Vec::new();
                     changed = true;
                 }
 
