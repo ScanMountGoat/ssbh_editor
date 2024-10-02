@@ -6,7 +6,7 @@ use crate::{
     validation::{ModlValidationError, ModlValidationErrorKind},
     EditorMessage, EditorResponse,
 };
-use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit, TextWrapMode};
+use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::dnd;
 
 use ssbh_data::{mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
