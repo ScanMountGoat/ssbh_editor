@@ -99,7 +99,7 @@ where
     // TODO: Return response and union instead?
     let mut changed = false;
     egui::ComboBox::from_id_salt(id_source)
-        .width(200.0)
+        .width(ui.available_width())
         .selected_text(value.to_string())
         .show_ui(ui, |ui| {
             for v in V::iter() {

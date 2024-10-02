@@ -144,8 +144,7 @@ fn edit_bones_list(
     let mut items: Vec<_> = (0..skel.bones.len()).map(SkelBoneIndex).collect();
 
     let response = dnd(ui, "skel_dnd").show_custom_vec(&mut items, |ui, items, iter| {
-        // TODO: Extend grid to edge of window.
-        Grid::new("skel_grid").show(ui, |ui| {
+        Grid::new("skel_grid").num_columns(4).show(ui, |ui| {
             ui.label("");
             ui.label("Bone");
             ui.label("Parent Bone");
@@ -159,14 +158,14 @@ fn edit_bones_list(
 
                 // TODO: Is there a way to add an extra row of space when dragging?
                 // TODO: Does this depend on sorting during or after dragging?
-                let space_content = |ui: &mut egui::Ui, _space| {
-                    ui.label("");
-                    ui.label("");
-                    ui.label("");
-                    ui.label("");
-                    ui.end_row();
-                };
-                iter.space_before(ui, item_id, space_content);
+                // let space_content = |ui: &mut egui::Ui, _space| {
+                //     ui.label("");
+                //     ui.label("");
+                //     ui.label("");
+                //     ui.label("");
+                //     ui.end_row();
+                // };
+                // iter.space_before(ui, item_id, space_content);
 
                 iter.next(ui, item_id, i, false, |ui, item_handle| {
                     let response = item_handle.ui(ui, |ui, handle, _state| {
@@ -214,7 +213,7 @@ fn edit_bones_list(
                     response
                 });
 
-                iter.space_after(ui, item_id, space_content);
+                // iter.space_after(ui, item_id, space_content);
             }
         });
     });
