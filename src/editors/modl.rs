@@ -12,9 +12,6 @@ use egui_dnd::dnd;
 use ssbh_data::{mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
 use std::path::Path;
 
-#[derive(Hash)]
-struct ModlEntryIndex(usize);
-
 pub fn modl_editor(
     ctx: &egui::Context,
     folder_name: &Path,
@@ -196,12 +193,12 @@ fn edit_modl_entries(
 
             // TODO: Avoid allocating here.
             // TODO: Don't need a wrapper type?
-            let mut items: Vec<_> = (0..modl.entries.len()).map(ModlEntryIndex).collect();
+            let mut items: Vec<_> = (0..modl.entries.len()).collect();
 
             let response = dnd(ui, "modl_dnd").show_vec(&mut items, |ui, item, handle, _| {
                 ui.horizontal(|ui| {
-                    let entry = &mut modl.entries[item.0];
-                    let id = egui::Id::new("modl").with(item.0);
+                    let entry = &mut modl.entries[*item];
+                    let id = egui::Id::new("modl").with(*item);
 
                     handle.ui(ui, |ui| {
                         draggable_icon(ctx, ui, dark_mode);
@@ -210,7 +207,7 @@ fn edit_modl_entries(
                     // Check for assignment errors for the current entry.
                     let mut valid_mesh = true;
                     let mut valid_material = true;
-                    for e in validation_errors.iter().filter(|e| e.entry_index == item.0) {
+                    for e in validation_errors.iter().filter(|e| e.entry_index == *item) {
                         match &e.kind {
                             ModlValidationErrorKind::InvalidMeshObject { .. } => valid_mesh = false,
                             ModlValidationErrorKind::InvalidMaterial { .. } => {
@@ -235,7 +232,7 @@ fn edit_modl_entries(
                     name_response.context_menu(|ui| {
                         if ui.button("Delete").clicked() {
                             ui.close_menu();
-                            entry_to_remove = Some(item.0);
+                            entry_to_remove = Some(*item);
                             changed = true;
                         }
                     });

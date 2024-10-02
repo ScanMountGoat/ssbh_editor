@@ -770,7 +770,7 @@ fn edit_material_label(
     // TODO: Get this to work with lost_focus for efficiency.
     // TODO: Show errors if these checks fail?
     let response = ui.add_sized(
-        egui::Vec2::new(400.0, 20.0),
+        egui::Vec2::new(ui.available_width(), 20.0),
         egui::TextEdit::singleline(&mut entry.material_label),
     );
 
@@ -794,11 +794,19 @@ fn edit_shader_label(
 ) -> bool {
     let mut changed = false;
     if is_valid {
-        changed |= ui.text_edit_singleline(shader_label).changed();
+        changed |= ui
+            .add_sized(
+                egui::Vec2::new(ui.available_width(), 20.0),
+                egui::TextEdit::singleline(shader_label),
+            )
+            .changed();
     } else {
         ui.horizontal(|ui| {
             ui.image(SizedTexture { id: red_checkerboard, size: egui::Vec2::new(16.0, 16.0) });
-            changed |= ui.add(egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED)).changed();
+            changed |= ui.add_sized(
+                egui::Vec2::new(ui.available_width(), 20.0),
+                egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED),
+            ).changed();
         })
         .response
         .on_hover_text(format!("{shader_label} is not a valid shader label. Copy an existing shader label or apply a material preset."));
@@ -937,7 +945,7 @@ fn edit_matl_entry_inner(
     }
     horizontal_separator_empty(ui);
 
-    Grid::new("matl textures").show(ui, |ui| {
+    Grid::new("matl textures").num_columns(3).show(ui, |ui| {
         for (i, param) in entry.textures.iter_mut().enumerate() {
             // TODO: Avoid collect.
             let errors: Vec<_> = validation_errors
@@ -1080,38 +1088,42 @@ fn shader_grid(
 
 fn shader_info_grid(ui: &mut Ui, program: &ShaderProgram) {
     Grid::new("shader_info").show(ui, |ui| {
-        shader_info_header(ui);
-        ui.end_row();
-
-        shader_info_values(ui, program);
+        shader_info_header(ui, program);
         ui.end_row();
     });
 }
 
-fn shader_info_values(ui: &mut Ui, program: &ShaderProgram) {
-    // TODO: use checkmarks so this is easier to parse at a glance.
-    ui.label(program.discard.to_string());
-    ui.label(program.premultiplied.to_string());
-    ui.label(program.receives_shadow.to_string());
-    ui.label(program.sh.to_string());
-    ui.label(program.lighting.to_string());
-    ui.label(program.anisotropic_rotation.to_string());
-}
+fn shader_info_header(ui: &mut Ui, program: &ShaderProgram) {
+    if program.discard {
+        ui.label("Alpha Testing")
+            .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
+    }
 
-fn shader_info_header(ui: &mut Ui) {
-    ui.label("Alpha Testing")
-        .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
-    ui.label("Premultiplied Alpha").on_hover_text(
-        "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.",
-    );
-    ui.label("Receives Shadow")
-        .on_hover_text("Receives directional shadows. Not to be confused with shadow casting.");
-    ui.label("SH Lighting")
-        .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
-    ui.label("Lightset Lighting")
-        .on_hover_text("Uses directional lighting from the lighting nuanmb.");
-    ui.label("Anisotropic Rotation")
-        .on_hover_text("Use the PRM alpha to rotate the anisotropic highlight.");
+    if program.premultiplied {
+        ui.label("Premultiplied Alpha").on_hover_text(
+            "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.",
+        );
+    }
+
+    if program.receives_shadow {
+        ui.label("Receives Shadow")
+            .on_hover_text("Receives directional shadows. Not to be confused with shadow casting.");
+    }
+
+    if program.sh {
+        ui.label("SH Lighting")
+            .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
+    }
+
+    if program.lighting {
+        ui.label("Lightset Lighting")
+            .on_hover_text("Uses directional lighting from the lighting nuanmb.");
+    }
+
+    if program.anisotropic_rotation {
+        ui.label("Anisotropic Rotation")
+            .on_hover_text("Use the PRM alpha to rotate the anisotropic highlight.");
+    }
 }
 
 fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) -> bool {
@@ -1123,7 +1135,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidati
         .show(ui, |ui| {
             let id = egui::Id::new(param.param_id.to_string());
 
-            Grid::new(id).show(ui, |ui| {
+            Grid::new(id).num_columns(2).show(ui, |ui| {
                 ui.label("Source Color")
                     .on_hover_text("The blend factor for this mesh's rendered color.");
                 changed |= enum_combo_box(ui, id.with("srccolor"), &mut param.data.source_color);
@@ -1163,7 +1175,7 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
     CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
         let id = egui::Id::new(param.param_id.to_string());
 
-        Grid::new(id).show(ui, |ui| {
+        Grid::new(id).num_columns(2).show(ui, |ui| {
             ui.label("Polygon Fill")
                 .on_hover_text("The polygon mode for shading triangles.");
             changed |= enum_combo_box(ui, id.with("fill"), &mut param.data.fill_mode);
@@ -1256,7 +1268,7 @@ fn edit_texture(
         ui.add_enabled_ui(enabled, |ui| {
             ComboBox::from_id_salt(param.param_id.to_string())
                 .selected_text(&param.data)
-                .width(300.0)
+                .width(ui.available_width())
                 .show_ui(ui, |ui| {
                     // Assume every available texture correctly generated a thumbnail.
                     // Prevent assigning cube maps to 2D textures and 2D textures to cube maps.
@@ -1309,7 +1321,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
         let id = egui::Id::new(param.param_id.to_string());
 
         // TODO: List which wrap modes are the problem on error?
-        Grid::new(id).show(ui, |ui| {
+        Grid::new(id).num_columns(2).show(ui, |ui| {
             ui.label("Wrap S")
                 .on_hover_text("The wrap mode for the S or U coordinate.");
             changed |= enum_combo_box(
@@ -1371,6 +1383,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
             ui.label("Max Anisotropy").on_hover_text("The amount of anisotropic filtering. Improves texture quality at extreme angles.");
             egui::ComboBox::from_id_salt(id.with("anis{:?}"))
+                .width(ui.available_width())
                 .selected_text(
                     anisotropy_label(param
                         .data

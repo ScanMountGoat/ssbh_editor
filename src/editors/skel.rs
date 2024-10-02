@@ -15,9 +15,6 @@ use log::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
 
-#[derive(Hash)]
-struct SkelBoneIndex(usize);
-
 pub fn skel_editor(
     ctx: &egui::Context,
     folder_name: &Path,
@@ -141,7 +138,7 @@ fn edit_bones_list(
     let other_bones = skel.bones.clone();
 
     // TODO: Avoid allocating here.
-    let mut items: Vec<_> = (0..skel.bones.len()).map(SkelBoneIndex).collect();
+    let mut items: Vec<_> = (0..skel.bones.len()).collect();
 
     let response = dnd(ui, "skel_dnd").show_custom_vec(&mut items, |ui, items, iter| {
         Grid::new("skel_grid").num_columns(4).show(ui, |ui| {
@@ -152,9 +149,9 @@ fn edit_bones_list(
             ui.end_row();
 
             for (i, item) in items.iter().enumerate() {
-                let item_id = egui::Id::new("skel_item").with(item.0);
+                let item_id = egui::Id::new("skel_item").with(item);
 
-                let bone = &mut skel.bones[item.0];
+                let bone = &mut skel.bones[*item];
 
                 // TODO: Is there a way to add an extra row of space when dragging?
                 // TODO: Does this depend on sorting during or after dragging?
@@ -177,7 +174,7 @@ fn edit_bones_list(
                     // TODO: Highlight the selected bone on hover.
                     ui.add(Label::new(&bone.name).sense(egui::Sense::click()));
 
-                    let id = egui::Id::new("bone").with(item.0);
+                    let id = egui::Id::new("bone").with(item);
                     let parent_bone_name = bone
                         .parent_index
                         .and_then(|i| other_bones.get(i))
@@ -194,7 +191,7 @@ fn edit_bones_list(
                             ui.separator();
                             // TODO: Is there a way to make this not O(N^2)?
                             for (other_i, other_bone) in other_bones.iter().enumerate() {
-                                if item.0 != other_i {
+                                if *item != other_i {
                                     changed |= ui
                                         .selectable_value(
                                             &mut bone.parent_index,

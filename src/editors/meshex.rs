@@ -68,9 +68,11 @@ pub fn meshex_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     // TODO: Show bounding sphere values?
-                    Grid::new("meshex_grid").show(ui, |ui| {
+                    Grid::new("meshex_grid").num_columns(4).show(ui, |ui| {
                         ui.heading("Full Name");
                         ui.heading("Name");
+                        ui.label("");
+                        ui.label("");
                         ui.end_row();
 
                         for group in &mut meshex.mesh_object_groups {

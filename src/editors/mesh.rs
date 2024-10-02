@@ -23,9 +23,6 @@ use ssbh_data::{
 };
 use std::path::Path;
 
-#[derive(Hash)]
-struct MeshObjectIndex(usize);
-
 pub fn mesh_editor(
     ctx: &egui::Context,
     folder_name: &Path,
@@ -130,7 +127,7 @@ fn edit_mesh(
     let mut mesh_to_remove = None;
 
     // TODO: Avoid allocating here.
-    let mut items: Vec<_> = (0..mesh.objects.len()).map(MeshObjectIndex).collect();
+    let mut items: Vec<_> = (0..mesh.objects.len()).collect();
 
     let response = dnd(ui, "mesh_dnd").show_vec(&mut items, |ui, item, handle, _| {
         ui.horizontal(|ui| {
@@ -138,13 +135,13 @@ fn edit_mesh(
                 draggable_icon(ctx, ui, dark_mode);
             });
 
-            let mesh_object = &mut mesh.objects[item.0];
-            let id = egui::Id::new("mesh").with(item.0);
+            let mesh_object = &mut mesh.objects[*item];
+            let id = egui::Id::new("mesh").with(*item);
 
             // TODO: Avoid allocating here.
             let errors: Vec<_> = validation_errors
                 .iter()
-                .filter(|e| e.mesh_object_index == item.0)
+                .filter(|e| e.mesh_object_index == *item)
                 .collect();
 
             let text = if !errors.is_empty() {
@@ -161,7 +158,7 @@ fn edit_mesh(
                         ui,
                         mesh_object,
                         skel,
-                        item.0,
+                        *item,
                         &errors,
                         validation_errors,
                     );
@@ -171,7 +168,7 @@ fn edit_mesh(
             header_response.context_menu(|ui| {
                 if ui.button("Delete").clicked() {
                     ui.close_menu();
-                    mesh_to_remove = Some(item.0);
+                    mesh_to_remove = Some(*item);
                     changed = true;
                 }
             });
@@ -179,8 +176,8 @@ fn edit_mesh(
             // Outline the selected mesh in the viewport.
             if header_response.hovered() {
                 *message = Some(EditorMessage::SelectMesh {
-                    mesh_object_name: mesh.objects[item.0].name.clone(),
-                    mesh_object_subindex: mesh.objects[item.0].subindex,
+                    mesh_object_name: mesh.objects[*item].name.clone(),
+                    mesh_object_subindex: mesh.objects[*item].subindex,
                 });
             }
 
