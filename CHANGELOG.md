@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.10.5 - 2024-10-02
 ### Added
 * Added an option to convert a parent bone to bone influences in the Mesh Editor.
 * Added anisotropic rotation to the shader information in the Matl Editor.
