@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.10.6 - 2024-10-14
+### Fixed
+* Fixed a regression in animation playback causing playback speeds less than 1.0 to not work. 
+
 ## 0.10.5 - 2024-10-02
 ### Added
 * Added an option to convert a parent bone to bone influences in the Mesh Editor.
