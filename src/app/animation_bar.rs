@@ -25,10 +25,14 @@ pub fn display_animation_bar(
             // TODO: How to fill available space?
             // TODO: Get the space that would normally be taken up by the central panel?
             ui.spacing_mut().slider_width = (ui.available_width() - 520.0).max(0.0);
+
+            // Only round frames when not playing to avoid messing up interpolation.
+            let step = if animation_state.is_playing { 0.0 } else { 1.0 };
+
             let response = ui.add(
                 // TODO: Show ticks?
                 egui::Slider::new(&mut animation_state.current_frame, 0.0..=final_frame_index)
-                    .step_by(1.0)
+                    .step_by(step)
                     .show_value(false),
             );
             if response.hovered() {
