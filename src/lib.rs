@@ -20,6 +20,7 @@ use std::{
     collections::{BTreeMap, HashSet, VecDeque},
     error::Error,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 pub mod app;
@@ -723,26 +724,34 @@ pub fn default_fonts() -> egui::FontDefinitions {
     // These languages are required to display some user mods correctly.
     egui::FontDefinitions {
         font_data: BTreeMap::from([
-            ("noto".to_owned(), egui::FontData::from_static(FONT_BYTES)),
+            (
+                "noto".to_owned(),
+                Arc::new(egui::FontData::from_static(FONT_BYTES)),
+            ),
             (
                 "noto-emoji".to_owned(),
-                egui::FontData::from_static(include_bytes!("fonts/NotoEmoji-Regular.ttf")).tweak(
-                    FontTweak {
-                        scale: 0.81,           // make it smaller
-                        y_offset_factor: -0.2, // move it up
-                        y_offset: 0.0,
-                        baseline_offset_factor: 0.0,
-                    },
+                Arc::new(
+                    egui::FontData::from_static(include_bytes!("fonts/NotoEmoji-Regular.ttf"))
+                        .tweak(FontTweak {
+                            scale: 0.81,           // make it smaller
+                            y_offset_factor: -0.2, // move it up
+                            y_offset: 0.0,
+                            baseline_offset_factor: 0.0,
+                        }),
                 ),
             ),
             (
                 "emoji".to_owned(),
-                egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")).tweak(FontTweak {
-                    scale: 1.0,           // make it smaller
-                    y_offset_factor: 0.0, // move it down slightly
-                    y_offset: 2.0,
-                    baseline_offset_factor: 0.0,
-                }),
+                Arc::new(
+                    egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")).tweak(
+                        FontTweak {
+                            scale: 1.0,           // make it smaller
+                            y_offset_factor: 0.0, // move it down slightly
+                            y_offset: 2.0,
+                            baseline_offset_factor: 0.0,
+                        },
+                    ),
+                ),
             ),
         ]),
         families: BTreeMap::from([

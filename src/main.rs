@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use egui::ViewportBuilder;
 use egui_commonmark::CommonMarkCache;
-use egui_wgpu::WgpuConfiguration;
+use egui_wgpu::{WgpuConfiguration, WgpuSetup};
 use log::error;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_editor::app::{RenderAction, SsbhApp, UiState};
@@ -75,15 +75,17 @@ fn main() {
                 .with_icon(icon)
                 .with_inner_size([1280.0, 720.0]),
             wgpu_options: WgpuConfiguration {
-                supported_backends: preferred_backends,
-                device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
-                    required_limits: wgpu::Limits::default(),
-                    memory_hints: wgpu::MemoryHints::default(),
-                }),
+                wgpu_setup: WgpuSetup::CreateNew {
+                    supported_backends: preferred_backends,
+                    power_preference: wgpu::PowerPreference::HighPerformance,
+                    device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
+                        label: None,
+                        required_features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
+                        required_limits: wgpu::Limits::default(),
+                        memory_hints: wgpu::MemoryHints::default(),
+                    }),
+                },
                 present_mode: wgpu::PresentMode::Fifo,
-                power_preference: wgpu::PowerPreference::HighPerformance,
                 ..Default::default()
             },
             ..Default::default()
