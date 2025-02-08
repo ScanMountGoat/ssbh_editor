@@ -3,7 +3,7 @@ use app::{RenderAction, RenderModelAction, StageLightingState};
 use egui::{
     ecolor::linear_f32_from_gamma_u8,
     style::{WidgetVisuals, Widgets},
-    Color32, FontFamily, FontId, FontTweak, Rounding, Stroke, TextStyle, Visuals,
+    Color32, CornerRadius, FontFamily, FontId, FontTweak, Stroke, TextStyle, Visuals,
 };
 use model_folder::ModelFolderState;
 use nutexb::NutexbFile;
@@ -538,7 +538,7 @@ pub fn checkerboard_texture(
         view_formats: &[],
     });
     queue.write_texture(
-        wgpu::ImageCopyTexture {
+        wgpu::TexelCopyTextureInfo {
             texture: &texture,
             mip_level: 0,
             origin: wgpu::Origin3d::ZERO,
@@ -548,7 +548,7 @@ pub fn checkerboard_texture(
             0, 0, 0, 255, color[0], color[1], color[2], color[3], color[0], color[1], color[2],
             color[3], 0, 0, 0, 255,
         ],
-        wgpu::ImageDataLayout {
+        wgpu::TexelCopyBufferLayout {
             offset: 0,
             bytes_per_row: Some(8),
             rows_per_image: None,
@@ -648,7 +648,7 @@ pub fn widgets_dark() -> Widgets {
             bg_fill: Color32::from_gray(27),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)), // separators, indentation lines, windows outlines
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK),        // normal text color
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
@@ -656,7 +656,7 @@ pub fn widgets_dark() -> Widgets {
             bg_fill: Color32::from_gray(60),      // checkbox background
             bg_stroke: Default::default(),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK), // button text
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         },
         hovered: WidgetVisuals {
@@ -664,7 +664,7 @@ pub fn widgets_dark() -> Widgets {
             bg_fill: Color32::from_gray(70),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(150)), // e.g. hover over window edge or button
             fg_stroke: Stroke::new(1.5, Color32::from_gray(255)),
-            rounding: Rounding::same(3.0),
+            corner_radius: CornerRadius::same(3),
             expansion: 1.0,
         },
         active: WidgetVisuals {
@@ -672,7 +672,7 @@ pub fn widgets_dark() -> Widgets {
             bg_fill: Color32::from_gray(55),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(255)),
             fg_stroke: Stroke::new(2.0, Color32::from_gray(255)),
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 1.0,
         },
         open: WidgetVisuals {
@@ -680,7 +680,7 @@ pub fn widgets_dark() -> Widgets {
             bg_fill: Color32::from_gray(27),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(60)),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_DARK),
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         },
     }
@@ -694,7 +694,7 @@ pub fn widgets_light() -> Widgets {
             bg_fill: Color32::from_gray(248),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(190)), // separators, indentation lines, windows outlines
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT),        // normal text color
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         },
         inactive: WidgetVisuals {
@@ -702,7 +702,7 @@ pub fn widgets_light() -> Widgets {
             bg_fill: Color32::from_gray(230),      // checkbox background
             bg_stroke: Default::default(),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT), // button text
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         },
         hovered: WidgetVisuals {
@@ -710,7 +710,7 @@ pub fn widgets_light() -> Widgets {
             bg_fill: Color32::from_gray(220),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(105)), // e.g. hover over window edge or button
             fg_stroke: Stroke::new(1.5, Color32::BLACK),
-            rounding: Rounding::same(3.0),
+            corner_radius: CornerRadius::same(3),
             expansion: 1.0,
         },
         active: WidgetVisuals {
@@ -718,7 +718,7 @@ pub fn widgets_light() -> Widgets {
             bg_fill: Color32::from_gray(165),
             bg_stroke: Stroke::new(1.0, Color32::BLACK),
             fg_stroke: Stroke::new(2.0, Color32::BLACK),
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 1.0,
         },
         open: WidgetVisuals {
@@ -726,7 +726,7 @@ pub fn widgets_light() -> Widgets {
             bg_fill: Color32::from_gray(220),
             bg_stroke: Stroke::new(1.0, Color32::from_gray(160)),
             fg_stroke: Stroke::new(1.0, TEXT_COLOR_LIGHT),
-            rounding: Rounding::same(2.0),
+            corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         },
     }

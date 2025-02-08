@@ -116,9 +116,10 @@ impl<'a> Widget for DragSlider<'a> {
 
                 ui.painter().rect(
                     outer_rect.expand(visuals.expansion),
-                    visuals.rounding,
+                    visuals.corner_radius,
                     visuals.bg_fill,
                     visuals.bg_stroke,
+                    egui::StrokeKind::Inside,
                 );
 
                 let fill_amount = self.value.clamp(0.0, 1.0);
@@ -129,9 +130,10 @@ impl<'a> Widget for DragSlider<'a> {
 
                 ui.painter().rect(
                     inner_rect,
-                    visuals.rounding,
+                    visuals.corner_radius,
                     ui.visuals().selection.bg_fill,
                     Stroke::NONE,
+                    egui::StrokeKind::Inside,
                 );
 
                 // Center the text in the slider rect.

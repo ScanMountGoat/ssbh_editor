@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use egui::ViewportBuilder;
 use egui_commonmark::CommonMarkCache;
-use egui_wgpu::{WgpuConfiguration, WgpuSetup};
+use egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
 use log::error;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_editor::{
@@ -75,16 +75,18 @@ fn main() {
                 .with_icon(icon)
                 .with_inner_size([1280.0, 720.0]),
             wgpu_options: WgpuConfiguration {
-                wgpu_setup: WgpuSetup::CreateNew {
-                    supported_backends: preferred_backends,
+                wgpu_setup: WgpuSetup::CreateNew(WgpuSetupCreateNew {
+                    instance_descriptor: wgpu::InstanceDescriptor {
+                        backends: preferred_backends,
+                        ..Default::default()
+                    },
                     power_preference: wgpu::PowerPreference::HighPerformance,
                     device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
-                        label: None,
                         required_features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
-                        required_limits: wgpu::Limits::default(),
-                        memory_hints: wgpu::MemoryHints::default(),
+                        ..Default::default()
                     }),
-                },
+                    ..Default::default()
+                }),
                 present_mode: wgpu::PresentMode::Fifo,
                 ..Default::default()
             },

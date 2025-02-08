@@ -428,14 +428,9 @@ fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) ->
         .load(ctx, TextureOptions::default(), egui::SizeHint::Size(32, 32))
         .unwrap()
     {
-        egui::load::TexturePoll::Pending { .. } => ui.allocate_response(
-            egui::vec2(16.0, 16.0),
-            egui::Sense {
-                click: false,
-                drag: false,
-                focusable: false,
-            },
-        ),
+        egui::load::TexturePoll::Pending { .. } => {
+            ui.allocate_response(egui::vec2(16.0, 16.0), egui::Sense::empty())
+        }
         egui::load::TexturePoll::Ready { texture } => ui.add(
             Image::new(texture)
                 .tint(tint)
