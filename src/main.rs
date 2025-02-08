@@ -11,17 +11,17 @@ use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{WgpuConfiguration, WgpuSetup};
 use log::error;
 use nutexb_wgpu::TextureRenderer;
-use ssbh_editor::app::{RenderAction, SsbhApp, UiState};
-use ssbh_editor::material::load_material_presets;
-use ssbh_editor::preferences::{AppPreferences, GraphicsBackend};
-use ssbh_editor::presets::default_presets;
-use ssbh_editor::update::{check_for_updates, LatestReleaseInfo};
 use ssbh_editor::{
-    checkerboard_texture, default_fonts, default_text_styles, generate_default_thumbnails,
+    app::{RenderAction, SsbhApp, UiState},
+    checkerboard_texture, default_fonts, default_text_styles,
+    material::load_material_presets,
     path::{presets_file, PROJECT_DIR},
-    widgets_dark, AnimationState, CameraState, RenderState,
+    preferences::{AppPreferences, GraphicsBackend},
+    presets::default_presets,
+    thumbnail::{generate_default_thumbnails, Thumbnail},
+    update::{check_for_updates, LatestReleaseInfo},
+    update_color_theme, widgets_dark, AnimationState, CameraState, RenderState, SwingState,
 };
-use ssbh_editor::{update_color_theme, SwingState, Thumbnail};
 use ssbh_wgpu::{BoneNameRenderer, SsbhRenderer};
 
 fn main() {

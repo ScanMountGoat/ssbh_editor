@@ -1,4 +1,4 @@
-use crate::{FileResult, TextureDimension};
+use crate::{thumbnail::TextureDimension, FileResult};
 use approx::relative_eq;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
