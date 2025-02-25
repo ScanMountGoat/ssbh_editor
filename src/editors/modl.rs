@@ -189,6 +189,7 @@ fn edit_modl_entries(
     ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
+            let mut entry_to_duplicate = None;
             let mut entry_to_remove = None;
 
             // TODO: Avoid allocating here.
@@ -237,6 +238,12 @@ fn edit_modl_entries(
                                 ui.add(Label::new(mesh_text).sense(egui::Sense::click()));
 
                             name_response.context_menu(|ui| {
+                                if ui.button("Duplicate").clicked() {
+                                    ui.close_menu();
+                                    entry_to_duplicate = Some(*item);
+                                    changed = true;
+                                }
+
                                 if ui.button("Delete").clicked() {
                                     ui.close_menu();
                                     entry_to_remove = Some(*item);
@@ -269,6 +276,11 @@ fn edit_modl_entries(
                     }
                 });
             });
+
+            if let Some(i) = entry_to_duplicate {
+                let duplicated_entry = modl.entries[i].clone();
+                modl.entries.insert(i + 1, duplicated_entry);
+            }
 
             if let Some(i) = entry_to_remove {
                 modl.entries.remove(i);
