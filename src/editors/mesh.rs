@@ -124,6 +124,7 @@ fn edit_mesh(
 ) -> bool {
     let mut changed = false;
 
+    let mut mesh_to_duplicate = None;
     let mut mesh_to_remove = None;
 
     // TODO: Avoid allocating here.
@@ -166,6 +167,12 @@ fn edit_mesh(
                 .header_response;
 
             header_response.context_menu(|ui| {
+                if ui.button("Duplicate").clicked() {
+                    ui.close_menu();
+                    mesh_to_duplicate = Some(*item);
+                    changed = true;
+                }
+
                 if ui.button("Delete").clicked() {
                     ui.close_menu();
                     mesh_to_remove = Some(*item);
@@ -188,6 +195,19 @@ fn edit_mesh(
             }
         });
     });
+
+    if let Some(i) = mesh_to_duplicate {
+        let mut duplicated_mesh = mesh.objects[i].clone();
+        duplicated_mesh.subindex = mesh
+            .objects
+            .iter()
+            .filter(|o| o.name == duplicated_mesh.name)
+            .map(|o| o.subindex)
+            .max()
+            .unwrap_or_default()
+            + 1;
+        mesh.objects.insert(i + 1, duplicated_mesh);
+    }
 
     if let Some(i) = mesh_to_remove {
         mesh.objects.remove(i);
