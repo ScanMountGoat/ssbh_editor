@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## unreleased
+### Added
+* Added an option to duplicate entries in the right click menu in the Modl Editor and Mesh Editor.
+
 ### Fixed
 * Fixed an issue where bone rendering would incorrectly account for bone scale and cause some bones to fill the screen.
 
