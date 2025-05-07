@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Fixed an issue where bone rendering would incorrectly account for bone scale and cause some bones to fill the screen.
+* Fixed a crash when opening a file dialog for generated MacOS .app application bundle.
 
 ## 0.10.6 - 2024-10-14
 ### Fixed

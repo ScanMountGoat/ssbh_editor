@@ -47,4 +47,5 @@ strip = "debuginfo"
 lto = true
 
 [package.metadata.bundle]
+identifier = "ssbh_editor"
 icon = ["src/icons/SsbhEditor512_mac.png"]
