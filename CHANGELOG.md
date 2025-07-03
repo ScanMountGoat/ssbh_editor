@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added an option to duplicate entries in the right click menu in the Modl Editor and Mesh Editor.
 
+### Changed
+* Changed the Nutexb Viewer to enable panning and zooming the displayed texture.
+
 ### Fixed
 * Fixed an issue where bone rendering would incorrectly account for bone scale and cause some bones to fill the screen.
 * Fixed a crash when opening a file dialog for generated MacOS .app application bundle.

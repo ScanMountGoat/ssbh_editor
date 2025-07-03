@@ -472,6 +472,22 @@ pub struct UiState {
     pub skel_editor: SkelEditorState,
     pub modl_editor: ModlEditorState,
     pub stage_lighting: StageLightingState,
+    pub nutexb: NutexbViewerState,
+}
+
+pub struct NutexbViewerState {
+    pub rect: egui::Rect,
+}
+
+impl Default for NutexbViewerState {
+    fn default() -> Self {
+        Self {
+            rect: egui::Rect {
+                min: egui::Pos2 { x: 0.0, y: 0.0 },
+                max: egui::Pos2 { x: 512.0, y: 512.0 },
+            },
+        }
+    }
 }
 
 #[derive(Default)]
@@ -1303,6 +1319,7 @@ impl SsbhApp {
                         if !nutexb_viewer(
                             ctx,
                             &folder_editor_title(&model.folder_path, name),
+                            &mut self.ui_state.nutexb,
                             nutexb,
                             &mut render_state.texture_render_settings,
                         ) {

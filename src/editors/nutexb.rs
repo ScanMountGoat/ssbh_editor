@@ -1,19 +1,20 @@
-use crate::{horizontal_separator_empty, RenderState};
-use egui::{special_emojis::GITHUB, ComboBox, DragValue, Slider};
-use egui_wgpu::CallbackTrait;
+use crate::{app::NutexbViewerState, horizontal_separator_empty, RenderState};
+use egui::{special_emojis::GITHUB, ComboBox, DragValue, Scene, Slider};
+use egui_wgpu::{Callback, CallbackTrait};
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;
 
 pub fn nutexb_viewer(
     ctx: &egui::Context,
     title: &str,
+    state: &mut NutexbViewerState,
     nutexb: &NutexbFile,
     settings: &mut RenderSettings,
 ) -> bool {
     let mut open = true;
     egui::Window::new(format!("Nutexb Viewer ({title})"))
         .open(&mut open)
-        .resizable(false)
+        .default_size((500.0, 600.0))
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("Help", |ui| {
@@ -36,16 +37,11 @@ pub fn nutexb_viewer(
                 ui.label(nutexb.footer.string.to_string());
                 ui.end_row();
 
-                ui.label("Width");
-                ui.label(nutexb.footer.width.to_string());
-                ui.end_row();
-
-                ui.label("Height");
-                ui.label(nutexb.footer.height.to_string());
-                ui.end_row();
-
-                ui.label("Depth");
-                ui.label(nutexb.footer.depth.to_string());
+                ui.label("Dimensions");
+                ui.label(format!(
+                    "{} x {} x {}",
+                    nutexb.footer.width, nutexb.footer.height, nutexb.footer.depth
+                ));
                 ui.end_row();
 
                 ui.label("Image Format");
@@ -74,9 +70,6 @@ pub fn nutexb_viewer(
                 ui.checkbox(&mut settings.render_rgba[1], "G");
                 ui.checkbox(&mut settings.render_rgba[2], "B");
                 ui.checkbox(&mut settings.render_rgba[3], "A");
-
-                // TODO: Show a pixel grid in screen space?
-                // TODO: Composite with a background color for alpha?
 
                 if nutexb.footer.mipmap_count > 1 {
                     ui.label("Mipmap");
@@ -121,27 +114,45 @@ pub fn nutexb_viewer(
                 }
             });
 
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                // Preserve the aspect ratio of the texture.
-                // TODO: Make the window resizable?
-                let dimensions = if nutexb.footer.width > nutexb.footer.height {
-                    egui::Vec2::new(
-                        512.0,
-                        512.0 * (nutexb.footer.height as f32 / nutexb.footer.width as f32),
-                    )
-                } else {
-                    egui::Vec2::new(
-                        512.0 * (nutexb.footer.width as f32 / nutexb.footer.height as f32),
-                        512.0,
-                    )
-                };
-
-                let (_, rect) = ui.allocate_space(dimensions);
-
-                let cb = egui_wgpu::Callback::new_paint_callback(rect, PaintTextureCallback);
-                ui.painter().add(cb);
-            });
+            // TODO: Show a pixel grid in screen space?
+            // TODO: Composite with a background color for alpha?
+            // TODO: show controls for pan+zoom?
+            // TODO: This shouldn't stretch on the bottom and left sides.
+            // TODO: Add option to reset the view.
+            egui::Frame::group(&ui.style())
+                .inner_margin(0.0)
+                .show(ui, |ui| {
+                    Scene::new()
+                        .zoom_range(0.0..=f32::INFINITY)
+                        .show(ui, &mut state.rect, |ui| {
+                            // Preserve the aspect ratio of the texture.
+                            let image_rect = if nutexb.footer.width > nutexb.footer.height {
+                                egui::Rect {
+                                    min: egui::Pos2::ZERO,
+                                    max: egui::Pos2::new(
+                                        512.0,
+                                        512.0
+                                            * (nutexb.footer.height as f32
+                                                / nutexb.footer.width as f32),
+                                    ),
+                                }
+                            } else {
+                                egui::Rect {
+                                    min: egui::Pos2::ZERO,
+                                    max: egui::Pos2::new(
+                                        512.0
+                                            * (nutexb.footer.width as f32
+                                                / nutexb.footer.height as f32),
+                                        512.0,
+                                    ),
+                                }
+                            };
+                            let cb = Callback::new_paint_callback(image_rect, PaintTextureCallback);
+                            ui.painter().add(cb);
+                        });
+                });
         });
+
     open
 }
 
