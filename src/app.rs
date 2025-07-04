@@ -99,13 +99,13 @@ impl Editor for AdjData {
 }
 
 impl Editor for HlpbData {
-    type EditorState = ();
+    type EditorState = HlpbEditorState;
 
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
         open_file_index: &mut Option<usize>,
-        _: &mut Self::EditorState,
+        state: &mut Self::EditorState,
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
@@ -115,6 +115,7 @@ impl Editor for HlpbData {
             name,
             hlpb,
             find_file(&model.model.skels, "model.nusktb"),
+            state,
         ))
     }
 
@@ -473,6 +474,7 @@ pub struct UiState {
     pub modl_editor: ModlEditorState,
     pub stage_lighting: StageLightingState,
     pub nutexb: NutexbViewerState,
+    pub hlpb_editor: HlpbEditorState,
 }
 
 pub struct NutexbViewerState {
@@ -543,6 +545,25 @@ pub enum ModlEditorTab {
 impl Default for ModlEditorTab {
     fn default() -> Self {
         Self::Assignments
+    }
+}
+
+#[derive(Default)]
+pub struct HlpbEditorState {
+    pub editor_tab: HlpbEditorTab,
+    pub aim_constraint_index: usize,
+    pub orient_constraint_index: usize,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum HlpbEditorTab {
+    Orient,
+    Aim,
+}
+
+impl Default for HlpbEditorTab {
+    fn default() -> Self {
+        Self::Orient
     }
 }
 
@@ -1269,7 +1290,7 @@ impl SsbhApp {
                     ctx,
                     model,
                     &mut self.ui_state.open_hlpb,
-                    &mut (),
+                    &mut self.ui_state.hlpb_editor,
                     &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {

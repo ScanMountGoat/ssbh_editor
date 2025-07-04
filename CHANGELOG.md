@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Changed
+* Changed the Hlpb Editor to use a side panel to select the entry to edit.
+
 ## 0.10.7 - 2025-05-07
 ### Added
 * Added an option to duplicate entries in the right click menu in the Modl Editor and Mesh Editor.
