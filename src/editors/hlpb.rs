@@ -59,59 +59,11 @@ pub fn hlpb_editor(
             SidePanel::left("hlpb_left_panel")
                 .default_width(450.0)
                 .show_inside(ui, |ui| {
-                    match state.editor_tab {
-                        HlpbEditorTab::Orient => {
-                            let mut index_to_delete = None;
-
-                            for (i, o) in hlpb.orient_constraints.iter().enumerate() {
-                                // Append the helper bone name to make it easier to find constraints.
-                                ui.selectable_value(
-                                    &mut state.orient_constraint_index,
-                                    i,
-                                    format!("{} ({})", o.name, o.target_bone_name),
-                                )
-                                .context_menu(|ui| {
-                                    if ui.button("Delete").clicked() {
-                                        ui.close_menu();
-
-                                        index_to_delete = Some(i);
-                                        changed = true;
-                                    }
-                                });
-                            }
-
-                            if let Some(i) = index_to_delete {
-                                hlpb.orient_constraints.remove(i);
-                            }
-                        }
-                        HlpbEditorTab::Aim => {
-                            let mut index_to_delete = None;
-
-                            for (i, a) in hlpb.aim_constraints.iter().enumerate() {
-                                // Append the helper bone name to make it easier to find constraints.
-                                ui.selectable_value(
-                                    &mut state.aim_constraint_index,
-                                    i,
-                                    format!(
-                                        "{} ({} / {})",
-                                        a.name, a.target_bone_name1, a.target_bone_name2
-                                    ),
-                                )
-                                .context_menu(|ui| {
-                                    if ui.button("Delete").clicked() {
-                                        ui.close_menu();
-
-                                        index_to_delete = Some(i);
-                                        changed = true;
-                                    }
-                                });
-                            }
-
-                            if let Some(i) = index_to_delete {
-                                hlpb.aim_constraints.remove(i);
-                            }
-                        }
-                    }
+                    ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            select_constraint(hlpb, state, &mut changed, ui);
+                        });
                 });
 
             CentralPanel::default().show_inside(ui, |ui| {
@@ -133,6 +85,67 @@ pub fn hlpb_editor(
         changed,
         saved,
         message: None,
+    }
+}
+
+fn select_constraint(
+    hlpb: &mut HlpbData,
+    state: &mut HlpbEditorState,
+    changed: &mut bool,
+    ui: &mut Ui,
+) {
+    match state.editor_tab {
+        HlpbEditorTab::Orient => {
+            let mut index_to_delete = None;
+
+            for (i, o) in hlpb.orient_constraints.iter().enumerate() {
+                // Append the helper bone name to make it easier to find constraints.
+                ui.selectable_value(
+                    &mut state.orient_constraint_index,
+                    i,
+                    format!("{} ({})", o.name, o.target_bone_name),
+                )
+                .context_menu(|ui| {
+                    if ui.button("Delete").clicked() {
+                        ui.close_menu();
+
+                        index_to_delete = Some(i);
+                        *changed = true;
+                    }
+                });
+            }
+
+            if let Some(i) = index_to_delete {
+                hlpb.orient_constraints.remove(i);
+            }
+        }
+        HlpbEditorTab::Aim => {
+            let mut index_to_delete = None;
+
+            for (i, a) in hlpb.aim_constraints.iter().enumerate() {
+                // Append the helper bone name to make it easier to find constraints.
+                ui.selectable_value(
+                    &mut state.aim_constraint_index,
+                    i,
+                    format!(
+                        "{} ({} / {})",
+                        a.name, a.target_bone_name1, a.target_bone_name2
+                    ),
+                )
+                .context_menu(|ui| {
+                    if ui.button("Delete").clicked() {
+                        ui.close_menu();
+
+                        index_to_delete = Some(i);
+                        *changed = true;
+                    }
+                });
+            }
+
+            if let Some(i) = index_to_delete {
+                hlpb.aim_constraints.remove(i);
+            }
+        }
     }
 }
 

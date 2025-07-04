@@ -1,5 +1,5 @@
 use crate::{
-    app::{display_validation_errors, draggable_icon, warning_icon_text},
+    app::{display_validation_errors, draggable_icon, warning_icon_text, MeshEditorState},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -8,7 +8,7 @@ use crate::{
     EditorMessage, EditorResponse,
 };
 use egui::{
-    special_emojis::GITHUB, Button, CollapsingHeader, ComboBox, Grid, RichText, ScrollArea,
+    special_emojis::GITHUB, Button, CentralPanel, ComboBox, Grid, RichText, ScrollArea, SidePanel,
     TextEdit, TextWrapMode, Ui,
 };
 use egui_dnd::dnd;
@@ -31,6 +31,7 @@ pub fn mesh_editor(
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
     dark_mode: bool,
+    state: &mut MeshEditorState,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -90,19 +91,42 @@ pub fn mesh_editor(
             });
             ui.separator();
 
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    changed |= edit_mesh(
-                        ctx,
-                        ui,
-                        mesh,
-                        validation_errors,
-                        skel,
-                        dark_mode,
-                        &mut message,
-                    );
-                });
+            SidePanel::left("mesh_left_panel").show_inside(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        changed |= select_mesh_object_dnd(
+                            ctx,
+                            ui,
+                            mesh,
+                            validation_errors,
+                            dark_mode,
+                            &mut message,
+                            state,
+                        );
+                    });
+            });
+
+            CentralPanel::default().show_inside(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        if let Some(mesh_object) = mesh.objects.get_mut(state.selected_index) {
+                            // TODO: Avoid collect.
+                            let errors: Vec<_> = validation_errors
+                                .iter()
+                                .filter(|e| e.mesh_object_index == state.selected_index)
+                                .collect();
+                            changed |= edit_mesh_object(
+                                ui,
+                                mesh_object,
+                                skel,
+                                state.selected_index,
+                                &errors,
+                            );
+                        }
+                    });
+            });
         });
 
     EditorResponse {
@@ -113,14 +137,14 @@ pub fn mesh_editor(
     }
 }
 
-fn edit_mesh(
+fn select_mesh_object_dnd(
     ctx: &egui::Context,
     ui: &mut Ui,
     mesh: &mut MeshData,
     validation_errors: &[MeshValidationError],
-    skel: Option<&SkelData>,
     dark_mode: bool,
     message: &mut Option<EditorMessage>,
+    state: &mut MeshEditorState,
 ) -> bool {
     let mut changed = false;
 
@@ -128,21 +152,20 @@ fn edit_mesh(
     let mut mesh_to_remove = None;
 
     // TODO: Avoid allocating here.
-    let mut items: Vec<_> = (0..mesh.objects.len()).collect();
+    let mut item_indices: Vec<_> = (0..mesh.objects.len()).collect();
 
-    let response = dnd(ui, "mesh_dnd").show_vec(&mut items, |ui, item, handle, _| {
+    let response = dnd(ui, "mesh_dnd").show_vec(&mut item_indices, |ui, item_index, handle, _| {
         ui.horizontal(|ui| {
             handle.ui(ui, |ui| {
                 draggable_icon(ctx, ui, dark_mode);
             });
 
-            let mesh_object = &mut mesh.objects[*item];
-            let id = egui::Id::new("mesh").with(*item);
+            let mesh_object = &mut mesh.objects[*item_index];
 
             // TODO: Avoid allocating here.
             let errors: Vec<_> = validation_errors
                 .iter()
-                .filter(|e| e.mesh_object_index == *item)
+                .filter(|e| e.mesh_object_index == *item_index)
                 .collect();
 
             let text = if !errors.is_empty() {
@@ -151,31 +174,18 @@ fn edit_mesh(
                 RichText::new(&mesh_object.name)
             };
 
-            let header_response = CollapsingHeader::new(text)
-                .id_salt(id.with("name"))
-                .show(ui, |ui| {
-                    changed |= edit_mesh_object(
-                        id,
-                        ui,
-                        mesh_object,
-                        skel,
-                        *item,
-                        &errors,
-                        validation_errors,
-                    );
-                })
-                .header_response;
+            let header_response = ui.selectable_value(&mut state.selected_index, *item_index, text);
 
             header_response.context_menu(|ui| {
                 if ui.button("Duplicate").clicked() {
                     ui.close_menu();
-                    mesh_to_duplicate = Some(*item);
+                    mesh_to_duplicate = Some(*item_index);
                     changed = true;
                 }
 
                 if ui.button("Delete").clicked() {
                     ui.close_menu();
-                    mesh_to_remove = Some(*item);
+                    mesh_to_remove = Some(*item_index);
                     changed = true;
                 }
             });
@@ -183,14 +193,14 @@ fn edit_mesh(
             // Outline the selected mesh in the viewport.
             if header_response.hovered() {
                 *message = Some(EditorMessage::SelectMesh {
-                    mesh_object_name: mesh.objects[*item].name.clone(),
-                    mesh_object_subindex: mesh.objects[*item].subindex,
+                    mesh_object_name: mesh.objects[*item_index].name.clone(),
+                    mesh_object_subindex: mesh.objects[*item_index].subindex,
                 });
             }
 
             if !errors.is_empty() {
                 header_response.on_hover_ui(|ui| {
-                    display_validation_errors(ui, validation_errors);
+                    display_validation_errors(ui, &errors);
                 });
             }
         });
@@ -215,6 +225,10 @@ fn edit_mesh(
 
     if let Some(response) = response.final_update() {
         egui_dnd::utils::shift_vec(response.from, response.to, &mut mesh.objects);
+        state.selected_index = item_indices
+            .iter()
+            .position(|i| *i == state.selected_index)
+            .unwrap_or_default();
         changed = true;
     }
 
@@ -222,19 +236,19 @@ fn edit_mesh(
 }
 
 fn edit_mesh_object(
-    id: egui::Id,
     ui: &mut Ui,
     mesh_object: &mut MeshObjectData,
     skel: Option<&SkelData>,
     i: usize,
     errors: &[&MeshValidationError],
-    validation_errors: &[MeshValidationError],
 ) -> bool {
     let mut changed = false;
 
+    let id = egui::Id::new("mesh_object").with(i);
+
     // TODO: Reorder mesh objects?
     // TODO: Show errors on the appropriate field?
-    Grid::new(id.with("mesh_grid")).show(ui, |ui| {
+    Grid::new("mesh_grid").show(ui, |ui| {
         // TODO: Link name edits with the numdlb and numshexb.
         // This will need to check for duplicate names.
         ui.label("Name");
@@ -270,48 +284,45 @@ fn edit_mesh_object(
         .changed();
     horizontal_separator_empty(ui);
 
-    CollapsingHeader::new("Bone Influences")
-        .id_salt(id.with("bone_influences"))
-        .show(ui, |ui| {
-            // Meshes should have influences or a parent bone but not both.
-            if mesh_object.bone_influences.is_empty() {
-                ui.horizontal(|ui| {
-                    ui.label("Parent Bone").on_hover_text(
-                        "Inherit the transformation of the specified bone while animating.",
-                    );
+    ui.heading("Bone Influences");
 
-                    changed |= bone_combo_box(
-                        ui,
-                        &mut mesh_object.parent_bone_name,
-                        id.with("parent_bone"),
-                        skel,
-                        &[""],
-                    );
-                });
+    // Meshes should have influences or a parent bone but not both.
+    if mesh_object.bone_influences.is_empty() {
+        ui.horizontal(|ui| {
+            ui.label("Parent Bone")
+                .on_hover_text("Inherit the transformation of the specified bone while animating.");
 
-                if ui
-                    .button("Convert to Bone Influences")
-                    .on_hover_text("Weight all vertices to the parent bone and apply its transform")
-                    .clicked()
-                {
-                    convert_parent_bone_to_influences(mesh_object, skel);
-                    changed = true;
-                }
-            } else {
-                if ui
-                    .button("Remove Bone Influences")
-                    .on_hover_text("Remove the vertex skin weights to assign a parent bone.")
-                    .clicked()
-                {
-                    // TODO: What happens if there is a parent bone and influences?
-                    // TODO: Convert to parent bone if there is only one influence.
-                    mesh_object.bone_influences = Vec::new();
-                    changed = true;
-                }
-
-                show_influences(ui, mesh_object);
-            }
+            changed |= bone_combo_box(
+                ui,
+                &mut mesh_object.parent_bone_name,
+                id.with("parent_bone"),
+                skel,
+                &[""],
+            );
         });
+
+        if ui
+            .button("Convert to Bone Influences")
+            .on_hover_text("Weight all vertices to the parent bone and apply its transform")
+            .clicked()
+        {
+            convert_parent_bone_to_influences(mesh_object, skel);
+            changed = true;
+        }
+    } else {
+        if ui
+            .button("Remove Bone Influences")
+            .on_hover_text("Remove the vertex skin weights to assign a parent bone.")
+            .clicked()
+        {
+            // TODO: What happens if there is a parent bone and influences?
+            // TODO: Convert to parent bone if there is only one influence.
+            mesh_object.bone_influences = Vec::new();
+            changed = true;
+        }
+
+        show_influences(ui, mesh_object);
+    }
 
     // TODO: Simplify this code?
     let attribute_error = errors.iter().find(|e| {
@@ -328,30 +339,27 @@ fn edit_mesh_object(
         RichText::new("Vertex Attributes")
     };
 
-    CollapsingHeader::new(header_text)
-        .id_salt(id.with("attributes"))
-        .show(ui, |ui| {
-            // TODO: Find a cleaner way to get the errors for the selected mesh.
-            let missing_attributes = validation_errors
-                .iter()
-                .filter_map(|e| match &e.kind {
-                    MeshValidationErrorKind::MissingRequiredVertexAttributes {
-                        missing_attributes,
-                        ..
-                    } => {
-                        if e.mesh_object_index == i {
-                            Some(missing_attributes.as_slice())
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None,
-                })
-                .next()
-                .unwrap_or_default();
+    ui.heading(header_text);
 
-            changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
-        });
+    // TODO: Find a cleaner way to get the errors for the selected mesh.
+    let missing_attributes = errors
+        .iter()
+        .filter_map(|e| match &e.kind {
+            MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                missing_attributes, ..
+            } => {
+                if e.mesh_object_index == i {
+                    Some(missing_attributes.as_slice())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        })
+        .next()
+        .unwrap_or_default();
+
+    changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
 
     changed
 }

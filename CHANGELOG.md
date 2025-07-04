@@ -5,14 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## unreleased
 ### Changed
+* Changed the Mesh Editor to use a side panel to select the entry to edit.
 * Changed the Hlpb Editor to use a side panel to select the entry to edit.
+* Changed the Nutexb Viewer to enable panning and zooming the displayed texture.
 
 ## 0.10.7 - 2025-05-07
 ### Added
 * Added an option to duplicate entries in the right click menu in the Modl Editor and Mesh Editor.
-
-### Changed
-* Changed the Nutexb Viewer to enable panning and zooming the displayed texture.
 
 ### Fixed
 * Fixed an issue where bone rendering would incorrectly account for bone scale and cause some bones to fill the screen.

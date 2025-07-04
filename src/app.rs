@@ -195,13 +195,13 @@ impl Editor for MeshExData {
 }
 
 impl Editor for MeshData {
-    type EditorState = ();
+    type EditorState = MeshEditorState;
 
     fn editor(
         ctx: &Context,
         model: &mut ModelFolderState,
         open_file_index: &mut Option<usize>,
-        _: &mut Self::EditorState,
+        state: &mut Self::EditorState,
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
@@ -213,6 +213,7 @@ impl Editor for MeshData {
             find_file(&model.model.skels, "model.nusktb"),
             &model.validation.mesh_errors,
             dark_mode,
+            state,
         ))
     }
 
@@ -475,6 +476,7 @@ pub struct UiState {
     pub stage_lighting: StageLightingState,
     pub nutexb: NutexbViewerState,
     pub hlpb_editor: HlpbEditorState,
+    pub mesh_editor: MeshEditorState,
 }
 
 pub struct NutexbViewerState {
@@ -565,6 +567,11 @@ impl Default for HlpbEditorTab {
     fn default() -> Self {
         Self::Orient
     }
+}
+
+#[derive(Default)]
+pub struct MeshEditorState {
+    pub selected_index: usize,
 }
 
 #[derive(Default)]
@@ -1248,7 +1255,7 @@ impl SsbhApp {
                     ctx,
                     model,
                     &mut self.ui_state.open_mesh,
-                    &mut (),
+                    &mut self.ui_state.mesh_editor,
                     &mut self.render_actions,
                     self.preferences.dark_mode,
                 ) {
