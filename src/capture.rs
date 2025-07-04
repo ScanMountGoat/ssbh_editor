@@ -14,7 +14,7 @@ pub fn render_screenshot(
     render_state.renderer.set_clear_color([0.0; 4]);
 
     // Round up to satisfy alignment requirements for texture copies.
-    let round_up = |x, n| ((x + n - 1) / n) * n;
+    let round_up = |x: u32, n: u32| x.div_ceil(n) * n;
     let screenshot_width = round_up(width, 64);
     let screenshot_height = height;
 
@@ -213,7 +213,7 @@ pub fn render_animation_to_image_sequence(
                 .with_file_name(file_name + &i.to_string())
                 .with_extension(extension);
             if let Err(e) = image.save(output) {
-                error!("Error saving image to {:?}: {}", file, e);
+                error!("Error saving image to {file:?}: {e}");
             }
         }
     });

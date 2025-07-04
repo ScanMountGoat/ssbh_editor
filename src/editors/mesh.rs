@@ -71,7 +71,7 @@ pub fn mesh_editor(
                         {
                             match MeshData::from_file(&file) {
                                 Ok(reference) => match_mesh_order(mesh, &reference),
-                                Err(e) => error!("Failed to read {:?}: {}", file, e),
+                                Err(e) => error!("Failed to read {file:?}: {e}"),
                             }
                         }
                     }

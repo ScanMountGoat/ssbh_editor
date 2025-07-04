@@ -185,7 +185,7 @@ impl RenderState {
                     self.camera_anim = camera_state.anim_path.as_ref().and_then(|path| {
                         AnimData::from_file(path)
                             .map_err(|e| {
-                                error!("Error reading {:?}: {}", path, e);
+                                error!("Error reading {path:?}: {e}");
                                 e
                             })
                             .ok()
@@ -404,7 +404,7 @@ impl LightingData {
             // TODO: Create a helper function for this?
             AnimData::from_file(path)
                 .map_err(|e| {
-                    error!("Error reading {:?}: {}", path, e);
+                    error!("Error reading {path:?}: {e}");
                     e
                 })
                 .ok()
@@ -413,7 +413,7 @@ impl LightingData {
         let reflection_cube_map = state.reflection_cube_map.as_ref().and_then(|path| {
             NutexbFile::read_from_file(path)
                 .map_err(|e| {
-                    error!("Error reading {:?}: {}", path, e);
+                    error!("Error reading {path:?}: {e}");
                     e
                 })
                 .ok()
@@ -422,7 +422,7 @@ impl LightingData {
         let color_grading_lut = state.color_grading_lut.as_ref().and_then(|path| {
             NutexbFile::read_from_file(path)
                 .map_err(|e| {
-                    error!("Error reading {:?}: {}", path, e);
+                    error!("Error reading {path:?}: {e}");
                     e
                 })
                 .ok()
@@ -812,7 +812,7 @@ fn hide_ink_meshes(render_model: &mut RenderModel) {
 fn save_file<T: SsbhData>(file: &T, folder_name: &Path, file_name: &str) -> bool {
     let file_path = Path::new(folder_name).join(file_name);
     if let Err(e) = file.write_to_file(&file_path) {
-        error!("Failed to save {:?}: {}", file_path, e);
+        error!("Failed to save {file_path:?}: {e}");
         false
     } else {
         true
@@ -833,7 +833,7 @@ fn save_file_as<T: SsbhData>(
         .save_file()
     {
         if let Err(e) = file.write_to_file(&file_path) {
-            error!("Failed to save {:?}: {}", file_path, e);
+            error!("Failed to save {file_path:?}: {e}");
             false
         } else {
             true

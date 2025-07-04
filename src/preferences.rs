@@ -66,7 +66,7 @@ impl AppPreferences {
                     error!("Failed to write preferences to {:?}: {}", &path, e);
                 }
             }
-            Err(e) => error!("Failed to serialize preferences: {}", e),
+            Err(e) => error!("Failed to serialize preferences: {e}"),
         }
     }
 }

@@ -119,7 +119,7 @@ pub fn nutexb_viewer(
             // TODO: show controls for pan+zoom?
             // TODO: This shouldn't stretch on the bottom and left sides.
             // TODO: Add option to reset the view.
-            egui::Frame::group(&ui.style())
+            egui::Frame::group(ui.style())
                 .inner_margin(0.0)
                 .show(ui, |ui| {
                     Scene::new()

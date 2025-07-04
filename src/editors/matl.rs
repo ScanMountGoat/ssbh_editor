@@ -424,13 +424,13 @@ fn load_presets_from_file<F: Fn(&[u8]) -> anyhow::Result<Vec<MatlEntryData>>>(
 ) {
     match std::fs::read(&file)
         .map_err(|e| {
-            error!("Error reading presets file {:?}: {}", file, e);
+            error!("Error reading presets file {file:?}: {e}");
             e.into()
         })
         .and_then(|bytes| load_presets(&bytes))
     {
         Ok(new_presets) => presets.extend(new_presets),
-        Err(e) => error!("Error importing presets: {}", e),
+        Err(e) => error!("Error importing presets: {e}"),
     }
 }
 
@@ -443,10 +443,10 @@ fn save_material_presets(presets: &[MatlEntryData], file: std::path::PathBuf) {
     }) {
         Ok(presets_json) => {
             if let Err(e) = std::fs::write(file, presets_json) {
-                error!("Failed to save material presets JSON: {}", e);
+                error!("Failed to save material presets JSON: {e}");
             }
         }
-        Err(e) => error!("Failed to convert material presets to JSON: {}", e),
+        Err(e) => error!("Failed to convert material presets to JSON: {e}"),
     }
 }
 

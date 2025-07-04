@@ -39,7 +39,7 @@ pub fn skel_editor(
 
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = skel.write_to_file(&file) {
-                            error!("Failed to save {:?}: {}", file, e);
+                            error!("Failed to save {file:?}: {e}");
                         } else {
                             saved = true;
                         }
@@ -53,7 +53,7 @@ pub fn skel_editor(
                             .save_file()
                         {
                             if let Err(e) = skel.write_to_file(&file) {
-                                error!("Failed to save {:?}: {}", file, e);
+                                error!("Failed to save {file:?}: {e}");
                             }
                         }
                     }
@@ -75,7 +75,7 @@ pub fn skel_editor(
                         {
                             match SkelData::from_file(&file) {
                                 Ok(reference) => match_skel_order(skel, &reference),
-                                Err(e) => error!("Failed to read {:?}: {}", file, e),
+                                Err(e) => error!("Failed to read {file:?}: {e}"),
                             }
                         }
                     }

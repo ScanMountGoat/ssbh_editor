@@ -659,13 +659,13 @@ impl SsbhApp {
 
         self.swing_state
             .selected_swing_folders
-            .extend(std::iter::repeat(None).take(new_models.len()));
+            .extend(std::iter::repeat_n(None, new_models.len()));
 
         // Use an empty set since we can't predict the collisions hashes.
         // This has the side effect of hiding all collisions by default.
         self.swing_state
             .hidden_collisions
-            .extend(std::iter::repeat(HashSet::new()).take(new_models.len()));
+            .extend(std::iter::repeat_n(HashSet::new(), new_models.len()));
 
         for (path, model) in new_models {
             let model_state = load_model(path, model);
@@ -1060,7 +1060,7 @@ impl eframe::App for SsbhApp {
                     wgpu_state.target_format,
                 );
                 if let Err(e) = image.save(file) {
-                    error!("Error saving screenshot to {:?}: {}", file, e);
+                    error!("Error saving screenshot to {file:?}: {e}");
                 }
                 self.screenshot_to_render = None;
                 render_state.update_clear_color(self.preferences.viewport_color);
