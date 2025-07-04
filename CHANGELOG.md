@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the Mesh Editor to use a side panel to select the entry to edit.
 * Changed the Hlpb Editor to use a side panel to select the entry to edit.
 * Changed the Nutexb Viewer to enable panning and zooming the displayed texture.
+* Changed the legend in the Anim Editor Graph tab to the expected XYZW order instead of alphabetical.
 
 ## 0.10.7 - 2025-05-07
 ### Added

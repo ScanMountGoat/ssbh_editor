@@ -136,7 +136,7 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
             .allow_zoom(false)
             .allow_scroll(false)
             .label_formatter(label_fmt)
-            .legend(Legend::default());
+            .legend(Legend::default().follow_insertion_order(true));
 
         let mut shapes = Vec::new();
 
