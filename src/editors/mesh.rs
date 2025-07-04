@@ -41,6 +41,7 @@ pub fn mesh_editor(
     let title = folder_editor_title(folder_name, file_name);
     egui::Window::new(format!("Mesh Editor ({title})"))
         .open(&mut open)
+        .default_size(egui::Vec2::new(750.0, 600.0))
         .resizable(true)
         .show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -91,21 +92,23 @@ pub fn mesh_editor(
             });
             ui.separator();
 
-            SidePanel::left("mesh_left_panel").show_inside(ui, |ui| {
-                ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| {
-                        changed |= select_mesh_object_dnd(
-                            ctx,
-                            ui,
-                            mesh,
-                            validation_errors,
-                            dark_mode,
-                            &mut message,
-                            state,
-                        );
-                    });
-            });
+            SidePanel::left("mesh_left_panel")
+                .default_width(350.0)
+                .show_inside(ui, |ui| {
+                    ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            changed |= select_mesh_object_dnd(
+                                ctx,
+                                ui,
+                                mesh,
+                                validation_errors,
+                                dark_mode,
+                                &mut message,
+                                state,
+                            );
+                        });
+                });
 
             CentralPanel::default().show_inside(ui, |ui| {
                 ScrollArea::vertical()
@@ -323,6 +326,7 @@ fn edit_mesh_object(
 
         show_influences(ui, mesh_object);
     }
+    horizontal_separator_empty(ui);
 
     // TODO: Simplify this code?
     let attribute_error = errors.iter().find(|e| {
