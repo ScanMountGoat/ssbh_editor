@@ -14,8 +14,7 @@ pub fn render_screenshot(
     render_state.renderer.set_clear_color([0.0; 4]);
 
     // Round up to satisfy alignment requirements for texture copies.
-    let round_up = |x: u32, n: u32| x.div_ceil(n) * n;
-    let screenshot_width = round_up(width, 64);
+    let screenshot_width = width.next_multiple_of(64);
     let screenshot_height = height;
 
     // Use a separate texture for drawing since the swapchain isn't COPY_SRC.

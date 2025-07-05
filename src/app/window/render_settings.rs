@@ -1,4 +1,4 @@
-use crate::{horizontal_separator_empty, widgets::*};
+use crate::{app::plasma_colormap, horizontal_separator_empty, widgets::*};
 use egui::ScrollArea;
 use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
 
@@ -35,6 +35,7 @@ pub fn render_settings_window(
                 .show(ui, |ui| {
                     edit_render_settings(
                         ui,
+                        ctx,
                         settings,
                         options,
                         skinning_settings,
@@ -47,6 +48,7 @@ pub fn render_settings_window(
 
 fn edit_render_settings(
     ui: &mut egui::Ui,
+    ctx: &egui::Context,
     settings: &mut RenderSettings,
     options: &mut ModelRenderOptions,
     skinning_settings: &mut SkinningSettings,
@@ -76,9 +78,14 @@ fn edit_render_settings(
         }
     });
 
+    if settings.debug_mode == DebugMode::ShaderComplexity {
+        plasma_colormap(ctx, ui).on_hover_text("Plasma color map");
+    }
+
     if settings.debug_mode != DebugMode::Shaded {
         debug_mode_options(ui, settings, options);
     }
+
     // TODO: Move this somewhere else.
     // TODO: Add tabs or collapsing headers?
     ui.checkbox(&mut options.draw_floor_grid, "Floor Grid");

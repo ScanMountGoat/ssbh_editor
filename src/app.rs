@@ -441,6 +441,27 @@ fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) ->
     }
 }
 
+pub fn plasma_colormap(ctx: &Context, ui: &mut Ui) -> Response {
+    // Render at twice the desired size to handle high DPI displays.
+    match egui::include_image!("icons/plasma8.svg")
+        .load(
+            ctx,
+            TextureOptions::default(),
+            egui::SizeHint::Size(512, 48),
+        )
+        .unwrap()
+    {
+        egui::load::TexturePoll::Pending { .. } => {
+            ui.allocate_response(egui::vec2(256.0, 24.0), egui::Sense::empty())
+        }
+        egui::load::TexturePoll::Ready { texture } => ui.add(
+            Image::new(texture)
+                .maintain_aspect_ratio(false)
+                .fit_to_exact_size(egui::vec2(256.0, 24.0)),
+        ),
+    }
+}
+
 #[derive(Default)]
 pub struct UiState {
     // TODO: Allow more than one open editor of each type?
@@ -741,7 +762,7 @@ impl SsbhApp {
     }
 
     fn sort_files(&mut self) {
-        // Don't sort the files themselves so render models and animations stay in sync.
+        // Don't sort the model folders themselves so render models and animations stay in sync.
         for model in &mut self.models {
             // Sort by file name for consistent ordering in the UI.
             model.model.adjs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
