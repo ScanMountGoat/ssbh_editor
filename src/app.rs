@@ -818,6 +818,183 @@ impl SsbhApp {
                 .as_str(),
         )
     }
+
+    fn central_panel(
+        &mut self,
+        ctx: &Context,
+        ui: &mut Ui,
+        render_state: &mut RenderState,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        wgpu_state: &egui_wgpu::RenderState,
+    ) {
+        let rect = ui.available_rect_before_wrap();
+
+        // Convert logical points to physical pixels.
+        let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
+        let width = rect.width() * scale_factor;
+        let height = rect.height() * scale_factor;
+
+        // It's possible to interact with the UI with the mouse over the viewport.
+        // Disable tracking the mouse in this case to prevent unwanted camera rotations.
+        // This mostly affects resizing the left and right side panels.
+        if !ctx.wants_keyboard_input() && !ctx.wants_pointer_input() {
+            ctx.input(|input| {
+                // Handle camera input here to get the viewport's actual size.
+                handle_input(&mut self.camera_state, input, height);
+            });
+        }
+
+        if width > 0.0 && height > 0.0 {
+            self.refresh_render_state(device, queue, render_state, width, height, 1.0);
+
+            // Cache previous dimensions since we don't have a resize event handler.
+            if width != self.previous_viewport_width || height != self.previous_viewport_height {
+                render_state
+                    .renderer
+                    .resize(device, width as u32, height as u32, 1.0);
+
+                self.previous_viewport_width = width;
+                self.previous_viewport_height = height;
+            }
+        }
+
+        // TODO: Avoid calculating the camera twice?
+        let (_, _, _, mvp_matrix) = calculate_mvp(width, height, &self.camera_state.values);
+        // TODO: Find a way to avoid clone?
+        let cb = egui_wgpu::Callback::new_paint_callback(
+            rect,
+            ViewportCallback {
+                width,
+                height,
+                scale_factor,
+                draw_bone_names: self.draw_bone_names,
+                mvp_matrix,
+                hidden_collisions: self.swing_state.hidden_collisions.clone(),
+            },
+        );
+        ui.painter().add(cb);
+
+        // TODO: Run these on another thread?
+        // TODO: Avoid clone?
+        // TODO: This will be cleaner if the main renderer isn't mutated?
+        if let Some(file) = self.animation_gif_to_render.clone() {
+            render_animation_to_gif(
+                self,
+                device,
+                queue,
+                render_state,
+                width as u32,
+                height as u32,
+                file,
+                wgpu_state.target_format,
+            );
+            self.animation_gif_to_render = None;
+            render_state.update_clear_color(self.preferences.viewport_color);
+        }
+
+        if let Some(file) = self.animation_image_sequence_to_render.clone() {
+            render_animation_to_image_sequence(
+                self,
+                device,
+                queue,
+                render_state,
+                width as u32,
+                height as u32,
+                file,
+                wgpu_state.target_format,
+            );
+            self.animation_image_sequence_to_render = None;
+            render_state.update_clear_color(self.preferences.viewport_color);
+        }
+
+        if let Some(file) = &self.screenshot_to_render {
+            let image = render_screenshot(
+                device,
+                queue,
+                render_state,
+                width as u32,
+                height as u32,
+                wgpu_state.target_format,
+            );
+            if let Err(e) = image.save(file) {
+                error!("Error saving screenshot to {file:?}: {e}");
+            }
+            self.screenshot_to_render = None;
+            render_state.update_clear_color(self.preferences.viewport_color);
+        }
+    }
+
+    fn show_windows(&mut self, ctx: &Context, render_state: &mut RenderState) {
+        render_settings_window(
+            ctx,
+            &mut render_state.render_settings,
+            &mut render_state.model_render_options,
+            &mut render_state.skinning_settings,
+            &mut self.ui_state.render_settings_open,
+            &mut self.draw_bone_names,
+            &mut self.enable_helper_bones,
+        );
+        if self.ui_state.render_settings_open {
+            self.render_actions
+                .push_back(RenderAction::UpdateRenderSettings);
+        }
+
+        if camera_settings_window(
+            ctx,
+            &mut self.ui_state.camera_settings_open,
+            &mut self.camera_state,
+            &mut self.preferences.default_camera,
+        ) {
+            self.render_actions.push_back(RenderAction::UpdateCamera);
+        }
+
+        device_info_window(
+            ctx,
+            &mut self.ui_state.device_info_window_open,
+            &render_state.adapter_info,
+        );
+
+        if stage_lighting_window(
+            ctx,
+            &mut self.ui_state.stage_lighting_open,
+            &mut self.ui_state.stage_lighting,
+        ) {
+            self.render_actions.push_back(RenderAction::UpdateLighting);
+        }
+
+        log_window(ctx, &mut self.ui_state.log_window_open);
+
+        if preferences_window(
+            ctx,
+            &mut self.preferences,
+            &mut self.ui_state.preferences_window_open,
+        ) {
+            update_color_theme(&self.preferences, ctx);
+            self.render_actions
+                .push_back(RenderAction::UpdateClearColor);
+            ctx.set_zoom_factor(self.preferences.scale_factor);
+        } else {
+            self.preferences.scale_factor = ctx.zoom_factor();
+        }
+
+        // Only edit the user presets.
+        preset_editor(
+            ctx,
+            &mut self.ui_state,
+            &mut self.material_presets,
+            &self.default_thumbnails,
+            render_state.shared_data.database(),
+            self.red_checkerboard,
+            self.yellow_checkerboard,
+            self.preferences.dark_mode,
+        );
+
+        // Don't reopen the window once closed.
+        if self.release_info.should_show_update {
+            new_release_window(ctx, &mut self.release_info, &mut self.markdown_cache);
+        }
+    }
 }
 
 impl eframe::App for SsbhApp {
@@ -908,74 +1085,7 @@ impl eframe::App for SsbhApp {
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
-        render_settings_window(
-            ctx,
-            &mut render_state.render_settings,
-            &mut render_state.model_render_options,
-            &mut render_state.skinning_settings,
-            &mut self.ui_state.render_settings_open,
-            &mut self.draw_bone_names,
-            &mut self.enable_helper_bones,
-        );
-        if self.ui_state.render_settings_open {
-            self.render_actions
-                .push_back(RenderAction::UpdateRenderSettings);
-        }
-
-        if camera_settings_window(
-            ctx,
-            &mut self.ui_state.camera_settings_open,
-            &mut self.camera_state,
-            &mut self.preferences.default_camera,
-        ) {
-            self.render_actions.push_back(RenderAction::UpdateCamera);
-        }
-
-        device_info_window(
-            ctx,
-            &mut self.ui_state.device_info_window_open,
-            &render_state.adapter_info,
-        );
-
-        if stage_lighting_window(
-            ctx,
-            &mut self.ui_state.stage_lighting_open,
-            &mut self.ui_state.stage_lighting,
-        ) {
-            self.render_actions.push_back(RenderAction::UpdateLighting);
-        }
-
-        log_window(ctx, &mut self.ui_state.log_window_open);
-
-        if preferences_window(
-            ctx,
-            &mut self.preferences,
-            &mut self.ui_state.preferences_window_open,
-        ) {
-            update_color_theme(&self.preferences, ctx);
-            self.render_actions
-                .push_back(RenderAction::UpdateClearColor);
-            ctx.set_zoom_factor(self.preferences.scale_factor);
-        } else {
-            self.preferences.scale_factor = ctx.zoom_factor();
-        }
-
-        // Only edit the user presets.
-        preset_editor(
-            ctx,
-            &mut self.ui_state,
-            &mut self.material_presets,
-            &self.default_thumbnails,
-            render_state.shared_data.database(),
-            self.red_checkerboard,
-            self.yellow_checkerboard,
-            self.preferences.dark_mode,
-        );
-
-        // Don't reopen the window once closed.
-        if self.release_info.should_show_update {
-            new_release_window(ctx, &mut self.release_info, &mut self.markdown_cache);
-        }
+        self.show_windows(ctx, render_state);
 
         self.should_validate_models |= self.file_editors(ctx, render_state);
 
@@ -997,102 +1107,8 @@ impl eframe::App for SsbhApp {
         }
 
         CentralPanel::default().show(ctx, |ui| {
-            let rect = ui.available_rect_before_wrap();
-
-            // Convert logical points to physical pixels.
-            let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
-            let width = rect.width() * scale_factor;
-            let height = rect.height() * scale_factor;
-
-            // It's possible to interact with the UI with the mouse over the viewport.
-            // Disable tracking the mouse in this case to prevent unwanted camera rotations.
-            // This mostly affects resizing the left and right side panels.
-            if !ctx.wants_keyboard_input() && !ctx.wants_pointer_input() {
-                ctx.input(|input| {
-                    // Handle camera input here to get the viewport's actual size.
-                    handle_input(&mut self.camera_state, input, height);
-                });
-            }
-
-            if width > 0.0 && height > 0.0 {
-                self.refresh_render_state(device, queue, render_state, width, height, 1.0);
-
-                // Cache previous dimensions since we don't have a resize event handler.
-                if width != self.previous_viewport_width || height != self.previous_viewport_height
-                {
-                    render_state
-                        .renderer
-                        .resize(device, width as u32, height as u32, 1.0);
-
-                    self.previous_viewport_width = width;
-                    self.previous_viewport_height = height;
-                }
-            }
-
-            // TODO: Avoid calculating the camera twice?
-            let (_, _, _, mvp_matrix) = calculate_mvp(width, height, &self.camera_state.values);
-            // TODO: Find a way to avoid clone?
-            let cb = egui_wgpu::Callback::new_paint_callback(
-                rect,
-                ViewportCallback {
-                    width,
-                    height,
-                    scale_factor,
-                    draw_bone_names: self.draw_bone_names,
-                    mvp_matrix,
-                    hidden_collisions: self.swing_state.hidden_collisions.clone(),
-                },
-            );
-            ui.painter().add(cb);
-
-            // TODO: Run these on another thread?
-            // TODO: Avoid clone?
-            // TODO: This will be cleaner if the main renderer isn't mutated?
-            if let Some(file) = self.animation_gif_to_render.clone() {
-                render_animation_to_gif(
-                    self,
-                    device,
-                    queue,
-                    render_state,
-                    width as u32,
-                    height as u32,
-                    file,
-                    wgpu_state.target_format,
-                );
-                self.animation_gif_to_render = None;
-                render_state.update_clear_color(self.preferences.viewport_color);
-            }
-
-            if let Some(file) = self.animation_image_sequence_to_render.clone() {
-                render_animation_to_image_sequence(
-                    self,
-                    device,
-                    queue,
-                    render_state,
-                    width as u32,
-                    height as u32,
-                    file,
-                    wgpu_state.target_format,
-                );
-                self.animation_image_sequence_to_render = None;
-                render_state.update_clear_color(self.preferences.viewport_color);
-            }
-
-            if let Some(file) = &self.screenshot_to_render {
-                let image = render_screenshot(
-                    device,
-                    queue,
-                    render_state,
-                    width as u32,
-                    height as u32,
-                    wgpu_state.target_format,
-                );
-                if let Err(e) = image.save(file) {
-                    error!("Error saving screenshot to {file:?}: {e}");
-                }
-                self.screenshot_to_render = None;
-                render_state.update_clear_color(self.preferences.viewport_color);
-            }
+            // Show and handle the central 3D viewport.
+            self.central_panel(ctx, ui, render_state, device, queue, wgpu_state);
         });
     }
 
