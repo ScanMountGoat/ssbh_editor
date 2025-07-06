@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the Nutexb Viewer to enable panning and zooming the displayed texture.
 * Changed the legend in the Anim Editor Graph tab to the expected XYZW order instead of alphabetical.
 * Changed Render Settings to show the color map when selecting the ShaderComplexity debug mode.
+* Changed the main application panel to show how to add files if no files are loaded.
 
 ## 0.10.7 - 2025-05-07
 ### Added

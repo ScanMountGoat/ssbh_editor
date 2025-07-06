@@ -1,29 +1,25 @@
 use std::path::Path;
 
-use crate::CameraState;
+use crate::{
+    app::shortcut::{format_shortcut, ADD_FOLDER, OPEN_FOLDER, RELOAD_SHORTCUT},
+    CameraState,
+};
 
 use super::{RenderAction, RenderModelAction, SsbhApp};
-use egui::{special_emojis::GITHUB, Button, KeyboardShortcut, TextWrapMode, Ui};
+use egui::{special_emojis::GITHUB, Button, TextWrapMode, Ui};
 use rfd::FileDialog;
 
 pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
-    let open_shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::O);
-    let add_shortcut = egui::KeyboardShortcut::new(
-        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
-        egui::Key::O,
-    );
-    let reload_shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::R);
-
     // Shortcuts need to be handled even while the menu is not open.
-    if ui.input_mut(|i| i.consume_shortcut(&open_shortcut)) {
+    if ui.input_mut(|i| i.consume_shortcut(&OPEN_FOLDER)) {
         app.add_folder_to_workspace_from_dialog(true);
     }
 
-    if ui.input_mut(|i| i.consume_shortcut(&add_shortcut)) {
+    if ui.input_mut(|i| i.consume_shortcut(&ADD_FOLDER)) {
         app.add_folder_to_workspace_from_dialog(false)
     }
 
-    if ui.input_mut(|i| i.consume_shortcut(&reload_shortcut)) {
+    if ui.input_mut(|i| i.consume_shortcut(&RELOAD_SHORTCUT)) {
         app.reload_workspace();
     }
 
@@ -39,7 +35,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 )
             };
 
-            if shortcut_button(ui, "🗀 Open Folder...", &open_shortcut).clicked() {
+            if shortcut_button(ui, "🗀 Open Folder...", &OPEN_FOLDER).clicked() {
                 ui.close_menu();
                 if let Some(folder) = FileDialog::new().pick_folder() {
                     app.add_folder_to_workspace(folder, true);
@@ -65,7 +61,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             }
             ui.separator();
 
-            if shortcut_button(ui, "🗀 Add Folder to Workspace...", &add_shortcut).clicked() {
+            if shortcut_button(ui, "🗀 Add Folder to Workspace...", &ADD_FOLDER).clicked() {
                 ui.close_menu();
                 if let Some(folder) = FileDialog::new().pick_folder() {
                     app.add_folder_to_workspace(folder, false);
@@ -91,7 +87,7 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             }
             ui.separator();
 
-            if shortcut_button(ui, "Reload Workspace", &reload_shortcut).clicked() {
+            if shortcut_button(ui, "Reload Workspace", &RELOAD_SHORTCUT).clicked() {
                 ui.close_menu();
                 app.reload_workspace();
             }
@@ -262,32 +258,4 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             }
         });
     });
-}
-
-fn format_shortcut(shortcut: &KeyboardShortcut) -> String {
-    // egui has this method but doesn't format shortcut symbols.
-    // TODO: This function might not be needed on newer versions.
-    // TODO: Store keyboard shortcuts in a single place?
-    let ctrl = if cfg!(target_os = "macos") {
-        "⌘ "
-    } else {
-        "Ctrl+"
-    };
-
-    let ctrl_shift = if cfg!(target_os = "macos") {
-        "⇧ ⌘ "
-    } else {
-        "Ctrl+Shift+"
-    };
-
-    let key = shortcut.logical_key.name();
-    if shortcut.modifiers.command {
-        if shortcut.modifiers.shift {
-            format!("{ctrl_shift}{key}")
-        } else {
-            format!("{ctrl}{key}")
-        }
-    } else {
-        key.to_owned()
-    }
 }

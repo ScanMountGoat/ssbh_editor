@@ -3,7 +3,7 @@ use self::{
     rendering::calculate_mvp, window::*,
 };
 use crate::{
-    app::{anim_list::anim_list, swing_list::swing_list},
+    app::{anim_list::anim_list, shortcut::format_shortcut, swing_list::swing_list},
     capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
         adj::{add_missing_adj_entries, adj_editor},
@@ -52,6 +52,7 @@ mod animation_bar;
 mod file_list;
 mod menu;
 mod rendering;
+mod shortcut;
 mod swing_list;
 mod window;
 
@@ -1107,6 +1108,14 @@ impl eframe::App for SsbhApp {
         }
 
         CentralPanel::default().show(ctx, |ui| {
+            if self.models.is_empty() {
+                ui.centered_and_justified(|ui| {
+                    let o = format_shortcut(&shortcut::OPEN_FOLDER);
+                    let a = format_shortcut(&shortcut::ADD_FOLDER);
+                    let text = format!("Drag and drop files or folders on this window.\nOpen Folder{o}\n Add Folder {a}");
+                    ui.label(text);
+                });
+            }
             // Show and handle the central 3D viewport.
             self.central_panel(ctx, ui, render_state, device, queue, wgpu_state);
         });
