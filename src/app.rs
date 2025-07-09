@@ -1112,7 +1112,9 @@ impl eframe::App for SsbhApp {
                 ui.centered_and_justified(|ui| {
                     let o = format_shortcut(&shortcut::OPEN_FOLDER);
                     let a = format_shortcut(&shortcut::ADD_FOLDER);
-                    let text = format!("Drag and drop files or folders on this window.\nOpen Folder{o}\n Add Folder {a}");
+                    let text = format!(
+                        "Drag and drop files or folders.\nOpen Folder {o}\n Add Folder {a}"
+                    );
                     ui.label(text);
                 });
             }

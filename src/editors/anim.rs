@@ -4,9 +4,10 @@ use crate::{
     save_file, save_file_as, EditorResponse,
 };
 use egui::{
-    special_emojis::GITHUB, CentralPanel, CollapsingHeader, DragValue, Grid, RichText, ScrollArea,
+    special_emojis::GITHUB, CentralPanel, CollapsingHeader, DragValue, RichText, ScrollArea,
     SidePanel,
 };
+use egui_extras::{Column, TableBuilder};
 use egui_plot::{Legend, Line, Plot, PlotPoint};
 
 use ssbh_data::{
@@ -406,137 +407,174 @@ fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState
 fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
     let mut changed = false;
 
-    Grid::new("anim_grid")
+    let count = track.values.len();
+
+    let heading = |ui: &mut egui::Ui, label: &str| {
+        ui.heading(label);
+    };
+
+    TableBuilder::new(ui)
         .striped(true)
-        .show(ui, |ui| match &mut track.values {
+        .cell_layout(egui::Layout::centered_and_justified(
+            egui::Direction::LeftToRight,
+        ))
+        .columns(Column::remainder(), 11)
+        .header(20.0, |mut header| match &track.values {
+            TrackValues::Transform(_) => {
+                header.col(|ui| heading(ui, "frame"));
+                header.col(|ui| heading(ui, "scale.x"));
+                header.col(|ui| heading(ui, "scale.y"));
+                header.col(|ui| heading(ui, "scale.z"));
+                header.col(|ui| heading(ui, "rotation.x"));
+                header.col(|ui| heading(ui, "rotation.y"));
+                header.col(|ui| heading(ui, "rotation.z"));
+                header.col(|ui| heading(ui, "rotation.w"));
+                header.col(|ui| heading(ui, "translation.x"));
+                header.col(|ui| heading(ui, "translation.y"));
+                header.col(|ui| heading(ui, "translation.z"));
+            }
+            TrackValues::UvTransform(_) => {
+                header.col(|ui| heading(ui, "frame"));
+                header.col(|ui| heading(ui, "scale_u"));
+                header.col(|ui| heading(ui, "scale_v"));
+                header.col(|ui| heading(ui, "rotation"));
+                header.col(|ui| heading(ui, "translate_u"));
+                header.col(|ui| heading(ui, "translate_v"));
+            }
+            TrackValues::Float(_) => {
+                header.col(|ui| heading(ui, "frame"));
+                header.col(|ui| heading(ui, "value"));
+            }
+            TrackValues::PatternIndex(_) => {
+                header.col(|ui| heading(ui, "frame"));
+                header.col(|ui| heading(ui, "value"));
+            }
+            TrackValues::Boolean(_) => {
+                header.col(|ui| heading(ui, "frame"));
+                header.col(|ui| heading(ui, "value"));
+            }
+            TrackValues::Vector4(_) => {
+                header.col(|ui| heading(ui, "frame"));
+                header.col(|ui| heading(ui, "x"));
+                header.col(|ui| heading(ui, "y"));
+                header.col(|ui| heading(ui, "z"));
+                header.col(|ui| heading(ui, "w"));
+            }
+        })
+        .body(|body| match &mut track.values {
             TrackValues::Transform(values) => {
-                ui.heading("frame");
-                ui.heading("scale.x");
-                ui.heading("scale.y");
-                ui.heading("scale.z");
-                ui.heading("rotation.x");
-                ui.heading("rotation.y");
-                ui.heading("rotation.z");
-                ui.heading("rotation.w");
-                ui.heading("translation.x");
-                ui.heading("translation.y");
-                ui.heading("translation.z");
-                ui.end_row();
+                body.rows(20.0, count, |mut row| {
+                    let mut edit_value = |ui: &mut egui::Ui, f| {
+                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    };
 
-                for (i, v) in values.iter_mut().enumerate() {
-                    ui.label(i.to_string());
+                    let i = row.index();
+                    let v = &mut values[i];
 
-                    changed |= ui.add(DragValue::new(&mut v.scale.x).speed(0.1)).changed();
-                    changed |= ui.add(DragValue::new(&mut v.scale.y).speed(0.1)).changed();
-                    changed |= ui.add(DragValue::new(&mut v.scale.z).speed(0.1)).changed();
+                    row.col(|ui| {
+                        ui.label(i.to_string());
+                    });
 
-                    changed |= ui
-                        .add(DragValue::new(&mut v.rotation.x).speed(0.1))
-                        .changed();
-                    changed |= ui
-                        .add(DragValue::new(&mut v.rotation.y).speed(0.1))
-                        .changed();
-                    changed |= ui
-                        .add(DragValue::new(&mut v.rotation.z).speed(0.1))
-                        .changed();
-                    changed |= ui
-                        .add(DragValue::new(&mut v.rotation.w).speed(0.1))
-                        .changed();
+                    row.col(|ui| edit_value(ui, &mut v.scale.x));
+                    row.col(|ui| edit_value(ui, &mut v.scale.y));
+                    row.col(|ui| edit_value(ui, &mut v.scale.z));
 
-                    changed |= ui
-                        .add(DragValue::new(&mut v.translation.x).speed(0.1))
-                        .changed();
-                    changed |= ui
-                        .add(DragValue::new(&mut v.translation.y).speed(0.1))
-                        .changed();
-                    changed |= ui
-                        .add(DragValue::new(&mut v.translation.z).speed(0.1))
-                        .changed();
+                    row.col(|ui| edit_value(ui, &mut v.rotation.x));
+                    row.col(|ui| edit_value(ui, &mut v.rotation.y));
+                    row.col(|ui| edit_value(ui, &mut v.rotation.z));
+                    row.col(|ui| edit_value(ui, &mut v.rotation.w));
 
-                    ui.end_row();
-                }
+                    row.col(|ui| edit_value(ui, &mut v.translation.x));
+                    row.col(|ui| edit_value(ui, &mut v.translation.y));
+                    row.col(|ui| edit_value(ui, &mut v.translation.z));
+                });
             }
             TrackValues::UvTransform(values) => {
-                ui.heading("frame");
-                ui.heading("scale_u");
-                ui.heading("scale_v");
-                ui.heading("rotation");
-                ui.heading("translate_u");
-                ui.heading("translate_v");
-                ui.end_row();
+                body.rows(20.0, count, |mut row| {
+                    let mut edit_value = |ui: &mut egui::Ui, f| {
+                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    };
 
-                for (i, v) in values.iter_mut().enumerate() {
-                    ui.label(i.to_string());
+                    let i = row.index();
+                    let v = &mut values[i];
 
-                    changed |= ui.add(DragValue::new(&mut v.scale_u).speed(0.1)).changed();
-                    changed |= ui.add(DragValue::new(&mut v.scale_v).speed(0.1)).changed();
+                    row.col(|ui| {
+                        ui.label(i.to_string());
+                    });
 
-                    changed |= ui.add(DragValue::new(&mut v.rotation).speed(0.1)).changed();
+                    row.col(|ui| edit_value(ui, &mut v.scale_u));
+                    row.col(|ui| edit_value(ui, &mut v.scale_v));
 
-                    changed |= ui
-                        .add(DragValue::new(&mut v.translate_u).speed(0.1))
-                        .changed();
-                    changed |= ui
-                        .add(DragValue::new(&mut v.translate_v).speed(0.1))
-                        .changed();
+                    row.col(|ui| edit_value(ui, &mut v.rotation));
 
-                    ui.end_row();
-                }
+                    row.col(|ui| edit_value(ui, &mut v.translate_u));
+                    row.col(|ui| edit_value(ui, &mut v.translate_v));
+                });
             }
             TrackValues::Float(values) => {
-                ui.heading("frame");
-                ui.heading("value");
-                ui.end_row();
+                body.rows(20.0, count, |mut row| {
+                    let mut edit_value = |ui: &mut egui::Ui, f| {
+                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    };
 
-                for (i, v) in values.iter_mut().enumerate() {
-                    ui.label(i.to_string());
+                    let i = row.index();
+                    let v = &mut values[i];
 
-                    changed |= ui.add(DragValue::new(v)).changed();
-                    ui.end_row();
-                }
+                    row.col(|ui| {
+                        ui.label(i.to_string());
+                    });
+
+                    row.col(|ui| edit_value(ui, v));
+                });
             }
             TrackValues::PatternIndex(values) => {
-                ui.heading("frame");
-                ui.heading("value");
-                ui.end_row();
+                body.rows(20.0, count, |mut row| {
+                    let mut edit_value = |ui: &mut egui::Ui, f| {
+                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    };
 
-                for (i, v) in values.iter_mut().enumerate() {
-                    ui.label(i.to_string());
+                    let i = row.index();
+                    let v = &mut values[i];
 
-                    changed |= ui.add(DragValue::new(v)).changed();
-                    ui.end_row();
-                }
+                    row.col(|ui| {
+                        ui.label(i.to_string());
+                    });
+
+                    row.col(|ui| edit_value(ui, v));
+                });
             }
             TrackValues::Boolean(values) => {
-                ui.heading("frame");
-                ui.heading("value");
-                ui.end_row();
+                body.rows(20.0, count, |mut row| {
+                    let i = row.index();
+                    let v = &mut values[i];
 
-                for (i, v) in values.iter_mut().enumerate() {
-                    ui.label(i.to_string());
+                    row.col(|ui| {
+                        ui.label(i.to_string());
+                    });
 
-                    changed |= ui.checkbox(v, "").changed();
-                    ui.end_row();
-                }
+                    row.col(|ui| {
+                        changed |= ui.checkbox(v, "").changed();
+                    });
+                });
             }
             TrackValues::Vector4(values) => {
-                ui.heading("frame");
-                ui.heading("x");
-                ui.heading("y");
-                ui.heading("z");
-                ui.heading("w");
+                body.rows(20.0, count, |mut row| {
+                    let mut edit_value = |ui: &mut egui::Ui, f| {
+                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    };
 
-                ui.end_row();
+                    let i = row.index();
+                    let v = &mut values[i];
 
-                for (i, v) in values.iter_mut().enumerate() {
-                    ui.label(i.to_string());
+                    row.col(|ui| {
+                        ui.label(i.to_string());
+                    });
 
-                    changed |= ui.add(DragValue::new(&mut v.x).speed(0.1)).changed();
-                    changed |= ui.add(DragValue::new(&mut v.y).speed(0.1)).changed();
-                    changed |= ui.add(DragValue::new(&mut v.z).speed(0.1)).changed();
-                    changed |= ui.add(DragValue::new(&mut v.w).speed(0.1)).changed();
-                    ui.end_row();
-                }
+                    row.col(|ui| edit_value(ui, &mut v.x));
+                    row.col(|ui| edit_value(ui, &mut v.y));
+                    row.col(|ui| edit_value(ui, &mut v.z));
+                    row.col(|ui| edit_value(ui, &mut v.w));
+                });
             }
         });
 
