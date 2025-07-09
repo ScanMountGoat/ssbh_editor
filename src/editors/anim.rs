@@ -393,11 +393,7 @@ fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState
 
     CentralPanel::default().show_inside(ui, |ui| {
         if let Some(track) = selected_track(&mut anim.groups, state) {
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    changed |= track_value_grid(ui, track);
-                });
+            changed |= track_value_grid(ui, track);
         }
     });
 
@@ -410,7 +406,16 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
     let count = track.values.len();
 
     let heading = |ui: &mut egui::Ui, label: &str| {
-        ui.heading(label);
+        ui.strong(label);
+    };
+
+    let column_count = match track.values {
+        TrackValues::Transform(_) => 10,
+        TrackValues::UvTransform(_) => 5,
+        TrackValues::Float(_) => 1,
+        TrackValues::PatternIndex(_) => 1,
+        TrackValues::Boolean(_) => 1,
+        TrackValues::Vector4(_) => 4,
     };
 
     TableBuilder::new(ui)
@@ -418,7 +423,14 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
         .cell_layout(egui::Layout::centered_and_justified(
             egui::Direction::LeftToRight,
         ))
-        .columns(Column::remainder(), 11)
+        .column(Column::auto())
+        .columns(
+            Column::remainder()
+                .clip(true)
+                .at_least(60.0)
+                .resizable(true),
+            column_count,
+        )
         .header(20.0, |mut header| match &track.values {
             TrackValues::Transform(_) => {
                 header.col(|ui| heading(ui, "frame"));
