@@ -15,11 +15,9 @@ pub fn render_settings_window(
         .open(open)
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Help", |ui| {
                     if ui.button("Render Settings Wiki").clicked() {
-                        ui.close_menu();
-
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Render-Settings";
                         if let Err(e) = open::that(link) {

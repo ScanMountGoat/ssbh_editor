@@ -34,23 +34,19 @@ pub fn anim_editor(
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        ui.close_menu();
                         saved |= save_file(anim, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
-                        ui.close_menu();
                         saved |= save_file_as(anim, folder_name, file_name, "Anim", "nuanmb");
                     }
                 });
 
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} Anim Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Anim-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");
@@ -171,18 +167,18 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                         scale_y.push([i as f64, t.scale.y as f64]);
                         scale_z.push([i as f64, t.scale.z as f64]);
                     }
-                    shapes.push(Line::new(translation_x).name("translation.x"));
-                    shapes.push(Line::new(translation_y).name("translation.y"));
-                    shapes.push(Line::new(translation_z).name("translation.z"));
+                    shapes.push(Line::new("translation.x", translation_x));
+                    shapes.push(Line::new("translation.y", translation_y));
+                    shapes.push(Line::new("translation.z", translation_z));
 
-                    shapes.push(Line::new(rotation_x).name("rotation.x"));
-                    shapes.push(Line::new(rotation_y).name("rotation.y"));
-                    shapes.push(Line::new(rotation_z).name("rotation.z"));
-                    shapes.push(Line::new(rotation_w).name("rotation.w"));
+                    shapes.push(Line::new("rotation.x", rotation_x));
+                    shapes.push(Line::new("rotation.y", rotation_y));
+                    shapes.push(Line::new("rotation.z", rotation_z));
+                    shapes.push(Line::new("rotation.w", rotation_w));
 
-                    shapes.push(Line::new(scale_x).name("scale.x"));
-                    shapes.push(Line::new(scale_y).name("scale.y"));
-                    shapes.push(Line::new(scale_z).name("scale.z"));
+                    shapes.push(Line::new("scale.x", scale_x));
+                    shapes.push(Line::new("scale.y", scale_y));
+                    shapes.push(Line::new("scale.z", scale_z));
                 }
                 TrackValues::UvTransform(values) => {
                     let mut scale_us = Vec::new();
@@ -200,27 +196,27 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                         translate_us.push([i as f64, v.translate_u as f64]);
                         translate_vs.push([i as f64, v.translate_v as f64]);
                     }
-                    shapes.push(Line::new(scale_us).name("scale_u"));
-                    shapes.push(Line::new(scale_vs).name("scale_v"));
+                    shapes.push(Line::new("scale_u", scale_us));
+                    shapes.push(Line::new("scale_v", scale_vs));
 
-                    shapes.push(Line::new(rotations).name("rotation"));
+                    shapes.push(Line::new("rotation", rotations));
 
-                    shapes.push(Line::new(translate_us).name("translate_u"));
-                    shapes.push(Line::new(translate_vs).name("translate_v"));
+                    shapes.push(Line::new("translate_u", translate_us));
+                    shapes.push(Line::new("translate_v", translate_vs));
                 }
                 TrackValues::Float(values) => {
                     let mut points = Vec::new();
                     for (i, v) in values.iter().enumerate() {
                         points.push([i as f64, *v as f64]);
                     }
-                    shapes.push(Line::new(points).name("value"));
+                    shapes.push(Line::new("value", points));
                 }
                 TrackValues::PatternIndex(values) => {
                     let mut points = Vec::new();
                     for (i, v) in values.iter().enumerate() {
                         points.push([i as f64, *v as f64]);
                     }
-                    shapes.push(Line::new(points).name("value"));
+                    shapes.push(Line::new("value", points));
                 }
                 TrackValues::Boolean(values) => {
                     let mut points = Vec::new();
@@ -231,7 +227,7 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                             points.push([(i + 1) as f64, if *v { 1.0 } else { 0.0 }]);
                         }
                     }
-                    shapes.push(Line::new(points).name("value"));
+                    shapes.push(Line::new("value", points));
                 }
                 TrackValues::Vector4(values) => {
                     let mut xs = Vec::new();
@@ -245,10 +241,10 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
                         zs.push([i as f64, v.z as f64]);
                         ws.push([i as f64, v.w as f64]);
                     }
-                    shapes.push(Line::new(xs).name("x"));
-                    shapes.push(Line::new(ys).name("y"));
-                    shapes.push(Line::new(zs).name("z"));
-                    shapes.push(Line::new(ws).name("w"));
+                    shapes.push(Line::new("x", xs));
+                    shapes.push(Line::new("y", ys));
+                    shapes.push(Line::new("z", zs));
+                    shapes.push(Line::new("w", ws));
                 }
             }
         }

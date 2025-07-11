@@ -123,7 +123,7 @@ impl SsbhApp {
                     anim_slot
                         .animation
                         .and_then(|anim_index| anim_index.get_animation(&self.models))
-                        .and_then(|(_, a)| a.as_ref().ok())
+                        .and_then(|(_, a)| a.as_ref())
                 });
 
             render_model.apply_anims(
@@ -134,20 +134,20 @@ impl SsbhApp {
                     .skels
                     .iter()
                     .find(|(f, _)| f == "model.nusktb")
-                    .and_then(|(_, m)| m.as_ref().ok()),
+                    .and_then(|(_, m)| m.as_ref()),
                 model
                     .model
                     .matls
                     .iter()
                     .find(|(f, _)| f == "model.numatb")
-                    .and_then(|(_, m)| m.as_ref().ok()),
+                    .and_then(|(_, m)| m.as_ref()),
                 if self.enable_helper_bones {
                     model
                         .model
                         .hlpbs
                         .iter()
                         .find(|(f, _)| f == "model.nuhlpb")
-                        .and_then(|(_, m)| m.as_ref().ok())
+                        .and_then(|(_, m)| m.as_ref())
                 } else {
                     None
                 },

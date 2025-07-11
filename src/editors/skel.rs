@@ -32,11 +32,9 @@ pub fn skel_editor(
         .resizable(true)
         .open(&mut open)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        ui.close_menu();
-
                         let file = Path::new(folder_name).join(file_name);
                         if let Err(e) = skel.write_to_file(&file) {
                             error!("Failed to save {file:?}: {e}");
@@ -46,8 +44,6 @@ pub fn skel_editor(
                     }
 
                     if ui.button("Save As...").clicked() {
-                        ui.close_menu();
-
                         if let Some(file) = FileDialog::new()
                             .add_filter("Skel", &["nusktb"])
                             .save_file()
@@ -67,8 +63,6 @@ pub fn skel_editor(
                         )
                         .clicked()
                     {
-                        ui.close_menu();
-
                         if let Some(file) = FileDialog::new()
                             .add_filter("Skel", &["nusktb"])
                             .pick_file()
@@ -83,8 +77,6 @@ pub fn skel_editor(
 
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} Skel Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Skel-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

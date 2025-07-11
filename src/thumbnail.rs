@@ -60,7 +60,7 @@ pub fn generate_model_thumbnails(
     model
         .nutexbs
         .iter()
-        .filter_map(|(f, n)| Some((f, n.as_ref().ok()?)))
+        .filter_map(|(f, n)| Some((f, n.as_ref()?)))
         .filter_map(|(file_name, n)| {
             // TODO: Will this correctly handle missing thumbnails?
             let (texture, dimension) = render_model.get_texture(file_name)?;

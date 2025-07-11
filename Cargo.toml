@@ -7,14 +7,14 @@ description = "View, edit, and validate models for Smash Ultimate"
 
 [dependencies]
 chrono = "0.4"
-egui = { version = "0.31.0", default-features = false }
-egui_extras = { version = "0.31.0", features = ["svg"] }
-egui-wgpu = "0.31.0"
-egui_plot = "0.31.0"
-eframe = { version = "0.31.0", default-features = false, features = ["wayland", "x11", "wgpu"] }
-egui_dnd = "0.12.0"
-egui_commonmark = "0.20.0"
-wgpu = "24.0.1"
+egui = { version = "0.32.0", default-features = false }
+egui_extras = { version = "0.32.0", features = ["svg"] }
+egui-wgpu = "0.32.0"
+egui_plot = "0.33.0"
+eframe = { version = "0.32.0", default-features = false, features = ["wayland", "x11", "wgpu"] }
+egui_dnd = "0.13.0"
+egui_commonmark = "0.21.0"
+wgpu = "25.0.0"
 glam = { version = "0.28.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.14.1"
 ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu" }

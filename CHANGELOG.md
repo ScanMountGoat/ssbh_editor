@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed Render Settings to show the color map when selecting the ShaderComplexity debug mode.
 * Changed the main application panel to show how to add files if no files are loaded.
 * Improved layout for the List tab in the Anim Editor.
+* Optimized loading folders with many files.
 
 ## 0.10.7 - 2025-05-07
 ### Added

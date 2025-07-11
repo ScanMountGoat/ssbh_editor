@@ -111,7 +111,7 @@ fn show_anim_slot(
             });
         })
         .body(|ui| {
-            if let Some((_, Ok(anim))) = anim_slot
+            if let Some((_, Some(anim))) = anim_slot
                 .animation
                 .as_ref()
                 .and_then(|anim_index| anim_index.get_animation(models))

@@ -208,7 +208,7 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
     for (i, (name, file)) in files.iter().enumerate() {
         ui.horizontal(|ui| {
             match file {
-                Ok(_) => {
+                Some(_) => {
                     file_icon(ui);
 
                     // Assume only the required file is validated for now.
@@ -231,7 +231,7 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
                         ui.label("[Modified]");
                     }
                 }
-                Err(_) => {
+                None => {
                     // TODO: Investigate a cleaner way to summarize errors.
                     // Don't show the full error for now to avoid showing lots of text.
                     empty_icon(ui);

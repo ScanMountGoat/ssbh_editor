@@ -168,7 +168,7 @@ mod tests {
                 adjs: Vec::new(),
                 anims: vec![(
                     String::new(),
-                    Ok(AnimData {
+                    Some(AnimData {
                         major_version: 2,
                         minor_version: 0,
                         final_frame_index: 0.0,

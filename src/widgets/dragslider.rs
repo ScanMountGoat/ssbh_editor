@@ -159,6 +159,7 @@ fn select_all_text(ui: &mut Ui, kb_edit_id: Id) {
     state.cursor.set_char_range(Some(CCursorRange {
         primary: CCursor::new(1000),
         secondary: CCursor::new(0),
+        h_pos: None,
     }));
     TextEdit::store_state(ui.ctx(), kb_edit_id, state);
 }

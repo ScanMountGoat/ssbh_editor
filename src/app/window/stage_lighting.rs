@@ -15,7 +15,7 @@ pub fn stage_lighting_window(
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Open render folder...").clicked() {
                         if let Some(folder) = FileDialog::new().pick_folder() {

@@ -107,8 +107,6 @@ fn select_constraint(
                 )
                 .context_menu(|ui| {
                     if ui.button("Delete").clicked() {
-                        ui.close_menu();
-
                         index_to_delete = Some(i);
                         *changed = true;
                     }
@@ -134,8 +132,6 @@ fn select_constraint(
                 )
                 .context_menu(|ui| {
                     if ui.button("Delete").clicked() {
-                        ui.close_menu();
-
                         index_to_delete = Some(i);
                         *changed = true;
                     }
@@ -158,23 +154,19 @@ fn menu_bar(
 ) -> (bool, bool) {
     let mut saved = false;
     let mut changed = false;
-    egui::menu::bar(ui, |ui| {
+    egui::MenuBar::new().ui(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
-                ui.close_menu();
                 saved |= save_file(hlpb, folder_name, file_name);
             }
 
             if ui.button("Save As...").clicked() {
-                ui.close_menu();
                 saved |= save_file_as(hlpb, folder_name, file_name, "Hlpb", "nuhlpb");
             }
         });
 
         ui.menu_button("Constraint", |ui| {
             if ui.button("Add New").clicked() {
-                ui.close_menu();
-
                 match state.editor_tab {
                     HlpbEditorTab::Orient => {
                         // Create a unique name for the new constraint.
@@ -230,8 +222,6 @@ fn menu_bar(
             }
 
             if ui.button("Delete").clicked() {
-                ui.close_menu();
-
                 match state.editor_tab {
                     HlpbEditorTab::Orient => {
                         if hlpb
@@ -260,8 +250,6 @@ fn menu_bar(
 
         ui.menu_button("Help", |ui| {
             if ui.button(format!("{GITHUB} Hlpb Editor Wiki")).clicked() {
-                ui.close_menu();
-
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Hlpb-Editor";
                 if let Err(e) = open::that(link) {
                     log::error!("Failed to open {link}: {e}");

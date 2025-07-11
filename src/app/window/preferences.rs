@@ -22,7 +22,7 @@ pub fn preferences_window(
         .open(open)
         .resizable(false)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui
                         .add(
@@ -31,8 +31,6 @@ pub fn preferences_window(
                         )
                         .clicked()
                     {
-                        ui.close_menu();
-
                         let path = application_dir();
                         if let Err(e) = open::that(path) {
                             log::error!("Failed to open {path:?}: {e}");
@@ -42,8 +40,6 @@ pub fn preferences_window(
 
                 ui.menu_button("Help", |ui| {
                     if ui.button("Preferences Wiki").clicked() {
-                        ui.close_menu();
-
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Preferences";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

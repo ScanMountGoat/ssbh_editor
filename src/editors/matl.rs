@@ -191,7 +191,6 @@ fn select_material_dnd(
             response.context_menu(|ui| {
                 // TODO: Also add a menu option?
                 if ui.button("Delete").clicked() {
-                    ui.close_menu();
                     index_to_delete = Some(*item_index);
                 }
             });
@@ -280,11 +279,9 @@ pub fn preset_editor(
 }
 
 fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
-    egui::menu::bar(ui, |ui| {
+    egui::MenuBar::new().ui(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
-                ui.close_menu();
-
                 let path = presets_file();
                 save_material_presets(user_presets, path);
             }
@@ -296,8 +293,6 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
                 .add(Button::new("JSON Presets (ssbh_data_json)").wrap_mode(TextWrapMode::Extend))
                 .clicked()
             {
-                ui.close_menu();
-
                 if let Some(file) = FileDialog::new()
                     .add_filter("Matl JSON", &["json"])
                     .pick_file()
@@ -310,8 +305,6 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
                 .add(Button::new("XML Presets (Cross Mod)").wrap_mode(TextWrapMode::Extend))
                 .clicked()
             {
-                ui.close_menu();
-
                 if let Some(file) = FileDialog::new()
                     .add_filter("Matl XML", &["xml"])
                     .pick_file()
@@ -323,15 +316,11 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
 
         ui.menu_button("Material", |ui| {
             if ui.button("Add New Material").clicked() {
-                ui.close_menu();
-
                 let new_entry = default_material();
                 user_presets.push(new_entry);
             }
 
             if ui.button("Remove Duplicates").clicked() {
-                ui.close_menu();
-
                 remove_duplicates(user_presets);
             }
         });
@@ -614,15 +603,13 @@ fn menu_bar(
     let mut changed = false;
     let mut saved = false;
 
-    egui::menu::bar(ui, |ui| {
+    egui::MenuBar::new().ui(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
-                ui.close_menu();
                 saved |= save_file(matl, folder_name, file_name);
             }
 
             if ui.button("Save As...").clicked() {
-                ui.close_menu();
                 saved |= save_file_as(matl, folder_name, file_name, "Matl", "numatb");
             }
         });
@@ -631,8 +618,6 @@ fn menu_bar(
             let button =
                 |ui: &mut Ui, text| ui.add(Button::new(text).wrap_mode(TextWrapMode::Extend));
             if ui.button("Add New Material").clicked() {
-                ui.close_menu();
-
                 // TODO: Select options from presets?
                 let new_entry = default_material();
                 matl.entries.push(new_entry);
@@ -643,8 +628,6 @@ fn menu_bar(
             }
 
             if button(ui, "Duplicate Current Material").clicked() {
-                ui.close_menu();
-
                 if let Some(old_entry) = matl.entries.get(state.selected_material_index) {
                     let mut new_entry = old_entry.clone();
                     new_entry.material_label.push_str("_copy");
@@ -658,8 +641,6 @@ fn menu_bar(
             ui.separator();
 
             if ui.button("Add Material to Presets").clicked() {
-                ui.close_menu();
-
                 // TODO: Prompt for naming the preset?
                 if let Some(entry) = matl.entries.get(state.selected_material_index) {
                     material_presets.push(entry.clone());
@@ -667,16 +648,12 @@ fn menu_bar(
             }
 
             if ui.button("Apply Preset").clicked() {
-                ui.close_menu();
-
                 state.matl_preset_window_open = true;
                 changed = true;
             }
             ui.separator();
 
             if ui.button("Remove Duplicates").clicked() {
-                ui.close_menu();
-
                 remove_duplicates(&mut matl.entries);
                 changed = true;
             }
@@ -685,8 +662,6 @@ fn menu_bar(
                 .add_enabled(modl.is_some(), Button::new("Remove Unused Materials"))
                 .clicked()
             {
-                ui.close_menu();
-
                 if let Some(modl) = modl {
                     remove_unused_materials(&mut matl.entries, &modl.entries);
                     changed = true;
@@ -696,14 +671,12 @@ fn menu_bar(
 
         ui.menu_button("Reorder", |ui| {
             if ui.button("Move Material to Top").clicked() {
-                ui.close_menu();
                 matl.entries.swap(0, state.selected_material_index);
                 state.selected_material_index = 0;
                 changed = true;
             }
 
             if ui.button("Move Material to Bottom").clicked() {
-                ui.close_menu();
                 let last_index = matl.entries.len() - 1;
                 matl.entries.swap(state.selected_material_index, last_index);
                 state.selected_material_index = last_index;
@@ -713,7 +686,6 @@ fn menu_bar(
             ui.separator();
 
             if ui.button("Sort Materials").clicked() {
-                ui.close_menu();
                 let selected_material = matl.entries[state.selected_material_index].clone();
                 matl.entries
                     .sort_by_key(|k| k.material_label.to_lowercase());
@@ -737,7 +709,6 @@ fn help_menu(ui: &mut Ui) {
         let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap_mode(TextWrapMode::Extend));
 
         if button(ui, &format!("{GITHUB} Material Parameter Reference")).clicked() {
-            ui.close_menu();
             let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
             if let Err(open_err) = open::that(link) {
                 log::error!("Failed to open link ({link}). {open_err}");
@@ -745,7 +716,6 @@ fn help_menu(ui: &mut Ui) {
         }
 
         if button(ui, "Material Research Website").clicked() {
-            ui.close_menu();
             let link = "https://scanmountgoat.github.io/Smush-Material-Research/";
             if let Err(open_err) = open::that(link) {
                 log::error!("Failed to open link ({link}). {open_err}");
@@ -753,8 +723,6 @@ fn help_menu(ui: &mut Ui) {
         }
 
         if ui.button(format!("{GITHUB} Matl Editor Wiki")).clicked() {
-            ui.close_menu();
-
             let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Matl-Editor";
             if let Err(e) = open::that(link) {
                 log::error!("Failed to open {link}: {e}");
@@ -1304,7 +1272,6 @@ fn edit_texture(
                 .response
                 .context_menu(|ui| {
                     if ui.button("Edit").clicked() {
-                        ui.close_menu();
                         *texture_to_edit_index = Some(i);
                     }
                 });

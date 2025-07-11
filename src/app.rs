@@ -257,7 +257,7 @@ fn get_file_to_edit<T>(
 ) -> Option<(&mut String, &mut T)> {
     index
         .and_then(|index| files.get_mut(index))
-        .and_then(|(name, file)| Some((name, file.as_mut().ok()?)))
+        .and_then(|(name, file)| Some((name, file.as_mut()?)))
 }
 
 fn open_editor<T: Editor>(
@@ -428,7 +428,15 @@ fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) ->
 
     // Render at twice the desired size to handle high DPI displays.
     match image
-        .load(ctx, TextureOptions::default(), egui::SizeHint::Size(32, 32))
+        .load(
+            ctx,
+            TextureOptions::default(),
+            egui::SizeHint::Size {
+                width: 32,
+                height: 32,
+                maintain_aspect_ratio: true,
+            },
+        )
         .unwrap()
     {
         egui::load::TexturePoll::Pending { .. } => {
@@ -448,7 +456,11 @@ pub fn plasma_colormap(ctx: &Context, ui: &mut Ui) -> Response {
         .load(
             ctx,
             TextureOptions::default(),
-            egui::SizeHint::Size(512, 48),
+            egui::SizeHint::Size {
+                width: 512,
+                height: 48,
+                maintain_aspect_ratio: true,
+            },
         )
         .unwrap()
     {
@@ -1253,7 +1265,7 @@ impl SsbhApp {
             if let Some(model) = self.models.get_mut(folder_index) {
                 // TODO: Group added state and implement the Editor trait.
                 if let Some(matl_index) = self.ui_state.open_matl {
-                    if let Some((name, Ok(matl))) = model.model.matls.get_mut(matl_index) {
+                    if let Some((name, Some(matl))) = model.model.matls.get_mut(matl_index) {
                         let response = matl_editor(
                             ctx,
                             &model.folder_path,
@@ -1391,7 +1403,7 @@ impl SsbhApp {
                 }
 
                 if let Some(nutexb_index) = self.ui_state.open_nutexb {
-                    if let Some((name, Ok(nutexb))) = model.model.nutexbs.get(nutexb_index) {
+                    if let Some((name, Some(nutexb))) = model.model.nutexbs.get(nutexb_index) {
                         if !nutexb_viewer(
                             ctx,
                             &folder_editor_title(&model.folder_path, name),
@@ -1422,7 +1434,7 @@ impl SsbhApp {
                     .filter_map(|a| a.animation.as_ref())
                     .filter_map(|anim_index| {
                         let (_, anim) = AnimationIndex::get_animation(anim_index, &self.models)?;
-                        Some(anim.as_ref().ok()?.final_frame_index)
+                        Some(anim.as_ref()?.final_frame_index)
                     })
             })
             .chain(
@@ -1480,8 +1492,6 @@ impl SsbhApp {
                                 .add_enabled(should_add_adjb, Button::new("Add model.adjb"))
                                 .clicked()
                             {
-                                ui.close_menu();
-
                                 // Add a missing adjb file based on the mesh.
                                 // TODO: Disable if the file isn't required?
                                 let mut new_adj = AdjData {
@@ -1495,7 +1505,7 @@ impl SsbhApp {
                                 model
                                     .model
                                     .adjs
-                                    .push(("model.adjb".to_owned(), Ok(new_adj)));
+                                    .push(("model.adjb".to_owned(), Some(new_adj)));
                                 // Mark the new file as modified to prompt the user to save it.
                                 model.changed.adjs.push(true);
                             }
@@ -1509,14 +1519,12 @@ impl SsbhApp {
                                 .add_enabled(should_add_meshex, Button::new("Add model.numshexb"))
                                 .clicked()
                             {
-                                ui.close_menu();
-
                                 if let Some(mesh) = mesh {
                                     let new_meshex = MeshExData::from_mesh_objects(&mesh.objects);
                                     model
                                         .model
                                         .meshexes
-                                        .push(("model.numshexb".to_owned(), Ok(new_meshex)));
+                                        .push(("model.numshexb".to_owned(), Some(new_meshex)));
                                     // Mark the new file as modified to prompt the user to save it.
                                     model.changed.meshexes.push(true);
                                 }
@@ -1526,7 +1534,6 @@ impl SsbhApp {
 
                             // Use "Remove" since this doesn't delete the folder on disk.
                             if ui.button("Remove").clicked() {
-                                ui.close_menu();
                                 folder_to_remove = Some(folder_index);
                             }
                         });
@@ -1641,14 +1648,14 @@ fn find_file<'a, T>(files: &'a [(String, FileResult<T>)], name: &str) -> Option<
     files
         .iter()
         .find(|(f, _)| f == name)
-        .and_then(|(_, m)| m.as_ref().ok())
+        .and_then(|(_, m)| m.as_ref())
 }
 
 fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) -> Option<&'a mut T> {
     files
         .iter_mut()
         .find(|(f, _)| f == name)
-        .and_then(|(_, m)| m.as_mut().ok())
+        .and_then(|(_, m)| m.as_mut())
 }
 
 pub fn warning_icon_text(name: &str) -> RichText {

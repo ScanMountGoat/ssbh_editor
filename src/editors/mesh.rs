@@ -44,15 +44,13 @@ pub fn mesh_editor(
         .default_size(egui::Vec2::new(750.0, 600.0))
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        ui.close_menu();
                         saved |= save_file(mesh, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
-                        ui.close_menu();
                         saved |= save_file_as(mesh, folder_name, file_name, "Mesh", "numshb");
                     }
                 });
@@ -65,8 +63,6 @@ pub fn mesh_editor(
                         )
                         .clicked()
                     {
-                        ui.close_menu();
-
                         if let Some(file) = FileDialog::new()
                             .add_filter("Mesh", &["numshb"])
                             .pick_file()
@@ -81,8 +77,6 @@ pub fn mesh_editor(
 
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} Mesh Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");
@@ -181,13 +175,11 @@ fn select_mesh_object_dnd(
 
             header_response.context_menu(|ui| {
                 if ui.button("Duplicate").clicked() {
-                    ui.close_menu();
                     mesh_to_duplicate = Some(*item_index);
                     changed = true;
                 }
 
                 if ui.button("Delete").clicked() {
-                    ui.close_menu();
                     mesh_to_remove = Some(*item_index);
                     changed = true;
                 }

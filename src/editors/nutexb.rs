@@ -16,11 +16,9 @@ pub fn nutexb_viewer(
         .open(&mut open)
         .default_size((500.0, 600.0))
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} Nutexb Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Nutexb-Editor";
                         if let Err(e) = open::that(link) {

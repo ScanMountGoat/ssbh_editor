@@ -33,23 +33,19 @@ pub fn modl_editor(
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        ui.close_menu();
                         saved |= save_file(modl, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
-                        ui.close_menu();
                         saved |= save_file_as(modl, folder_name, file_name, "Modl", "numdlb");
                     }
                 });
 
                 ui.menu_button("Modl", |ui| {
                     if ui.button("Rebuild from Mesh").clicked() {
-                        ui.close_menu();
-
                         if let Some(mesh) = mesh {
                             changed |= rebuild_from_mesh(modl, mesh, matl);
                         }
@@ -58,8 +54,6 @@ pub fn modl_editor(
 
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} Modl Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Modl-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");
@@ -239,13 +233,11 @@ fn edit_modl_entries(
 
                             name_response.context_menu(|ui| {
                                 if ui.button("Duplicate").clicked() {
-                                    ui.close_menu();
                                     entry_to_duplicate = Some(*item);
                                     changed = true;
                                 }
 
                                 if ui.button("Delete").clicked() {
-                                    ui.close_menu();
                                     entry_to_remove = Some(*item);
                                     changed = true;
                                 }

@@ -539,7 +539,7 @@ fn validate_texture_format_usage(
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
-            if let Some((f, Ok(nutexb))) = nutexbs.iter().find(|(f, _)| {
+            if let Some((f, Some(nutexb))) = nutexbs.iter().find(|(f, _)| {
                 Path::new(f)
                     .with_extension("")
                     .as_os_str()
@@ -626,7 +626,7 @@ fn validate_texture_dimensions<'a>(
         for texture in &entry.textures {
             if let Some((f, actual)) = nutexbs
                 .iter()
-                .filter_map(|(f, n)| Some((f, TextureDimension::from_nutexb(n.as_ref().ok()?))))
+                .filter_map(|(f, n)| Some((f, TextureDimension::from_nutexb(n.as_ref()?))))
                 .chain(default_textures.clone())
                 .find(|(f, _)| {
                     Path::new(f)
@@ -1248,8 +1248,8 @@ mod tests {
         };
 
         let textures = vec![
-            ("texture0".to_owned(), Ok(nutexb(NutexbFormat::BC1Unorm))),
-            ("texture4".to_owned(), Ok(nutexb(NutexbFormat::BC2Srgb))),
+            ("texture0".to_owned(), Some(nutexb(NutexbFormat::BC1Unorm))),
+            ("texture4".to_owned(), Some(nutexb(NutexbFormat::BC2Srgb))),
         ];
 
         let mut validation = ModelValidationErrors::default();
@@ -1351,8 +1351,8 @@ mod tests {
         };
 
         let textures = vec![
-            ("texture2".to_owned(), Ok(nutexb(NutexbFormat::BC7Srgb))),
-            ("texture4".to_owned(), Ok(nutexb(NutexbFormat::BC7Unorm))),
+            ("texture2".to_owned(), Some(nutexb(NutexbFormat::BC7Srgb))),
+            ("texture4".to_owned(), Some(nutexb(NutexbFormat::BC7Unorm))),
         ];
 
         let mut validation = ModelValidationErrors::default();
@@ -1419,9 +1419,9 @@ mod tests {
         let textures = vec![
             (
                 "texture0".to_owned(),
-                Ok(nutexb_cube(NutexbFormat::BC1Unorm)),
+                Some(nutexb_cube(NutexbFormat::BC1Unorm)),
             ),
-            ("texture7".to_owned(), Ok(nutexb(NutexbFormat::BC2Srgb))),
+            ("texture7".to_owned(), Some(nutexb(NutexbFormat::BC2Srgb))),
         ];
 
         let mut validation = ModelValidationErrors::default();

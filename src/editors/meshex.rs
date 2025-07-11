@@ -21,15 +21,13 @@ pub fn meshex_editor(
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        ui.close_menu();
                         saved |= save_file(meshex, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
-                        ui.close_menu();
                         saved |= save_file_as(meshex, folder_name, file_name, "MeshEx", "numshexb");
                     }
                 });
@@ -39,8 +37,6 @@ pub fn meshex_editor(
                         .add_enabled(mesh.is_some(), egui::Button::new("Rebuild From Mesh"))
                         .clicked()
                     {
-                        ui.close_menu();
-
                         if let Some(mesh) = mesh {
                             // TODO: TODO: Only show this if the entries don't match up?
                             // TODO: Preserve existing flags?
@@ -52,8 +48,6 @@ pub fn meshex_editor(
 
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} MeshEx Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/MeshEx-Editor";
                         if let Err(e) = open::that(link) {

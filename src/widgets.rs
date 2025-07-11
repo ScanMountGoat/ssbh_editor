@@ -81,7 +81,11 @@ fn eye_open_icon(ui: &Ui, rect: egui::Rect, visuals: &egui::style::WidgetVisuals
         .load(
             ui.ctx(),
             TextureOptions::default(),
-            egui::SizeHint::Size(rect.width() as u32 * 2, rect.height() as u32 * 2),
+            egui::SizeHint::Size {
+                width: rect.width() as u32 * 2,
+                height: rect.height() as u32 * 2,
+                maintain_aspect_ratio: true,
+            },
         )
         .unwrap()
     {

@@ -24,23 +24,19 @@ pub fn adj_editor(
         .open(&mut open)
         .resizable(true)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        ui.close_menu();
                         saved |= save_file(adj, folder_name, file_name);
                     }
 
                     if ui.button("Save As...").clicked() {
-                        ui.close_menu();
                         saved |= save_file_as(adj, folder_name, file_name, "Adj", "adjb");
                     }
                 });
 
                 ui.menu_button("Help", |ui| {
                     if ui.button(format!("{GITHUB} Adj Editor Wiki")).clicked() {
-                        ui.close_menu();
-
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Adj-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

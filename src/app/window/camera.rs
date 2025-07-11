@@ -17,7 +17,7 @@ pub fn camera_settings_window(
         .resizable(false)
         .open(open)
         .show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Defaults", |ui| {
                     if ui
                         .add(
@@ -26,8 +26,6 @@ pub fn camera_settings_window(
                         )
                         .clicked()
                     {
-                        ui.close_menu();
-
                         *default_camera = camera_state.values.clone();
                     }
 
@@ -36,8 +34,6 @@ pub fn camera_settings_window(
                         .on_hover_text("Hard reset all settings to their original defaults.")
                         .clicked()
                     {
-                        ui.close_menu();
-
                         *camera_state = CameraState::default();
                         *default_camera = CameraValues::default();
                         changed = true;
@@ -46,8 +42,6 @@ pub fn camera_settings_window(
 
                 ui.menu_button("Help", |ui| {
                     if ui.button("Camera Settings Wiki").clicked() {
-                        ui.close_menu();
-
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Camera-Settings";
                         if let Err(e) = open::that(link) {

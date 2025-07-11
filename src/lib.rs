@@ -18,7 +18,6 @@ use ssbh_wgpu::{
 };
 use std::{
     collections::{BTreeMap, HashSet, VecDeque},
-    error::Error,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -40,7 +39,7 @@ pub mod widgets;
 
 pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
 
-type FileResult<T> = Result<T, Box<dyn Error>>;
+type FileResult<T> = Option<T>;
 
 pub struct EditorResponse {
     pub open: bool,
