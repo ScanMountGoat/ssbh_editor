@@ -152,7 +152,6 @@ fn list_nutexb_files(
             if let Some((_, thumbnail, _)) =
                 model.thumbnails.iter().find(|(name, _, _)| name == file)
             {
-                // TODO: Why does this apply gamma correction?
                 ui.image(SizedTexture {
                     id: *thumbnail,
                     size: egui::Vec2::new(ICON_SIZE, ICON_SIZE),

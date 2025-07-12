@@ -135,12 +135,14 @@ fn create_thumbnail_texture_view(
     depth: u32,
 ) -> wgpu::TextureView {
     // Assume the textures have the appropriate usage to work with egui.
-    // egui is expecting a 2D RGBA texture.
     match dimension {
-        wgpu::TextureViewDimension::D2 => {
-            texture.create_view(&wgpu::TextureViewDescriptor::default())
-        }
+        // Don't render color textures with any gamma correction applied.
+        wgpu::TextureViewDimension::D2 => texture.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(texture.format().remove_srgb_suffix()),
+            ..Default::default()
+        }),
         _ => {
+            // egui is expecting a 2D RGBA texture.
             let render_state: &RenderState = egui_renderer.callback_resources.get().unwrap();
 
             // Convert cube maps and 3d textures to 2D.
