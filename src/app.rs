@@ -1036,7 +1036,12 @@ impl eframe::App for SsbhApp {
             );
         }
 
-        ctx.input(|input| {
+        ctx.input_mut(|input| {
+            if input.consume_key(egui::Modifiers::NONE, egui::Key::Space) {
+                // Play or pause animation playback globally.
+                self.animation_state.is_playing = !self.animation_state.is_playing;
+            }
+
             for file in &input.raw.dropped_files {
                 if let Some(path) = file.path.as_ref() {
                     if path.is_file() {

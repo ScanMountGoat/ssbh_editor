@@ -69,10 +69,6 @@ pub fn display_animation_bar(
                         //Slow down to multiple of 0.25
                         animation_state.playback_speed =
                             (animation_state.playback_speed * 4.0 - 1.0).ceil() / 4.0;
-                    } else if i.consume_key(egui::Modifiers::default(), egui::Key::Space) {
-                        //Play or Pause
-                        // TODO: This should apply globally.
-                        animation_state.is_playing = !animation_state.is_playing;
                     }
                 })
             };
