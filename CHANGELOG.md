@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## unreleased
 ### Added
 * Added an option to open the corresponding motion folder for a model folder from the Animations tab.
+* Added rendering support for sprite sheet animations that use the current frame.
 
 ### Changed
 * Changed the Mesh Editor to use a side panel to select the entry to edit.
@@ -237,7 +238,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved tooltips for multiple editors and windows.
 * Adjusted applying a material preset to preserve sampler values when possible.
 * Modified the Modl Editor to outline the selected mesh in the viewport.
-* Improved rendering of spritesheet animations.
+* Improved rendering of sprite sheet animations.
 
 ### Fixed
 * Fixed an issue where some compressed UV transform animations failed to parse correctly.

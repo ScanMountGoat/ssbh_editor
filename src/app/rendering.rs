@@ -69,6 +69,9 @@ impl SsbhApp {
         }
 
         if self.animation_state.is_playing || self.animation_state.should_update_animations {
+            render_state
+                .renderer
+                .update_current_frame(queue, self.animation_state.current_frame);
             render_state.animate_lighting(queue, self.animation_state.current_frame);
             self.animate_viewport_camera(render_state, queue, width, height, scale_factor);
             self.animate_models(queue, render_state);
