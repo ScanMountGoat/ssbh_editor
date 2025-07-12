@@ -10,6 +10,8 @@ use egui::{
 };
 
 pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
+    let mut folder_to_add = None;
+
     // Only assign animations to folders with model files.
     for (model_index, model) in app
         .models
@@ -60,7 +62,30 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         }
                     }
                 }
+
+                let motion_path = model
+                    .folder_path
+                    .as_os_str()
+                    .to_string_lossy()
+                    .replace("model", "motion");
+
+                let added_motion_folder = available_folders
+                    .iter()
+                    .any(|(_, f)| f.folder_path.as_os_str() == motion_path.as_str());
+
+                if !added_motion_folder
+                    && ui
+                        .button("Add Motion Folder")
+                        .on_hover_text(&motion_path)
+                        .clicked()
+                {
+                    folder_to_add = Some(motion_path);
+                }
             });
+    }
+
+    if let Some(folder) = folder_to_add {
+        app.add_folder_to_workspace(folder, false);
     }
 }
 
