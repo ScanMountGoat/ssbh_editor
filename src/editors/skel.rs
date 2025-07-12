@@ -102,7 +102,7 @@ pub fn skel_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| match state.mode {
                     SkelMode::List => {
-                        changed |= edit_bones_list(ctx, ui, skel, dark_mode);
+                        changed |= edit_bones_list(ui, skel, dark_mode);
                     }
                     SkelMode::Hierarchy => {
                         changed |= edit_bones_hierarchy(ui, skel);
@@ -118,12 +118,7 @@ pub fn skel_editor(
     }
 }
 
-fn edit_bones_list(
-    ctx: &egui::Context,
-    ui: &mut egui::Ui,
-    skel: &mut SkelData,
-    dark_mode: bool,
-) -> bool {
+fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) -> bool {
     let mut changed = false;
 
     // TODO: Do this without clone?
@@ -159,7 +154,7 @@ fn edit_bones_list(
                 iter.next(ui, item_id, i, false, |ui, item_handle| {
                     let response = item_handle.ui(ui, |ui, handle, _state| {
                         handle.ui(ui, |ui| {
-                            draggable_icon(ctx, ui, dark_mode);
+                            draggable_icon(ui, dark_mode);
                         });
                     });
 

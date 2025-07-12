@@ -93,7 +93,6 @@ pub fn mesh_editor(
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
                             changed |= select_mesh_object_dnd(
-                                ctx,
                                 ui,
                                 mesh,
                                 validation_errors,
@@ -135,7 +134,6 @@ pub fn mesh_editor(
 }
 
 fn select_mesh_object_dnd(
-    ctx: &egui::Context,
     ui: &mut Ui,
     mesh: &mut MeshData,
     validation_errors: &[MeshValidationError],
@@ -154,7 +152,7 @@ fn select_mesh_object_dnd(
     let response = dnd(ui, "mesh_dnd").show_vec(&mut item_indices, |ui, item_index, handle, _| {
         ui.horizontal(|ui| {
             handle.ui(ui, |ui| {
-                draggable_icon(ctx, ui, dark_mode);
+                draggable_icon(ui, dark_mode);
             });
 
             let mesh_object = &mut mesh.objects[*item_index];

@@ -1,6 +1,6 @@
 use egui::{
-    epaint, pos2, vec2, Image, NumExt, Response, Sense, TextStyle, TextureOptions, Ui, Widget,
-    WidgetInfo, WidgetText, WidgetType,
+    epaint, pos2, vec2, NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText,
+    WidgetType,
 };
 use ssbh_data::skel_data::SkelData;
 
@@ -75,25 +75,9 @@ impl<'a> Widget for EyeCheckBox<'a> {
 }
 
 fn eye_open_icon(ui: &Ui, rect: egui::Rect, visuals: &egui::style::WidgetVisuals) {
-    // Render at twice the desired size to handle high DPI displays.
-    let image = egui::include_image!("icons/eye_visibility_open.svg");
-    match image
-        .load(
-            ui.ctx(),
-            TextureOptions::default(),
-            egui::SizeHint::Size {
-                width: rect.width() as u32 * 2,
-                height: rect.height() as u32 * 2,
-                maintain_aspect_ratio: true,
-            },
-        )
-        .unwrap()
-    {
-        egui::load::TexturePoll::Pending { .. } => (),
-        egui::load::TexturePoll::Ready { texture } => Image::new(texture)
-            .tint(visuals.text_color())
-            .paint_at(ui, rect),
-    }
+    egui::Image::new(egui::include_image!("icons/eye_visibility_open.svg"))
+        .tint(visuals.text_color())
+        .paint_at(ui, rect);
 }
 
 pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl std::hash::Hash, value: &mut V) -> bool

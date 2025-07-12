@@ -3,12 +3,11 @@ use super::{
     missing_icon, skel_icon, warning_icon, warning_icon_text, UiState, ERROR_COLOR, ICON_SIZE,
 };
 use crate::{validation::MatlValidationErrorKind, FileResult, ModelFolderState};
-use egui::{load::SizedTexture, Button, Context, Response, RichText, Ui};
+use egui::{load::SizedTexture, Button, Response, RichText, Ui};
 
 pub fn show_folder_files(
     ui_state: &mut UiState,
     model: &mut ModelFolderState,
-    ctx: &Context,
     ui: &mut Ui,
     folder_index: usize,
     dark_mode: bool,
@@ -29,7 +28,7 @@ pub fn show_folder_files(
         required_file("model.numshb"),
         Some("model.numshb"),
         &model.validation.mesh_errors,
-        |ui| mesh_icon(ctx, ui, dark_mode),
+        |ui| mesh_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -41,7 +40,7 @@ pub fn show_folder_files(
         required_file("model.nusktb"),
         Some("model.nusktb"),
         &model.validation.skel_errors,
-        |ui| skel_icon(ctx, ui, dark_mode),
+        |ui| skel_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -53,7 +52,7 @@ pub fn show_folder_files(
         None,
         Some("model.nuhlpb"),
         &model.validation.hlpb_errors,
-        |ui| hlpb_icon(ctx, ui, dark_mode),
+        |ui| hlpb_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -65,7 +64,7 @@ pub fn show_folder_files(
         required_file("model.numatb"),
         Some("model.numatb"),
         &model.validation.matl_errors,
-        |ui| matl_icon(ctx, ui, dark_mode),
+        |ui| matl_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -77,7 +76,7 @@ pub fn show_folder_files(
         required_file("model.numdlb"),
         Some("model.numdlb"),
         &model.validation.modl_errors,
-        |ui| mesh_icon(ctx, ui, dark_mode),
+        |ui| mesh_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -89,7 +88,7 @@ pub fn show_folder_files(
         None,
         Some("model.adjb"),
         &model.validation.adj_errors,
-        |ui| adj_icon(ctx, ui, dark_mode),
+        |ui| adj_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -101,7 +100,7 @@ pub fn show_folder_files(
         None,
         None,
         &model.validation.anim_errors,
-        |ui| anim_icon(ctx, ui, dark_mode),
+        |ui| anim_icon(ui, dark_mode),
     );
     list_files(
         ui,
@@ -113,7 +112,7 @@ pub fn show_folder_files(
         None,
         Some("model.numshexb"),
         &model.validation.meshex_errors,
-        |ui| mesh_icon(ctx, ui, dark_mode),
+        |ui| mesh_icon(ui, dark_mode),
     );
     // TODO: Modify this to use the same function as above.
     list_nutexb_files(

@@ -78,7 +78,6 @@ pub fn modl_editor(
 
             changed |= match state.editor_tab {
                 ModlEditorTab::Assignments => edit_modl_entries(
-                    ctx,
                     ui,
                     modl,
                     mesh,
@@ -135,7 +134,6 @@ fn rebuild_from_mesh(modl: &mut ModlData, mesh: &MeshData, matl: Option<&MatlDat
 }
 
 fn edit_modl_entries(
-    ctx: &egui::Context,
     ui: &mut egui::Ui,
     modl: &mut ModlData,
     mesh: Option<&MeshData>,
@@ -203,7 +201,7 @@ fn edit_modl_entries(
                         iter.next(ui, id, i, false, |ui, item_handle| {
                             let response = item_handle.ui(ui, |ui, handle, _state| {
                                 handle.ui(ui, |ui| {
-                                    draggable_icon(ctx, ui, dark_mode);
+                                    draggable_icon(ui, dark_mode);
                                 });
                             });
 

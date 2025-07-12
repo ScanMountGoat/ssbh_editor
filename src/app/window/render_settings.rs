@@ -33,7 +33,6 @@ pub fn render_settings_window(
                 .show(ui, |ui| {
                     edit_render_settings(
                         ui,
-                        ctx,
                         settings,
                         options,
                         skinning_settings,
@@ -46,7 +45,6 @@ pub fn render_settings_window(
 
 fn edit_render_settings(
     ui: &mut egui::Ui,
-    ctx: &egui::Context,
     settings: &mut RenderSettings,
     options: &mut ModelRenderOptions,
     skinning_settings: &mut SkinningSettings,
@@ -77,7 +75,7 @@ fn edit_render_settings(
     });
 
     if settings.debug_mode == DebugMode::ShaderComplexity {
-        plasma_colormap(ctx, ui).on_hover_text("Plasma color map");
+        plasma_colormap(ui).on_hover_text("Plasma color map");
     }
 
     if settings.debug_mode != DebugMode::Shaded {

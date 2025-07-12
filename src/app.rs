@@ -29,9 +29,8 @@ use crate::{
     RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
-    collapsing_header::CollapsingState, Button, CentralPanel, CollapsingHeader, Context, Image,
-    ImageSource, Label, Response, RichText, ScrollArea, SidePanel, TextureOptions, TopBottomPanel,
-    Ui,
+    collapsing_header::CollapsingState, Button, CentralPanel, CollapsingHeader, Context,
+    ImageSource, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
 };
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
@@ -386,93 +385,58 @@ pub struct SsbhApp {
 }
 
 // All the icons are designed to render properly at 16x16 pixels.
-pub fn draggable_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
+pub fn draggable_icon(ui: &mut Ui, dark_mode: bool) -> Response {
     file_icon(
-        ctx,
         ui,
         egui::include_image!("icons/carbon_draggable.svg"),
         dark_mode,
     )
 }
 
-pub fn mesh_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ctx, ui, egui::include_image!("icons/mesh.svg"), dark_mode)
+pub fn mesh_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/mesh.svg"), dark_mode)
 }
 
-pub fn matl_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ctx, ui, egui::include_image!("icons/matl.svg"), dark_mode)
+pub fn matl_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/matl.svg"), dark_mode)
 }
 
-pub fn adj_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ctx, ui, egui::include_image!("icons/adj.svg"), dark_mode)
+pub fn adj_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/adj.svg"), dark_mode)
 }
 
-pub fn anim_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ctx, ui, egui::include_image!("icons/anim.svg"), dark_mode)
+pub fn anim_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/anim.svg"), dark_mode)
 }
 
-pub fn skel_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ctx, ui, egui::include_image!("icons/skel.svg"), dark_mode)
+pub fn skel_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/skel.svg"), dark_mode)
 }
 
-pub fn hlpb_icon(ctx: &Context, ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ctx, ui, egui::include_image!("icons/hlpb.svg"), dark_mode)
+pub fn hlpb_icon(ui: &mut Ui, dark_mode: bool) -> Response {
+    file_icon(ui, egui::include_image!("icons/hlpb.svg"), dark_mode)
 }
 
-fn file_icon(ctx: &Context, ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
+fn file_icon(ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
     let tint = if dark_mode {
         TEXT_COLOR_DARK
     } else {
         TEXT_COLOR_LIGHT
     };
 
-    // Render at twice the desired size to handle high DPI displays.
-    match image
-        .load(
-            ctx,
-            TextureOptions::default(),
-            egui::SizeHint::Size {
-                width: 32,
-                height: 32,
-                maintain_aspect_ratio: true,
-            },
-        )
-        .unwrap()
-    {
-        egui::load::TexturePoll::Pending { .. } => {
-            ui.allocate_response(egui::vec2(16.0, 16.0), egui::Sense::empty())
-        }
-        egui::load::TexturePoll::Ready { texture } => ui.add(
-            Image::new(texture)
-                .tint(tint)
-                .fit_to_exact_size(egui::vec2(16.0, 16.0)),
-        ),
-    }
+    ui.add(
+        egui::Image::new(image)
+            .tint(tint)
+            .fit_to_exact_size(egui::vec2(16.0, 16.0)),
+    )
 }
 
-pub fn plasma_colormap(ctx: &Context, ui: &mut Ui) -> Response {
-    // Render at twice the desired size to handle high DPI displays.
-    match egui::include_image!("icons/plasma8.svg")
-        .load(
-            ctx,
-            TextureOptions::default(),
-            egui::SizeHint::Size {
-                width: 512,
-                height: 48,
-                maintain_aspect_ratio: true,
-            },
-        )
-        .unwrap()
-    {
-        egui::load::TexturePoll::Pending { .. } => {
-            ui.allocate_response(egui::vec2(256.0, 24.0), egui::Sense::empty())
-        }
-        egui::load::TexturePoll::Ready { texture } => ui.add(
-            Image::new(texture)
-                .maintain_aspect_ratio(false)
-                .fit_to_exact_size(egui::vec2(256.0, 24.0)),
-        ),
-    }
+pub fn plasma_colormap(ui: &mut Ui) -> Response {
+    ui.add(
+        egui::Image::new(egui::include_image!("icons/plasma8.svg"))
+            .maintain_aspect_ratio(false)
+            .fit_to_exact_size(egui::vec2(256.0, 24.0)),
+    )
 }
 
 #[derive(Default)]
@@ -1105,7 +1069,7 @@ impl eframe::App for SsbhApp {
         if self.show_left_panel {
             SidePanel::left("left_panel")
                 .default_width(200.0)
-                .show(ctx, |ui| self.files_list(ctx, ui));
+                .show(ctx, |ui| self.files_list(ui));
         }
 
         if self.show_bottom_panel {
@@ -1453,7 +1417,7 @@ impl SsbhApp {
             .fold(0.0, f32::max)
     }
 
-    fn files_list(&mut self, ctx: &Context, ui: &mut Ui) {
+    fn files_list(&mut self, ui: &mut Ui) {
         ui.heading("Files");
         ScrollArea::vertical()
             .auto_shrink([false; 2])
@@ -1474,7 +1438,6 @@ impl SsbhApp {
                             show_folder_files(
                                 &mut self.ui_state,
                                 model,
-                                ctx,
                                 ui,
                                 folder_index,
                                 self.preferences.dark_mode,

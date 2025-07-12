@@ -80,7 +80,6 @@ pub fn matl_editor(
                             changed |= select_material_dnd(
                                 &mut matl.entries,
                                 ui,
-                                ctx,
                                 dark_mode,
                                 validation_errors,
                                 state,
@@ -137,7 +136,6 @@ pub fn matl_editor(
 fn select_material_dnd(
     entries: &mut Vec<MatlEntryData>,
     ui: &mut Ui,
-    ctx: &Context,
     dark_mode: bool,
     validation_errors: &[MatlValidationError],
     state: &mut MatlEditorState,
@@ -154,7 +152,7 @@ fn select_material_dnd(
             let entry = &entries[*item_index];
 
             handle.ui(ui, |ui| {
-                draggable_icon(ctx, ui, dark_mode);
+                draggable_icon(ui, dark_mode);
             });
 
             // TODO: Avoid collect.
@@ -242,7 +240,6 @@ pub fn preset_editor(
                             select_material_dnd(
                                 user_presets,
                                 ui,
-                                ctx,
                                 dark_mode,
                                 &[],
                                 &mut ui_state.preset_editor,
