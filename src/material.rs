@@ -577,6 +577,9 @@ pub fn param_description(p: ParamId) -> &'static str {
         ParamId::CustomBoolean2 => "Alpha Override",
         ParamId::CustomBoolean3 => "Direct Specular",
         ParamId::CustomBoolean4 => "Indirect Specular",
+        ParamId::CustomBoolean5 => "UV Transform Layer 1 Scrolling Animation",
+        ParamId::CustomBoolean6 => "UV Transform Layer 2 Scrolling Animation",
+        ParamId::CustomBoolean7 => "UV Transform Layer 3 Scrolling Animation",
         ParamId::CustomBoolean9 => "Sprite Sheet",
         _ => "",
     }
