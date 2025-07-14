@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added an option to open the corresponding motion folder for a model folder from the Animations tab.
 * Added rendering support for sprite sheet animations that use the current frame.
 * Added rendering support for UV scrolling animations.
+* Added an option to remove zero weights from the Mesh Editor.
 
 ### Changed
 * Changed the Mesh Editor to use a side panel to select the entry to edit.

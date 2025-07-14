@@ -277,47 +277,6 @@ fn edit_mesh_object(
         .changed();
     horizontal_separator_empty(ui);
 
-    ui.heading("Bone Influences");
-
-    // Meshes should have influences or a parent bone but not both.
-    if mesh_object.bone_influences.is_empty() {
-        ui.horizontal(|ui| {
-            ui.label("Parent Bone")
-                .on_hover_text("Inherit the transformation of the specified bone while animating.");
-
-            changed |= bone_combo_box(
-                ui,
-                &mut mesh_object.parent_bone_name,
-                id.with("parent_bone"),
-                skel,
-                &[""],
-            );
-        });
-
-        if ui
-            .button("Convert to Bone Influences")
-            .on_hover_text("Weight all vertices to the parent bone and apply its transform")
-            .clicked()
-        {
-            convert_parent_bone_to_influences(mesh_object, skel);
-            changed = true;
-        }
-    } else {
-        if ui
-            .button("Remove Bone Influences")
-            .on_hover_text("Remove the vertex skin weights to assign a parent bone.")
-            .clicked()
-        {
-            // TODO: What happens if there is a parent bone and influences?
-            // TODO: Convert to parent bone if there is only one influence.
-            mesh_object.bone_influences = Vec::new();
-            changed = true;
-        }
-
-        show_influences(ui, mesh_object);
-    }
-    horizontal_separator_empty(ui);
-
     // TODO: Simplify this code?
     let attribute_error = errors.iter().find(|e| {
         matches!(
@@ -354,6 +313,75 @@ fn edit_mesh_object(
         .unwrap_or_default();
 
     changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
+    horizontal_separator_empty(ui);
+
+    let has_influence_errors = errors.iter().any(|e| {
+        matches!(
+            e.kind,
+            MeshValidationErrorKind::MoreThan4WeightsPerVertex { .. }
+                | MeshValidationErrorKind::VertexWeightsNotNormalized { .. }
+                | MeshValidationErrorKind::VertexWeightsZero { .. }
+        )
+    });
+    let text = if has_influence_errors {
+        warning_icon_text("Bone Influences")
+    } else {
+        RichText::new("Bone Influences")
+    };
+    ui.heading(text);
+
+    // Meshes should have influences or a parent bone but not both.
+    if mesh_object.bone_influences.is_empty() {
+        ui.horizontal(|ui| {
+            ui.label("Parent Bone")
+                .on_hover_text("Inherit the transformation of the specified bone while animating.");
+
+            changed |= bone_combo_box(
+                ui,
+                &mut mesh_object.parent_bone_name,
+                id.with("parent_bone"),
+                skel,
+                &[""],
+            );
+        });
+
+        if ui
+            .button("Convert to Bone Influences")
+            .on_hover_text("Weight all vertices to the parent bone and apply its transform")
+            .clicked()
+        {
+            convert_parent_bone_to_influences(mesh_object, skel);
+            changed = true;
+        }
+    } else {
+        let has_zero_weights = errors
+            .iter()
+            .any(|e| matches!(e.kind, MeshValidationErrorKind::VertexWeightsZero { .. }));
+        if has_zero_weights {
+            if ui.button("Remove Zero Weights").clicked() {
+                for influence in &mut mesh_object.bone_influences {
+                    influence.vertex_weights.retain(|w| w.vertex_weight > 0.0);
+                }
+                changed = true;
+            }
+            horizontal_separator_empty(ui);
+        }
+        if ui
+            .button("Remove Bone Influences")
+            .on_hover_text("Remove the vertex skin weights to assign a parent bone.")
+            .clicked()
+        {
+            // TODO: What happens if there is a parent bone and influences?
+            // TODO: Convert to parent bone if there is only one influence.
+            mesh_object.bone_influences = Vec::new();
+            changed = true;
+        }
+
+        horizontal_separator_empty(ui);
+
+        show_influences(ui, mesh_object);
+    }
+    horizontal_separator_empty(ui);
 
     changed
 }
