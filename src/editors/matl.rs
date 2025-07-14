@@ -802,12 +802,17 @@ fn edit_matl_entry_inner(
     horizontal_separator_empty(ui);
 
     // TODO: Add a button to open the mesh editor?
-    if validation_errors.iter().any(|e| {
-        matches!(
-            e.kind,
-            MatlValidationErrorKind::MissingRequiredVertexAttributes { .. }
-        )
-    }) {
+    let names: Vec<_> = validation_errors
+        .iter()
+        .filter_map(|e| match &e.kind {
+            MatlValidationErrorKind::MissingRequiredVertexAttributes { mesh_name, .. } => {
+                Some(mesh_name)
+            }
+            _ => None,
+        })
+        .collect();
+
+    if !names.is_empty() {
         ui.horizontal(|ui| {
             ui.image(SizedTexture {
                 id: yellow_checkerboard,
@@ -815,29 +820,12 @@ fn edit_matl_entry_inner(
             });
             ui.heading("Vertex Attribute Errors");
         });
-        ui.label(
-            "Meshes with this material are missing these vertex attributes required by the shader.",
+        let mut text = format!(
+            "{} meshes with this material are missing vertex attributes required by the shader.",
+            names.len()
         );
-        ui.label(
-            "Assign a material with a different shader or add these attributes in the Mesh Editor.",
-        );
-        horizontal_separator_empty(ui);
-
-        Grid::new("attribute_error_grid").show(ui, |ui| {
-            for error in validation_errors {
-                if let MatlValidationErrorKind::MissingRequiredVertexAttributes {
-                    mesh_name,
-                    missing_attributes,
-                    ..
-                } = &error.kind
-                {
-                    ui.label(mesh_name);
-                    ui.label(missing_attributes.join(","));
-                    ui.end_row();
-                }
-            }
-        });
-
+        text += " Assign a material with a different shader or add these attributes in the Mesh Editor.";
+        ui.label(text);
         horizontal_separator_empty(ui);
     }
 
