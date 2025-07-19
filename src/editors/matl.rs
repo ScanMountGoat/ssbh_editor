@@ -1219,48 +1219,42 @@ fn edit_texture(
             *texture_to_edit_index = None;
         }
     } else {
-        ui.add_enabled_ui(enabled, |ui| {
-            ComboBox::from_id_salt(param.param_id.to_string())
-                .selected_text(&param.data)
-                .width(ui.available_width())
-                .show_ui(ui, |ui| {
-                    // Assume every available texture correctly generated a thumbnail.
-                    // Prevent assigning cube maps to 2D textures and 2D textures to cube maps.
-                    let expected_dimension = TextureDimension::from_param(param.param_id);
-                    for (name, thumbnail, _) in texture_thumbnails
-                        .iter()
-                        .chain(default_thumbnails.iter())
-                        .filter(|(_, _, dimension)| *dimension == expected_dimension)
-                    {
-                        // Material parameters don't include the .nutexb extension.
-                        let text = Path::new(name)
-                            .with_extension("")
-                            .to_string_lossy()
-                            .to_string();
+        // Simple ComboBox without any complex modifications
+        ComboBox::from_id_salt(format!("texture_{}_{}", i, param.param_id))
+            .selected_text(&param.data)
+            .width(ui.available_width())
+            .show_ui(ui, |ui| {
+                // Assume every available texture correctly generated a thumbnail.
+                // Prevent assigning cube maps to 2D textures and 2D textures to cube maps.
+                let expected_dimension = TextureDimension::from_param(param.param_id);
+                for (name, thumbnail, _) in texture_thumbnails
+                    .iter()
+                    .chain(default_thumbnails.iter())
+                    .filter(|(_, _, dimension)| *dimension == expected_dimension)
+                {
+                    // Material parameters don't include the .nutexb extension.
+                    let text = Path::new(name)
+                        .with_extension("")
+                        .to_string_lossy()
+                        .to_string();
 
-                        ui.horizontal(|ui| {
-                            ui.image(SizedTexture {
-                                id: *thumbnail,
-                                size: egui::Vec2::new(24.0, 24.0),
-                            });
-                            // Show a texture as selected even if the case doesn't match.
-                            if ui
-                                .selectable_label(param.data.eq_ignore_ascii_case(&text), &text)
-                                .clicked()
-                            {
-                                param.data = text;
-                                changed = true;
-                            }
+                    ui.horizontal(|ui| {
+                        ui.image(SizedTexture {
+                            id: *thumbnail,
+                            size: egui::Vec2::new(24.0, 24.0),
                         });
-                    }
-                })
-                .response
-                .context_menu(|ui| {
-                    if ui.button("Edit").clicked() {
-                        *texture_to_edit_index = Some(i);
-                    }
-                });
-        });
+                        // Show a texture as selected even if the case doesn't match.
+                        if ui
+                            .selectable_label(param.data.eq_ignore_ascii_case(&text), &text)
+                            .clicked()
+                        {
+                            param.data = text;
+                            changed = true;
+                        }
+                    });
+                }
+            });
+        // No add_space or allocate_response here!
     }
 
     changed
