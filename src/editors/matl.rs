@@ -1220,7 +1220,7 @@ fn edit_texture(
         }
     } else {
         ui.add_enabled_ui(enabled, |ui| {
-            ComboBox::from_id_salt(param.param_id.to_string())
+            let mut response = ComboBox::from_id_salt(param.param_id.to_string())
                 .selected_text(&param.data)
                 .width(ui.available_width())
                 .show_ui(ui, |ui| {
@@ -1254,12 +1254,15 @@ fn edit_texture(
                         });
                     }
                 })
-                .response
-                .context_menu(|ui| {
-                    if ui.button("Edit").clicked() {
-                        *texture_to_edit_index = Some(i);
-                    }
-                });
+                .response;
+
+            // Workaround for ID conflicts affecting menu behavior.
+            response.id = egui::Id::new(param.param_id.to_string()).with("context_menu");
+            response.context_menu(|ui| {
+                if ui.button("Edit").clicked() {
+                    *texture_to_edit_index = Some(i);
+                }
+            });
         });
     }
 
