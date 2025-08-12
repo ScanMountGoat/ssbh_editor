@@ -290,12 +290,14 @@ impl RenderState {
                 mesh_object_name,
                 mesh_object_subindex,
             } => {
-                if let Some(render_mesh) = self.render_models[index]
-                    .meshes
-                    .iter_mut()
-                    .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
-                {
-                    render_mesh.is_selected = true;
+                if let Some(render_model) = self.render_models.get_mut(index) {
+                    if let Some(render_mesh) = render_model
+                        .meshes
+                        .iter_mut()
+                        .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
+                    {
+                        render_mesh.is_selected = true;
+                    }
                 }
             }
             RenderModelAction::UpdateMaterials {

@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Changed
+* Improved the accuracy of automatic expression hiding for some fighter models.
+
+### Fixed
+* Fixed a crash when opening the Modl Editor for folders with more than one numdlb file.
+
 ## 0.10.9 - 2025-07-23
 ### Fixed
 * Fixed an issue where the drop down for selecting textures in the Matl Editor did not open properly.
