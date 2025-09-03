@@ -286,7 +286,7 @@ impl RenderState {
                 }
             }
             RenderModelAction::SelectMesh {
-                index,
+                model_index: index,
                 mesh_object_name,
                 mesh_object_subindex,
             } => {

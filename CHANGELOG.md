@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Fixed a crash when opening the Modl Editor for folders with more than one numdlb file.
+* Fixed an issue where highlighting meshes in the Mesh Editor would only work for the first open model folder.
 
 ## 0.10.9 - 2025-07-23
 ### Fixed

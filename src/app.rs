@@ -265,6 +265,7 @@ fn open_editor<T: Editor>(
     open_file_index: &mut Option<usize>,
     state: &mut T::EditorState,
     model_actions: &mut VecDeque<RenderAction>,
+    selected_folder_index: usize,
     dark_mode: bool,
 ) -> bool {
     if let Some(response) = T::editor(ctx, model, open_file_index, state, dark_mode) {
@@ -279,7 +280,7 @@ fn open_editor<T: Editor>(
                     } => {
                         model_actions.push_back(RenderAction::Model(
                             RenderModelAction::SelectMesh {
-                                index: *index,
+                                model_index: selected_folder_index,
                                 mesh_object_name,
                                 mesh_object_subindex,
                             },
@@ -333,7 +334,7 @@ pub enum RenderModelAction {
     HideExpressions,
     HideInkMeshes,
     SelectMesh {
-        index: usize,
+        model_index: usize,
         mesh_object_name: String,
         mesh_object_subindex: u64,
     },
@@ -456,6 +457,7 @@ pub struct UiState {
     // Clicking an item in the file list sets the selected index.
     // If the index is not None, the corresponding editor stays open.
     pub selected_folder_index: Option<usize>,
+    // Selected index in the selected folder for files of a given type.
     pub open_skel: Option<usize>,
     pub open_hlpb: Option<usize>,
     pub open_matl: Option<usize>,
@@ -1286,6 +1288,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_mesh,
                     &mut self.ui_state.mesh_editor,
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 ) {
                     // The mesh editor has no high frequency edits (sliders), so reload on any change.
@@ -1300,6 +1303,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_skel,
                     &mut self.ui_state.skel_editor,
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 );
 
@@ -1309,6 +1313,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_modl,
                     &mut self.ui_state.modl_editor,
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 ) {
                     // Perform a cheap clone to avoid lifetime issues.
@@ -1328,6 +1333,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_hlpb,
                     &mut self.ui_state.hlpb_editor,
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animation constraints in the viewport.
@@ -1341,6 +1347,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_adj,
                     &mut (),
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 );
 
@@ -1350,6 +1357,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_anim,
                     &mut self.ui_state.anim_editor,
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 ) {
                     // Reapply the animations in the viewport.
@@ -1363,6 +1371,7 @@ impl SsbhApp {
                     &mut self.ui_state.open_meshex,
                     &mut (),
                     &mut self.render_actions,
+                    folder_index,
                     self.preferences.dark_mode,
                 ) {
                     // MeshEx settings require reloading the render model.
