@@ -1,7 +1,8 @@
 use crate::{
+    EditorResponse,
     app::{
-        display_validation_errors, draggable_icon, warning_icon, warning_icon_text,
-        MatlEditorState, PresetMode, UiState,
+        MatlEditorState, PresetMode, UiState, display_validation_errors, draggable_icon,
+        warning_icon, warning_icon_text,
     },
     horizontal_separator_empty,
     material::*,
@@ -11,17 +12,16 @@ use crate::{
     thumbnail::{TextureDimension, Thumbnail},
     validation::{MatlValidationError, MatlValidationErrorKind},
     widgets::*,
-    EditorResponse,
 };
 use egui::{
-    load::SizedTexture, special_emojis::GITHUB, Button, CentralPanel, CollapsingHeader, ComboBox,
-    Context, DragValue, Grid, Label, RichText, ScrollArea, Sense, SidePanel, TextEdit,
-    TextWrapMode, TopBottomPanel, Ui, Window,
+    Button, CentralPanel, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, RichText,
+    ScrollArea, Sense, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui, Window,
+    load::SizedTexture, special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*, Color4f, Vector4};
+use ssbh_data::{Color4f, Vector4, matl_data::*, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
 use std::path::Path;
 use strum::IntoEnumIterator;
@@ -289,25 +289,21 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
             if ui
                 .add(Button::new("JSON Presets (ssbh_data_json)").wrap_mode(TextWrapMode::Extend))
                 .clicked()
-            {
-                if let Some(file) = FileDialog::new()
+                && let Some(file) = FileDialog::new()
                     .add_filter("Matl JSON", &["json"])
                     .pick_file()
-                {
-                    load_presets_from_file(user_presets, file, load_json_presets);
-                }
+            {
+                load_presets_from_file(user_presets, file, load_json_presets);
             }
 
             if ui
                 .add(Button::new("XML Presets (Cross Mod)").wrap_mode(TextWrapMode::Extend))
                 .clicked()
-            {
-                if let Some(file) = FileDialog::new()
+                && let Some(file) = FileDialog::new()
                     .add_filter("Matl XML", &["xml"])
                     .pick_file()
-                {
-                    load_presets_from_file(user_presets, file, load_xml_presets);
-                }
+            {
+                load_presets_from_file(user_presets, file, load_xml_presets);
             }
         });
 
@@ -535,11 +531,9 @@ fn preset_window(
                 };
 
                 if let Some(preset) = presets.get(state.selected_preset_index)
-                {
-                    if let Some(entry) = entry {
+                    && let Some(entry) = entry {
                         *entry = apply_preset(entry, preset);
                         changed = true;
-                    }
                 }
                 open = false;
             }
@@ -658,11 +652,10 @@ fn menu_bar(
             if ui
                 .add_enabled(modl.is_some(), Button::new("Remove Unused Materials"))
                 .clicked()
+                && let Some(modl) = modl
             {
-                if let Some(modl) = modl {
-                    remove_unused_materials(&mut matl.entries, &modl.entries);
-                    changed = true;
-                }
+                remove_unused_materials(&mut matl.entries, &modl.entries);
+                changed = true;
             }
         });
 

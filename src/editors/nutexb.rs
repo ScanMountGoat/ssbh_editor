@@ -1,5 +1,5 @@
-use crate::{app::NutexbViewerState, horizontal_separator_empty, RenderState};
-use egui::{special_emojis::GITHUB, ComboBox, DragValue, Scene, Slider};
+use crate::{RenderState, app::NutexbViewerState, horizontal_separator_empty};
+use egui::{ComboBox, DragValue, Scene, Slider, special_emojis::GITHUB};
 use egui_wgpu::{Callback, CallbackTrait};
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;

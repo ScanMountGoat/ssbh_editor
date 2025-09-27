@@ -1,9 +1,9 @@
 use ::log::error;
 use app::{RenderAction, RenderModelAction, StageLightingState};
 use egui::{
+    Color32, CornerRadius, FontFamily, FontId, FontTweak, Stroke, TextStyle, Visuals,
     ecolor::linear_f32_from_gamma_u8,
     style::{WidgetVisuals, Widgets},
-    Color32, CornerRadius, FontFamily, FontId, FontTweak, Stroke, TextStyle, Visuals,
 };
 use model_folder::ModelFolderState;
 use nutexb::NutexbFile;
@@ -13,8 +13,8 @@ use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
 use ssbh_data::prelude::*;
 use ssbh_wgpu::{
-    swing::SwingPrc, BoneNameRenderer, ModelRenderOptions, RenderModel, RenderSettings,
-    SharedRenderData, SkinningSettings, SsbhRenderer,
+    BoneNameRenderer, ModelRenderOptions, RenderModel, RenderSettings, SharedRenderData,
+    SkinningSettings, SsbhRenderer, swing::SwingPrc,
 };
 use std::{
     collections::{BTreeMap, HashSet, VecDeque},
@@ -290,14 +290,13 @@ impl RenderState {
                 mesh_object_name,
                 mesh_object_subindex,
             } => {
-                if let Some(render_model) = self.render_models.get_mut(index) {
-                    if let Some(render_mesh) = render_model
+                if let Some(render_model) = self.render_models.get_mut(index)
+                    && let Some(render_mesh) = render_model
                         .meshes
                         .iter_mut()
                         .find(|m| m.name == mesh_object_name && m.subindex == mesh_object_subindex)
-                    {
-                        render_mesh.is_selected = true;
-                    }
+                {
+                    render_mesh.is_selected = true;
                 }
             }
             RenderModelAction::UpdateMaterials {

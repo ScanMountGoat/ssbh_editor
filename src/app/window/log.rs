@@ -1,6 +1,6 @@
 use egui::{Context, Label, ScrollArea, Window};
 
-use crate::app::{log_level_icon, LOGGER};
+use crate::app::{LOGGER, log_level_icon};
 
 pub fn log_window(ctx: &Context, open: &mut bool) {
     Window::new("Application Log")

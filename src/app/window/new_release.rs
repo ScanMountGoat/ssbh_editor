@@ -24,10 +24,10 @@ pub fn new_release_window(
                 ));
                 ui.label("Download the new version from here:");
                 let release_link = "https://github.com/ScanMountGoat/ssbh_editor/releases";
-                if ui.hyperlink(release_link).clicked() {
-                    if let Err(e) = open::that(release_link) {
-                        log::error!("Failed to open {release_link}: {e}");
-                    }
+                if ui.hyperlink(release_link).clicked()
+                    && let Err(e) = open::that(release_link)
+                {
+                    log::error!("Failed to open {release_link}: {e}");
                 }
                 horizontal_separator_empty(ui);
 

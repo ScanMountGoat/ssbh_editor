@@ -3,6 +3,8 @@ use self::{
     rendering::calculate_mvp, window::*,
 };
 use crate::{
+    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorResponse, FileResult,
+    RenderState, SwingState, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT, Thumbnail,
     app::{anim_list::anim_list, shortcut::format_shortcut, swing_list::swing_list},
     capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
@@ -25,12 +27,10 @@ use crate::{
     update::LatestReleaseInfo,
     update_color_theme,
     widgets::*,
-    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorResponse, FileResult,
-    RenderState, SwingState, Thumbnail, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT,
 };
 use egui::{
-    collapsing_header::CollapsingState, Button, CentralPanel, CollapsingHeader, Context,
-    ImageSource, Label, Response, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
+    Button, CentralPanel, CollapsingHeader, Context, ImageSource, Label, Response, RichText,
+    ScrollArea, SidePanel, TopBottomPanel, Ui, collapsing_header::CollapsingState,
 };
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
@@ -39,7 +39,7 @@ use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
-use ssbh_wgpu::{next_frame, ModelFiles, RenderModel};
+use ssbh_wgpu::{ModelFiles, RenderModel, next_frame};
 use std::{
     collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
@@ -1232,168 +1232,167 @@ impl SsbhApp {
 
         // TODO: Use some sort of trait to clean up repetitive code?
         // The functions would take an additional ui parameter.
-        if let Some(folder_index) = self.ui_state.selected_folder_index {
-            if let Some(model) = self.models.get_mut(folder_index) {
-                // TODO: Group added state and implement the Editor trait.
-                if let Some(matl_index) = self.ui_state.open_matl {
-                    if let Some((name, Some(matl))) = model.model.matls.get_mut(matl_index) {
-                        let response = matl_editor(
-                            ctx,
-                            &model.folder_path,
-                            name,
-                            &mut self.ui_state.matl_editor,
-                            matl,
-                            find_file_mut(&mut model.model.modls, "model.numdlb"),
-                            &model.validation.matl_errors,
-                            &model.thumbnails,
-                            &self.default_thumbnails,
-                            render_state.shared_data.database(),
-                            &mut self.material_presets,
-                            &self.default_presets,
-                            self.red_checkerboard,
-                            self.yellow_checkerboard,
-                            self.preferences.dark_mode,
-                        );
-                        // TODO: This modifies the model.numdlb when renaming materials.
-                        response.set_changed(&mut model.changed.matls[matl_index]);
-                        file_changed |= response.changed;
-
-                        if !response.open {
-                            // Close the window.
-                            self.ui_state.open_matl = None;
-                        }
-
-                        // Update on change to avoid costly state changes every frame.
-                        if response.changed {
-                            // Only the model.numatb is rendered in the viewport for now.
-                            if name == "model.numatb" {
-                                // Reassign materials in case material or shader labels changed.
-                                // This is necessary for error checkerboards to display properly.
-                                // Perform a cheap clone to avoid lifetime issues.
-                                self.render_actions.push_back(RenderAction::Model(
-                                    RenderModelAction::UpdateMaterials {
-                                        model_index: folder_index,
-                                        modl: model.model.find_modl().cloned(),
-                                        matl: model.model.find_matl().cloned(),
-                                    },
-                                ));
-                            }
-                        }
-                    }
-                }
-
-                if open_editor::<MeshData>(
+        if let Some(folder_index) = self.ui_state.selected_folder_index
+            && let Some(model) = self.models.get_mut(folder_index)
+        {
+            // TODO: Group added state and implement the Editor trait.
+            if let Some(matl_index) = self.ui_state.open_matl
+                && let Some((name, Some(matl))) = model.model.matls.get_mut(matl_index)
+            {
+                let response = matl_editor(
                     ctx,
-                    model,
-                    &mut self.ui_state.open_mesh,
-                    &mut self.ui_state.mesh_editor,
-                    &mut self.render_actions,
-                    folder_index,
-                    self.preferences.dark_mode,
-                ) {
-                    // The mesh editor has no high frequency edits (sliders), so reload on any change.
-                    self.render_actions
-                        .push_back(RenderAction::Model(RenderModelAction::Update(folder_index)));
-                    file_changed = true;
-                }
-
-                file_changed |= open_editor::<SkelData>(
-                    ctx,
-                    model,
-                    &mut self.ui_state.open_skel,
-                    &mut self.ui_state.skel_editor,
-                    &mut self.render_actions,
-                    folder_index,
+                    &model.folder_path,
+                    name,
+                    &mut self.ui_state.matl_editor,
+                    matl,
+                    find_file_mut(&mut model.model.modls, "model.numdlb"),
+                    &model.validation.matl_errors,
+                    &model.thumbnails,
+                    &self.default_thumbnails,
+                    render_state.shared_data.database(),
+                    &mut self.material_presets,
+                    &self.default_presets,
+                    self.red_checkerboard,
+                    self.yellow_checkerboard,
                     self.preferences.dark_mode,
                 );
+                // TODO: This modifies the model.numdlb when renaming materials.
+                response.set_changed(&mut model.changed.matls[matl_index]);
+                file_changed |= response.changed;
 
-                if open_editor::<ModlData>(
-                    ctx,
-                    model,
-                    &mut self.ui_state.open_modl,
-                    &mut self.ui_state.modl_editor,
-                    &mut self.render_actions,
-                    folder_index,
-                    self.preferences.dark_mode,
-                ) {
-                    // Perform a cheap clone to avoid lifetime issues.
-                    self.render_actions.push_back(RenderAction::Model(
-                        RenderModelAction::UpdateMaterials {
-                            model_index: folder_index,
-                            modl: model.model.find_modl().cloned(),
-                            matl: model.model.find_matl().cloned(),
-                        },
-                    ));
-                    file_changed = true;
+                if !response.open {
+                    // Close the window.
+                    self.ui_state.open_matl = None;
                 }
 
-                if open_editor::<HlpbData>(
-                    ctx,
-                    model,
-                    &mut self.ui_state.open_hlpb,
-                    &mut self.ui_state.hlpb_editor,
-                    &mut self.render_actions,
-                    folder_index,
-                    self.preferences.dark_mode,
-                ) {
-                    // Reapply the animation constraints in the viewport.
-                    self.animation_state.should_update_animations = true;
-                    file_changed = true;
-                }
-
-                file_changed |= open_editor::<AdjData>(
-                    ctx,
-                    model,
-                    &mut self.ui_state.open_adj,
-                    &mut (),
-                    &mut self.render_actions,
-                    folder_index,
-                    self.preferences.dark_mode,
-                );
-
-                if open_editor::<AnimData>(
-                    ctx,
-                    model,
-                    &mut self.ui_state.open_anim,
-                    &mut self.ui_state.anim_editor,
-                    &mut self.render_actions,
-                    folder_index,
-                    self.preferences.dark_mode,
-                ) {
-                    // Reapply the animations in the viewport.
-                    self.animation_state.should_update_animations = true;
-                    file_changed = true;
-                }
-
-                if open_editor::<MeshExData>(
-                    ctx,
-                    model,
-                    &mut self.ui_state.open_meshex,
-                    &mut (),
-                    &mut self.render_actions,
-                    folder_index,
-                    self.preferences.dark_mode,
-                ) {
-                    // MeshEx settings require reloading the render model.
-                    self.render_actions
-                        .push_back(RenderAction::Model(RenderModelAction::Update(folder_index)));
-                    file_changed = true;
-                }
-
-                if let Some(nutexb_index) = self.ui_state.open_nutexb {
-                    if let Some((name, Some(nutexb))) = model.model.nutexbs.get(nutexb_index) {
-                        if !nutexb_viewer(
-                            ctx,
-                            &folder_editor_title(&model.folder_path, name),
-                            &mut self.ui_state.nutexb,
-                            nutexb,
-                            &mut render_state.texture_render_settings,
-                        ) {
-                            // Close the window.
-                            self.ui_state.open_nutexb = None;
-                        }
+                // Update on change to avoid costly state changes every frame.
+                if response.changed {
+                    // Only the model.numatb is rendered in the viewport for now.
+                    if name == "model.numatb" {
+                        // Reassign materials in case material or shader labels changed.
+                        // This is necessary for error checkerboards to display properly.
+                        // Perform a cheap clone to avoid lifetime issues.
+                        self.render_actions.push_back(RenderAction::Model(
+                            RenderModelAction::UpdateMaterials {
+                                model_index: folder_index,
+                                modl: model.model.find_modl().cloned(),
+                                matl: model.model.find_matl().cloned(),
+                            },
+                        ));
                     }
                 }
+            }
+
+            if open_editor::<MeshData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_mesh,
+                &mut self.ui_state.mesh_editor,
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            ) {
+                // The mesh editor has no high frequency edits (sliders), so reload on any change.
+                self.render_actions
+                    .push_back(RenderAction::Model(RenderModelAction::Update(folder_index)));
+                file_changed = true;
+            }
+
+            file_changed |= open_editor::<SkelData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_skel,
+                &mut self.ui_state.skel_editor,
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            );
+
+            if open_editor::<ModlData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_modl,
+                &mut self.ui_state.modl_editor,
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            ) {
+                // Perform a cheap clone to avoid lifetime issues.
+                self.render_actions.push_back(RenderAction::Model(
+                    RenderModelAction::UpdateMaterials {
+                        model_index: folder_index,
+                        modl: model.model.find_modl().cloned(),
+                        matl: model.model.find_matl().cloned(),
+                    },
+                ));
+                file_changed = true;
+            }
+
+            if open_editor::<HlpbData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_hlpb,
+                &mut self.ui_state.hlpb_editor,
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            ) {
+                // Reapply the animation constraints in the viewport.
+                self.animation_state.should_update_animations = true;
+                file_changed = true;
+            }
+
+            file_changed |= open_editor::<AdjData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_adj,
+                &mut (),
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            );
+
+            if open_editor::<AnimData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_anim,
+                &mut self.ui_state.anim_editor,
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            ) {
+                // Reapply the animations in the viewport.
+                self.animation_state.should_update_animations = true;
+                file_changed = true;
+            }
+
+            if open_editor::<MeshExData>(
+                ctx,
+                model,
+                &mut self.ui_state.open_meshex,
+                &mut (),
+                &mut self.render_actions,
+                folder_index,
+                self.preferences.dark_mode,
+            ) {
+                // MeshEx settings require reloading the render model.
+                self.render_actions
+                    .push_back(RenderAction::Model(RenderModelAction::Update(folder_index)));
+                file_changed = true;
+            }
+
+            if let Some(nutexb_index) = self.ui_state.open_nutexb
+                && let Some((name, Some(nutexb))) = model.model.nutexbs.get(nutexb_index)
+                && !nutexb_viewer(
+                    ctx,
+                    &folder_editor_title(&model.folder_path, name),
+                    &mut self.ui_state.nutexb,
+                    nutexb,
+                    &mut render_state.texture_render_settings,
+                )
+            {
+                // Close the window.
+                self.ui_state.open_nutexb = None;
             }
         }
 
@@ -1495,16 +1494,15 @@ impl SsbhApp {
                             if ui
                                 .add_enabled(should_add_meshex, Button::new("Add model.numshexb"))
                                 .clicked()
+                                && let Some(mesh) = mesh
                             {
-                                if let Some(mesh) = mesh {
-                                    let new_meshex = MeshExData::from_mesh_objects(&mesh.objects);
-                                    model
-                                        .model
-                                        .meshexes
-                                        .push(("model.numshexb".to_owned(), Some(new_meshex)));
-                                    // Mark the new file as modified to prompt the user to save it.
-                                    model.changed.meshexes.push(true);
-                                }
+                                let new_meshex = MeshExData::from_mesh_objects(&mesh.objects);
+                                model
+                                    .model
+                                    .meshexes
+                                    .push(("model.numshexb".to_owned(), Some(new_meshex)));
+                                // Mark the new file as modified to prompt the user to save it.
+                                model.changed.meshexes.push(true);
                             }
 
                             ui.separator();

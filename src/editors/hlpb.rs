@@ -1,22 +1,22 @@
 use std::path::Path;
 
 use crate::{
+    EditorResponse,
     app::{HlpbEditorState, HlpbEditorTab},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
-    widgets::{bone_combo_box, DragSlider},
-    EditorResponse,
+    widgets::{DragSlider, bone_combo_box},
 };
 use egui::{
-    special_emojis::GITHUB, CentralPanel, DragValue, Grid, RichText, ScrollArea, SidePanel,
-    TextEdit, Ui,
+    CentralPanel, DragValue, Grid, RichText, ScrollArea, SidePanel, TextEdit, Ui,
+    special_emojis::GITHUB,
 };
 
 use ssbh_data::{
+    Vector3, Vector4,
     hlpb_data::{AimConstraintData, OrientConstraintData},
     prelude::*,
-    Vector3, Vector4,
 };
 
 pub fn hlpb_editor(

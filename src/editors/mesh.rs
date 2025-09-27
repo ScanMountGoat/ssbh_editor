@@ -1,23 +1,23 @@
 use crate::{
-    app::{display_validation_errors, draggable_icon, warning_icon_text, MeshEditorState},
+    EditorMessage, EditorResponse,
+    app::{MeshEditorState, display_validation_errors, draggable_icon, warning_icon_text},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
     validation::{MeshValidationError, MeshValidationErrorKind},
     widgets::bone_combo_box,
-    EditorMessage, EditorResponse,
 };
 use egui::{
-    special_emojis::GITHUB, Button, CentralPanel, ComboBox, Grid, RichText, ScrollArea, SidePanel,
-    TextEdit, TextWrapMode, Ui,
+    Button, CentralPanel, ComboBox, Grid, RichText, ScrollArea, SidePanel, TextEdit, TextWrapMode,
+    Ui, special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
     mesh_data::{
-        transform_points, transform_vectors, AttributeData, BoneInfluence, MeshObjectData,
-        VectorData, VertexWeight,
+        AttributeData, BoneInfluence, MeshObjectData, VectorData, VertexWeight, transform_points,
+        transform_vectors,
     },
     prelude::*,
 };
@@ -62,15 +62,13 @@ pub fn mesh_editor(
                                 .wrap_mode(TextWrapMode::Extend),
                         )
                         .clicked()
-                    {
-                        if let Some(file) = FileDialog::new()
+                        && let Some(file) = FileDialog::new()
                             .add_filter("Mesh", &["numshb"])
                             .pick_file()
-                        {
-                            match MeshData::from_file(&file) {
-                                Ok(reference) => match_mesh_order(mesh, &reference),
-                                Err(e) => error!("Failed to read {file:?}: {e}"),
-                            }
+                    {
+                        match MeshData::from_file(&file) {
+                            Ok(reference) => match_mesh_order(mesh, &reference),
+                            Err(e) => error!("Failed to read {file:?}: {e}"),
                         }
                     }
                 });

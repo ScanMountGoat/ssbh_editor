@@ -1,14 +1,14 @@
 use std::path::Path;
 
 use crate::{
-    app::{draggable_icon, SkelEditorState, SkelMode},
+    EditorResponse,
+    app::{SkelEditorState, SkelMode, draggable_icon},
     path::folder_editor_title,
     widgets::enum_combo_box,
-    EditorResponse,
 };
 use egui::{
-    special_emojis::GITHUB, Button, CollapsingHeader, Grid, Label, RichText, ScrollArea,
-    TextWrapMode,
+    Button, CollapsingHeader, Grid, Label, RichText, ScrollArea, TextWrapMode,
+    special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -43,15 +43,13 @@ pub fn skel_editor(
                         }
                     }
 
-                    if ui.button("Save As...").clicked() {
-                        if let Some(file) = FileDialog::new()
+                    if ui.button("Save As...").clicked()
+                        && let Some(file) = FileDialog::new()
                             .add_filter("Skel", &["nusktb"])
                             .save_file()
-                        {
-                            if let Err(e) = skel.write_to_file(&file) {
-                                error!("Failed to save {file:?}: {e}");
-                            }
-                        }
+                        && let Err(e) = skel.write_to_file(&file)
+                    {
+                        error!("Failed to save {file:?}: {e}");
                     }
                 });
 
@@ -62,15 +60,13 @@ pub fn skel_editor(
                                 .wrap_mode(TextWrapMode::Extend),
                         )
                         .clicked()
-                    {
-                        if let Some(file) = FileDialog::new()
+                        && let Some(file) = FileDialog::new()
                             .add_filter("Skel", &["nusktb"])
                             .pick_file()
-                        {
-                            match SkelData::from_file(&file) {
-                                Ok(reference) => match_skel_order(skel, &reference),
-                                Err(e) => error!("Failed to read {file:?}: {e}"),
-                            }
+                    {
+                        match SkelData::from_file(&file) {
+                            Ok(reference) => match_skel_order(skel, &reference),
+                            Err(e) => error!("Failed to read {file:?}: {e}"),
                         }
                     }
                 });

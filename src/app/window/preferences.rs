@@ -6,8 +6,8 @@ use crate::{
 };
 
 use egui::{
-    special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
     DragValue, TextWrapMode, Ui, Window,
+    special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
 };
 use strum::VariantNames;
 

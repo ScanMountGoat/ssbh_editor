@@ -1,9 +1,9 @@
 use super::{
-    adj_icon, anim_icon, display_validation_errors, empty_icon, hlpb_icon, matl_icon, mesh_icon,
-    missing_icon, skel_icon, warning_icon, warning_icon_text, UiState, ERROR_COLOR, ICON_SIZE,
+    ERROR_COLOR, ICON_SIZE, UiState, adj_icon, anim_icon, display_validation_errors, empty_icon,
+    hlpb_icon, matl_icon, mesh_icon, missing_icon, skel_icon, warning_icon, warning_icon_text,
 };
-use crate::{validation::MatlValidationErrorKind, FileResult, ModelFolderState};
-use egui::{load::SizedTexture, Button, Response, RichText, Ui};
+use crate::{FileResult, ModelFolderState, validation::MatlValidationErrorKind};
+use egui::{Button, Response, RichText, Ui, load::SizedTexture};
 
 pub fn show_folder_files(
     ui_state: &mut UiState,
@@ -241,10 +241,10 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
             }
         });
     }
-    if let Some(required_file) = required_file {
-        if !files.iter().any(|(f, _)| f == required_file) {
-            missing_file(ui, required_file);
-        }
+    if let Some(required_file) = required_file
+        && !files.iter().any(|(f, _)| f == required_file)
+    {
+        missing_file(ui, required_file);
     }
 }
 

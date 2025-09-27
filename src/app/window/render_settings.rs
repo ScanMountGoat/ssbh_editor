@@ -282,9 +282,15 @@ fn debug_tooltip(mode: DebugMode) -> &'static str {
         DebugMode::Shaded => "All effects applied like lighting, shadows, and post processing",
         DebugMode::Basic => "Lambertion diffuse lighting with normal maps applied",
         DebugMode::Normals => "Calculated normals after applying tangents and normal maps",
-        DebugMode::Bitangents => "Bitangents calculated by the shaders for normal mapping and anisotropic specular",
-        DebugMode::Unlit => "The color after applying textures and materials but without any lighting.",
-        DebugMode::ShaderComplexity => "Estimated shader complexity based on instruction count. Warmer colors are more expensive.",
+        DebugMode::Bitangents => {
+            "Bitangents calculated by the shaders for normal mapping and anisotropic specular"
+        }
+        DebugMode::Unlit => {
+            "The color after applying textures and materials but without any lighting."
+        }
+        DebugMode::ShaderComplexity => {
+            "Estimated shader complexity based on instruction count. Warmer colors are more expensive."
+        }
         _ => "",
     }
 }

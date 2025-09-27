@@ -1,5 +1,5 @@
-use crate::{path::folder_editor_title, save_file, save_file_as, EditorMessage, EditorResponse};
-use egui::{special_emojis::GITHUB, Grid, Label, Response, ScrollArea, Sense, Ui};
+use crate::{EditorMessage, EditorResponse, path::folder_editor_title, save_file, save_file_as};
+use egui::{Grid, Label, Response, ScrollArea, Sense, Ui, special_emojis::GITHUB};
 
 use ssbh_data::prelude::*;
 use std::path::Path;
@@ -36,13 +36,12 @@ pub fn meshex_editor(
                     if ui
                         .add_enabled(mesh.is_some(), egui::Button::new("Rebuild From Mesh"))
                         .clicked()
+                        && let Some(mesh) = mesh
                     {
-                        if let Some(mesh) = mesh {
-                            // TODO: TODO: Only show this if the entries don't match up?
-                            // TODO: Preserve existing flags?
-                            *meshex = MeshExData::from_mesh_objects(&mesh.objects);
-                            changed = true;
-                        }
+                        // TODO: TODO: Only show this if the entries don't match up?
+                        // TODO: Preserve existing flags?
+                        *meshex = MeshExData::from_mesh_objects(&mesh.objects);
+                        changed = true;
                     }
                 });
 

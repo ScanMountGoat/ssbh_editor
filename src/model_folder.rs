@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use ssbh_wgpu::{swing::SwingPrc, ModelFolder, SharedRenderData};
+use ssbh_wgpu::{ModelFolder, SharedRenderData, swing::SwingPrc};
 
-use crate::{validation::ModelValidationErrors, Thumbnail};
+use crate::{Thumbnail, validation::ModelValidationErrors};
 
 pub struct ModelFolderState {
     pub folder_path: PathBuf,
@@ -196,11 +196,13 @@ mod tests {
     #[test]
     fn find_anim_folders_empty_folders() {
         // Folders without animations should be excluded.
-        assert!(find_anim_folders(
-            &model_folder("/model/body/c00".into()),
-            &[model_folder("/motion/body/c00".into())]
-        )
-        .is_empty());
+        assert!(
+            find_anim_folders(
+                &model_folder("/model/body/c00".into()),
+                &[model_folder("/motion/body/c00".into())]
+            )
+            .is_empty()
+        );
     }
 
     #[test]

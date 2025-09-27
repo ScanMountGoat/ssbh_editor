@@ -12,15 +12,16 @@ use egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
 use log::error;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_editor::{
+    AnimationState, CameraState, RenderState, SwingState,
     app::{RenderAction, SsbhApp, UiState},
     checkerboard_texture, default_fonts, default_text_styles,
     material::load_material_presets,
-    path::{presets_file, PROJECT_DIR},
+    path::{PROJECT_DIR, presets_file},
     preferences::{AppPreferences, GraphicsBackend},
     presets::default_presets,
-    thumbnail::{generate_default_thumbnails, Thumbnail},
-    update::{check_for_updates, LatestReleaseInfo},
-    update_color_theme, widgets_dark, AnimationState, CameraState, RenderState, SwingState,
+    thumbnail::{Thumbnail, generate_default_thumbnails},
+    update::{LatestReleaseInfo, check_for_updates},
+    update_color_theme, widgets_dark,
 };
 use ssbh_wgpu::{BoneNameRenderer, SsbhRenderer};
 

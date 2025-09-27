@@ -2,7 +2,7 @@
 name = "ssbh_editor"
 version = "0.10.9"
 authors = ["SMG"]
-edition = "2021"
+edition = "2024"
 description = "View, edit, and validate models for Smash Ultimate"
 
 [dependencies]

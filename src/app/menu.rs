@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use crate::{
-    app::shortcut::{format_shortcut, ADD_FOLDER, OPEN_FOLDER, RELOAD_SHORTCUT},
     CameraState,
+    app::shortcut::{ADD_FOLDER, OPEN_FOLDER, RELOAD_SHORTCUT, format_shortcut},
 };
 
 use super::{RenderAction, RenderModelAction, SsbhApp};
-use egui::{special_emojis::GITHUB, Button, TextWrapMode, Ui};
+use egui::{Button, TextWrapMode, Ui, special_emojis::GITHUB};
 use rfd::FileDialog;
 
 pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
@@ -35,10 +35,10 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
                 )
             };
 
-            if shortcut_button(ui, "🗀 Open Folder...", &OPEN_FOLDER).clicked() {
-                if let Some(folder) = FileDialog::new().pick_folder() {
-                    app.add_folder_to_workspace(folder, true);
-                }
+            if shortcut_button(ui, "🗀 Open Folder...", &OPEN_FOLDER).clicked()
+                && let Some(folder) = FileDialog::new().pick_folder()
+            {
+                app.add_folder_to_workspace(folder, true);
             }
 
             // TODO: Find a cleaner way to write this.
@@ -59,10 +59,10 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             }
             ui.separator();
 
-            if shortcut_button(ui, "🗀 Add Folder to Workspace...", &ADD_FOLDER).clicked() {
-                if let Some(folder) = FileDialog::new().pick_folder() {
-                    app.add_folder_to_workspace(folder, false);
-                }
+            if shortcut_button(ui, "🗀 Add Folder to Workspace...", &ADD_FOLDER).clicked()
+                && let Some(folder) = FileDialog::new().pick_folder()
+            {
+                app.add_folder_to_workspace(folder, false);
             }
 
             // TODO: Find a cleaner way to write this.
@@ -128,35 +128,31 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             }
             ui.separator();
 
-            if ui.button("Save Screenshot...").clicked() {
-                if let Some(file) = FileDialog::new()
+            if ui.button("Save Screenshot...").clicked()
+                && let Some(file) = FileDialog::new()
                     .add_filter("Image", &["png", "jpg", "tif", "bmp"])
                     .save_file()
-                {
-                    app.screenshot_to_render = Some(file);
-                }
+            {
+                app.screenshot_to_render = Some(file);
             }
 
             ui.menu_button("Render Animation", |ui| {
                 if ui
                     .add(Button::new("Render to Image Sequence...").wrap_mode(TextWrapMode::Extend))
                     .clicked()
-                {
-                    if let Some(file) = FileDialog::new()
+                    && let Some(file) = FileDialog::new()
                         .add_filter("Image", &["png", "jpg", "tif", "bmp"])
                         .save_file()
-                    {
-                        app.animation_image_sequence_to_render = Some(file);
-                    }
+                {
+                    app.animation_image_sequence_to_render = Some(file);
                 }
 
                 if ui
                     .add(Button::new("Render to GIF...").wrap_mode(TextWrapMode::Extend))
                     .clicked()
+                    && let Some(file) = FileDialog::new().add_filter("GIF", &["gif"]).save_file()
                 {
-                    if let Some(file) = FileDialog::new().add_filter("GIF", &["gif"]).save_file() {
-                        app.animation_gif_to_render = Some(file);
-                    }
+                    app.animation_gif_to_render = Some(file);
                 }
             });
         });

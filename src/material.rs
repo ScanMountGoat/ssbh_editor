@@ -1,6 +1,6 @@
 use log::error;
-use ssbh_data::{matl_data::*, Vector4};
-use ssbh_wgpu::{split_param, ShaderProgram};
+use ssbh_data::{Vector4, matl_data::*};
+use ssbh_wgpu::{ShaderProgram, split_param};
 use std::str::FromStr;
 
 pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {

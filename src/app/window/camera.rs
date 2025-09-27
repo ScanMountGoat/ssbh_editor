@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use egui::{Button, DragValue, Label, TextWrapMode, Ui};
 use rfd::FileDialog;
 
-use crate::{horizontal_separator_empty, CameraState, CameraValues};
+use crate::{CameraState, CameraValues, horizontal_separator_empty};
 
 pub fn camera_settings_window(
     ctx: &egui::Context,
@@ -126,14 +126,13 @@ pub fn camera_settings_window(
             ui.horizontal(|ui| {
                 ui.label("Camera Anim");
                 path_label(ui, &camera_state.anim_path);
-                if ui.button("Select file...").clicked() {
-                    if let Some(file) = FileDialog::new()
+                if ui.button("Select file...").clicked()
+                    && let Some(file) = FileDialog::new()
                         .add_filter("Camera Anim", &["nuanmb"])
                         .pick_file()
-                    {
-                        camera_state.anim_path = Some(file);
-                        changed = true;
-                    };
+                {
+                    camera_state.anim_path = Some(file);
+                    changed = true;
                 }
             });
             horizontal_separator_empty(ui);

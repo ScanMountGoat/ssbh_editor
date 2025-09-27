@@ -1,14 +1,14 @@
 use std::collections::HashSet;
 
 use crate::{
-    app::{folder_display_name, SsbhApp},
-    model_folder::{find_swing_folders, ModelFolderState},
-    widgets::EyeCheckBox,
     SwingState,
+    app::{SsbhApp, folder_display_name},
+    model_folder::{ModelFolderState, find_swing_folders},
+    widgets::EyeCheckBox,
 };
 use egui::{
-    collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, TextWrapMode,
-    Ui,
+    CollapsingHeader, Context, Label, RichText, TextWrapMode, Ui,
+    collapsing_header::CollapsingState,
 };
 use ssbh_wgpu::swing::*;
 
@@ -46,12 +46,11 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         }
                     });
 
-                    if let Some(swing_prc) = get_swing_prc(i, &app.swing_state, &app.models) {
-                        if let Some(hidden_collisions) =
+                    if let Some(swing_prc) = get_swing_prc(i, &app.swing_state, &app.models)
+                        && let Some(hidden_collisions) =
                             app.swing_state.hidden_collisions.get_mut(i)
-                        {
-                            list_swing_bones(ctx, id, ui, swing_prc, hidden_collisions);
-                        }
+                    {
+                        list_swing_bones(ctx, id, ui, swing_prc, hidden_collisions);
                     }
                 }
             });

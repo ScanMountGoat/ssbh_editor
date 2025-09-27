@@ -1,12 +1,12 @@
 use crate::{
-    app::{folder_display_name, SsbhApp},
+    AnimationIndex, AnimationSlot, ModelFolderState,
+    app::{SsbhApp, folder_display_name},
     model_folder::find_anim_folders,
     widgets::EyeCheckBox,
-    AnimationIndex, AnimationSlot, ModelFolderState,
 };
 use egui::{
-    collapsing_header::CollapsingState, CollapsingHeader, Context, Label, RichText, TextWrapMode,
-    Ui,
+    CollapsingHeader, Context, Label, RichText, TextWrapMode, Ui,
+    collapsing_header::CollapsingState,
 };
 
 pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {

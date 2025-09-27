@@ -1,4 +1,4 @@
-use crate::{thumbnail::TextureDimension, FileResult};
+use crate::{FileResult, thumbnail::TextureDimension};
 use approx::relative_eq;
 use nutexb::{NutexbFile, NutexbFormat};
 use ssbh_data::{
@@ -101,14 +101,18 @@ impl std::fmt::Display for MeshValidationError {
 // TODO: Check for unsupported vertex attribute names?
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MeshValidationErrorKind {
-    #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
+    #[error(
+        "Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}."
+    )]
     MissingRequiredVertexAttributes {
         mesh_name: String,
         material_label: String,
         missing_attributes: Vec<String>,
     },
 
-    #[error("Mesh {mesh_name:?} repeats subindex {subindex}. Meshes with the same name must have unique subindices.")]
+    #[error(
+        "Mesh {mesh_name:?} repeats subindex {subindex}. Meshes with the same name must have unique subindices."
+    )]
     DuplicateSubindex { mesh_name: String, subindex: u64 },
 
     #[error(
@@ -146,7 +150,9 @@ impl std::fmt::Display for MatlValidationError {
 
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum MatlValidationErrorKind {
-    #[error("Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}.")]
+    #[error(
+        "Mesh {mesh_name:?} is missing attributes {missing_attributes:?} required by assigned material {material_label:?}."
+    )]
     MissingRequiredVertexAttributes {
         material_label: String,
         mesh_name: String,
@@ -168,7 +174,9 @@ pub enum MatlValidationErrorKind {
     },
 
     // TODO: Add severity levels and make this the highest severity.
-    #[error("Texture {texture:?} for material {material_label:?} has dimensions {actual:?}, but {param_id} requires {expected:?}.")]
+    #[error(
+        "Texture {texture:?} for material {material_label:?} has dimensions {actual:?}, but {param_id} requires {expected:?}."
+    )]
     UnexpectedTextureDimension {
         material_label: String,
         param_id: ParamId,
@@ -206,7 +214,9 @@ Use wrap mode Repeat if the texture should tile.",
         samplers: Vec<ParamId>,
     },
 
-    #[error("Shader label {shader_label:?} for material {material_label:?} is not a valid shader label.")]
+    #[error(
+        "Shader label {shader_label:?} for material {material_label:?} is not a valid shader label."
+    )]
     InvalidShaderLabel {
         material_label: String,
         shader_label: String,
@@ -247,7 +257,9 @@ impl std::fmt::Display for ModlValidationError {
 
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum ModlValidationErrorKind {
-    #[error("Modl entry assigns to mesh {mesh_object_name:?} not found in the model.numshb. Ensure the name and subindex are correct.")]
+    #[error(
+        "Modl entry assigns to mesh {mesh_object_name:?} not found in the model.numshb. Ensure the name and subindex are correct."
+    )]
     InvalidMeshObject {
         mesh_object_name: String,
         mesh_object_subindex: usize,
@@ -397,22 +409,20 @@ fn validate_premultiplied_blend(
     shader_database: &ShaderDatabase,
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
-        if let Some(program) = shader_database.get(&entry.shader_label) {
-            if let Some(blend_state) = entry.blend_states.first() {
-                if program.premultiplied
-                    && blend_state.data.source_color == BlendFactor::SourceAlpha
-                {
-                    // This will square the src alpha and probably isn't intentional.
-                    let error = MatlValidationError {
-                        entry_index,
-                        kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
-                            material_label: entry.material_label.clone(),
-                            shader_label: entry.shader_label.clone(),
-                        },
-                    };
-                    validation.matl_errors.push(error);
-                }
-            }
+        if let Some(program) = shader_database.get(&entry.shader_label)
+            && let Some(blend_state) = entry.blend_states.first()
+            && program.premultiplied
+            && blend_state.data.source_color == BlendFactor::SourceAlpha
+        {
+            // This will square the src alpha and probably isn't intentional.
+            let error = MatlValidationError {
+                entry_index,
+                kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
+                    material_label: entry.material_label.clone(),
+                    shader_label: entry.shader_label.clone(),
+                },
+            };
+            validation.matl_errors.push(error);
         }
     }
 }
@@ -671,37 +681,36 @@ fn validate_renormal_material_entries(
         .filter(|(_, e)| e.material_label.contains("RENORMAL"))
     {
         if let Some(adj) = adj {
-            if let Some(modl) = modl {
-                if let Some(mesh) = mesh {
-                    for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
-                        modl.entries.iter().any(|e| {
-                            e.mesh_object_name == m.name
-                                && e.mesh_object_subindex == m.subindex
-                                && e.material_label == entry.material_label
-                        })
-                    }) {
-                        if !adj
-                            .entries
-                            .iter()
-                            .any(|a| a.mesh_object_index == mesh_index)
-                        {
-                            let error = MatlValidationError {
-                                entry_index,
-                                kind:
-                                    MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
-                                        material_label: entry.material_label.clone(),
-                                        mesh_name: mesh.name.clone(),
-                                    },
-                            };
-                            validation.matl_errors.push(error);
-
-                            let error = AdjValidationError::MissingRenormalEntry {
-                                mesh_object_index: mesh_index,
-                                mesh_name: mesh.name.clone(),
+            if let Some(modl) = modl
+                && let Some(mesh) = mesh
+            {
+                for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
+                    modl.entries.iter().any(|e| {
+                        e.mesh_object_name == m.name
+                            && e.mesh_object_subindex == m.subindex
+                            && e.material_label == entry.material_label
+                    })
+                }) {
+                    if !adj
+                        .entries
+                        .iter()
+                        .any(|a| a.mesh_object_index == mesh_index)
+                    {
+                        let error = MatlValidationError {
+                            entry_index,
+                            kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                                 material_label: entry.material_label.clone(),
-                            };
-                            validation.adj_errors.push(error);
-                        }
+                                mesh_name: mesh.name.clone(),
+                            },
+                        };
+                        validation.matl_errors.push(error);
+
+                        let error = AdjValidationError::MissingRenormalEntry {
+                            mesh_object_index: mesh_index,
+                            mesh_name: mesh.name.clone(),
+                            material_label: entry.material_label.clone(),
+                        };
+                        validation.adj_errors.push(error);
                     }
                 }
             }

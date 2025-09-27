@@ -1,6 +1,6 @@
 use egui::{
-    epaint, pos2, vec2, NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText,
-    WidgetType,
+    NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType, epaint,
+    pos2, vec2,
 };
 use ssbh_data::skel_data::SkelData;
 

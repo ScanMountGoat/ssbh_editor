@@ -1,12 +1,12 @@
 use crate::{
-    app::{draggable_icon, warning_icon_text, ModlEditorState, ModlEditorTab},
+    EditorMessage, EditorResponse,
+    app::{ModlEditorState, ModlEditorTab, draggable_icon, warning_icon_text},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
     validation::{ModlValidationError, ModlValidationErrorKind},
-    EditorMessage, EditorResponse,
 };
-use egui::{special_emojis::GITHUB, Grid, Label, RichText, ScrollArea, TextEdit};
+use egui::{Grid, Label, RichText, ScrollArea, TextEdit, special_emojis::GITHUB};
 use egui_dnd::dnd;
 
 use ssbh_data::{mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
@@ -45,10 +45,10 @@ pub fn modl_editor(
                 });
 
                 ui.menu_button("Modl", |ui| {
-                    if ui.button("Rebuild from Mesh").clicked() {
-                        if let Some(mesh) = mesh {
-                            changed |= rebuild_from_mesh(modl, mesh, matl);
-                        }
+                    if ui.button("Rebuild from Mesh").clicked()
+                        && let Some(mesh) = mesh
+                    {
+                        changed |= rebuild_from_mesh(modl, mesh, matl);
                     }
                 });
 

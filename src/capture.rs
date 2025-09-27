@@ -1,4 +1,4 @@
-use crate::{app::SsbhApp, RenderState};
+use crate::{RenderState, app::SsbhApp};
 use futures::executor::block_on;
 use log::error;
 

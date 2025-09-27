@@ -1,4 +1,4 @@
-use ssbh_wgpu::{animation::camera::animate_camera, CameraTransforms, SsbhRenderer};
+use ssbh_wgpu::{CameraTransforms, SsbhRenderer, animation::camera::animate_camera};
 
 use crate::{CameraState, CameraValues, RenderState};
 
@@ -87,27 +87,27 @@ impl SsbhApp {
         height: f32,
         scale_factor: f64,
     ) {
-        if let Some(anim) = &render_state.camera_anim {
-            if let Some(values) = animate_camera(
+        if let Some(anim) = &render_state.camera_anim
+            && let Some(values) = animate_camera(
                 anim,
                 self.animation_state.current_frame,
                 self.camera_state.values.fov_y_radians,
                 self.camera_state.values.near_clip,
                 self.camera_state.values.far_clip,
-            ) {
-                let transforms = values.to_transforms(width as u32, height as u32, scale_factor);
-                render_state.renderer.update_camera(queue, transforms);
+            )
+        {
+            let transforms = values.to_transforms(width as u32, height as u32, scale_factor);
+            render_state.renderer.update_camera(queue, transforms);
 
-                // Apply the animation values to the viewport camera.
-                // This reduces "snapping" when moving the camera while paused.
-                // These changes won't take effect unless the user actually moves the camera.
-                // Decomposition is necessary to account for different transform orders.
-                let (_, r, t) = transforms.model_view_matrix.to_scale_rotation_translation();
-                self.camera_state.values.translation = t;
-                self.camera_state.values.rotation_radians = r.to_euler(glam::EulerRot::XYZ).into();
-                self.camera_state.values.fov_y_radians = values.fov_y_radians;
-                self.camera_state.mvp_matrix = transforms.mvp_matrix;
-            }
+            // Apply the animation values to the viewport camera.
+            // This reduces "snapping" when moving the camera while paused.
+            // These changes won't take effect unless the user actually moves the camera.
+            // Decomposition is necessary to account for different transform orders.
+            let (_, r, t) = transforms.model_view_matrix.to_scale_rotation_translation();
+            self.camera_state.values.translation = t;
+            self.camera_state.values.rotation_radians = r.to_euler(glam::EulerRot::XYZ).into();
+            self.camera_state.values.fov_y_radians = values.fov_y_radians;
+            self.camera_state.mvp_matrix = transforms.mvp_matrix;
         }
     }
 

@@ -1,6 +1,6 @@
 use egui::{
-    text::CCursor, text_edit::TextEditState, text_selection::CCursorRange, CursorIcon, Id, Key,
-    Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2, Widget, WidgetText,
+    CursorIcon, Id, Key, Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2, Widget,
+    WidgetText, text::CCursor, text_edit::TextEditState, text_selection::CCursorRange,
 };
 
 /// A combined slider and text edit that fills up like an [egui::ProgressBar].
@@ -47,7 +47,7 @@ impl<'a> Widget for DragSlider<'a> {
 
         // Switch from a slider to a text edit on click.
         // Return to using a slider if the text edit loses focus.
-        let response = if ui.memory(|m| m.has_focus(kb_edit_id)) {
+        if ui.memory(|m| m.has_focus(kb_edit_id)) {
             // Show the full precision while editing the text.
             let mut value_text = ui.memory_mut(|m| {
                 m.data
@@ -146,9 +146,7 @@ impl<'a> Widget for DragSlider<'a> {
                 ui.painter().galley(text_pos, text, visuals.text_color());
             }
             response
-        };
-
-        response
+        }
     }
 }
 
