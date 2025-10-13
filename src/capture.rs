@@ -129,7 +129,7 @@ fn read_buffer_to_image(
     buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
         tx.send(result).unwrap();
     });
-    device.poll(wgpu::PollType::Wait).unwrap();
+    device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
     block_on(rx.receive()).unwrap().unwrap();
     let data = buffer_slice.get_mapped_range();
     let mut buffer =

@@ -580,7 +580,6 @@ pub fn default_fonts() -> egui::FontDefinitions {
                             scale: 0.81,           // make it smaller
                             y_offset_factor: -0.2, // move it up
                             y_offset: 0.0,
-                            baseline_offset_factor: 0.0,
                         }),
                 ),
             ),
@@ -592,7 +591,6 @@ pub fn default_fonts() -> egui::FontDefinitions {
                             scale: 1.0,           // make it smaller
                             y_offset_factor: 0.0, // move it down slightly
                             y_offset: 2.0,
-                            baseline_offset_factor: 0.0,
                         },
                     ),
                 ),
