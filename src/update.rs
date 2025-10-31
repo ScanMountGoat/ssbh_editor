@@ -27,7 +27,6 @@ pub fn check_for_updates() -> LatestReleaseInfo {
     let update_check_time = Utc::now();
 
     // Only check for updates at most once per day.
-    // TODO: Add logging for update check?
     let start = std::time::Instant::now();
     let should_check_for_update =
         should_check_for_release(previous_update_check_time, update_check_time);
@@ -41,7 +40,7 @@ pub fn check_for_updates() -> LatestReleaseInfo {
     let (should_show_update, new_release) = match new_release_tag {
         Some(new_tag) => {
             // Only generate release notes if there is a new update.
-            let should_show_update = is_new_version_available(current_tag, &new_tag);
+            let should_show_update = is_new_version(current_tag, &new_tag);
             let new_release = if should_show_update {
                 let release_notes = get_release_notes(current_tag, &new_tag);
                 Some(NewRelease {
@@ -66,7 +65,7 @@ pub fn check_for_updates() -> LatestReleaseInfo {
     }
 }
 
-fn is_new_version_available(current_tag: &str, new_tag: &str) -> bool {
+fn is_new_version(current_tag: &str, new_tag: &str) -> bool {
     // Use proper version comparisons instead of string comparisons.
     let current_tag_version = match semver::Version::parse(current_tag) {
         Ok(v) => v,
@@ -86,7 +85,6 @@ fn is_new_version_available(current_tag: &str, new_tag: &str) -> bool {
     new_tag_version > current_tag_version
 }
 
-// TODO: Test this.
 fn should_check_for_release(
     previous_update_check_time: Option<DateTime<Utc>>,
     current_time: DateTime<Utc>,
@@ -108,19 +106,40 @@ fn get_latest_release() -> Option<Release> {
             .releases()
             .get_latest(),
     )
+    .inspect_err(|e| {
+        error!("Failed to get latest GitHub release: {e}");
+    })
     .ok()
 }
 
 fn get_release_notes(current_tag: &str, new_tag: &str) -> Option<String> {
-    let changelog = reqwest::blocking::get(
-        "https://raw.githubusercontent.com/ScanMountGoat/ssbh_editor/main/CHANGELOG.md",
-    )
-    .ok()?
-    .text()
-    .ok()?;
+    let changelog = get_changelog()
+        .inspect_err(|e| {
+            error!("Failed to download changelog: {e}");
+        })
+        .ok()?;
 
     // Find the sections after the current version.
     let start = changelog.find(&format!("## {new_tag}"))?;
     let end = changelog.find(&format!("## {current_tag}"))?;
     changelog.get(start..end).map(|s| s.to_string())
+}
+
+fn get_changelog() -> reqwest::Result<String> {
+    let url = "https://raw.githubusercontent.com/ScanMountGoat/ssbh_editor/main/CHANGELOG.md";
+    reqwest::blocking::get(url)?.text()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_release_version_comparison() {
+        assert!(!is_new_version("0.10.10", "0.10.9"));
+        assert!(!is_new_version("0.11.1", "0.9.2"));
+        assert!(is_new_version("0.10.9", "0.10.10"));
+        assert!(is_new_version("0.9.2", "0.11.1"));
+        assert!(is_new_version("0.0.1", "0.1.0"));
+    }
 }
