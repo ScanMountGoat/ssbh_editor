@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Fixed
+* Fixed an issue where the application would not correctly detect a new release version in some cases.
+
 ## 0.10.10 - 2025-10-13
 ### Changed
 * Improved the accuracy of automatic expression hiding for some fighter models.

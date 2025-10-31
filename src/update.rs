@@ -1,12 +1,18 @@
 use crate::path::last_update_check_file;
 use chrono::{DateTime, Utc};
+use log::error;
 use octocrab::models::repos::Release;
 
 pub struct LatestReleaseInfo {
     pub update_check_time: DateTime<Utc>,
-    pub new_release_tag: Option<String>,
-    pub release_notes: Option<String>,
+    pub new_release: Option<NewRelease>,
+    // TODO: Move to UI state.
     pub should_show_update: bool,
+}
+
+pub struct NewRelease {
+    pub tag: String,
+    pub release_notes: Option<String>,
 }
 
 pub fn check_for_updates() -> LatestReleaseInfo {
@@ -31,21 +37,23 @@ pub fn check_for_updates() -> LatestReleaseInfo {
         None
     };
 
-    // Check if the latest github release is more recent than the current one.
     let current_tag = env!("CARGO_PKG_VERSION");
-    let should_show_update = if let Some(new_release_tag) = &new_release_tag {
-        new_release_tag.as_str() > current_tag
-    } else {
-        false
-    };
-
-    // Only check for release notes if there is a new update.
-    let release_notes = if should_show_update {
-        new_release_tag
-            .as_ref()
-            .and_then(|new_release_tag| get_release_notes(current_tag, new_release_tag))
-    } else {
-        None
+    let (should_show_update, new_release) = match new_release_tag {
+        Some(new_tag) => {
+            // Only generate release notes if there is a new update.
+            let should_show_update = is_new_version_available(current_tag, &new_tag);
+            let new_release = if should_show_update {
+                let release_notes = get_release_notes(current_tag, &new_tag);
+                Some(NewRelease {
+                    tag: new_tag,
+                    release_notes,
+                })
+            } else {
+                None
+            };
+            (should_show_update, new_release)
+        }
+        None => (false, None),
     };
 
     // TODO: Log instead.
@@ -53,10 +61,29 @@ pub fn check_for_updates() -> LatestReleaseInfo {
 
     LatestReleaseInfo {
         update_check_time,
-        new_release_tag,
-        release_notes,
+        new_release,
         should_show_update,
     }
+}
+
+fn is_new_version_available(current_tag: &str, new_tag: &str) -> bool {
+    // Use proper version comparisons instead of string comparisons.
+    let current_tag_version = match semver::Version::parse(current_tag) {
+        Ok(v) => v,
+        Err(e) => {
+            error!("Error parsing current version {current_tag:?}: {e}");
+            return false;
+        }
+    };
+    let new_tag_version = match semver::Version::parse(new_tag) {
+        Ok(v) => v,
+        Err(e) => {
+            error!("Error parsing new version {new_tag:?}: {e}");
+            return false;
+        }
+    };
+
+    new_tag_version > current_tag_version
 }
 
 // TODO: Test this.
@@ -84,7 +111,7 @@ fn get_latest_release() -> Option<Release> {
     .ok()
 }
 
-fn get_release_notes(current_tag: &str, latest_tag: &str) -> Option<String> {
+fn get_release_notes(current_tag: &str, new_tag: &str) -> Option<String> {
     let changelog = reqwest::blocking::get(
         "https://raw.githubusercontent.com/ScanMountGoat/ssbh_editor/main/CHANGELOG.md",
     )
@@ -93,7 +120,7 @@ fn get_release_notes(current_tag: &str, latest_tag: &str) -> Option<String> {
     .ok()?;
 
     // Find the sections after the current version.
-    let start = changelog.find(&format!("## {latest_tag}"))?;
+    let start = changelog.find(&format!("## {new_tag}"))?;
     let end = changelog.find(&format!("## {current_tag}"))?;
     changelog.get(start..end).map(|s| s.to_string())
 }
