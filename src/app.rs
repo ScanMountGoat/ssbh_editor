@@ -810,7 +810,7 @@ impl SsbhApp {
         let rect = ui.available_rect_before_wrap();
 
         // Convert logical points to physical pixels.
-        let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
+        let scale_factor = ctx.pixels_per_point();
         let width = rect.width() * scale_factor;
         let height = rect.height() * scale_factor;
 

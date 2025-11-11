@@ -138,7 +138,7 @@ fn main() {
             );
 
             // TODO: What to use for the initial size?
-            let scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
+            let scale_factor = ctx.pixels_per_point();
             let renderer = SsbhRenderer::new(
                 &wgpu_state.device,
                 &wgpu_state.queue,
