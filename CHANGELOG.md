@@ -3,9 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.11.0 - 2025-11-19
 ### Fixed
-* Fixed an issue where the application would not correctly detect a new release version in some cases.
+* Fixed an issue where the application would not correctly detect a new release version in some cases. The major version has been increased from 10 to 11 to ensure that 0.10.x users see the new update notification.
 * Fixed an issue where the the viewport material highlight color would incorrectly have bloom applied.
 * Fixed an issue where meshes with the "_near" render pass would incorrectly have bloom applied.
 * Fixed an issue where the viewport resolution would change when adjusting the UI scale.
