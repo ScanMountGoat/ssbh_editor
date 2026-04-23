@@ -5,8 +5,7 @@ use crate::{
     save_file, save_file_as,
 };
 use egui::{
-    CentralPanel, CollapsingHeader, DragValue, RichText, ScrollArea, SidePanel,
-    special_emojis::GITHUB,
+    CentralPanel, CollapsingHeader, DragValue, Panel, RichText, ScrollArea, special_emojis::GITHUB,
 };
 use egui_extras::{Column, TableBuilder};
 use egui_plot::{Legend, Line, Plot, PlotPoint};
@@ -262,8 +261,8 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
 }
 
 fn select_track_panel(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) {
-    SidePanel::left("anim_left_panel")
-        .default_width(300.0)
+    Panel::left("anim_left_panel")
+        .default_size(300.0)
         .show_inside(ui, |ui| {
             ScrollArea::vertical()
                 .auto_shrink([false; 2])

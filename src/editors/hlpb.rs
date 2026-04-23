@@ -9,7 +9,7 @@ use crate::{
     widgets::{DragSlider, bone_combo_box},
 };
 use egui::{
-    CentralPanel, DragValue, Grid, RichText, ScrollArea, SidePanel, TextEdit, Ui,
+    CentralPanel, DragValue, Grid, Panel, RichText, ScrollArea, TextEdit, Ui,
     special_emojis::GITHUB,
 };
 
@@ -56,8 +56,8 @@ pub fn hlpb_editor(
             });
             horizontal_separator_empty(ui);
 
-            SidePanel::left("hlpb_left_panel")
-                .default_width(450.0)
+            Panel::left("hlpb_left_panel")
+                .default_size(450.0)
                 .show_inside(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])

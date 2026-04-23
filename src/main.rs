@@ -79,14 +79,16 @@ fn main() {
                 wgpu_setup: WgpuSetup::CreateNew(WgpuSetupCreateNew {
                     instance_descriptor: wgpu::InstanceDescriptor {
                         backends: preferred_backends,
-                        ..Default::default()
+                        ..wgpu::InstanceDescriptor::new_without_display_handle()
                     },
                     power_preference: wgpu::PowerPreference::HighPerformance,
                     device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
                         required_features: wgpu::Features::default() | ssbh_wgpu::REQUIRED_FEATURES,
+                        required_limits: ssbh_wgpu::REQUIRED_LIMITS,
                         ..Default::default()
                     }),
-                    ..Default::default()
+                    display_handle: None,
+                    native_adapter_selector: None,
                 }),
                 present_mode: wgpu::PresentMode::Fifo,
                 ..Default::default()
@@ -96,7 +98,7 @@ fn main() {
         Box::new(|cc| {
             let ctx = &cc.egui_ctx;
 
-            ctx.set_style(egui::style::Style {
+            ctx.set_global_style(egui::style::Style {
                 text_styles: default_text_styles(),
                 visuals: egui::style::Visuals {
                     widgets: widgets_dark(),

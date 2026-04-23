@@ -14,9 +14,9 @@ use crate::{
     widgets::*,
 };
 use egui::{
-    Button, CentralPanel, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, RichText,
-    ScrollArea, Sense, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui, Window,
-    load::SizedTexture, special_emojis::GITHUB,
+    Button, CentralPanel, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, Panel,
+    RichText, ScrollArea, Sense, TextEdit, TextWrapMode, Ui, Window, load::SizedTexture,
+    special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -57,7 +57,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(700.0, 900.0))
         .resizable(true)
         .show(ctx, |ui| {
-            TopBottomPanel::top("matl_top_panel").show_inside(ui, |ui| {
+            Panel::top("matl_top_panel").show_inside(ui, |ui| {
                 let (menu_changed, menu_saved) = menu_bar(
                     ui,
                     matl,
@@ -71,8 +71,8 @@ pub fn matl_editor(
                 saved |= menu_saved;
             });
 
-            SidePanel::left("matl_left_panel")
-                .default_width(300.0)
+            Panel::left("matl_left_panel")
+                .default_size(300.0)
                 .show_inside(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
@@ -227,12 +227,12 @@ pub fn preset_editor(
         .open(&mut ui_state.preset_editor_open)
         .default_size(egui::Vec2::new(900.0, 900.0))
         .show(ctx, |ui| {
-            TopBottomPanel::top("matl_presets_top_panel").show_inside(ui, |ui| {
+            Panel::top("matl_presets_top_panel").show_inside(ui, |ui| {
                 presets_menu(ui, user_presets);
             });
 
-            SidePanel::left("matl_presets_left_panel")
-                .default_width(300.0)
+            Panel::left("matl_presets_left_panel")
+                .default_size(300.0)
                 .show_inside(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])

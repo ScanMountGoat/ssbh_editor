@@ -7,12 +7,11 @@ use crate::{
     widgets::EyeCheckBox,
 };
 use egui::{
-    CollapsingHeader, Context, Label, RichText, TextWrapMode, Ui,
-    collapsing_header::CollapsingState,
+    CollapsingHeader, Label, RichText, TextWrapMode, Ui, collapsing_header::CollapsingState,
 };
 use ssbh_wgpu::swing::*;
 
-pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
+pub fn swing_list(app: &mut SsbhApp, ui: &mut Ui) {
     // TODO: Add state for tracking the visible and hovered items.
     // Only assign swing.prc data to model folders.
     for (i, model) in app
@@ -50,7 +49,7 @@ pub fn swing_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
                         && let Some(hidden_collisions) =
                             app.swing_state.hidden_collisions.get_mut(i)
                     {
-                        list_swing_bones(ctx, id, ui, swing_prc, hidden_collisions);
+                        list_swing_bones(id, ui, swing_prc, hidden_collisions);
                     }
                 }
             });
@@ -67,7 +66,6 @@ fn get_swing_prc<'a>(
 }
 
 fn list_swing_bones(
-    ctx: &Context,
     id: egui::Id,
     ui: &mut Ui,
     swing_prc: &SwingPrc,
@@ -75,27 +73,21 @@ fn list_swing_bones(
 ) {
     for (i, swing_bone) in swing_prc.swingbones.iter().enumerate() {
         let id = id.with("swingbones").with(i);
-        CollapsingState::load_with_default_open(ctx, id, true)
+        CollapsingState::load_with_default_open(ui, id, true)
             .show_header(ui, |ui| {
                 let name = swing_bone.name;
                 ui.label(format!("swingbones[{i}] {name}"));
             })
             .body(|ui| {
-                list_params(ctx, id, ui, &swing_bone.params, hidden_collisions);
+                list_params(id, ui, &swing_bone.params, hidden_collisions);
             });
     }
 }
 
-fn list_params(
-    ctx: &Context,
-    id: egui::Id,
-    ui: &mut Ui,
-    params: &[Param],
-    hidden_collisions: &mut HashSet<u64>,
-) {
+fn list_params(id: egui::Id, ui: &mut Ui, params: &[Param], hidden_collisions: &mut HashSet<u64>) {
     for (i, param) in params.iter().enumerate() {
         let id = id.with("params").with(i);
-        CollapsingState::load_with_default_open(ctx, id, true)
+        CollapsingState::load_with_default_open(ui, id, true)
             .show_header(ui, |ui| {
                 ui.label(format!("params[{i}]"));
             })

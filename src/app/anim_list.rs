@@ -5,11 +5,10 @@ use crate::{
     widgets::EyeCheckBox,
 };
 use egui::{
-    CollapsingHeader, Context, Label, RichText, TextWrapMode, Ui,
-    collapsing_header::CollapsingState,
+    CollapsingHeader, Label, RichText, TextWrapMode, Ui, collapsing_header::CollapsingState,
 };
 
-pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
+pub fn anim_list(app: &mut SsbhApp, ui: &mut Ui) {
     let mut folder_to_add = None;
 
     // Only assign animations to folders with model files.
@@ -44,7 +43,6 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 
                         for (slot, anim_slot) in model_animations.iter_mut().enumerate().rev() {
                             app.animation_state.should_update_animations |= show_anim_slot(
-                                ctx,
                                 ui,
                                 anim_slot,
                                 &app.models,
@@ -90,7 +88,6 @@ pub fn anim_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui) {
 }
 
 fn show_anim_slot(
-    ctx: &Context,
     ui: &mut Ui,
     anim_slot: &mut AnimationSlot,
     models: &[ModelFolderState],
@@ -102,7 +99,7 @@ fn show_anim_slot(
     let mut update_animations = false;
 
     let id = ui.make_persistent_id(model_index).with("slot").with(slot);
-    CollapsingState::load_with_default_open(ctx, id, false)
+    CollapsingState::load_with_default_open(ui, id, false)
         .show_header(ui, |ui| {
             let name = anim_slot
                 .animation

@@ -8,8 +8,8 @@ use crate::{
     widgets::bone_combo_box,
 };
 use egui::{
-    Button, CentralPanel, ComboBox, Grid, RichText, ScrollArea, SidePanel, TextEdit, TextWrapMode,
-    Ui, special_emojis::GITHUB,
+    Button, CentralPanel, ComboBox, Grid, Panel, RichText, ScrollArea, TextEdit, TextWrapMode, Ui,
+    special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -84,8 +84,8 @@ pub fn mesh_editor(
             });
             ui.separator();
 
-            SidePanel::left("mesh_left_panel")
-                .default_width(350.0)
+            Panel::left("mesh_left_panel")
+                .default_size(350.0)
                 .show_inside(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])

@@ -12,7 +12,7 @@ impl SsbhApp {
         render_state: &mut RenderState,
         width: f32,
         height: f32,
-        scale_factor: f64,
+        scale_factor: f32,
     ) {
         // TODO: Load models on a separate thread to avoid freezing the UI.
         // TODO: Just take the entire app as a parameter?
@@ -85,7 +85,7 @@ impl SsbhApp {
         queue: &wgpu::Queue,
         width: f32,
         height: f32,
-        scale_factor: f64,
+        scale_factor: f32,
     ) {
         if let Some(anim) = &render_state.camera_anim
             && let Some(values) = animate_camera(
@@ -167,7 +167,7 @@ fn update_camera(
     camera_state: &mut CameraState,
     width: f32,
     height: f32,
-    scale_factor: f64,
+    scale_factor: f32,
 ) {
     let (camera_pos, model_view_matrix, projection_matrix, mvp_matrix) =
         calculate_mvp(width, height, &camera_state.values);
@@ -177,7 +177,7 @@ fn update_camera(
         projection_matrix,
         mvp_inv_matrix: mvp_matrix.inverse(),
         camera_pos,
-        screen_dimensions: glam::Vec4::new(width, height, scale_factor as f32, 0.0),
+        screen_dimensions: glam::Vec4::new(width, height, scale_factor, 0.0),
     };
     renderer.update_camera(queue, transforms);
 

@@ -29,8 +29,8 @@ use crate::{
     widgets::*,
 };
 use egui::{
-    Button, CentralPanel, CollapsingHeader, Context, ImageSource, Label, Response, RichText,
-    ScrollArea, SidePanel, TopBottomPanel, Ui, collapsing_header::CollapsingState,
+    Button, CentralPanel, CollapsingHeader, Context, ImageSource, Label, Panel, Response, RichText,
+    ScrollArea, Ui, collapsing_header::CollapsingState,
 };
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
@@ -499,28 +499,18 @@ pub struct SkelEditorState {
     pub mode: SkelMode,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum SkelMode {
+    #[default]
     List,
     Hierarchy,
 }
 
-impl Default for SkelMode {
-    fn default() -> Self {
-        Self::List
-    }
-}
-
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum PresetMode {
     User,
+    #[default]
     Default,
-}
-
-impl Default for PresetMode {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 #[derive(Default)]
@@ -538,16 +528,11 @@ pub struct ModlEditorState {
     pub editor_tab: ModlEditorTab,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum ModlEditorTab {
+    #[default]
     Assignments,
     Files,
-}
-
-impl Default for ModlEditorTab {
-    fn default() -> Self {
-        Self::Assignments
-    }
 }
 
 #[derive(Default)]
@@ -557,16 +542,11 @@ pub struct HlpbEditorState {
     pub orient_constraint_index: usize,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum HlpbEditorTab {
+    #[default]
     Orient,
     Aim,
-}
-
-impl Default for HlpbEditorTab {
-    fn default() -> Self {
-        Self::Orient
-    }
 }
 
 #[derive(Default)]
@@ -583,17 +563,12 @@ pub struct StageLightingState {
     pub stage_shpc: Option<PathBuf>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum AnimEditorTab {
+    #[default]
     Hierarchy,
     Graph,
     List,
-}
-
-impl Default for AnimEditorTab {
-    fn default() -> Self {
-        Self::Hierarchy
-    }
 }
 
 #[derive(Default)]
@@ -610,17 +585,12 @@ pub const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(240, 80, 80);
 pub const WARNING_COLOR: egui::Color32 = egui::Color32::from_rgb(255, 210, 0);
 
 // Keep track of what UI should be displayed.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub enum PanelTab {
+    #[default]
     Mesh,
     Anim,
     Swing,
-}
-
-impl Default for PanelTab {
-    fn default() -> Self {
-        Self::Mesh
-    }
 }
 
 impl SsbhApp {
@@ -800,7 +770,6 @@ impl SsbhApp {
 
     fn central_panel(
         &mut self,
-        ctx: &Context,
         ui: &mut Ui,
         render_state: &mut RenderState,
         device: &wgpu::Device,
@@ -810,15 +779,15 @@ impl SsbhApp {
         let rect = ui.available_rect_before_wrap();
 
         // Convert logical points to physical pixels.
-        let scale_factor = ctx.pixels_per_point();
+        let scale_factor = ui.pixels_per_point();
         let width = rect.width() * scale_factor;
         let height = rect.height() * scale_factor;
 
         // It's possible to interact with the UI with the mouse over the viewport.
         // Disable tracking the mouse in this case to prevent unwanted camera rotations.
         // This mostly affects resizing the left and right side panels.
-        if !ctx.wants_keyboard_input() && !ctx.wants_pointer_input() {
-            ctx.input(|input| {
+        if !ui.egui_wants_keyboard_input() && !ui.egui_wants_keyboard_input() {
+            ui.input(|input| {
                 // Handle camera input here to get the viewport's actual size.
                 handle_input(&mut self.camera_state, input, height);
             });
@@ -978,7 +947,7 @@ impl SsbhApp {
 
 impl eframe::App for SsbhApp {
     // TODO: split into view and update functions to simplify render updates (elm/mvu).
-    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
         let current_frame_start = std::time::Instant::now();
 
         let binding = frame.wgpu_render_state();
@@ -1019,7 +988,7 @@ impl eframe::App for SsbhApp {
                 self.animation_state.should_loop,
             );
             // eframe is reactive by default, so we need to repaint.
-            ctx.request_repaint();
+            ui.request_repaint();
         }
         // Always update the frame times even if no animation is playing.
         // This avoids skipping when resuming playback.
@@ -1038,7 +1007,7 @@ impl eframe::App for SsbhApp {
             );
         }
 
-        ctx.input_mut(|input| {
+        ui.input_mut(|input| {
             if input.consume_key(egui::Modifiers::NONE, egui::Key::Space) {
                 // Play or pause animation playback globally.
                 self.animation_state.is_playing = !self.animation_state.is_playing;
@@ -1060,37 +1029,36 @@ impl eframe::App for SsbhApp {
 
         if !self.has_initialized_zoom_factor {
             // Set zoom factor here instead of creation to avoid crashes.
-            ctx.set_zoom_factor(self.preferences.scale_factor);
+            ui.set_zoom_factor(self.preferences.scale_factor);
             self.has_initialized_zoom_factor = true;
         }
 
         // Set the region for the 3D viewport to reduce overdraw.
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| menu_bar(self, ui));
+        Panel::top("top_panel").show_inside(ui, |ui| menu_bar(self, ui));
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
-        self.show_windows(ctx, render_state);
+        self.show_windows(ui, render_state);
 
-        self.should_validate_models |= self.file_editors(ctx, render_state);
+        self.should_validate_models |= self.file_editors(ui, render_state);
 
         if self.show_left_panel {
-            SidePanel::left("left_panel")
-                .default_width(200.0)
-                .show(ctx, |ui| self.files_list(ui));
+            Panel::left("left_panel")
+                .default_size(200.0)
+                .show_inside(ui, |ui| self.files_list(ui));
         }
 
         if self.show_bottom_panel {
-            TopBottomPanel::bottom("bottom panel")
-                .show(ctx, |ui| self.bottom_panel(ui, render_state));
+            Panel::bottom("bottom panel").show_inside(ui, |ui| self.bottom_panel(ui, render_state));
         }
 
         if self.show_right_panel {
-            SidePanel::right("right panel")
-                .default_width(450.0)
-                .show(ctx, |ui| self.right_panel(ctx, ui, render_state));
+            Panel::right("right panel")
+                .default_size(450.0)
+                .show_inside(ui, |ui| self.right_panel(ui, render_state));
         }
 
-        CentralPanel::default().show(ctx, |ui| {
+        CentralPanel::default().show_inside(ui, |ui| {
             if self.models.is_empty() {
                 ui.centered_and_justified(|ui| {
                     let o = format_shortcut(&shortcut::OPEN_FOLDER);
@@ -1102,7 +1070,7 @@ impl eframe::App for SsbhApp {
                 });
             }
             // Show and handle the central 3D viewport.
-            self.central_panel(ctx, ui, render_state, device, queue, wgpu_state);
+            self.central_panel(ui, render_state, device, queue, wgpu_state);
         });
     }
 
@@ -1558,7 +1526,7 @@ impl SsbhApp {
         }
     }
 
-    fn right_panel(&mut self, ctx: &Context, ui: &mut Ui, render_state: &mut RenderState) {
+    fn right_panel(&mut self, ui: &mut Ui, render_state: &mut RenderState) {
         ui.horizontal(|ui| {
             ui.selectable_value(
                 &mut self.ui_state.right_panel_tab,
@@ -1580,9 +1548,9 @@ impl SsbhApp {
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| match self.ui_state.right_panel_tab {
-                PanelTab::Mesh => mesh_list(ctx, self, ui, render_state),
-                PanelTab::Anim => anim_list(ctx, self, ui),
-                PanelTab::Swing => swing_list(ctx, self, ui),
+                PanelTab::Mesh => mesh_list(self, ui, render_state),
+                PanelTab::Anim => anim_list(self, ui),
+                PanelTab::Swing => swing_list(self, ui),
             });
     }
 
@@ -1682,7 +1650,7 @@ pub fn error_icon(ui: &mut Ui) -> Response {
     )
 }
 
-fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui, render_state: &mut RenderState) {
+fn mesh_list(app: &mut SsbhApp, ui: &mut Ui, render_state: &mut RenderState) {
     // Don't show non model folders like animation or texture folders.
     for (i, folder) in app
         .models
@@ -1693,7 +1661,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui, render_state: &mut R
         let id = ui.make_persistent_id("meshlist").with(i);
 
         // Allow programmatically toggling the open state of each folder.
-        let mut state = CollapsingState::load_with_default_open(ctx, id, true);
+        let mut state = CollapsingState::load_with_default_open(ui, id, true);
         state.set_open(folder.is_meshlist_open);
         state
             .show_header(ui, |ui| {
@@ -1723,7 +1691,7 @@ fn mesh_list(ctx: &Context, app: &mut SsbhApp, ui: &mut Ui, render_state: &mut R
                     });
                 }
             });
-        let state = CollapsingState::load_with_default_open(ctx, id, true);
+        let state = CollapsingState::load_with_default_open(ui, id, true);
         folder.is_meshlist_open = state.is_open();
     }
 }

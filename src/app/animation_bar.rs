@@ -36,7 +36,7 @@ pub fn display_animation_bar(
                     .show_value(false),
             );
             if response.hovered() {
-                ui.ctx().input_mut(|i| {
+                ui.input_mut(|i| {
                     if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowLeft) {
                         //Go back one frame
                         animation_state.current_frame =

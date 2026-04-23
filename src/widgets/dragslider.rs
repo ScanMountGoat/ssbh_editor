@@ -159,5 +159,5 @@ fn select_all_text(ui: &mut Ui, kb_edit_id: Id) {
         secondary: CCursor::new(0),
         h_pos: None,
     }));
-    TextEdit::store_state(ui.ctx(), kb_edit_id, state);
+    TextEdit::store_state(ui, kb_edit_id, state);
 }
