@@ -786,7 +786,7 @@ impl SsbhApp {
         // It's possible to interact with the UI with the mouse over the viewport.
         // Disable tracking the mouse in this case to prevent unwanted camera rotations.
         // This mostly affects resizing the left and right side panels.
-        if !ui.egui_wants_keyboard_input() && !ui.egui_wants_keyboard_input() {
+        if !ui.egui_wants_keyboard_input() && !ui.egui_wants_pointer_input() {
             ui.input(|input| {
                 // Handle camera input here to get the viewport's actual size.
                 handle_input(&mut self.camera_state, input, height);
