@@ -1040,6 +1040,7 @@ impl eframe::App for SsbhApp {
         // We store some state in self to keep track of whether this should be left open.
         self.show_windows(ui, render_state);
 
+        // Any changes in any file should trigger validation again.
         self.should_validate_models |= self.file_editors(ui, render_state);
 
         if self.show_left_panel {
@@ -1452,6 +1453,8 @@ impl SsbhApp {
                                     .push(("model.adjb".to_owned(), Some(new_adj)));
                                 // Mark the new file as modified to prompt the user to save it.
                                 model.changed.adjs.push(true);
+                                // Validate to prevent adding missing entries again in the adj editor.
+                                self.should_validate_models = true;
                             }
 
                             // Prevent adding a file that already exists.

@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Fixed
+* Fixed an issue where creating an adjb file would not add the required entries for meshes with RENORMAL materials.
+
 ## 0.11.0 - 2025-11-19
 ### Fixed
 * Fixed an issue where the application would not correctly detect a new release version in some cases. The major version has been increased from 10 to 11 to ensure that 0.10.x users see the new update notification.

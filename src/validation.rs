@@ -680,48 +680,53 @@ fn validate_renormal_material_entries(
         .enumerate()
         .filter(|(_, e)| e.material_label.contains("RENORMAL"))
     {
-        if let Some(adj) = adj {
-            if let Some(modl) = modl
-                && let Some(mesh) = mesh
-            {
-                for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
-                    modl.entries.iter().any(|e| {
-                        e.mesh_object_name == m.name
-                            && e.mesh_object_subindex == m.subindex
-                            && e.material_label == entry.material_label
-                    })
-                }) {
-                    if !adj
-                        .entries
-                        .iter()
-                        .any(|a| a.mesh_object_index == mesh_index)
-                    {
-                        let error = MatlValidationError {
-                            entry_index,
-                            kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
-                                material_label: entry.material_label.clone(),
-                                mesh_name: mesh.name.clone(),
-                            },
-                        };
-                        validation.matl_errors.push(error);
-
-                        let error = AdjValidationError::MissingRenormalEntry {
-                            mesh_object_index: mesh_index,
-                            mesh_name: mesh.name.clone(),
-                            material_label: entry.material_label.clone(),
-                        };
-                        validation.adj_errors.push(error);
-                    }
-                }
-            }
-        } else {
-            let error = MatlValidationError {
+        if adj.is_none() {
+            // The model.adjb should be present if any RENORMAL materials are used.
+            let matl_error = MatlValidationError {
                 entry_index,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
                     material_label: entry.material_label.clone(),
                 },
             };
-            validation.matl_errors.push(error);
+            validation.matl_errors.push(matl_error);
+        }
+
+        if let Some(modl) = modl
+            && let Some(mesh) = mesh
+        {
+            for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
+                modl.entries.iter().any(|e| {
+                    e.mesh_object_name == m.name
+                        && e.mesh_object_subindex == m.subindex
+                        && e.material_label == entry.material_label
+                })
+            }) {
+                let adj_error = AdjValidationError::MissingRenormalEntry {
+                    mesh_object_index: mesh_index,
+                    mesh_name: mesh.name.clone(),
+                    material_label: entry.material_label.clone(),
+                };
+
+                if let Some(adj) = adj
+                    && !adj
+                        .entries
+                        .iter()
+                        .any(|a| a.mesh_object_index == mesh_index)
+                {
+                    let matl_error = MatlValidationError {
+                        entry_index,
+                        kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
+                            material_label: entry.material_label.clone(),
+                            mesh_name: mesh.name.clone(),
+                        },
+                    };
+                    validation.matl_errors.push(matl_error);
+                    validation.adj_errors.push(adj_error);
+                } else if adj.is_none() {
+                    // We need an adj error here for model.adjb creation to add required entries.
+                    validation.adj_errors.push(adj_error);
+                }
+            }
         }
     }
 }
@@ -1090,6 +1095,20 @@ mod tests {
 
         let mut validation = ModelValidationErrors::default();
         validate_renormal_material_entries(&mut validation, &matl, None, Some(&modl), Some(&mesh));
+
+        assert_eq!(
+            vec![AdjValidationError::MissingRenormalEntry {
+                mesh_object_index: 0,
+                mesh_name: "object1".to_owned(),
+                material_label: "RENORMAL_a".to_owned()
+            }],
+            validation.adj_errors
+        );
+
+        assert_eq!(
+            r#"Missing entry for mesh "object1" with the RENORMAL material "RENORMAL_a"."#,
+            format!("{}", validation.adj_errors[0])
+        );
 
         assert_eq!(
             vec![MatlValidationError {
