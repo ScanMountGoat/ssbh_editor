@@ -191,7 +191,7 @@ fn select_mesh_object_dnd(
 
             if !errors.is_empty() {
                 header_response.on_hover_ui(|ui| {
-                    display_validation_errors(ui, &errors);
+                    display_validation_errors(ui, errors.iter());
                 });
             }
         });

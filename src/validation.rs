@@ -47,39 +47,48 @@ impl ModelValidationErrors {
         }
 
         let modl = model.find_modl();
-        let matl = model.find_matl();
 
         if let Some(modl) = modl {
-            validate_modl_entries(&mut validation, modl, matl, mesh);
+            for matl in model.matls.iter().filter_map(|(_, m)| m.as_ref()) {
+                validate_modl_entries(&mut validation, modl, Some(matl), mesh);
+            }
         }
 
-        if let Some(matl) = matl {
-            validate_required_attributes(&mut validation, matl, modl, mesh, shader_database);
-            validate_shader_labels(&mut validation, matl, shader_database);
-            validate_wrap_mode_tiling(&mut validation, matl, modl, mesh);
-            validate_texture_format_usage(&mut validation, matl, &model.nutexbs);
-            validate_premultiplied_blend(&mut validation, matl, shader_database);
+        for (i, matl) in model
+            .matls
+            .iter()
+            .enumerate()
+            .filter_map(|(i, (_, m))| Some((i, m.as_ref()?)))
+        {
+            validate_required_attributes(&mut validation, i, matl, modl, mesh, shader_database);
+            validate_shader_labels(&mut validation, i, matl, shader_database);
+            validate_wrap_mode_tiling(&mut validation, i, matl, modl, mesh);
+            validate_texture_format_usage(&mut validation, i, matl, &model.nutexbs);
+            validate_premultiplied_blend(&mut validation, i, matl, shader_database);
             validate_texture_dimensions(
                 &mut validation,
+                i,
                 matl,
                 &model.nutexbs,
                 default_texture_names.clone(),
             );
             validate_texture_assignments(
                 &mut validation,
+                i,
                 matl,
                 &model.nutexbs,
-                default_texture_names,
+                default_texture_names.clone(),
             );
             validate_renormal_material_entries(
                 &mut validation,
+                i,
                 matl,
                 model.find_adj(),
                 model.find_modl(),
                 mesh,
             );
-            validate_material_labels(&mut validation, matl);
-            validate_sampler_anisotropy(&mut validation, matl);
+            validate_material_labels(&mut validation, i, matl);
+            validate_sampler_anisotropy(&mut validation, i, matl);
         }
 
         validation
@@ -138,6 +147,7 @@ impl Display for SkelValidationError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct MatlValidationError {
+    pub file_index: usize,
     pub entry_index: usize,
     pub kind: MatlValidationErrorKind,
 }
@@ -305,7 +315,7 @@ pub enum NutexbValidationError {
         }
     )]
     FormatInvalidForUsage {
-        nutexb: String,
+        nutexb: String, // TODO: store index instead to accurately validate duplicate names?
         format: NutexbFormat,
         param: ParamId,
     },
@@ -328,6 +338,7 @@ impl Display for MeshExValidationError {
 
 fn validate_required_attributes(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     modl: Option<&ModlData>,
     mesh: Option<&MeshData>,
@@ -359,6 +370,7 @@ fn validate_required_attributes(
                     let missing_attributes = program.missing_required_attributes(&attribute_names);
                     if !missing_attributes.is_empty() {
                         let matl_error = MatlValidationError {
+                            file_index: matl_index,
                             entry_index,
                             kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
                                 material_label: entry.material_label.clone(),
@@ -386,12 +398,15 @@ fn validate_required_attributes(
 
 fn validate_shader_labels(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     shader_database: &ShaderDatabase,
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         if shader_database.get(&entry.shader_label).is_none() {
             let error = MatlValidationError {
+                file_index: matl_index,
+
                 entry_index,
                 kind: MatlValidationErrorKind::InvalidShaderLabel {
                     material_label: entry.material_label.clone(),
@@ -405,6 +420,7 @@ fn validate_shader_labels(
 
 fn validate_premultiplied_blend(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     shader_database: &ShaderDatabase,
 ) {
@@ -416,6 +432,7 @@ fn validate_premultiplied_blend(
         {
             // This will square the src alpha and probably isn't intentional.
             let error = MatlValidationError {
+                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
                     material_label: entry.material_label.clone(),
@@ -440,6 +457,7 @@ fn is_cube(param: ParamId) -> bool {
 
 fn validate_wrap_mode_tiling(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     modl: Option<&ModlData>,
     mesh: Option<&MeshData>,
@@ -489,6 +507,7 @@ fn validate_wrap_mode_tiling(
                 // TODO: Only validate the first layer (map1/bake1) to avoid flagging eye materials?
                 if !samplers.is_empty() {
                     let matl_error = MatlValidationError {
+                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::WrapModeClampsUvs {
                             material_label: entry.material_label.clone(),
@@ -544,6 +563,7 @@ fn get_uv_range(data: &VectorData) -> (f32, f32, f32, f32) {
 
 fn validate_texture_format_usage(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     nutexbs: &[(String, FileResult<NutexbFile>)],
 ) {
@@ -558,6 +578,7 @@ fn validate_texture_format_usage(
                 // Check for sRGB mismatches.
                 if expects_srgb(texture.param_id) != is_srgb(nutexb.footer.image_format) {
                     let error = MatlValidationError {
+                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                             material_label: entry.material_label.clone(),
@@ -582,6 +603,7 @@ fn validate_texture_format_usage(
 
 fn validate_texture_assignments<'a, 'b>(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     nutexbs: &'b [(String, FileResult<NutexbFile>)],
     default_textures: impl Iterator<Item = (&'a String, TextureDimension)> + Clone,
@@ -615,6 +637,7 @@ fn validate_texture_assignments<'a, 'b>(
 
         if !textures.is_empty() {
             let error = MatlValidationError {
+                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::MissingTextures {
                     material_label: entry.material_label.clone(),
@@ -628,6 +651,7 @@ fn validate_texture_assignments<'a, 'b>(
 
 fn validate_texture_dimensions<'a>(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     nutexbs: &'a [(String, FileResult<NutexbFile>)],
     default_textures: impl Iterator<Item = (&'a String, TextureDimension)> + Clone,
@@ -650,6 +674,7 @@ fn validate_texture_dimensions<'a>(
                     // The dimension is a fundamental part of the texture.
                     // Add errors to the matl since users should just assign a new texture.
                     let error = MatlValidationError {
+                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                             material_label: entry.material_label.clone(),
@@ -668,6 +693,7 @@ fn validate_texture_dimensions<'a>(
 
 fn validate_renormal_material_entries(
     validation: &mut ModelValidationErrors,
+    matl_index: usize,
     matl: &MatlData,
     adj: Option<&AdjData>,
     modl: Option<&ModlData>,
@@ -683,6 +709,7 @@ fn validate_renormal_material_entries(
         if adj.is_none() {
             // The model.adjb should be present if any RENORMAL materials are used.
             let matl_error = MatlValidationError {
+                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
                     material_label: entry.material_label.clone(),
@@ -714,6 +741,7 @@ fn validate_renormal_material_entries(
                         .any(|a| a.mesh_object_index == mesh_index)
                 {
                     let matl_error = MatlValidationError {
+                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                             material_label: entry.material_label.clone(),
@@ -731,11 +759,16 @@ fn validate_renormal_material_entries(
     }
 }
 
-fn validate_material_labels(validation: &mut ModelValidationErrors, matl: &MatlData) {
+fn validate_material_labels(
+    validation: &mut ModelValidationErrors,
+    matl_index: usize,
+    matl: &MatlData,
+) {
     let mut labels = HashSet::new();
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         if !labels.insert(&entry.material_label) {
             let error = MatlValidationError {
+                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::DuplicateMaterialLabel {
                     material_label: entry.material_label.clone(),
@@ -746,7 +779,11 @@ fn validate_material_labels(validation: &mut ModelValidationErrors, matl: &MatlD
     }
 }
 
-fn validate_sampler_anisotropy(validation: &mut ModelValidationErrors, matl: &MatlData) {
+fn validate_sampler_anisotropy(
+    validation: &mut ModelValidationErrors,
+    matl_index: usize,
+    matl: &MatlData,
+) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for s in &entry.samplers {
             if s.data.max_anisotropy != ssbh_data::matl_data::MaxAnisotropy::One
@@ -754,6 +791,7 @@ fn validate_sampler_anisotropy(validation: &mut ModelValidationErrors, matl: &Ma
                     || s.data.mag_filter == MagFilter::Nearest)
             {
                 let error = MatlValidationError {
+                    file_index: matl_index,
                     entry_index,
                     kind: MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
                         material_label: entry.material_label.clone(),
@@ -1010,6 +1048,7 @@ mod tests {
         let mut validation = ModelValidationErrors::default();
         validate_required_attributes(
             &mut validation,
+            1,
             &matl,
             Some(&modl),
             Some(&mesh),
@@ -1018,6 +1057,7 @@ mod tests {
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
                     material_label: "a".to_owned(),
@@ -1094,7 +1134,14 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_renormal_material_entries(&mut validation, &matl, None, Some(&modl), Some(&mesh));
+        validate_renormal_material_entries(
+            &mut validation,
+            1,
+            &matl,
+            None,
+            Some(&modl),
+            Some(&mesh),
+        );
 
         assert_eq!(
             vec![AdjValidationError::MissingRenormalEntry {
@@ -1112,6 +1159,7 @@ mod tests {
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
                     material_label: "RENORMAL_a".to_owned(),
@@ -1210,6 +1258,7 @@ mod tests {
         let mut validation = ModelValidationErrors::default();
         validate_renormal_material_entries(
             &mut validation,
+            1,
             &matl,
             Some(&adj),
             Some(&modl),
@@ -1218,6 +1267,7 @@ mod tests {
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                     material_label: "RENORMAL_a".to_owned(),
@@ -1281,11 +1331,12 @@ mod tests {
         ];
 
         let mut validation = ModelValidationErrors::default();
-        validate_texture_format_usage(&mut validation, &matl, &textures);
+        validate_texture_format_usage(&mut validation, 1, &matl, &textures);
 
         assert_eq!(
             vec![
                 MatlValidationError {
+                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                         material_label: "a".to_owned(),
@@ -1295,6 +1346,7 @@ mod tests {
                     }
                 },
                 MatlValidationError {
+                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                         material_label: "a".to_owned(),
@@ -1386,6 +1438,7 @@ mod tests {
         let mut validation = ModelValidationErrors::default();
         validate_texture_assignments(
             &mut validation,
+            1,
             &matl,
             &textures,
             [(
@@ -1397,6 +1450,7 @@ mod tests {
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::MissingTextures {
                     material_label: "a".to_owned(),
@@ -1455,6 +1509,7 @@ mod tests {
         let mut validation = ModelValidationErrors::default();
         validate_texture_dimensions(
             &mut validation,
+            1,
             &matl,
             &textures,
             [(
@@ -1467,6 +1522,7 @@ mod tests {
         assert_eq!(
             vec![
                 MatlValidationError {
+                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
@@ -1477,6 +1533,7 @@ mod tests {
                     }
                 },
                 MatlValidationError {
+                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
@@ -1487,6 +1544,7 @@ mod tests {
                     }
                 },
                 MatlValidationError {
+                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
@@ -1653,11 +1711,12 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_wrap_mode_tiling(&mut validation, &matl, Some(&modl), Some(&mesh));
+        validate_wrap_mode_tiling(&mut validation, 1, &matl, Some(&modl), Some(&mesh));
 
         // Sampler3 isn't included since bake1 UVs are still in range.
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::WrapModeClampsUvs {
                     material_label: "a".to_owned(),
@@ -1728,7 +1787,7 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_wrap_mode_tiling(&mut validation, &matl, Some(&modl), Some(&mesh));
+        validate_wrap_mode_tiling(&mut validation, 1, &matl, Some(&modl), Some(&mesh));
 
         assert!(validation.matl_errors.is_empty());
     }
@@ -1768,10 +1827,11 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_shader_labels(&mut validation, &matl, &shader_database);
+        validate_shader_labels(&mut validation, 1, &matl, &shader_database);
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 1,
                 kind: MatlValidationErrorKind::InvalidShaderLabel {
                     material_label: "b".to_owned(),
@@ -1833,10 +1893,11 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_material_labels(&mut validation, &matl);
+        validate_material_labels(&mut validation, 1, &matl);
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 2,
                 kind: MatlValidationErrorKind::DuplicateMaterialLabel {
                     material_label: "a".to_owned()
@@ -1899,10 +1960,11 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_sampler_anisotropy(&mut validation, &matl);
+        validate_sampler_anisotropy(&mut validation, 1, &matl);
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
                     material_label: "a".to_owned(),
@@ -1947,10 +2009,11 @@ mod tests {
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_premultiplied_blend(&mut validation, &matl, &shader_database);
+        validate_premultiplied_blend(&mut validation, 1, &matl, &shader_database);
 
         assert_eq!(
             vec![MatlValidationError {
+                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
                     material_label: "a".to_owned(),
@@ -1996,7 +2059,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_premultiplied_blend(&mut validation, &matl, &shader_database);
+        validate_premultiplied_blend(&mut validation, 1, &matl, &shader_database);
 
         assert!(validation.matl_errors.is_empty());
     }
@@ -2030,7 +2093,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
         };
 
         let mut validation = ModelValidationErrors::default();
-        validate_premultiplied_blend(&mut validation, &matl, &shader_database);
+        validate_premultiplied_blend(&mut validation, 1, &matl, &shader_database);
 
         assert!(validation.matl_errors.is_empty());
     }

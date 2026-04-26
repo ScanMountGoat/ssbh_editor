@@ -132,6 +132,7 @@ fn list_nutexb_files(
     selected_file_index: &mut Option<usize>,
 ) {
     // Show missing textures required by the matl.
+    // TODO: show textures missing from more than 1 matl only once.
     for e in &model.validation.matl_errors {
         if let MatlValidationErrorKind::MissingTextures { textures, .. } = &e.kind {
             for texture in textures {
@@ -163,7 +164,7 @@ fn list_nutexb_files(
             }
 
             let response = if !validation_errors.is_empty() {
-                file_button_with_errors(ui, file, &validation_errors)
+                file_button_with_errors(ui, file, validation_errors.iter())
             } else {
                 ui.button(file)
             };
@@ -214,7 +215,7 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
                     let response = if !validation_errors.is_empty()
                         && Some(name.as_str()) == validation_file
                     {
-                        file_button_with_errors(ui, name, validation_errors)
+                        file_button_with_errors(ui, name, validation_errors.iter())
                     } else {
                         ui.button(name)
                     };
@@ -248,11 +249,14 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
     }
 }
 
-fn file_button_with_errors<E: std::fmt::Display>(
+fn file_button_with_errors<'a, E>(
     ui: &mut Ui,
     name: &str,
-    validation_errors: &[E],
-) -> Response {
+    validation_errors: impl Iterator<Item = &'a E>,
+) -> Response
+where
+    E: std::fmt::Display + 'a,
+{
     // TODO: Only color the icon itself?
     // TODO: Show top few errors and ... N others on hover?
     // TODO: Display the validation errors as a separate window on click?

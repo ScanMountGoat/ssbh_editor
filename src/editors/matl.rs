@@ -176,7 +176,7 @@ fn select_material_dnd(
             }
 
             if !errors.is_empty() {
-                response = response.on_hover_ui(|ui| display_validation_errors(ui, &errors));
+                response = response.on_hover_ui(|ui| display_validation_errors(ui, errors.iter()));
             }
 
             // TODO: This needs to be cleared every frame.
@@ -1110,7 +1110,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidati
         .header_response;
 
     if !errors.is_empty() {
-        response.on_hover_ui(|ui| display_validation_errors(ui, errors));
+        response.on_hover_ui(|ui| display_validation_errors(ui, errors.iter()));
     }
 
     changed
@@ -1171,7 +1171,7 @@ fn edit_texture(
 
     // Show errors that apply to this param.
     if !errors.is_empty() {
-        response.on_hover_ui(|ui| display_validation_errors(ui, errors));
+        response.on_hover_ui(|ui| display_validation_errors(ui, errors.iter()));
     }
 
     if let Some(thumbnail) = texture_thumbnails
@@ -1357,7 +1357,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
     if !errors.is_empty() {
         header_response.on_hover_ui(|ui| {
-            display_validation_errors(ui, errors);
+            display_validation_errors(ui, errors.iter());
         });
     }
 

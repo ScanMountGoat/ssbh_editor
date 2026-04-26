@@ -1631,12 +1631,15 @@ pub fn warning_icon(ui: &mut Ui) -> Response {
     )
 }
 
-pub fn display_validation_errors<E: std::fmt::Display>(ui: &mut Ui, errors: &[E]) {
+pub fn display_validation_errors<'a, E>(ui: &mut Ui, errors: impl Iterator<Item = &'a E>)
+where
+    E: std::fmt::Display + 'a,
+{
     for error in errors {
         ui.horizontal(|ui| {
             // TODO: Add severity levels?
             warning_icon(ui);
-            ui.label(format!("{error}"));
+            ui.label(error.to_string());
         });
     }
 }
