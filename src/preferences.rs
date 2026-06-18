@@ -51,7 +51,7 @@ impl AppPreferences {
         bytes
             .and_then(|data| Ok(serde_json::from_slice(&data)?))
             .map_err(|e| {
-                error!("Failed to load preferences from {:?}: {}", &path, e);
+                error!("Failed to load preferences from {:?}: {}", path, e);
                 e
             })
             .unwrap_or_else(|_| AppPreferences::default())
@@ -63,7 +63,7 @@ impl AppPreferences {
         match serde_json::to_string_pretty(self) {
             Ok(json) => {
                 if let Err(e) = std::fs::write(&path, json) {
-                    error!("Failed to write preferences to {:?}: {}", &path, e);
+                    error!("Failed to write preferences to {:?}: {}", path, e);
                 }
             }
             Err(e) => error!("Failed to serialize preferences: {e}"),

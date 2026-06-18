@@ -1198,7 +1198,7 @@ fn edit_texture(
         // Assume missing textures aren't present in the thumbnail cache.
         warning_icon(ui).on_hover_text(format!(
             "Texture {:?} is not a valid nutexb file or default texture name.",
-            &param.data
+            param.data
         ));
     }
 
