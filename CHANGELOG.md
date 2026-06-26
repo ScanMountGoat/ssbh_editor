@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## unreleased
+### Added
+* Added a Shader Finder window for searching for shaders based on properties and other attributes under Material > Find Shader in the Matl Editor. The selected shader can be applied to the current material similar to a material preset.
+
 ### Fixed
 * Fixed an issue where creating an adjb file would not add the required entries for meshes with RENORMAL materials.
 
