@@ -798,9 +798,13 @@ impl SsbhApp {
 
             // Cache previous dimensions since we don't have a resize event handler.
             if width != self.previous_viewport_width || height != self.previous_viewport_height {
-                render_state
-                    .renderer
-                    .resize(device, width as u32, height as u32, 1.0);
+                // TODO: Why are there fractional pixel dimensions even with a scale factor of 1.0?
+                render_state.renderer.resize(
+                    device,
+                    width.ceil() as u32,
+                    height.ceil() as u32,
+                    1.0,
+                );
 
                 self.previous_viewport_width = width;
                 self.previous_viewport_height = height;
