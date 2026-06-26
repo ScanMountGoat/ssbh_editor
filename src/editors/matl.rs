@@ -1,8 +1,8 @@
 use crate::{
     EditorResponse,
     app::{
-        MatlEditorState, PresetMode, UiState, display_validation_errors, draggable_icon,
-        warning_icon, warning_icon_text,
+        MatlEditorState, PresetMode, ShaderFinderState, UiState, display_validation_errors,
+        draggable_icon, warning_icon, warning_icon_text,
     },
     horizontal_separator_empty,
     material::*,
@@ -22,12 +22,23 @@ use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{Color4f, Vector4, matl_data::*, modl_data::ModlEntryData, prelude::*};
-use ssbh_wgpu::{ShaderDatabase, ShaderProgram};
-use std::path::Path;
+use ssbh_wgpu::{ShaderDatabase, ShaderProgram, split_param};
+use std::{path::Path, str::FromStr};
 use strum::IntoEnumIterator;
 
 const UNUSED_PARAM: &str =
     "This parameter is not required by the shader and will be ignored in game.";
+
+const ALPHA_TEST_DESCRIPTION: &str = "A transparent cutout effect using an alpha threshold of 0.5.";
+const PREMULTIPLIED_DESCRIPTION: &str =
+    "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.";
+const RECEIVES_SHADOW_DESCRIPTION: &str =
+    "Receives directional shadows. Not to be confused with shadow casting.";
+const SH_DESCRIPTION: &str =
+    "Uses spherical harmonic diffuse ambient lighting from shcpanim files.";
+const LIGHTSET_DESCRIPTION: &str = "Uses directional lighting from the lighting nuanmb.";
+const ANISOTROPIC_ROTATION_DESCRIPTION: &str =
+    "Use the PRM alpha to rotate the anisotropic highlight.";
 
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
@@ -102,6 +113,14 @@ pub fn matl_editor(
                     state.matl_preset_window_open = false;
                 }
                 changed |= preset_changed;
+
+                let entry = matl.entries.get_mut(state.selected_material_index);
+                let (open, shader_finder_changed) =
+                    shader_finder_window(state, ctx, entry, shader_database);
+                if !open {
+                    state.shader_finder_window_open = false;
+                }
+                changed |= shader_finder_changed;
 
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
@@ -582,6 +601,175 @@ fn program_attributes(program: &ShaderProgram) -> String {
     attributes.join(", ")
 }
 
+fn shader_finder_window(
+    state: &mut MatlEditorState,
+    ctx: &egui::Context,
+    entry: Option<&mut MatlEntryData>,
+    shader_database: &ShaderDatabase,
+) -> (bool, bool) {
+    let mut open = state.shader_finder_window_open;
+    let mut changed = false;
+    Window::new("Shader Finder")
+        .default_size((500.0, 500.0))
+        .open(&mut state.shader_finder_window_open)
+        .resizable(true)
+        .show(ctx, |ui| {
+            // TODO: apply this same layout to the preset window?
+            Panel::bottom("shader_finder_bottom").show_inside(ui, |ui| {
+                // TODO: Why does this not center vertically?
+                ui.centered_and_justified(|ui| {
+                    let shader = shader_database.get(&state.shader_finder.selected_shader);
+                    if ui
+                        .add_enabled(shader.is_some() && entry.is_some(), Button::new("Apply"))
+                        .clicked()
+                        && let Some(shader) = shader
+                        && let Some(entry) = entry
+                    {
+                        *entry = apply_shader(entry, &state.shader_finder.selected_shader, shader);
+                        changed = true;
+                        open = false;
+                    }
+                });
+            });
+            Panel::left("shader_finder_left")
+                .default_size(250.0)
+                .show_inside(ui, |ui| {
+                    ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .show(ui, |ui| {
+                            CollapsingHeader::new("Custom Booleans").show(ui, |ui| {
+                                shader_finder_booleans(ui, &mut state.shader_finder);
+                            });
+
+                            CollapsingHeader::new("Custom Floats").show(ui, |ui| {
+                                shader_finder_floats(ui, &mut state.shader_finder);
+                            });
+
+                            CollapsingHeader::new("Custom Vectors").show(ui, |ui| {
+                                shader_finder_vectors(ui, &mut state.shader_finder);
+                            });
+
+                            CollapsingHeader::new("Textures")
+                                .default_open(true)
+                                .show(ui, |ui| {
+                                    shader_finder_textures(ui, &mut state.shader_finder);
+                                });
+
+                            // Don't include samplers since textures always have a corresponding sampler.
+                            // Don't include rasterizer or blend states since every shader has them.
+
+                            // TODO: attributes?
+
+                            CollapsingHeader::new("Shader").show(ui, |ui| {
+                                shader_finder_shader(ui, &mut state.shader_finder);
+                            });
+
+                            horizontal_separator_empty(ui);
+                        });
+                });
+            CentralPanel::default().show_inside(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        // The database uses a sorted map, so we don't need to sort by name.
+                        for (name, shader) in &shader_database.0 {
+                            if should_include_shader(&state.shader_finder, shader) {
+                                ui.selectable_value(
+                                    &mut state.shader_finder.selected_shader,
+                                    name.to_string(),
+                                    name,
+                                );
+                            }
+                        }
+                    });
+            });
+        });
+
+    (open, changed)
+}
+
+fn shader_finder_shader(ui: &mut Ui, state: &mut ShaderFinderState) {
+    ui.checkbox(&mut state.discard, "Alpha Testing")
+        .on_hover_text(ALPHA_TEST_DESCRIPTION);
+
+    ui.checkbox(&mut state.premultiplied, "Premultiplied Alpha")
+        .on_hover_text(PREMULTIPLIED_DESCRIPTION);
+
+    ui.checkbox(&mut state.receives_shadow, "Receives Shadow")
+        .on_hover_text(RECEIVES_SHADOW_DESCRIPTION);
+
+    ui.checkbox(&mut state.sh, "SH Lighting")
+        .on_hover_text(SH_DESCRIPTION);
+
+    ui.checkbox(&mut state.lighting, "Lightset Lighting")
+        .on_hover_text(LIGHTSET_DESCRIPTION);
+
+    ui.checkbox(&mut state.anisotropic_rotation, "Anisotropic Rotation")
+        .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
+}
+
+fn shader_finder_floats(ui: &mut Ui, state: &mut ShaderFinderState) {
+    // TODO: Skip parameters not used by any shader?
+    for i in 0..20 {
+        let param = ParamId::from_str(&format!("CustomFloat{i}")).unwrap();
+        ui.checkbox(&mut state.has_float[i], param_label(param));
+    }
+}
+
+fn shader_finder_booleans(ui: &mut Ui, state: &mut ShaderFinderState) {
+    // TODO: Skip parameters not used by any shader?
+    for i in 0..20 {
+        let param = ParamId::from_str(&format!("CustomBoolean{i}")).unwrap();
+        ui.checkbox(&mut state.has_boolean[i], param_label(param));
+    }
+}
+
+fn shader_finder_textures(ui: &mut Ui, state: &mut ShaderFinderState) {
+    // TODO: Skip parameters not used by any shader?
+    for i in 0..20 {
+        let param = ParamId::from_str(&format!("Texture{i}")).unwrap();
+        ui.checkbox(&mut state.has_texture[i], param_label(param));
+    }
+}
+
+fn shader_finder_vectors(ui: &mut Ui, state: &mut ShaderFinderState) {
+    // TODO: Skip parameters not used by any shader?
+    for i in 0..48 {
+        let param = ParamId::from_str(&format!("CustomVector{i}")).unwrap();
+        ui.checkbox(&mut state.has_vector[i], param_label(param));
+    }
+}
+
+fn should_include_shader(state: &ShaderFinderState, shader: &ShaderProgram) -> bool {
+    // TODO: Does this need optimization?
+    // Simplify (a && b) || !a to !a || b
+    has_params(&state.has_texture, shader, "Texture")
+        && has_params(&state.has_boolean, shader, "CustomBoolean")
+        && has_params(&state.has_float, shader, "CustomFloat")
+        && has_params(&state.has_vector, shader, "CustomVector")
+        && (!state.discard || shader.discard)
+        && (!state.premultiplied || shader.premultiplied)
+        && (!state.receives_shadow || shader.receives_shadow)
+        && (!state.sh || shader.sh)
+        && (!state.lighting || shader.lighting)
+        && (!state.anisotropic_rotation || shader.anisotropic_rotation)
+}
+
+fn has_params(has_params: &[bool], shader: &ShaderProgram, prefix: &str) -> bool {
+    has_params.iter().enumerate().all(|(i, b)| {
+        // Filter based on selected parameters.
+        if *b {
+            let param_name = format!("{prefix}{i}");
+            shader
+                .material_parameters
+                .iter()
+                .any(|p| split_param(p).0 == param_name)
+        } else {
+            true
+        }
+    })
+}
+
 fn menu_bar(
     ui: &mut Ui,
     matl: &mut MatlData,
@@ -640,7 +828,11 @@ fn menu_bar(
 
             if ui.button("Apply Preset").clicked() {
                 state.matl_preset_window_open = true;
-                changed = true;
+            }
+            ui.separator();
+
+            if ui.button("Find Shader").clicked() {
+                state.shader_finder_window_open = true;
             }
             ui.separator();
 
@@ -1001,7 +1193,6 @@ fn shader_grid(
     program: Option<&ShaderProgram>,
 ) {
     Grid::new("shader_grid").show(ui, |ui| {
-        // TODO: Should this be part of the basic mode.
         ui.label("Render Pass");
         let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
         ComboBox::from_id_salt("render pass")
@@ -1043,33 +1234,31 @@ fn shader_info_grid(ui: &mut Ui, program: &ShaderProgram) {
 fn shader_info_header(ui: &mut Ui, program: &ShaderProgram) {
     if program.discard {
         ui.label("Alpha Testing")
-            .on_hover_text("A transparent cutout effect using an alpha threshold of 0.5.");
+            .on_hover_text(ALPHA_TEST_DESCRIPTION);
     }
 
     if program.premultiplied {
-        ui.label("Premultiplied Alpha").on_hover_text(
-            "Multiplies the RGB color by alpha similar to a BlendState0 Source Color of SrcAlpha.",
-        );
+        ui.label("Premultiplied Alpha")
+            .on_hover_text(PREMULTIPLIED_DESCRIPTION);
     }
 
     if program.receives_shadow {
         ui.label("Receives Shadow")
-            .on_hover_text("Receives directional shadows. Not to be confused with shadow casting.");
+            .on_hover_text(RECEIVES_SHADOW_DESCRIPTION);
     }
 
     if program.sh {
-        ui.label("SH Lighting")
-            .on_hover_text("Uses spherical harmonic diffuse ambient lighting from shcpanim files.");
+        ui.label("SH Lighting").on_hover_text(SH_DESCRIPTION);
     }
 
     if program.lighting {
         ui.label("Lightset Lighting")
-            .on_hover_text("Uses directional lighting from the lighting nuanmb.");
+            .on_hover_text(LIGHTSET_DESCRIPTION);
     }
 
     if program.anisotropic_rotation {
         ui.label("Anisotropic Rotation")
-            .on_hover_text("Use the PRM alpha to rotate the anisotropic highlight.");
+            .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
     }
 }
 

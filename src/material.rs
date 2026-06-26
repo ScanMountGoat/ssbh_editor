@@ -3,6 +3,14 @@ use ssbh_data::{Vector4, matl_data::*};
 use ssbh_wgpu::{ShaderProgram, split_param};
 use std::str::FromStr;
 
+const UV_TRANSFORM_IDENTITY: UvTransform = UvTransform {
+    scale_u: 1.0,
+    scale_v: 1.0,
+    rotation: 0.0,
+    translate_u: 0.0,
+    translate_v: 0.0,
+};
+
 pub fn load_material_presets<P: AsRef<std::path::Path>>(path: P) -> Vec<MatlEntryData> {
     // The application doesn't ship with a user presets file.
     // Load an empty list if not found since users can use default presets.
@@ -28,31 +36,109 @@ pub fn apply_preset(entry: &MatlEntryData, preset: &MatlEntryData) -> MatlEntryD
         samplers: preset
             .samplers
             .iter()
-            .map(|preset_sampler| SamplerParam {
-                param_id: preset_sampler.param_id,
-                data: entry
-                    .samplers
-                    .iter()
-                    .find(|t| t.param_id == preset_sampler.param_id)
-                    .map(|t| t.data.clone())
-                    .unwrap_or_else(SamplerData::default),
+            .map(|preset_sampler| {
+                SamplerParam::new(
+                    preset_sampler.param_id,
+                    entry
+                        .samplers
+                        .iter()
+                        .find(|t| t.param_id == preset_sampler.param_id)
+                        .map(|t| t.data.clone())
+                        .unwrap_or_else(SamplerData::default),
+                )
             })
             .collect(),
         textures: preset
             .textures
             .iter()
-            .map(|preset_texture| TextureParam {
-                param_id: preset_texture.param_id,
-                data: entry
-                    .textures
-                    .iter()
-                    .find(|t| t.param_id == preset_texture.param_id)
-                    .map(|t| t.data.clone())
-                    .unwrap_or_else(|| default_texture(preset_texture.param_id).to_owned()),
+            .map(|preset_texture| {
+                TextureParam::new(
+                    preset_texture.param_id,
+                    entry
+                        .textures
+                        .iter()
+                        .find(|t| t.param_id == preset_texture.param_id)
+                        .map(|t| t.data.clone())
+                        .unwrap_or_else(|| default_texture(preset_texture.param_id).to_owned()),
+                )
             })
             .collect(),
         ..preset.clone()
     }
+}
+
+pub fn apply_shader(
+    entry: &MatlEntryData,
+    shader_label: &str,
+    shader: &ShaderProgram,
+) -> MatlEntryData {
+    // Preserve as many existing values as possible.
+    // Use reasonable defaults for any required values not present in the material.
+    let params: Vec<_> = shader
+        .material_parameters
+        .iter()
+        .map(|p| ParamId::from_str(split_param(p).0).unwrap())
+        .collect();
+
+    let render_pass = entry.shader_label.get(25..).unwrap_or("opaque");
+    let shader_label = format!("{shader_label}_{render_pass}");
+
+    // Assume every material already has blend and rasterizer states.
+    MatlEntryData {
+        material_label: entry.material_label.clone(),
+        shader_label,
+        blend_states: required_params(&entry.blend_states, &params, is_blend, |_| {
+            Default::default()
+        }),
+        floats: required_params(&entry.floats, &params, is_float, default_float),
+        booleans: required_params(&entry.booleans, &params, is_bool, default_bool),
+        vectors: required_params(&entry.vectors, &params, is_vector, default_vector),
+        rasterizer_states: required_params(
+            &entry.rasterizer_states,
+            &params,
+            is_rasterizer,
+            |_| Default::default(),
+        ),
+        samplers: required_params(&entry.samplers, &params, is_sampler, |_| Default::default()),
+        textures: required_params(&entry.textures, &params, is_texture, |id| {
+            default_texture(id).to_string()
+        }),
+        uv_transforms: required_params(&entry.uv_transforms, &params, is_uv_transform, |_| {
+            UV_TRANSFORM_IDENTITY
+        }),
+    }
+}
+
+fn required_params<T, F1, F2>(
+    params: &[ParamData<T>],
+    required_params: &[ParamId],
+    filter_param: F1,
+    default_value: F2,
+) -> Vec<ParamData<T>>
+where
+    T: Clone,
+    F1: Fn(ParamId) -> bool,
+    F2: Fn(ParamId) -> T,
+{
+    required_params
+        .iter()
+        .filter(|id| filter_param(**id))
+        .map(|id| {
+            ParamData::new(
+                *id,
+                params
+                    .iter()
+                    .find_map(|p| {
+                        if p.param_id == *id {
+                            Some(p.data.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| default_value(*id)),
+            )
+        })
+        .collect()
 }
 
 pub fn default_material() -> MatlEntryData {
@@ -61,86 +147,53 @@ pub fn default_material() -> MatlEntryData {
     MatlEntryData {
         material_label: "NEW_MATERIAL".to_owned(),
         shader_label: "SFX_PBS_0100000008008269_opaque".to_owned(),
-        blend_states: vec![BlendStateParam {
-            param_id: ParamId::BlendState0,
-            data: Default::default(),
-        }],
-        floats: vec![FloatParam {
-            param_id: ParamId::CustomFloat8,
-            data: 0.4,
-        }],
+        blend_states: vec![BlendStateParam::new(
+            ParamId::BlendState0,
+            Default::default(),
+        )],
+        floats: vec![FloatParam::new(ParamId::CustomFloat8, 0.4)],
         booleans: vec![
-            BooleanParam {
-                param_id: ParamId::CustomBoolean1,
-                data: true,
-            },
-            BooleanParam {
-                param_id: ParamId::CustomBoolean3,
-                data: true,
-            },
-            BooleanParam {
-                param_id: ParamId::CustomBoolean4,
-                data: true,
-            },
+            BooleanParam::new(ParamId::CustomBoolean1, true),
+            BooleanParam::new(ParamId::CustomBoolean3, true),
+            BooleanParam::new(ParamId::CustomBoolean4, true),
         ],
         vectors: vec![
-            Vector4Param {
+            Vector4Param::new(
                 // Set to all zeros to allow for transparency.
-                param_id: ParamId::CustomVector0,
-                data: Vector4::new(0.0, 0.0, 0.0, 0.0),
-            },
-            Vector4Param {
-                param_id: ParamId::CustomVector13,
-                data: Vector4::new(1.0, 1.0, 1.0, 1.0),
-            },
-            Vector4Param {
-                param_id: ParamId::CustomVector14,
-                data: Vector4::new(1.0, 1.0, 1.0, 1.0),
-            },
-            Vector4Param {
-                param_id: ParamId::CustomVector8,
-                data: Vector4::new(1.0, 1.0, 1.0, 1.0),
-            },
+                ParamId::CustomVector0,
+                Vector4::new(0.0, 0.0, 0.0, 0.0),
+            ),
+            Vector4Param::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+            Vector4Param::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+            Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
         ],
-        rasterizer_states: vec![RasterizerStateParam {
-            param_id: ParamId::RasterizerState0,
-            data: Default::default(),
-        }],
+        rasterizer_states: vec![RasterizerStateParam::new(
+            ParamId::RasterizerState0,
+            Default::default(),
+        )],
         samplers: vec![
-            SamplerParam {
-                param_id: ParamId::Sampler0,
-                data: Default::default(),
-            },
-            SamplerParam {
-                param_id: ParamId::Sampler4,
-                data: Default::default(),
-            },
-            SamplerParam {
-                param_id: ParamId::Sampler6,
-                data: Default::default(),
-            },
-            SamplerParam {
-                param_id: ParamId::Sampler7,
-                data: Default::default(),
-            },
+            SamplerParam::new(ParamId::Sampler0, Default::default()),
+            SamplerParam::new(ParamId::Sampler4, Default::default()),
+            SamplerParam::new(ParamId::Sampler6, Default::default()),
+            SamplerParam::new(ParamId::Sampler7, Default::default()),
         ],
         textures: vec![
-            TextureParam {
-                param_id: ParamId::Texture0,
-                data: default_texture(ParamId::Texture0).to_owned(),
-            },
-            TextureParam {
-                param_id: ParamId::Texture4,
-                data: default_texture(ParamId::Texture4).to_owned(),
-            },
-            TextureParam {
-                param_id: ParamId::Texture6,
-                data: default_texture(ParamId::Texture6).to_owned(),
-            },
-            TextureParam {
-                param_id: ParamId::Texture7,
-                data: default_texture(ParamId::Texture7).to_owned(),
-            },
+            TextureParam::new(
+                ParamId::Texture0,
+                default_texture(ParamId::Texture0).to_owned(),
+            ),
+            TextureParam::new(
+                ParamId::Texture4,
+                default_texture(ParamId::Texture4).to_owned(),
+            ),
+            TextureParam::new(
+                ParamId::Texture6,
+                default_texture(ParamId::Texture6).to_owned(),
+            ),
+            TextureParam::new(
+                ParamId::Texture7,
+                default_texture(ParamId::Texture7).to_owned(),
+            ),
         ],
         uv_transforms: Vec::new(),
     }
@@ -191,40 +244,35 @@ pub fn unused_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec<
 pub fn add_parameters(entry: &mut MatlEntryData, parameters: &[ParamId]) {
     for param_id in parameters.iter().copied() {
         if is_blend(param_id) {
-            entry.blend_states.push(BlendStateParam {
-                param_id,
-                data: BlendStateData::default(),
-            });
+            entry
+                .blend_states
+                .push(BlendStateParam::new(param_id, BlendStateData::default()));
         } else if is_float(param_id) {
-            entry.floats.push(FloatParam {
-                param_id,
-                data: default_float(param_id),
-            });
+            entry
+                .floats
+                .push(FloatParam::new(param_id, default_float(param_id)));
         } else if is_bool(param_id) {
-            entry.booleans.push(BooleanParam {
-                param_id,
-                data: default_bool(param_id),
-            });
+            entry
+                .booleans
+                .push(BooleanParam::new(param_id, default_bool(param_id)));
         } else if is_vector(param_id) {
-            entry.vectors.push(Vector4Param {
-                param_id,
-                data: default_vector(param_id),
-            });
+            entry
+                .vectors
+                .push(Vector4Param::new(param_id, default_vector(param_id)));
         } else if is_rasterizer(param_id) {
-            entry.rasterizer_states.push(RasterizerStateParam {
+            entry.rasterizer_states.push(RasterizerStateParam::new(
                 param_id,
-                data: RasterizerStateData::default(),
-            });
+                RasterizerStateData::default(),
+            ));
         } else if is_sampler(param_id) {
-            entry.samplers.push(SamplerParam {
-                param_id,
-                data: SamplerData::default(),
-            });
+            entry
+                .samplers
+                .push(SamplerParam::new(param_id, SamplerData::default()));
         } else if is_texture(param_id) {
-            entry.textures.push(TextureParam {
+            entry.textures.push(TextureParam::new(
                 param_id,
-                data: default_texture(param_id).to_owned(),
-            });
+                default_texture(param_id).to_owned(),
+            ));
         }
     }
 
@@ -481,6 +529,46 @@ pub fn is_bool(p: ParamId) -> bool {
     )
 }
 
+pub fn is_uv_transform(p: ParamId) -> bool {
+    matches!(
+        p,
+        ParamId::UseDiffuseUvTransform1
+            | ParamId::UseDiffuseUvTransform2
+            | ParamId::UseSpecularUvTransform1
+            | ParamId::UseSpecularUvTransform2
+            | ParamId::UseNormalUvTransform1
+            | ParamId::UseNormalUvTransform2
+            | ParamId::UvTransform0
+            | ParamId::UvTransform1
+            | ParamId::UvTransform2
+            | ParamId::UvTransform3
+            | ParamId::UvTransform4
+            | ParamId::UvTransform5
+            | ParamId::UvTransform6
+            | ParamId::UvTransform7
+            | ParamId::UvTransform8
+            | ParamId::UvTransform9
+            | ParamId::UvTransform10
+            | ParamId::UvTransform11
+            | ParamId::UvTransform12
+            | ParamId::UvTransform13
+            | ParamId::UvTransform14
+            | ParamId::UvTransform15
+            | ParamId::DiffuseUvTransform1
+            | ParamId::DiffuseUvTransform2
+            | ParamId::SpecularUvTransform1
+            | ParamId::SpecularUvTransform2
+            | ParamId::NormalUvTransform1
+            | ParamId::NormalUvTransform2
+            | ParamId::DiffuseUvTransform
+            | ParamId::SpecularUvTransform
+            | ParamId::NormalUvTransform
+            | ParamId::UseDiffuseUvTransform
+            | ParamId::UseSpecularUvTransform
+            | ParamId::UseNormalUvTransform
+    )
+}
+
 pub fn default_texture(p: ParamId) -> &'static str {
     // The default texture should have as close as possible to no effect.
     // This reduces the number of textures that need to be manually assigned.
@@ -658,6 +746,8 @@ pub fn vector4_labels_long(p: ParamId) -> [&'static str; 4] {
 mod tests {
     use super::*;
 
+    use pretty_assertions::assert_eq;
+
     #[test]
     fn add_parameters_all_missing() {
         let mut entry = MatlEntryData {
@@ -702,34 +792,28 @@ mod tests {
             MatlEntryData {
                 material_label: String::new(),
                 shader_label: String::new(),
-                blend_states: vec![BlendStateParam {
-                    param_id: ParamId::BlendState0,
-                    data: Default::default(),
-                }],
-                floats: vec![FloatParam {
-                    param_id: ParamId::CustomFloat0,
-                    data: Default::default(),
-                }],
-                booleans: vec![BooleanParam {
-                    param_id: ParamId::CustomBoolean0,
-                    data: Default::default(),
-                }],
-                vectors: vec![Vector4Param {
-                    param_id: ParamId::CustomVector0,
-                    data: Default::default(),
-                }],
-                rasterizer_states: vec![RasterizerStateParam {
-                    param_id: ParamId::RasterizerState0,
-                    data: Default::default(),
-                }],
-                samplers: vec![SamplerParam {
-                    param_id: ParamId::Sampler0,
-                    data: Default::default(),
-                }],
-                textures: vec![TextureParam {
-                    param_id: ParamId::Texture0,
-                    data: "/common/shader/sfxpbs/default_white".to_owned(),
-                }],
+                blend_states: vec![BlendStateParam::new(
+                    ParamId::BlendState0,
+                    Default::default(),
+                )],
+                floats: vec![FloatParam::new(ParamId::CustomFloat0, Default::default())],
+                booleans: vec![BooleanParam::new(
+                    ParamId::CustomBoolean0,
+                    Default::default(),
+                )],
+                vectors: vec![Vector4Param::new(
+                    ParamId::CustomVector0,
+                    Default::default(),
+                )],
+                rasterizer_states: vec![RasterizerStateParam::new(
+                    ParamId::RasterizerState0,
+                    Default::default(),
+                )],
+                samplers: vec![SamplerParam::new(ParamId::Sampler0, Default::default())],
+                textures: vec![TextureParam::new(
+                    ParamId::Texture0,
+                    "/common/shader/sfxpbs/default_white".to_owned(),
+                )],
                 uv_transforms: Vec::new()
             },
             entry
@@ -741,34 +825,25 @@ mod tests {
         let mut entry = MatlEntryData {
             material_label: String::new(),
             shader_label: String::new(),
-            blend_states: vec![BlendStateParam {
-                param_id: ParamId::BlendState0,
-                data: Default::default(),
-            }],
-            floats: vec![FloatParam {
-                param_id: ParamId::CustomFloat0,
-                data: Default::default(),
-            }],
-            booleans: vec![BooleanParam {
-                param_id: ParamId::CustomBoolean0,
-                data: Default::default(),
-            }],
-            vectors: vec![Vector4Param {
-                param_id: ParamId::CustomVector0,
-                data: Default::default(),
-            }],
-            rasterizer_states: vec![RasterizerStateParam {
-                param_id: ParamId::RasterizerState0,
-                data: Default::default(),
-            }],
-            samplers: vec![SamplerParam {
-                param_id: ParamId::Sampler0,
-                data: Default::default(),
-            }],
-            textures: vec![TextureParam {
-                param_id: ParamId::Texture0,
-                data: Default::default(),
-            }],
+            blend_states: vec![BlendStateParam::new(
+                ParamId::BlendState0,
+                Default::default(),
+            )],
+            floats: vec![FloatParam::new(ParamId::CustomFloat0, Default::default())],
+            booleans: vec![BooleanParam::new(
+                ParamId::CustomBoolean0,
+                Default::default(),
+            )],
+            vectors: vec![Vector4Param::new(
+                ParamId::CustomVector0,
+                Default::default(),
+            )],
+            rasterizer_states: vec![RasterizerStateParam::new(
+                ParamId::RasterizerState0,
+                Default::default(),
+            )],
+            samplers: vec![SamplerParam::new(ParamId::Sampler0, Default::default())],
+            textures: vec![TextureParam::new(ParamId::Texture0, Default::default())],
             uv_transforms: Vec::new(),
         };
 
@@ -808,55 +883,37 @@ mod tests {
             vectors: Vec::new(),
             rasterizer_states: Vec::new(),
             samplers: Vec::new(),
-            textures: vec![TextureParam {
-                param_id: ParamId::Texture0,
-                data: "a".to_owned(),
-            }],
+            textures: vec![TextureParam::new(ParamId::Texture0, "a".to_owned())],
             uv_transforms: Vec::new(),
         };
 
         let preset = MatlEntryData {
             material_label: "preset".to_owned(),
             shader_label: "456".to_owned(),
-            blend_states: vec![BlendStateParam {
-                param_id: ParamId::BlendState0,
-                data: Default::default(),
-            }],
-            floats: vec![FloatParam {
-                param_id: ParamId::CustomFloat0,
-                data: Default::default(),
-            }],
-            booleans: vec![BooleanParam {
-                param_id: ParamId::CustomBoolean0,
-                data: Default::default(),
-            }],
-            vectors: vec![Vector4Param {
-                param_id: ParamId::CustomVector0,
-                data: Default::default(),
-            }],
-            rasterizer_states: vec![RasterizerStateParam {
-                param_id: ParamId::RasterizerState0,
-                data: Default::default(),
-            }],
+            blend_states: vec![BlendStateParam::new(
+                ParamId::BlendState0,
+                Default::default(),
+            )],
+            floats: vec![FloatParam::new(ParamId::CustomFloat0, Default::default())],
+            booleans: vec![BooleanParam::new(
+                ParamId::CustomBoolean0,
+                Default::default(),
+            )],
+            vectors: vec![Vector4Param::new(
+                ParamId::CustomVector0,
+                Default::default(),
+            )],
+            rasterizer_states: vec![RasterizerStateParam::new(
+                ParamId::RasterizerState0,
+                Default::default(),
+            )],
             samplers: vec![
-                SamplerParam {
-                    param_id: ParamId::Sampler0,
-                    data: Default::default(),
-                },
-                SamplerParam {
-                    param_id: ParamId::Sampler1,
-                    data: Default::default(),
-                },
+                SamplerParam::new(ParamId::Sampler0, Default::default()),
+                SamplerParam::new(ParamId::Sampler1, Default::default()),
             ],
             textures: vec![
-                TextureParam {
-                    param_id: ParamId::Texture0,
-                    data: "d".to_owned(),
-                },
-                TextureParam {
-                    param_id: ParamId::Texture1,
-                    data: "c".to_owned(),
-                },
+                TextureParam::new(ParamId::Texture0, "d".to_owned()),
+                TextureParam::new(ParamId::Texture1, "c".to_owned()),
             ],
             uv_transforms: Vec::new(),
         };
@@ -867,47 +924,244 @@ mod tests {
             MatlEntryData {
                 material_label: "material".to_owned(),
                 shader_label: "456".to_owned(),
-                blend_states: vec![BlendStateParam {
-                    param_id: ParamId::BlendState0,
-                    data: Default::default(),
-                }],
-                floats: vec![FloatParam {
-                    param_id: ParamId::CustomFloat0,
-                    data: Default::default(),
-                }],
-                booleans: vec![BooleanParam {
-                    param_id: ParamId::CustomBoolean0,
-                    data: Default::default(),
-                }],
-                vectors: vec![Vector4Param {
-                    param_id: ParamId::CustomVector0,
-                    data: Default::default(),
-                }],
-                rasterizer_states: vec![RasterizerStateParam {
-                    param_id: ParamId::RasterizerState0,
-                    data: Default::default(),
-                }],
+                blend_states: vec![BlendStateParam::new(
+                    ParamId::BlendState0,
+                    Default::default(),
+                )],
+                floats: vec![FloatParam::new(ParamId::CustomFloat0, Default::default())],
+                booleans: vec![BooleanParam::new(
+                    ParamId::CustomBoolean0,
+                    Default::default(),
+                )],
+                vectors: vec![Vector4Param::new(
+                    ParamId::CustomVector0,
+                    Default::default(),
+                )],
+                rasterizer_states: vec![RasterizerStateParam::new(
+                    ParamId::RasterizerState0,
+                    Default::default(),
+                )],
                 samplers: vec![
-                    SamplerParam {
-                        param_id: ParamId::Sampler0,
-                        data: Default::default(),
-                    },
-                    SamplerParam {
-                        param_id: ParamId::Sampler1,
-                        data: Default::default(),
-                    }
+                    SamplerParam::new(ParamId::Sampler0, Default::default()),
+                    SamplerParam::new(ParamId::Sampler1, Default::default())
                 ],
                 textures: vec![
-                    TextureParam {
-                        param_id: ParamId::Texture0,
-                        data: "a".to_owned(),
-                    },
-                    TextureParam {
-                        param_id: ParamId::Texture1,
-                        data: "/common/shader/sfxpbs/default_white".to_owned(),
-                    }
+                    TextureParam::new(ParamId::Texture0, "a".to_owned()),
+                    TextureParam::new(
+                        ParamId::Texture1,
+                        "/common/shader/sfxpbs/default_white".to_owned(),
+                    )
                 ],
                 uv_transforms: Vec::new()
+            },
+            entry
+        );
+    }
+
+    #[test]
+    fn apply_preset_emi_to_prm() {
+        // item/bossgalaga//model/body/c00/model.numatb
+        let entry = MatlEntryData {
+            material_label: "body_mt".to_owned(),
+            shader_label: "SFX_PBS_0101000800048100_opaque".to_owned(),
+            blend_states: vec![BlendStateParam::new(
+                ParamId::BlendState0,
+                Default::default(),
+            )],
+            floats: Vec::new(),
+            booleans: vec![BooleanParam::new(ParamId::CustomBoolean5, false)],
+            vectors: vec![
+                Vector4Param::new(ParamId::CustomVector0, Vector4::ZERO),
+                Vector4Param::new(ParamId::CustomVector29, Vector4::ZERO),
+                Vector4Param::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                Vector4Param::new(ParamId::CustomVector6, Vector4::new(1.0, 1.0, 0.0, 0.0)),
+                Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+            ],
+            rasterizer_states: vec![RasterizerStateParam::new(
+                ParamId::RasterizerState0,
+                Default::default(),
+            )],
+            samplers: vec![SamplerParam::new(ParamId::Sampler5, Default::default())],
+            textures: vec![TextureParam::new(
+                ParamId::Texture5,
+                "bossgalaga_col".to_string(),
+            )],
+            uv_transforms: Vec::new(),
+        };
+        let shader = ShaderProgram {
+            discard: false,
+            premultiplied: false,
+            receives_shadow: false,
+            sh: true,
+            lighting: true,
+            anisotropic_rotation: false,
+            vertex_attributes: vec!["map1.xy".to_string()],
+            material_parameters: vec![
+                "RasterizerState0".to_string(),
+                "BlendState0".to_string(),
+                "CustomVector13.xyzw".to_string(),
+                "CustomVector3.xyz".to_string(),
+                "CustomBoolean1".to_string(),
+                "CustomVector27.x".to_string(),
+                "CustomVector8.xyzw".to_string(),
+                "Texture0.xyzw".to_string(),
+                "Sampler0".to_string(),
+                "Texture6.xyw".to_string(),
+                "Sampler6".to_string(),
+                "Texture4.xyzw".to_string(),
+                "Sampler4".to_string(),
+                "Texture5.xyz".to_string(),
+                "Sampler5".to_string(),
+                "Texture7.xyz".to_string(),
+                "Sampler7".to_string(),
+            ],
+            complexity: 0.6289500509683996,
+        };
+
+        let entry = apply_shader(&entry, "SFX_PBS_0000000003008249", &shader);
+
+        assert_eq!(
+            MatlEntryData {
+                material_label: "body_mt".to_owned(),
+                shader_label: "SFX_PBS_0000000003008249_opaque".to_owned(),
+                blend_states: vec![BlendStateParam::new(
+                    ParamId::BlendState0,
+                    Default::default(),
+                )],
+                floats: Vec::new(),
+                booleans: vec![BooleanParam::new(ParamId::CustomBoolean1, true)],
+                vectors: vec![
+                    Vector4Param::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector27, Vector4::ZERO),
+                    Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ],
+                rasterizer_states: vec![RasterizerStateParam::new(
+                    ParamId::RasterizerState0,
+                    Default::default(),
+                )],
+                samplers: vec![
+                    SamplerParam::new(ParamId::Sampler0, Default::default()),
+                    SamplerParam::new(ParamId::Sampler6, Default::default()),
+                    SamplerParam::new(ParamId::Sampler4, Default::default()),
+                    SamplerParam::new(ParamId::Sampler5, Default::default()),
+                    SamplerParam::new(ParamId::Sampler7, Default::default())
+                ],
+                textures: vec![
+                    TextureParam::new(
+                        ParamId::Texture0,
+                        "/common/shader/sfxpbs/default_white".to_string(),
+                    ),
+                    TextureParam::new(
+                        ParamId::Texture6,
+                        "/common/shader/sfxpbs/fighter/default_params".to_string(),
+                    ),
+                    TextureParam::new(
+                        ParamId::Texture4,
+                        "/common/shader/sfxpbs/fighter/default_normal".to_string(),
+                    ),
+                    TextureParam::new(ParamId::Texture5, "bossgalaga_col".to_string()),
+                    TextureParam::new(ParamId::Texture7, "#replace_cubemap".to_string())
+                ],
+                uv_transforms: Vec::new(),
+            },
+            entry
+        );
+    }
+
+    #[test]
+    fn apply_empty_to_prm() {
+        let entry = MatlEntryData {
+            material_label: "empty".to_owned(),
+            shader_label: String::new(),
+            blend_states: Vec::new(),
+            floats: Vec::new(),
+            booleans: Vec::new(),
+            vectors: Vec::new(),
+            rasterizer_states: Vec::new(),
+            samplers: Vec::new(),
+            textures: Vec::new(),
+            uv_transforms: Vec::new(),
+        };
+        let shader = ShaderProgram {
+            discard: false,
+            premultiplied: false,
+            receives_shadow: false,
+            sh: true,
+            lighting: true,
+            anisotropic_rotation: false,
+            vertex_attributes: vec!["map1.xy".to_string()],
+            material_parameters: vec![
+                "RasterizerState0".to_string(),
+                "BlendState0".to_string(),
+                "CustomVector13.xyzw".to_string(),
+                "CustomVector3.xyz".to_string(),
+                "CustomBoolean1".to_string(),
+                "CustomVector27.x".to_string(),
+                "CustomVector8.xyzw".to_string(),
+                "Texture0.xyzw".to_string(),
+                "Sampler0".to_string(),
+                "Texture6.xyw".to_string(),
+                "Sampler6".to_string(),
+                "Texture4.xyzw".to_string(),
+                "Sampler4".to_string(),
+                "Texture5.xyz".to_string(),
+                "Sampler5".to_string(),
+                "Texture7.xyz".to_string(),
+                "Sampler7".to_string(),
+            ],
+            complexity: 0.6289500509683996,
+        };
+
+        let entry = apply_shader(&entry, "SFX_PBS_0000000003008249", &shader);
+
+        assert_eq!(
+            MatlEntryData {
+                material_label: "empty".to_owned(),
+                shader_label: "SFX_PBS_0000000003008249_opaque".to_owned(),
+                blend_states: vec![BlendStateParam::new(
+                    ParamId::BlendState0,
+                    Default::default(),
+                )],
+                floats: Vec::new(),
+                booleans: vec![BooleanParam::new(ParamId::CustomBoolean1, true)],
+                vectors: vec![
+                    Vector4Param::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector27, Vector4::ZERO),
+                    Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ],
+                rasterizer_states: vec![RasterizerStateParam::new(
+                    ParamId::RasterizerState0,
+                    Default::default(),
+                )],
+                samplers: vec![
+                    SamplerParam::new(ParamId::Sampler0, Default::default()),
+                    SamplerParam::new(ParamId::Sampler6, Default::default()),
+                    SamplerParam::new(ParamId::Sampler4, Default::default()),
+                    SamplerParam::new(ParamId::Sampler5, Default::default()),
+                    SamplerParam::new(ParamId::Sampler7, Default::default())
+                ],
+                textures: vec![
+                    TextureParam::new(
+                        ParamId::Texture0,
+                        "/common/shader/sfxpbs/default_white".to_string(),
+                    ),
+                    TextureParam::new(
+                        ParamId::Texture6,
+                        "/common/shader/sfxpbs/fighter/default_params".to_string(),
+                    ),
+                    TextureParam::new(
+                        ParamId::Texture4,
+                        "/common/shader/sfxpbs/fighter/default_normal".to_string(),
+                    ),
+                    TextureParam::new(
+                        ParamId::Texture5,
+                        "/common/shader/sfxpbs/default_black".to_string()
+                    ),
+                    TextureParam::new(ParamId::Texture7, "#replace_cubemap".to_string())
+                ],
+                uv_transforms: Vec::new(),
             },
             entry
         );

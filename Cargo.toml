@@ -17,8 +17,8 @@ egui_commonmark = "0.23.0"
 wgpu = "29.0.1"
 glam = { version = "0.28.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.17.2"
-ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "eb88d0a" }
-nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "eb88d0a" }
+ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "4cff8d7" }
+nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "4cff8d7" }
 ssbh_data = { version = "0.19.0", features = ["strum", "serde"] }
 strum = "0.24.1"
 nutexb = "0.7.0"
@@ -41,6 +41,9 @@ pico-args = "0.5.0"
 reqwest = { version = "0.12.8", features = ["blocking"] }
 approx = "0.5.1"
 semver = "1.0"
+
+[dev-dependencies]
+pretty_assertions = "1.0"
 
 [profile.release-lto]
 inherits = "release"

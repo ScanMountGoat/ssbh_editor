@@ -517,10 +517,49 @@ pub enum PresetMode {
 pub struct MatlEditorState {
     pub selected_material_index: usize,
     pub hovered_material_index: Option<usize>,
-    pub matl_preset_window_open: bool,
-    pub selected_preset_index: usize,
-    pub preset_mode: PresetMode,
     pub texture_to_edit_index: Option<usize>,
+
+    pub matl_preset_window_open: bool,
+    pub preset_mode: PresetMode,
+    pub selected_preset_index: usize,
+
+    pub shader_finder_window_open: bool,
+    pub shader_finder: ShaderFinderState,
+}
+
+pub struct ShaderFinderState {
+    pub selected_shader: String,
+
+    // TODO: Store just the used params instead?
+    pub has_float: [bool; 20],
+    pub has_boolean: [bool; 20],
+    pub has_texture: [bool; 20],
+    pub has_vector: [bool; 48],
+
+    pub discard: bool,
+    pub premultiplied: bool,
+    pub receives_shadow: bool,
+    pub sh: bool,
+    pub lighting: bool,
+    pub anisotropic_rotation: bool,
+}
+
+impl Default for ShaderFinderState {
+    fn default() -> Self {
+        Self {
+            selected_shader: Default::default(),
+            has_float: Default::default(),
+            has_boolean: Default::default(),
+            has_texture: Default::default(),
+            has_vector: [false; 48],
+            discard: false,
+            premultiplied: false,
+            receives_shadow: false,
+            sh: false,
+            lighting: false,
+            anisotropic_rotation: false,
+        }
+    }
 }
 
 #[derive(Default)]
