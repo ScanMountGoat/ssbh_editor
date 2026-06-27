@@ -6,7 +6,6 @@ edition = "2024"
 description = "View, edit, and validate models for Smash Ultimate"
 
 [dependencies]
-chrono = "0.4"
 egui = { version = "0.35.0", default-features = false }
 egui_extras = { version = "0.35.0", features = ["svg"] }
 egui-wgpu = "0.35.0"
@@ -17,8 +16,8 @@ egui_commonmark = "0.24.0"
 wgpu = "29.0.1"
 glam = { version = "0.28.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.17.2"
-ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "4cff8d7" }
-nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "4cff8d7" }
+ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "0b52152" }
+nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "0b52152" }
 ssbh_data = { version = "0.19.0", features = ["strum", "serde"] }
 strum = "0.24.1"
 nutexb = "0.7.0"
@@ -41,6 +40,7 @@ pico-args = "0.5.0"
 reqwest = { version = "0.12.8", features = ["blocking"] }
 approx = "0.5.1"
 semver = "1.0"
+chrono = "0.4"
 
 [dev-dependencies]
 pretty_assertions = "1.0"
