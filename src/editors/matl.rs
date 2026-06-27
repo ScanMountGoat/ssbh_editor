@@ -40,6 +40,8 @@ const LIGHTSET_DESCRIPTION: &str = "Uses directional lighting from the lighting 
 const ANISOTROPIC_ROTATION_DESCRIPTION: &str =
     "Use the PRM alpha to rotate the anisotropic highlight.";
 
+const NO_USER_PRESETS: &'static str = "No user material presets detected. Make sure the presets.json file is present and contains valid JSON materials.";
+
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
     ctx: &egui::Context,
@@ -516,46 +518,68 @@ fn preset_window(
         .open(&mut state.matl_preset_window_open)
         .resizable(true)
         .show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.selectable_value(
-                    &mut state.preset_mode,
-                    PresetMode::Default,
-                    RichText::new("Default").heading(),
-                );
-                ui.selectable_value(
-                    &mut state.preset_mode,
-                    PresetMode::User,
-                    RichText::new("User").heading(),
-                );
+            Panel::bottom("preset_bottom").show(ui, |ui| {
+                // TODO: Why does this not center vertically?
+                ui.centered_and_justified(|ui| {
+                    if ui.button("Apply").clicked() {
+                        let presets = match state.preset_mode {
+                            PresetMode::User => material_presets,
+                            PresetMode::Default => default_presets,
+                        };
+
+                        if let Some(preset) = presets.get(state.selected_preset_index)
+                            && let Some(entry) = entry
+                        {
+                            *entry = apply_preset(entry, preset);
+                            changed = true;
+                        }
+                        open = false;
+                    }
+                });
             });
 
-            ui.weak("Hover over a preset to see shader info.");
-            horizontal_separator_empty(ui);
+            CentralPanel::default().show(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.selectable_value(
+                                &mut state.preset_mode,
+                                PresetMode::Default,
+                                RichText::new("Default").heading(),
+                            );
+                            ui.selectable_value(
+                                &mut state.preset_mode,
+                                PresetMode::User,
+                                RichText::new("User").heading(),
+                            );
+                        });
 
-            match state.preset_mode {
-                PresetMode::User => {
-                    if material_presets.is_empty() {
-                        ui.label("No user material presets detected. Make sure the presets.json file is present and contains valid JSON materials.");
-                    } else {
-                        list_presets(ui, material_presets, &mut state.selected_preset_index, shader_database);
-                    }
-                }
-                PresetMode::Default => list_presets(ui, default_presets, &mut state.selected_preset_index, shader_database),
-            }
+                        ui.weak("Hover over a preset to see shader info.");
+                        horizontal_separator_empty(ui);
 
-            if ui.button("Apply").clicked() {
-                let presets = match state.preset_mode {
-                    PresetMode::User => material_presets,
-                    PresetMode::Default => default_presets,
-                };
-
-                if let Some(preset) = presets.get(state.selected_preset_index)
-                    && let Some(entry) = entry {
-                        *entry = apply_preset(entry, preset);
-                        changed = true;
-                }
-                open = false;
-            }
+                        match state.preset_mode {
+                            PresetMode::User => {
+                                if material_presets.is_empty() {
+                                    ui.label(NO_USER_PRESETS);
+                                } else {
+                                    list_presets(
+                                        ui,
+                                        material_presets,
+                                        &mut state.selected_preset_index,
+                                        shader_database,
+                                    );
+                                }
+                            }
+                            PresetMode::Default => list_presets(
+                                ui,
+                                default_presets,
+                                &mut state.selected_preset_index,
+                                shader_database,
+                            ),
+                        }
+                    });
+            });
         });
 
     (open, changed)
@@ -614,7 +638,6 @@ fn shader_finder_window(
         .open(&mut state.shader_finder_window_open)
         .resizable(true)
         .show(ctx, |ui| {
-            // TODO: apply this same layout to the preset window?
             Panel::bottom("shader_finder_bottom").show(ui, |ui| {
                 // TODO: Why does this not center vertically?
                 ui.centered_and_justified(|ui| {
