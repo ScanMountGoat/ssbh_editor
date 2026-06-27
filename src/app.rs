@@ -542,6 +542,22 @@ pub struct ShaderFinderState {
     pub sh: bool,
     pub lighting: bool,
     pub anisotropic_rotation: bool,
+
+    pub color_set1: bool,
+    pub color_set2: bool,
+    pub color_set2_1: bool,
+    pub color_set2_2: bool,
+    pub color_set2_3: bool,
+    pub color_set3: bool,
+    pub color_set4: bool,
+    pub color_set5: bool,
+    pub color_set6: bool,
+    pub color_set7: bool,
+    pub map1: bool,
+    pub bake1: bool,
+    pub uv_set: bool,
+    pub uv_set1: bool,
+    pub uv_set2: bool,
 }
 
 impl Default for ShaderFinderState {
@@ -558,6 +574,21 @@ impl Default for ShaderFinderState {
             sh: false,
             lighting: false,
             anisotropic_rotation: false,
+            color_set1: false,
+            color_set2: false,
+            color_set2_1: false,
+            color_set2_2: false,
+            color_set2_3: false,
+            color_set3: false,
+            color_set4: false,
+            color_set5: false,
+            color_set6: false,
+            color_set7: false,
+            map1: false,
+            bake1: false,
+            uv_set: false,
+            uv_set1: false,
+            uv_set2: false,
         }
     }
 }

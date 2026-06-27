@@ -658,7 +658,11 @@ fn shader_finder_window(
                             // Don't include samplers since textures always have a corresponding sampler.
                             // Don't include rasterizer or blend states since every shader has them.
 
-                            // TODO: attributes?
+                            CollapsingHeader::new("Attributes")
+                                .default_open(true)
+                                .show(ui, |ui| {
+                                    shader_finder_attributes(ui, &mut state.shader_finder);
+                                });
 
                             CollapsingHeader::new("Shader").show(ui, |ui| {
                                 shader_finder_shader(ui, &mut state.shader_finder);
@@ -708,6 +712,25 @@ fn shader_finder_shader(ui: &mut Ui, state: &mut ShaderFinderState) {
         .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
 }
 
+fn shader_finder_attributes(ui: &mut Ui, state: &mut ShaderFinderState) {
+    ui.checkbox(&mut state.color_set1, "colorSet1");
+    ui.checkbox(&mut state.color_set2, "colorSet2");
+    ui.checkbox(&mut state.color_set2_1, "colorSet2_1");
+    ui.checkbox(&mut state.color_set2_2, "colorSet2_2");
+    ui.checkbox(&mut state.color_set2_3, "colorSet2_3");
+    ui.checkbox(&mut state.color_set3, "colorSet3");
+    ui.checkbox(&mut state.color_set4, "colorSet4");
+    ui.checkbox(&mut state.color_set5, "colorSet5");
+    ui.checkbox(&mut state.color_set6, "colorSet6");
+    ui.checkbox(&mut state.color_set7, "colorSet7");
+
+    ui.checkbox(&mut state.map1, "map1");
+    ui.checkbox(&mut state.bake1, "bake1");
+    ui.checkbox(&mut state.uv_set, "uvSet");
+    ui.checkbox(&mut state.uv_set1, "uvSet1");
+    ui.checkbox(&mut state.uv_set2, "uvSet2");
+}
+
 fn shader_finder_floats(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
     for i in 0..20 {
@@ -753,6 +776,28 @@ fn should_include_shader(state: &ShaderFinderState, shader: &ShaderProgram) -> b
         && (!state.sh || shader.sh)
         && (!state.lighting || shader.lighting)
         && (!state.anisotropic_rotation || shader.anisotropic_rotation)
+        && (!state.color_set1 || has_attr("colorSet1", shader))
+        && (!state.color_set2 || has_attr("colorSet2", shader))
+        && (!state.color_set2_1 || has_attr("colorSet2_1", shader))
+        && (!state.color_set2_2 || has_attr("colorSet2_2", shader))
+        && (!state.color_set2_3 || has_attr("colorSet2_3", shader))
+        && (!state.color_set3 || has_attr("colorSet3", shader))
+        && (!state.color_set4 || has_attr("colorSet4", shader))
+        && (!state.color_set5 || has_attr("colorSet5", shader))
+        && (!state.color_set6 || has_attr("colorSet6", shader))
+        && (!state.color_set7 || has_attr("colorSet7", shader))
+        && (!state.map1 || has_attr("map1", shader))
+        && (!state.bake1 || has_attr("bake1", shader))
+        && (!state.uv_set || has_attr("uvSet", shader))
+        && (!state.uv_set1 || has_attr("uvSet1", shader))
+        && (!state.uv_set2 || has_attr("uvSet2", shader))
+}
+
+fn has_attr(attribute: &str, shader: &ShaderProgram) -> bool {
+    shader
+        .vertex_attributes
+        .iter()
+        .any(|a| split_param(a).0 == attribute)
 }
 
 fn has_params(has_params: &[bool], shader: &ShaderProgram, prefix: &str) -> bool {
