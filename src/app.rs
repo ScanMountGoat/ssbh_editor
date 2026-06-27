@@ -856,10 +856,11 @@ impl SsbhApp {
         // It's possible to interact with the UI with the mouse over the viewport.
         // Disable tracking the mouse in this case to prevent unwanted camera rotations.
         // This mostly affects resizing the left and right side panels.
+        let ui_contains_pointer = ui.ui_contains_pointer();
         if !ui.egui_wants_keyboard_input() && !ui.egui_is_using_pointer() {
             ui.input(|input| {
                 // Handle camera input here to get the viewport's actual size.
-                handle_input(&mut self.camera_state, input, height);
+                handle_input(&mut self.camera_state, input, height, ui_contains_pointer);
             });
         }
 
@@ -1160,31 +1161,38 @@ impl eframe::App for SsbhApp {
 }
 
 // TODO: Create a separate module for input handling?
-fn handle_input(camera: &mut CameraState, input: &egui::InputState, viewport_height: f32) {
-    // Assume zero deltas if no updates are needed.
-    if input.pointer.primary_down() {
-        // Left click rotation.
-        // Swap XY so that dragging left right rotates left right.
-        let delta = input.pointer.delta();
-        camera.values.rotation_radians.x += delta.y * 0.01;
-        camera.values.rotation_radians.y += delta.x * 0.01;
-    } else if input.pointer.secondary_down() {
-        // Right click panning.
-        // Translate an equivalent distance in screen space based on the camera.
-        // The viewport height and vertical field of view define the conversion.
-        let fac =
-            camera.values.fov_y_radians.sin() * camera.values.translation.z.abs() / viewport_height;
+fn handle_input(
+    camera: &mut CameraState,
+    input: &egui::InputState,
+    viewport_height: f32,
+    ui_contains_pointer: bool,
+) {
+    if ui_contains_pointer {
+        // Assume zero deltas if no updates are needed.
+        if input.pointer.primary_down() {
+            // Left click rotation.
+            // Swap XY so that dragging left right rotates left right.
+            let delta = input.pointer.delta();
+            camera.values.rotation_radians.x += delta.y * 0.01;
+            camera.values.rotation_radians.y += delta.x * 0.01;
+        } else if input.pointer.secondary_down() {
+            // Right click panning.
+            // Translate an equivalent distance in screen space based on the camera.
+            // The viewport height and vertical field of view define the conversion.
+            let fac = camera.values.fov_y_radians.sin() * camera.values.translation.z.abs()
+                / viewport_height;
 
-        // Negate y so that dragging up "drags" the model up.
-        let delta = input.pointer.delta();
-        camera.values.translation.x += delta.x * fac;
-        camera.values.translation.y -= delta.y * fac;
+            // Negate y so that dragging up "drags" the model up.
+            let delta = input.pointer.delta();
+            camera.values.translation.x += delta.x * fac;
+            camera.values.translation.y -= delta.y * fac;
+        }
+
+        // Scale zoom speed with distance to make it easier to zoom out large scenes.
+        let delta_z = input.smooth_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
+        // Clamp to prevent the user from zooming through the origin.
+        camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
     }
-
-    // Scale zoom speed with distance to make it easier to zoom out large scenes.
-    let delta_z = input.smooth_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
-    // Clamp to prevent the user from zooming through the origin.
-    camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
 
     // Keyboard panning.
     if input.key_down(egui::Key::ArrowLeft) {
