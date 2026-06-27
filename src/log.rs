@@ -10,10 +10,8 @@ impl Log for AppLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
         // TODO: Investigate why wgpu_text warns about cache resizing.
         // TODO: Use an RGBA8Unorm framebuffer for compatibility with egui_wgpu?
-        // Silence this error for now.
-        metadata.level() <= log::Level::Warn
-            && !metadata.target().starts_with("wgpu_text")
-            && !metadata.target().starts_with("egui_wgpu")
+        // Silence warnings for now.
+        metadata.level() <= log::Level::Error
     }
 
     fn log(&self, record: &log::Record) {
