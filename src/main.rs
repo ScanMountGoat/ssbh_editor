@@ -6,6 +6,7 @@
 
 use std::sync::Arc;
 
+use eframe::SurfaceConfig;
 use egui::ViewportBuilder;
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
@@ -90,7 +91,10 @@ fn main() {
                     display_handle: None,
                     native_adapter_selector: None,
                 }),
-                present_mode: wgpu::PresentMode::Fifo,
+                surface: SurfaceConfig {
+                    present_mode: wgpu::PresentMode::Fifo,
+                    desired_maximum_frame_latency: None,
+                },
                 ..Default::default()
             },
             ..Default::default()

@@ -1,6 +1,6 @@
 use egui::{
-    CursorIcon, Id, Key, Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2, Widget,
-    WidgetText, text::CCursor, text_edit::TextEditState, text_selection::CCursorRange,
+    AsIdSalt, CursorIcon, Id, Key, Rect, Response, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2,
+    Widget, WidgetText, text::CCursor, text_edit::TextEditState, text_selection::CCursorRange,
 };
 
 /// A combined slider and text edit that fills up like an [egui::ProgressBar].
@@ -13,7 +13,7 @@ pub struct DragSlider<'a> {
 }
 
 impl<'a> DragSlider<'a> {
-    pub fn new(id_source: impl std::hash::Hash, value: &'a mut f32) -> Self {
+    pub fn new(id_source: impl AsIdSalt, value: &'a mut f32) -> Self {
         DragSlider {
             id: Id::new(id_source),
             value,

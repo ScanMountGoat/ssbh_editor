@@ -1108,7 +1108,7 @@ impl eframe::App for SsbhApp {
         }
 
         // Set the region for the 3D viewport to reduce overdraw.
-        Panel::top("top_panel").show_inside(ui, |ui| menu_bar(self, ui));
+        Panel::top("top_panel").show(ui, |ui| menu_bar(self, ui));
 
         // Add windows here so they can overlap everything except the top panel.
         // We store some state in self to keep track of whether this should be left open.
@@ -1120,20 +1120,20 @@ impl eframe::App for SsbhApp {
         if self.show_left_panel {
             Panel::left("left_panel")
                 .default_size(200.0)
-                .show_inside(ui, |ui| self.files_list(ui));
+                .show(ui, |ui| self.files_list(ui));
         }
 
         if self.show_bottom_panel {
-            Panel::bottom("bottom panel").show_inside(ui, |ui| self.bottom_panel(ui, render_state));
+            Panel::bottom("bottom panel").show(ui, |ui| self.bottom_panel(ui, render_state));
         }
 
         if self.show_right_panel {
             Panel::right("right panel")
                 .default_size(450.0)
-                .show_inside(ui, |ui| self.right_panel(ui, render_state));
+                .show(ui, |ui| self.right_panel(ui, render_state));
         }
 
-        CentralPanel::default().show_inside(ui, |ui| {
+        CentralPanel::default().show(ui, |ui| {
             if self.models.is_empty() {
                 ui.centered_and_justified(|ui| {
                     let o = format_shortcut(&shortcut::OPEN_FOLDER);

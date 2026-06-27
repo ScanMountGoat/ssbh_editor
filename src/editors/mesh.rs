@@ -86,7 +86,7 @@ pub fn mesh_editor(
 
             Panel::left("mesh_left_panel")
                 .default_size(350.0)
-                .show_inside(ui, |ui| {
+                .show(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
@@ -101,7 +101,7 @@ pub fn mesh_editor(
                         });
                 });
 
-            CentralPanel::default().show_inside(ui, |ui| {
+            CentralPanel::default().show(ui, |ui| {
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {

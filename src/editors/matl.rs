@@ -68,7 +68,7 @@ pub fn matl_editor(
         .default_size(egui::Vec2::new(700.0, 900.0))
         .resizable(true)
         .show(ctx, |ui| {
-            Panel::top("matl_top_panel").show_inside(ui, |ui| {
+            Panel::top("matl_top_panel").show(ui, |ui| {
                 let (menu_changed, menu_saved) = menu_bar(
                     ui,
                     matl,
@@ -84,7 +84,7 @@ pub fn matl_editor(
 
             Panel::left("matl_left_panel")
                 .default_size(300.0)
-                .show_inside(ui, |ui| {
+                .show(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
@@ -98,7 +98,7 @@ pub fn matl_editor(
                         });
                 });
 
-            CentralPanel::default().show_inside(ui, |ui| {
+            CentralPanel::default().show(ui, |ui| {
                 // TODO: Simplify logic for closing window.
                 let entry = matl.entries.get_mut(state.selected_material_index);
                 let (open, preset_changed) = preset_window(
@@ -246,13 +246,13 @@ pub fn preset_editor(
         .open(&mut ui_state.preset_editor_open)
         .default_size(egui::Vec2::new(900.0, 900.0))
         .show(ctx, |ui| {
-            Panel::top("matl_presets_top_panel").show_inside(ui, |ui| {
+            Panel::top("matl_presets_top_panel").show(ui, |ui| {
                 presets_menu(ui, user_presets);
             });
 
             Panel::left("matl_presets_left_panel")
                 .default_size(300.0)
-                .show_inside(ui, |ui| {
+                .show(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
@@ -266,7 +266,7 @@ pub fn preset_editor(
                         });
                 });
 
-            CentralPanel::default().show_inside(ui, |ui| {
+            CentralPanel::default().show(ui, |ui| {
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
@@ -615,7 +615,7 @@ fn shader_finder_window(
         .resizable(true)
         .show(ctx, |ui| {
             // TODO: apply this same layout to the preset window?
-            Panel::bottom("shader_finder_bottom").show_inside(ui, |ui| {
+            Panel::bottom("shader_finder_bottom").show(ui, |ui| {
                 // TODO: Why does this not center vertically?
                 ui.centered_and_justified(|ui| {
                     let shader = shader_database.get(&state.shader_finder.selected_shader);
@@ -633,7 +633,7 @@ fn shader_finder_window(
             });
             Panel::left("shader_finder_left")
                 .default_size(250.0)
-                .show_inside(ui, |ui| {
+                .show(ui, |ui| {
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
@@ -671,7 +671,7 @@ fn shader_finder_window(
                             horizontal_separator_empty(ui);
                         });
                 });
-            CentralPanel::default().show_inside(ui, |ui| {
+            CentralPanel::default().show(ui, |ui| {
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {

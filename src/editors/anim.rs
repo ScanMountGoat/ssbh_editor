@@ -8,7 +8,7 @@ use egui::{
     CentralPanel, CollapsingHeader, DragValue, Panel, RichText, ScrollArea, special_emojis::GITHUB,
 };
 use egui_extras::{Column, TableBuilder};
-use egui_plot::{Legend, Line, Plot, PlotPoint};
+use egui_plot::{HoverPosition, Legend, Line, Plot};
 
 use ssbh_data::{
     anim_data::{GroupData, TrackData, TrackValues},
@@ -117,13 +117,21 @@ fn hierarchy_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEdito
 fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
     select_track_panel(ui, anim, state);
 
-    CentralPanel::default().show_inside(ui, |ui| {
-        let label_fmt = |name: &str, value: &PlotPoint| {
-            if name.is_empty() {
-                // Don't show values when not hovering near a line.
-                String::new()
-            } else {
-                format!("{name}\nframe = {}\nvalue = {}", value.x, value.y)
+    CentralPanel::default().show(ui, |ui| {
+        let label_fmt = |pos: &HoverPosition| {
+            match pos {
+                HoverPosition::NearDataPoint {
+                    plot_name,
+                    position,
+                    ..
+                } => Some(format!(
+                    "{plot_name}\nframe = {}\nvalue = {}",
+                    position.x, position.y
+                )),
+                HoverPosition::Elsewhere { .. } => {
+                    // Don't show values when not hovering near a line.
+                    None
+                }
             }
         };
 
@@ -263,7 +271,7 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
 fn select_track_panel(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) {
     Panel::left("anim_left_panel")
         .default_size(300.0)
-        .show_inside(ui, |ui| {
+        .show(ui, |ui| {
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
@@ -387,7 +395,7 @@ fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState
 
     let mut changed = false;
 
-    CentralPanel::default().show_inside(ui, |ui| {
+    CentralPanel::default().show(ui, |ui| {
         if let Some(track) = selected_track(&mut anim.groups, state) {
             changed |= track_value_grid(ui, track);
         }

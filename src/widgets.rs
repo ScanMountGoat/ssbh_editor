@@ -1,6 +1,6 @@
 use egui::{
-    NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType, epaint,
-    pos2, vec2,
+    AsIdSalt, NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType,
+    epaint, pos2, vec2,
 };
 use ssbh_data::skel_data::SkelData;
 
@@ -80,7 +80,7 @@ fn eye_open_icon(ui: &Ui, rect: egui::Rect, visuals: &egui::style::WidgetVisuals
         .paint_at(ui, rect);
 }
 
-pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl std::hash::Hash, value: &mut V) -> bool
+pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl AsIdSalt, value: &mut V) -> bool
 where
     V: PartialEq + strum::IntoEnumIterator + ToString,
 {
@@ -102,7 +102,7 @@ where
 pub fn bone_combo_box(
     ui: &mut egui::Ui,
     bone_name: &mut String,
-    id: impl std::hash::Hash,
+    id: impl AsIdSalt,
     skel: Option<&SkelData>,
     extra_names: &[&str],
 ) -> bool {

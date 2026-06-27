@@ -360,7 +360,7 @@ fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
 fn material_label_combo_box(
     ui: &mut egui::Ui,
     material_label: &mut String,
-    id: impl std::hash::Hash,
+    id: impl egui::AsIdSalt,
     matl: Option<&MatlData>,
     is_valid: bool,
 ) -> bool {
