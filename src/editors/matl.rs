@@ -39,8 +39,12 @@ const SH_DESCRIPTION: &str =
 const LIGHTSET_DESCRIPTION: &str = "Uses directional lighting from the lighting nuanmb.";
 const ANISOTROPIC_ROTATION_DESCRIPTION: &str =
     "Use the PRM alpha to rotate the anisotropic highlight.";
-
-const NO_USER_PRESETS: &'static str = "No user material presets detected. Make sure the presets.json file is present and contains valid JSON materials.";
+const NO_USER_PRESETS: &'static str = "No user material presets detected. \
+Make sure the presets.json file is present and contains valid JSON materials.";
+const SHADER_ATTRIBUTES_DESCRIPTION: &'static str =
+    "The mesh attributes required by the shader. The XYZW suffixes indicate accessed components.";
+const SHADER_COMPLEXITY_DESCRIPTION: &'static str = "The estimated complexity of this shader relative to other shaders. \
+Values closer to 1.0 may negatively impact in game performance.";
 
 #[allow(clippy::too_many_arguments)]
 pub fn matl_editor(
@@ -701,11 +705,18 @@ fn shader_finder_window(
                         // The database uses a sorted map, so we don't need to sort by name.
                         for (name, shader) in &shader_database.0 {
                             if should_include_shader(&state.shader_finder, shader) {
-                                ui.selectable_value(
-                                    &mut state.shader_finder.selected_shader,
-                                    name.to_string(),
-                                    name,
-                                );
+                                ui.horizontal(|ui| {
+                                    // TODO: Center these vertically?
+                                    shader_complexity_color(ui, shader.complexity).on_hover_text(
+                                        format!("Shader Complexity: {:.3}", shader.complexity),
+                                    );
+
+                                    ui.selectable_value(
+                                        &mut state.shader_finder.selected_shader,
+                                        name.to_string(),
+                                        name,
+                                    );
+                                });
                             }
                         }
                     });
@@ -713,6 +724,19 @@ fn shader_finder_window(
         });
 
     (open, changed)
+}
+
+fn shader_complexity_color(ui: &mut Ui, value: f64) -> egui::Response {
+    // Sample the color ramp at the appropriate coordinate.
+    ui.add(
+        egui::Image::new(egui::include_image!("../icons/plasma8.svg"))
+            .uv(egui::Rect {
+                min: egui::pos2(value as f32, 0.0),
+                max: egui::pos2(value as f32, 0.0),
+            })
+            .maintain_aspect_ratio(false)
+            .fit_to_exact_size(egui::vec2(16.0, 16.0)),
+    )
 }
 
 fn shader_finder_shader(ui: &mut Ui, state: &mut ShaderFinderState) {
@@ -1266,18 +1290,9 @@ fn shader_grid(
         ComboBox::from_id_salt("render pass")
             .selected_text(entry.shader_label.get(25..).unwrap_or(""))
             .show_ui(ui, |ui| {
-                for pass in [
-                    "_opaque",
-                    "_far",
-                    "_sort",
-                    "_near",
-                ] {
+                for pass in ["_opaque", "_far", "_sort", "_near"] {
                     *changed |= ui
-                        .selectable_value(
-                            &mut entry.shader_label,
-                            shader.clone() + pass,
-                            pass,
-                        )
+                        .selectable_value(&mut entry.shader_label, shader.clone() + pass, pass)
                         .changed();
                 }
             });
@@ -1285,8 +1300,16 @@ fn shader_grid(
 
         if let Some(program) = program {
             ui.label("Vertex Attributes")
-                .on_hover_text("The mesh attributes required by the shader. The XYZW suffixes indicate accessed components.");
+                .on_hover_text(SHADER_ATTRIBUTES_DESCRIPTION);
             ui.add(Label::new(program.vertex_attributes.join(", ")));
+            ui.end_row();
+
+            ui.label("Shader Complexity")
+                .on_hover_text(SHADER_COMPLEXITY_DESCRIPTION);
+            ui.horizontal(|ui| {
+                shader_complexity_color(ui, program.complexity);
+                ui.label(format!("{:.3}", program.complexity));
+            });
             ui.end_row();
         }
     });

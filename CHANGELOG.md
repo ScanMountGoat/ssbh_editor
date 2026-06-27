@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## unreleased
 ### Added
 * Added a Shader Finder window for searching for shaders based on properties and other attributes under Material > Find Shader in the Matl Editor. The selected shader can be applied to the current material similar to a material preset.
+* Added shader complexity information to the Matl Editor to help identity materials causing in game performance issues.
 
 ### Changed
 * Adjusted the UI layout for applying material presets to support scrolling and make the apply button easier to click.
