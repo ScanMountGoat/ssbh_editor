@@ -71,6 +71,9 @@ pub struct CameraState {
 
     // TODO: Where to put this?
     pub mvp_matrix: glam::Mat4,
+
+    pub is_mouse_primary_drag: bool,
+    pub is_mouse_secondary_drag: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -89,6 +92,8 @@ impl Default for CameraState {
             values: CameraValues::default(),
             anim_path: None,
             mvp_matrix: glam::Mat4::IDENTITY,
+            is_mouse_primary_drag: false,
+            is_mouse_secondary_drag: false,
         }
     }
 }

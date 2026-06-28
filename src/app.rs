@@ -1167,27 +1167,47 @@ fn handle_input(
     viewport_height: f32,
     ui_contains_pointer: bool,
 ) {
+    // Left/right mouse drag should start in the viewport but can end anywhere.
+    // This allows more screen space for dragging even with a small viewport.
     if ui_contains_pointer {
-        // Assume zero deltas if no updates are needed.
-        if input.pointer.primary_down() {
-            // Left click rotation.
-            // Swap XY so that dragging left right rotates left right.
-            let delta = input.pointer.delta();
-            camera.values.rotation_radians.x += delta.y * 0.01;
-            camera.values.rotation_radians.y += delta.x * 0.01;
-        } else if input.pointer.secondary_down() {
-            // Right click panning.
-            // Translate an equivalent distance in screen space based on the camera.
-            // The viewport height and vertical field of view define the conversion.
-            let fac = camera.values.fov_y_radians.sin() * camera.values.translation.z.abs()
-                / viewport_height;
-
-            // Negate y so that dragging up "drags" the model up.
-            let delta = input.pointer.delta();
-            camera.values.translation.x += delta.x * fac;
-            camera.values.translation.y -= delta.y * fac;
+        if input.pointer.primary_pressed() {
+            camera.is_mouse_primary_drag = true;
         }
+        if input.pointer.secondary_pressed() {
+            camera.is_mouse_secondary_drag = true;
+        }
+    }
+    if input.pointer.primary_released() {
+        camera.is_mouse_primary_drag = false;
+    }
+    if input.pointer.secondary_released() {
+        camera.is_mouse_secondary_drag = false;
+    }
 
+    // Assume zero deltas if no updates are needed.
+    if camera.is_mouse_primary_drag {
+        // Left click rotation.
+        // Swap XY so that dragging left right rotates left right.
+        let delta = input.pointer.delta();
+        camera.values.rotation_radians.x += delta.y * 0.01;
+        camera.values.rotation_radians.y += delta.x * 0.01;
+    }
+
+    if camera.is_mouse_secondary_drag {
+        // Right click panning.
+        // Translate an equivalent distance in screen space based on the camera.
+        // The viewport height and vertical field of view define the conversion.
+        let fac =
+            camera.values.fov_y_radians.sin() * camera.values.translation.z.abs() / viewport_height;
+
+        // Negate y so that dragging up "drags" the model up.
+        let delta = input.pointer.delta();
+        camera.values.translation.x += delta.x * fac;
+        camera.values.translation.y -= delta.y * fac;
+    }
+
+    // Don't zoom when using the UI.
+    if ui_contains_pointer {
         // Scale zoom speed with distance to make it easier to zoom out large scenes.
         let delta_z = input.smooth_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
         // Clamp to prevent the user from zooming through the origin.
