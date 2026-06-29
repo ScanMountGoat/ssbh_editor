@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue where creating an adjb file would not add the required entries for meshes with RENORMAL materials.
 * Fixed an issue where interacting with the UI would rotate or pan the viewport in some cases.
+* Fixed an issue where bones would flip during animation playback in some cases for bones with helper bone constraints.
 
 ## 0.11.0 - 2025-11-19
 ### Fixed
