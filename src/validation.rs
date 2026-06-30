@@ -1113,6 +1113,211 @@ mod tests {
     }
 
     #[test]
+    fn format_mesh_errors() {
+        assert_eq!(
+            r#"Mesh "mesh" is missing attributes ["a", "b"] required by assigned material "mat"."#,
+            MeshValidationErrorKind::MissingRequiredVertexAttributes {
+                mesh_name: "mesh".to_string(),
+                material_label: "mat".to_string(),
+                missing_attributes: vec!["a".to_string(), "b".to_string()]
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Mesh "mesh" repeats subindex 0. Meshes with the same name must have unique subindices."#,
+            MeshValidationErrorKind::DuplicateSubindex {
+                mesh_name: "mesh".to_string(),
+                subindex: 0
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Vertex weights for mesh "mesh" are not normalized. Vertex weights should sum to 1.0."#,
+            MeshValidationErrorKind::VertexWeightsNotNormalized {
+                mesh_name: "mesh".to_string()
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Mesh "mesh" has vertex weights with a weight of 0.0 that can be removed."#,
+            MeshValidationErrorKind::VertexWeightsZero {
+                mesh_name: "mesh".to_string(),
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Mesh "mesh" has vertices with more than 4 weights and may not deform as expected in game."#,
+            MeshValidationErrorKind::MoreThan4WeightsPerVertex {
+                mesh_name: "mesh".to_string(),
+            }
+            .to_string()
+        );
+    }
+
+    #[test]
+    fn format_matl_errors() {
+        assert_eq!(
+            r#"Mesh "mesh" is missing attributes ["a", "b"] required by assigned material "mat"."#,
+            MatlValidationErrorKind::MissingRequiredVertexAttributes {
+                mesh_name: "mesh".to_string(),
+                material_label: "mat".to_string(),
+                missing_attributes: vec!["a".to_string(), "b".to_string()]
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Texture "tex" for material "mat" has format BC5Unorm, but Texture0 expects an sRGB format."#,
+            MatlValidationErrorKind::UnexpectedTextureFormat {
+                material_label: "mat".to_string(),
+                param_id: ParamId::Texture0,
+                nutexb: "tex".to_string(),
+                format: NutexbFormat::BC5Unorm
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Texture "tex" for material "mat" has format BC7Srgb, but Texture4 does not expect an sRGB format."#,
+            MatlValidationErrorKind::UnexpectedTextureFormat {
+                material_label: "mat".to_string(),
+                param_id: ParamId::Texture4,
+                nutexb: "tex".to_string(),
+                format: NutexbFormat::BC7Srgb
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Texture "tex" for material "mat" has dimensions Texture2d, but Texture7 requires TextureCube."#,
+            MatlValidationErrorKind::UnexpectedTextureDimension {
+                material_label: "mat".to_string(),
+                param_id: ParamId::Texture7,
+                texture: "tex".to_string(),
+                expected: TextureDimension::TextureCube,
+                actual: TextureDimension::Texture2d,
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Textures ["a", "b"] for material "mat" are missing."#,
+            MatlValidationErrorKind::MissingTextures {
+                material_label: "mat".to_string(),
+                textures: vec!["a".to_string(), "b".to_string()]
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Mesh "mesh" has the RENORMAL material "mat" but no corresponding entry in the model.adjb."#,
+            MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
+                material_label: "mat".to_string(),
+                mesh_name: "mesh".to_string()
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Material "mat" is a RENORMAL material, but the model.adjb file is missing."#,
+            MatlValidationErrorKind::RenormalMaterialMissingAdj {
+                material_label: "mat".to_string(),
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Samplers [Sampler0, Sampler1] for material "mat" will clamp UV coordinates for mesh "mesh".
+Use wrap mode Repeat if the texture should tile."#,
+            MatlValidationErrorKind::WrapModeClampsUvs {
+                material_label: "mat".to_string(),
+                mesh_name: "mesh".to_string(),
+                samplers: vec![ParamId::Sampler0, ParamId::Sampler1]
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Shader label "shader" for material "mat" is not a valid shader label."#,
+            MatlValidationErrorKind::InvalidShaderLabel {
+                material_label: "mat".to_string(),
+                shader_label: "shader".to_string()
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Material "mat" uses Source Color "SourceAlpha", but shader "shader" already premultiplies alpha.
+Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
+            MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
+                material_label: "mat".to_string(),
+                shader_label: "shader".to_string()
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"The material label "mat" is already used by another material. Material names should be unique."#,
+            MatlValidationErrorKind::DuplicateMaterialLabel {
+                material_label: "mat".to_string(),
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Material "mat" enables anisotropic filtering for Sampler0 with filter mode Nearest. Set anisotropy to None or use only linear filter modes."#,
+            MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
+                material_label: "mat".to_string(),
+                param_id: ParamId::Sampler0,
+            }
+            .to_string()
+        );
+    }
+
+    #[test]
+    fn format_modl_errors() {
+        assert_eq!(
+            r#"Modl entry assigns to mesh "mesh" not found in the model.numshb. Ensure the name and subindex are correct."#,
+            ModlValidationErrorKind::InvalidMeshObject {
+                mesh_object_name: "mesh".to_string(),
+                mesh_object_subindex: 1
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Modl entry assigns a material "mat" not found in the model.numatb."#,
+            ModlValidationErrorKind::InvalidMaterial {
+                material_label: "mat".to_string()
+            }
+            .to_string()
+        );
+    }
+
+    #[test]
+    fn format_adj_errors() {
+        assert_eq!(
+            r#"Missing entry for mesh "mesh" with the RENORMAL material "mat"."#,
+            AdjValidationError::MissingRenormalEntry {
+                mesh_object_index: 0,
+                mesh_name: "mesh".to_string(),
+                material_label: "mat".to_string()
+            }
+            .to_string()
+        );
+    }
+
+    #[test]
+    fn format_nutexb_errors() {
+        assert_eq!(
+            r#"Texture "tex" has format BC7Unorm, but Texture0 expects an sRGB format."#,
+            NutexbValidationError::FormatInvalidForUsage {
+                nutexb: "tex".to_string(),
+                format: NutexbFormat::BC7Unorm,
+                param: ParamId::Texture0
+            }
+            .to_string()
+        );
+        assert_eq!(
+            r#"Texture "tex" has format BC7Srgb, but Texture4 does not expect an sRGB format."#,
+            NutexbValidationError::FormatInvalidForUsage {
+                nutexb: "tex".to_string(),
+                format: NutexbFormat::BC7Srgb,
+                param: ParamId::Texture4
+            }
+            .to_string()
+        );
+    }
+
+    #[test]
     fn required_attributes_all_missing() {
         let shader_database = ShaderDatabase::new();
         let matl = MatlData {
@@ -1188,16 +1393,6 @@ mod tests {
             }],
             validation.mesh_errors[&0]
         );
-
-        assert_eq!(
-            r#"Mesh "object1" is missing attributes ["map1", "uvSet"] required by assigned material "a"."#,
-            format!("{}", validation.matl_errors[&1][0])
-        );
-
-        assert_eq!(
-            r#"Mesh "object1" is missing attributes ["map1", "uvSet"] required by assigned material "a"."#,
-            format!("{}", validation.mesh_errors[&0][0])
-        );
     }
 
     #[test]
@@ -1260,11 +1455,6 @@ mod tests {
                 }
             }],
             validation.matl_errors[&1]
-        );
-
-        assert_eq!(
-            r#"Material "RENORMAL_a" is a RENORMAL material, but the model.adjb file is missing."#,
-            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1371,22 +1561,12 @@ mod tests {
         );
 
         assert_eq!(
-            r#"Mesh "object1" has the RENORMAL material "RENORMAL_a" but no corresponding entry in the model.adjb."#,
-            format!("{}", validation.matl_errors[&1][0])
-        );
-
-        assert_eq!(
             vec![AdjValidationError::MissingRenormalEntry {
                 mesh_object_index: 1,
                 mesh_name: "object1".to_owned(),
                 material_label: "RENORMAL_a".to_owned()
             }],
             validation.adj_errors[&0]
-        );
-
-        assert_eq!(
-            r#"Missing entry for mesh "object1" with the RENORMAL material "RENORMAL_a"."#,
-            format!("{}", validation.adj_errors[&0][0])
         );
     }
 
@@ -1451,15 +1631,6 @@ mod tests {
         );
 
         assert_eq!(
-            r#"Texture "texture0" for material "a" has format BC1Unorm, but Texture0 expects an sRGB format."#,
-            format!("{}", validation.matl_errors[&1][0])
-        );
-        assert_eq!(
-            r#"Texture "texture4" for material "a" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
-            format!("{}", validation.matl_errors[&1][1])
-        );
-
-        assert_eq!(
             vec![NutexbValidationError::FormatInvalidForUsage {
                 nutexb: "texture0".to_owned(),
                 param: ParamId::Texture0,
@@ -1474,15 +1645,6 @@ mod tests {
                 format: NutexbFormat::BC2Srgb
             }],
             validation.nutexb_errors[&1]
-        );
-
-        assert_eq!(
-            r#"Texture "texture0" has format BC1Unorm, but Texture0 expects an sRGB format."#,
-            format!("{}", validation.nutexb_errors[&0][0])
-        );
-        assert_eq!(
-            r#"Texture "texture4" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
-            format!("{}", validation.nutexb_errors[&1][0])
         );
     }
 
@@ -1549,11 +1711,6 @@ mod tests {
                 }
             },],
             validation.matl_errors[&1]
-        );
-
-        assert_eq!(
-            r#"Textures ["texture0", "texture1"] for material "a" are missing."#,
-            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1645,19 +1802,6 @@ mod tests {
             ],
             validation.matl_errors[&1]
         );
-
-        assert_eq!(
-            r#"Texture "texture0" for material "a" has dimensions TextureCube, but Texture0 requires Texture2d."#,
-            format!("{}", validation.matl_errors[&1][0])
-        );
-        assert_eq!(
-            r##"Texture "#replace_cubemap" for material "a" has dimensions TextureCube, but Texture1 requires Texture2d."##,
-            format!("{}", validation.matl_errors[&1][1])
-        );
-        assert_eq!(
-            r#"Texture "texture7" for material "a" has dimensions Texture2d, but Texture7 requires TextureCube."#,
-            format!("{}", validation.matl_errors[&1][2])
-        );
     }
 
     #[test]
@@ -1701,11 +1845,6 @@ mod tests {
                 }
             }],
             validation.mesh_errors[&0]
-        );
-
-        assert_eq!(
-            r#"Mesh "a" repeats subindex 0. Meshes with the same name must have unique subindices."#,
-            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 
@@ -1818,11 +1957,6 @@ mod tests {
                 }
             }],
             validation.matl_errors[&1]
-        );
-
-        assert_eq!(
-            "Samplers [Sampler0, Sampler4] for material \"a\" will clamp UV coordinates for mesh \"object1\".\nUse wrap mode Repeat if the texture should tile.",
-            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1938,11 +2072,6 @@ mod tests {
             }],
             validation.matl_errors[&1]
         );
-
-        assert_eq!(
-            r#"Shader label "SFX_PBS_777002000800824f_opaque" for material "b" is not a valid shader label."#,
-            format!("{}", validation.matl_errors[&1][0])
-        );
     }
 
     #[test]
@@ -2001,11 +2130,6 @@ mod tests {
                 }
             }],
             validation.matl_errors[&1]
-        );
-
-        assert_eq!(
-            r#"The material label "a" is already used by another material. Material names should be unique."#,
-            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -2069,11 +2193,6 @@ mod tests {
             }],
             validation.matl_errors[&1]
         );
-
-        assert_eq!(
-            r#"Material "a" enables anisotropic filtering for Sampler0 with filter mode Nearest. Set anisotropy to None or use only linear filter modes."#,
-            format!("{}", validation.matl_errors[&1][0])
-        );
     }
 
     #[test]
@@ -2116,12 +2235,6 @@ mod tests {
                 }
             }],
             validation.matl_errors[&1]
-        );
-
-        assert_eq!(
-            r#"Material "a" uses Source Color "SourceAlpha", but shader "SFX_PBS_0100000008018269_sort" already premultiplies alpha.
-Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
-            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -2276,19 +2389,6 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             ],
             validation.modl_errors[&0]
         );
-
-        assert_eq!(
-            r#"Modl entry assigns a material "b" not found in the model.numatb."#,
-            format!("{}", validation.modl_errors[&0][0])
-        );
-        assert_eq!(
-            r#"Modl entry assigns to mesh "object1" not found in the model.numshb. Ensure the name and subindex are correct."#,
-            format!("{}", validation.modl_errors[&0][1])
-        );
-        assert_eq!(
-            r#"Modl entry assigns to mesh "object2" not found in the model.numshb. Ensure the name and subindex are correct."#,
-            format!("{}", validation.modl_errors[&0][2])
-        );
     }
 
     #[test]
@@ -2376,11 +2476,6 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             }],
             validation.mesh_errors[&0]
         );
-
-        assert_eq!(
-            r#"Vertex weights for mesh "a" are not normalized. Vertex weights should sum to 1.0."#,
-            format!("{}", validation.mesh_errors[&0][0])
-        );
     }
 
     #[test]
@@ -2427,11 +2522,6 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             }],
             validation.mesh_errors[&0]
         );
-
-        assert_eq!(
-            r#"Mesh "a" has vertex weights with a weight of 0.0 that can be removed."#,
-            format!("{}", validation.mesh_errors[&0][0])
-        );
     }
 
     #[test]
@@ -2474,11 +2564,6 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 }
             }],
             validation.mesh_errors[&0]
-        );
-
-        assert_eq!(
-            r#"Mesh "a" has vertices with more than 4 weights and may not deform as expected in game."#,
-            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 }
