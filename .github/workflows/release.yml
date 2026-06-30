@@ -76,7 +76,7 @@ jobs:
         toolchain: stable
         targets: ${{matrix.target}}
     - name: Install Cargo Bundle
-      run: cargo install cargo-bundle --version 0.11
+      run: cargo install cargo-bundle --version 0.11.0
     - name: Bundle App
       run: cargo bundle --release --target ${{matrix.target}}
     - name: Sign Binaries
