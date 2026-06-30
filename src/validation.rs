@@ -103,7 +103,7 @@ fn find_mesh(model: &ModelFolder) -> Option<(usize, &MeshData)> {
         .meshes
         .iter()
         .enumerate()
-        .find(|(_, (f, _))| f == "model.numdlb")
+        .find(|(_, (f, _))| f == "model.numshb")
         .and_then(|(i, (_, m))| Some((i, m.as_ref()?)))
 }
 
