@@ -12,7 +12,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Packages
       run: |
         sudo apt-get update
@@ -22,12 +22,12 @@ jobs:
     - name: Create Release Zip
       run: zip -j ssbh_editor_linux_x64.zip target/release-lto/ssbh_editor
     - name: Upload Zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ssbh_editor_linux
         path: ssbh_editor_linux_x64.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ssbh_editor_linux_x64.zip
@@ -37,7 +37,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Build
       run: cargo build --profile release-lto
     - name: Set Icon
@@ -47,12 +47,12 @@ jobs:
     - name: Create Release Zip
       run: Compress-Archive -path target/release-lto/ssbh_editor.exe -destinationPath ssbh_editor_win_x64.zip
     - name: Upload Zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ssbh_editor_win
         path: ssbh_editor_win_x64.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ssbh_editor_win_x64.zip
@@ -69,17 +69,14 @@ jobs:
           - target: aarch64-apple-darwin
             desc: apple_silicon
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust Toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
-        target: ${{matrix.target}}
+        targets: ${{matrix.target}}
     - name: Install Cargo Bundle
-      uses: baptiste0928/cargo-install@v2
-      with:
-        crate: cargo-bundle
-        version: "0.6.0"
+      run: cargo install cargo-bundle@0.11
     - name: Bundle App
       run: cargo bundle --release --target ${{matrix.target}}
     - name: Sign Binaries
@@ -89,12 +86,12 @@ jobs:
         cp -r target/${{matrix.target}}/release/bundle/osx/ssbh_editor.app ssbh_editor.app
         zip -r ssbh_editor_macos_${{matrix.desc}}.zip ssbh_editor.app
     - name: Upload Zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ssbh_editor_macos_${{matrix.desc}}
         path: ssbh_editor_macos_${{matrix.desc}}.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ssbh_editor_macos_${{matrix.desc}}.zip
