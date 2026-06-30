@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     ERROR_COLOR, ICON_SIZE, UiState, adj_icon, anim_icon, display_validation_errors, empty_icon,
@@ -125,15 +125,18 @@ fn list_nutexb_files(
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
 ) {
-    // Show missing textures required by the matl.
-    // TODO: show textures missing from more than 1 matl only once.
+    // Show missing textures required by any matl only once.
+    let mut missing_textures = BTreeSet::new();
     for e in model.validation.matl_errors.values().flatten() {
         if let MatlValidationErrorKind::MissingTextures { textures, .. } = &e.kind {
-            for texture in textures {
-                missing_nutexb(ui, texture);
-            }
+            missing_textures.extend(textures.iter().filter(|t| !t.is_empty()));
         }
     }
+
+    for texture in missing_textures {
+        missing_nutexb(ui, texture);
+    }
+
     for (i, (file, _)) in model.model.nutexbs.iter().enumerate() {
         ui.horizontal(|ui| {
             if let Some((_, thumbnail, _)) =
@@ -173,7 +176,7 @@ fn missing_nutexb(ui: &mut Ui, name: &str) {
     })
     .response
     .on_hover_text(format!(
-        "Missing texture {name:?} required by model.numatb. Include this file or fix the texture assignment."
+        "Missing texture {name:?} required by a .numatb file. Include this file or fix the texture assignment."
     ));
 }
 
