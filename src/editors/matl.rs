@@ -39,11 +39,11 @@ const SH_DESCRIPTION: &str =
 const LIGHTSET_DESCRIPTION: &str = "Uses directional lighting from the lighting nuanmb.";
 const ANISOTROPIC_ROTATION_DESCRIPTION: &str =
     "Use the PRM alpha to rotate the anisotropic highlight.";
-const NO_USER_PRESETS: &'static str = "No user material presets detected. \
+const NO_USER_PRESETS: &str = "No user material presets detected. \
 Make sure the presets.json file is present and contains valid JSON materials.";
-const SHADER_ATTRIBUTES_DESCRIPTION: &'static str =
+const SHADER_ATTRIBUTES_DESCRIPTION: &str =
     "The mesh attributes required by the shader. The XYZW suffixes indicate accessed components.";
-const SHADER_COMPLEXITY_DESCRIPTION: &'static str = "The estimated complexity of this shader relative to other shaders. \
+const SHADER_COMPLEXITY_DESCRIPTION: &str = "The estimated complexity of this shader relative to other shaders. \
 Values closer to 1.0 may negatively impact in game performance.";
 
 #[allow(clippy::too_many_arguments)]
@@ -715,7 +715,12 @@ fn shader_finder_window(
                                         &mut state.shader_finder.selected_shader,
                                         name.to_string(),
                                         name,
-                                    );
+                                    )
+                                    .on_hover_ui(|ui| {
+                                        for param in &shader.material_parameters {
+                                            ui.label(param);
+                                        }
+                                    });
                                 });
                             }
                         }

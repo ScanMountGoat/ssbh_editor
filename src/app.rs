@@ -8,7 +8,7 @@ use crate::{
     app::{anim_list::anim_list, shortcut::format_shortcut, swing_list::swing_list},
     capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
-        adj::{add_missing_adj_entries, adj_editor},
+        adj::adj_editor,
         anim::anim_editor,
         hlpb::hlpb_editor,
         matl::{matl_editor, preset_editor},
@@ -37,8 +37,8 @@ use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
 use log::error;
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
-use ssbh_data::matl_data::MatlEntryData;
 use ssbh_data::prelude::*;
+use ssbh_data::{adj_data::AdjEntryData, matl_data::MatlEntryData};
 use ssbh_wgpu::{ModelFiles, RenderModel, next_frame};
 use std::{
     collections::{HashSet, VecDeque},
@@ -89,7 +89,12 @@ impl Editor for AdjData {
             name,
             adj,
             find_file(&model.model.meshes, "model.numshb"),
-            &model.validation.adj_errors,
+            model
+                .validation
+                .adj_errors
+                .get(open_file_index.as_ref()?)
+                .map(|e| e.as_slice())
+                .unwrap_or_default(),
         ))
     }
 
@@ -211,7 +216,12 @@ impl Editor for MeshData {
             name,
             mesh,
             find_file(&model.model.skels, "model.nusktb"),
-            &model.validation.mesh_errors,
+            model
+                .validation
+                .mesh_errors
+                .get(open_file_index.as_ref()?)
+                .map(|e| e.as_slice())
+                .unwrap_or_default(),
             dark_mode,
             state,
         ))
@@ -239,7 +249,12 @@ impl Editor for ModlData {
             modl,
             find_file(&model.model.meshes, "model.numshb"),
             find_file(&model.model.matls, "model.numatb"),
-            &model.validation.modl_errors,
+            model
+                .validation
+                .modl_errors
+                .get(open_file_index.as_ref()?)
+                .map(|e| e.as_slice())
+                .unwrap_or_default(),
             state,
             dark_mode,
         ))
@@ -1317,7 +1332,12 @@ impl SsbhApp {
                     &mut self.ui_state.matl_editor,
                     matl,
                     find_file_mut(&mut model.model.modls, "model.numdlb"),
-                    &model.validation.matl_errors,
+                    model
+                        .validation
+                        .matl_errors
+                        .get(&matl_index)
+                        .map(|e| e.as_slice())
+                        .unwrap_or_default(),
                     &model.thumbnails,
                     &self.default_thumbnails,
                     render_state.shared_data.database(),
@@ -1540,21 +1560,9 @@ impl SsbhApp {
                                 .clicked()
                             {
                                 // Add a missing adjb file based on the mesh.
-                                // TODO: Disable if the file isn't required?
-                                let mut new_adj = AdjData {
-                                    entries: Vec::new(),
-                                };
-                                add_missing_adj_entries(
-                                    &mut new_adj,
-                                    &model.validation.adj_errors,
-                                    mesh,
-                                );
-                                model
-                                    .model
-                                    .adjs
-                                    .push(("model.adjb".to_owned(), Some(new_adj)));
-                                // Mark the new file as modified to prompt the user to save it.
-                                model.changed.adjs.push(true);
+                                // TODO: Disable if the adjb file isn't required?
+                                add_new_adjb(model);
+
                                 // Validate to prevent adding missing entries again in the adj editor.
                                 self.should_validate_models = true;
                             }
@@ -1690,6 +1698,42 @@ impl SsbhApp {
             )
         })
     }
+}
+
+fn add_new_adjb(model: &mut ModelFolderState) {
+    let mut adj = AdjData {
+        entries: Vec::new(),
+    };
+
+    // Add any missing required entries.
+    if let Some(modl) = model.model.find_modl()
+        && let Some(mesh) = model.model.find_mesh()
+    {
+        // TODO: Should this consider all matl files?
+        if let Some(matl) = model.model.find_matl() {
+            for entry in matl
+                .entries
+                .iter()
+                .filter(|e| e.material_label.contains("RENORMAL"))
+            {
+                for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
+                    modl.entries.iter().any(|e| {
+                        e.mesh_object_name == m.name
+                            && e.mesh_object_subindex == m.subindex
+                            && e.material_label == entry.material_label
+                    })
+                }) {
+                    adj.entries
+                        .push(AdjEntryData::from_mesh_object(mesh_index, mesh));
+                }
+            }
+        }
+    }
+
+    model.model.adjs.push(("model.adjb".to_owned(), Some(adj)));
+
+    // Mark the new file as modified to prompt the user to save it.
+    model.changed.adjs.push(true);
 }
 
 fn find_file<'a, T>(files: &'a [(String, FileResult<T>)], name: &str) -> Option<&'a T> {

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::{
     ERROR_COLOR, ICON_SIZE, UiState, adj_icon, anim_icon, display_validation_errors, empty_icon,
     hlpb_icon, matl_icon, mesh_icon, missing_icon, skel_icon, warning_icon, warning_icon_text,
@@ -26,7 +28,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_mesh,
         required_file("model.numshb"),
-        Some("model.numshb"),
         &model.validation.mesh_errors,
         |ui| mesh_icon(ui, dark_mode),
     );
@@ -38,7 +39,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_skel,
         required_file("model.nusktb"),
-        Some("model.nusktb"),
         &model.validation.skel_errors,
         |ui| skel_icon(ui, dark_mode),
     );
@@ -50,7 +50,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_hlpb,
         None,
-        Some("model.nuhlpb"),
         &model.validation.hlpb_errors,
         |ui| hlpb_icon(ui, dark_mode),
     );
@@ -62,7 +61,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_matl,
         required_file("model.numatb"),
-        Some("model.numatb"),
         &model.validation.matl_errors,
         |ui| matl_icon(ui, dark_mode),
     );
@@ -74,7 +72,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_modl,
         required_file("model.numdlb"),
-        Some("model.numdlb"),
         &model.validation.modl_errors,
         |ui| mesh_icon(ui, dark_mode),
     );
@@ -86,7 +83,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_adj,
         None,
-        Some("model.adjb"),
         &model.validation.adj_errors,
         |ui| adj_icon(ui, dark_mode),
     );
@@ -97,7 +93,6 @@ pub fn show_folder_files(
         folder_index,
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_anim,
-        None,
         None,
         &model.validation.anim_errors,
         |ui| anim_icon(ui, dark_mode),
@@ -110,7 +105,6 @@ pub fn show_folder_files(
         &mut ui_state.selected_folder_index,
         &mut ui_state.open_meshex,
         None,
-        Some("model.numshexb"),
         &model.validation.meshex_errors,
         |ui| mesh_icon(ui, dark_mode),
     );
@@ -133,7 +127,7 @@ fn list_nutexb_files(
 ) {
     // Show missing textures required by the matl.
     // TODO: show textures missing from more than 1 matl only once.
-    for e in &model.validation.matl_errors {
+    for e in model.validation.matl_errors.values().flatten() {
         if let MatlValidationErrorKind::MissingTextures { textures, .. } = &e.kind {
             for texture in textures {
                 missing_nutexb(ui, texture);
@@ -141,14 +135,6 @@ fn list_nutexb_files(
         }
     }
     for (i, (file, _)) in model.model.nutexbs.iter().enumerate() {
-        // TODO: Avoid collect?
-        let validation_errors: Vec<_> = model
-            .validation
-            .nutexb_errors
-            .iter()
-            .filter(|e| e.name() == file)
-            .collect();
-
         ui.horizontal(|ui| {
             if let Some((_, thumbnail, _)) =
                 model.thumbnails.iter().find(|(name, _, _)| name == file)
@@ -163,8 +149,8 @@ fn list_nutexb_files(
                 );
             }
 
-            let response = if !validation_errors.is_empty() {
-                file_button_with_errors(ui, file, validation_errors.iter())
+            let response = if let Some(errors) = model.validation.nutexb_errors.get(&i) {
+                file_button_with_errors(ui, file, errors.iter())
             } else {
                 ui.button(file)
             };
@@ -199,8 +185,7 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
     selected_folder_index: &mut Option<usize>,
     selected_file_index: &mut Option<usize>,
     required_file: Option<&'static str>,
-    validation_file: Option<&'static str>,
-    validation_errors: &[E],
+    validation_errors: &BTreeMap<usize, Vec<E>>,
     file_icon: F,
 ) {
     // TODO: Should this be a grid instead?
@@ -210,12 +195,8 @@ fn list_files<T, E: std::fmt::Display, F: Fn(&mut Ui) -> Response>(
                 Some(_) => {
                     file_icon(ui);
 
-                    // Assume only the required file is validated for now.
-                    // This excludes files like metamon_model.numatb.
-                    let response = if !validation_errors.is_empty()
-                        && Some(name.as_str()) == validation_file
-                    {
-                        file_button_with_errors(ui, name, validation_errors.iter())
+                    let response = if let Some(errors) = validation_errors.get(&i) {
+                        file_button_with_errors(ui, name, errors.iter())
                     } else {
                         ui.button(name)
                     };

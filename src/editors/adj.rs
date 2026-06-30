@@ -89,7 +89,7 @@ pub fn adj_editor(
     }
 }
 
-pub fn add_missing_adj_entries(
+fn add_missing_adj_entries(
     adj: &mut AdjData,
     validation_errors: &[AdjValidationError],
     mesh: Option<&MeshData>,

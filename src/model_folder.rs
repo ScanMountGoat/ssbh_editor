@@ -2,13 +2,13 @@ use std::path::{Path, PathBuf};
 
 use ssbh_wgpu::{ModelFolder, SharedRenderData, swing::SwingPrc};
 
-use crate::{Thumbnail, validation::ModelValidationErrors};
+use crate::{Thumbnail, validation::ModelFolderValidationErrors};
 
 pub struct ModelFolderState {
     pub folder_path: PathBuf,
     pub model: ModelFolder,
     pub thumbnails: Vec<Thumbnail>,
-    pub validation: ModelValidationErrors,
+    pub validation: ModelFolderValidationErrors,
     pub changed: FileChanged,
     pub swing_prc: Option<SwingPrc>, // TODO: Add animation slots?
     pub is_meshlist_open: bool,
@@ -25,7 +25,7 @@ impl ModelFolderState {
             folder_path,
             model,
             thumbnails: Vec::new(),
-            validation: ModelValidationErrors::default(),
+            validation: ModelFolderValidationErrors::default(),
             changed,
             swing_prc,
             is_meshlist_open: true,
@@ -33,7 +33,7 @@ impl ModelFolderState {
     }
 
     pub fn validate(&mut self, shared_data: &SharedRenderData) {
-        self.validation = ModelValidationErrors::from_model(
+        self.validation = ModelFolderValidationErrors::from_model(
             &self.model,
             shared_data.database(),
             shared_data
@@ -130,7 +130,7 @@ fn find_folders_by_path_affinity<'a, P: Fn(&'a ModelFolderState) -> bool>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{model_folder::FileChanged, validation::ModelValidationErrors};
+    use crate::{model_folder::FileChanged, validation::ModelFolderValidationErrors};
     use ssbh_data::anim_data::AnimData;
     use ssbh_wgpu::ModelFolder;
 
@@ -151,7 +151,7 @@ mod tests {
             },
             swing_prc: None,
             thumbnails: Vec::new(),
-            validation: ModelValidationErrors::default(),
+            validation: ModelFolderValidationErrors::default(),
             changed: FileChanged::default(),
             is_meshlist_open: true,
         }
@@ -182,7 +182,7 @@ mod tests {
             },
             swing_prc: None,
             thumbnails: Vec::new(),
-            validation: ModelValidationErrors::default(),
+            validation: ModelFolderValidationErrors::default(),
             changed: FileChanged::default(),
             is_meshlist_open: true,
         }

@@ -16,19 +16,21 @@ use thiserror::Error;
 
 // TODO: Add a severity level to differentiate warnings vs errors.
 #[derive(Default)]
-pub struct ModelValidationErrors {
-    pub mesh_errors: Vec<MeshValidationError>,
-    pub meshex_errors: Vec<MeshExValidationError>,
-    pub skel_errors: Vec<SkelValidationError>,
-    pub matl_errors: Vec<MatlValidationError>,
-    pub modl_errors: Vec<ModlValidationError>,
-    pub adj_errors: Vec<AdjValidationError>,
-    pub anim_errors: Vec<AnimValidationError>,
-    pub hlpb_errors: Vec<HlpbValidationError>,
-    pub nutexb_errors: Vec<NutexbValidationError>,
+pub struct ModelFolderValidationErrors {
+    // Store errors based on the file index.
+    // Use a map since some files may not have errors.
+    pub mesh_errors: BTreeMap<usize, Vec<MeshValidationError>>,
+    pub meshex_errors: BTreeMap<usize, Vec<MeshExValidationError>>,
+    pub skel_errors: BTreeMap<usize, Vec<SkelValidationError>>,
+    pub matl_errors: BTreeMap<usize, Vec<MatlValidationError>>,
+    pub modl_errors: BTreeMap<usize, Vec<ModlValidationError>>,
+    pub adj_errors: BTreeMap<usize, Vec<AdjValidationError>>,
+    pub anim_errors: BTreeMap<usize, Vec<AnimValidationError>>,
+    pub hlpb_errors: BTreeMap<usize, Vec<HlpbValidationError>>,
+    pub nutexb_errors: BTreeMap<usize, Vec<NutexbValidationError>>,
 }
 
-impl ModelValidationErrors {
+impl ModelFolderValidationErrors {
     pub fn from_model<'a, 'b>(
         model: &'b ModelFolder,
         shader_database: &ShaderDatabase,
@@ -40,17 +42,18 @@ impl ModelValidationErrors {
         // Each validation check may add errors to multiple related files.
         let mut validation = Self::default();
 
-        let mesh = model.find_mesh();
-        if let Some(mesh) = mesh {
-            validate_mesh_subindices(&mut validation, mesh);
-            validate_mesh_vertex_weights(&mut validation, mesh);
+        let mesh = find_mesh(model);
+        if let Some((mesh_index, mesh)) = mesh {
+            validate_mesh_subindices(&mut validation, mesh_index, mesh);
+            validate_mesh_vertex_weights(&mut validation, mesh_index, mesh);
         }
 
-        let modl = model.find_modl();
+        let modl = find_modl(model);
 
-        if let Some(modl) = modl {
+        if let Some((modl_index, modl)) = modl {
             for matl in model.matls.iter().filter_map(|(_, m)| m.as_ref()) {
-                validate_modl_entries(&mut validation, modl, Some(matl), mesh);
+                // TODO: This should only validate model.numatb?
+                validate_modl_entries(&mut validation, modl_index, modl, Some(matl), mesh);
             }
         }
 
@@ -83,7 +86,7 @@ impl ModelValidationErrors {
                 &mut validation,
                 i,
                 matl,
-                model.find_adj(),
+                find_adj(model),
                 model.find_modl(),
                 mesh,
             );
@@ -93,6 +96,33 @@ impl ModelValidationErrors {
 
         validation
     }
+}
+
+fn find_mesh(model: &ModelFolder) -> Option<(usize, &MeshData)> {
+    model
+        .meshes
+        .iter()
+        .enumerate()
+        .find(|(_, (f, _))| f == "model.numdlb")
+        .and_then(|(i, (_, m))| Some((i, m.as_ref()?)))
+}
+
+fn find_modl(model: &ModelFolder) -> Option<(usize, &ModlData)> {
+    model
+        .modls
+        .iter()
+        .enumerate()
+        .find(|(_, (f, _))| f == "model.numdlb")
+        .and_then(|(i, (_, m))| Some((i, m.as_ref()?)))
+}
+
+fn find_adj(model: &ModelFolder) -> Option<(usize, &AdjData)> {
+    model
+        .adjs
+        .iter()
+        .enumerate()
+        .find(|(_, (f, _))| f == "model.adjb")
+        .and_then(|(i, (_, m))| Some((i, m.as_ref()?)))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -147,7 +177,6 @@ impl Display for SkelValidationError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct MatlValidationError {
-    pub file_index: usize,
     pub entry_index: usize,
     pub kind: MatlValidationErrorKind,
 }
@@ -337,15 +366,15 @@ impl Display for MeshExValidationError {
 }
 
 fn validate_required_attributes(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
-    modl: Option<&ModlData>,
-    mesh: Option<&MeshData>,
+    modl: Option<(usize, &ModlData)>,
+    mesh: Option<(usize, &MeshData)>,
     shader_database: &ShaderDatabase,
 ) {
     // Both the modl and mesh should be present to determine material assignments.
-    if let (Some(modl), Some(mesh)) = (modl, mesh) {
+    if let (Some((_, modl)), Some((mesh_index, mesh))) = (modl, mesh) {
         for (entry_index, entry) in matl.entries.iter().enumerate() {
             if let Some(program) = shader_database.get(&entry.shader_label) {
                 for (i, o) in mesh.objects.iter().enumerate().filter(|(_, o)| {
@@ -370,7 +399,6 @@ fn validate_required_attributes(
                     let missing_attributes = program.missing_required_attributes(&attribute_names);
                     if !missing_attributes.is_empty() {
                         let matl_error = MatlValidationError {
-                            file_index: matl_index,
                             entry_index,
                             kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
                                 material_label: entry.material_label.clone(),
@@ -378,7 +406,11 @@ fn validate_required_attributes(
                                 missing_attributes: missing_attributes.clone(),
                             },
                         };
-                        validation.matl_errors.push(matl_error);
+                        validation
+                            .matl_errors
+                            .entry(matl_index)
+                            .or_default()
+                            .push(matl_error);
 
                         let mesh_error = MeshValidationError {
                             mesh_object_index: i,
@@ -388,7 +420,11 @@ fn validate_required_attributes(
                                 missing_attributes,
                             },
                         };
-                        validation.mesh_errors.push(mesh_error);
+                        validation
+                            .mesh_errors
+                            .entry(mesh_index)
+                            .or_default()
+                            .push(mesh_error);
                     }
                 }
             }
@@ -397,7 +433,7 @@ fn validate_required_attributes(
 }
 
 fn validate_shader_labels(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
     shader_database: &ShaderDatabase,
@@ -405,21 +441,23 @@ fn validate_shader_labels(
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         if shader_database.get(&entry.shader_label).is_none() {
             let error = MatlValidationError {
-                file_index: matl_index,
-
                 entry_index,
                 kind: MatlValidationErrorKind::InvalidShaderLabel {
                     material_label: entry.material_label.clone(),
                     shader_label: entry.shader_label.clone(),
                 },
             };
-            validation.matl_errors.push(error);
+            validation
+                .matl_errors
+                .entry(matl_index)
+                .or_default()
+                .push(error);
         }
     }
 }
 
 fn validate_premultiplied_blend(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
     shader_database: &ShaderDatabase,
@@ -432,14 +470,17 @@ fn validate_premultiplied_blend(
         {
             // This will square the src alpha and probably isn't intentional.
             let error = MatlValidationError {
-                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
                     material_label: entry.material_label.clone(),
                     shader_label: entry.shader_label.clone(),
                 },
             };
-            validation.matl_errors.push(error);
+            validation
+                .matl_errors
+                .entry(matl_index)
+                .or_default()
+                .push(error);
         }
     }
 }
@@ -456,14 +497,14 @@ fn is_cube(param: ParamId) -> bool {
 }
 
 fn validate_wrap_mode_tiling(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
-    modl: Option<&ModlData>,
-    mesh: Option<&MeshData>,
+    modl: Option<(usize, &ModlData)>,
+    mesh: Option<(usize, &MeshData)>,
 ) {
     // Both the modl and mesh should be present to determine material assignments.
-    if let (Some(modl), Some(mesh)) = (modl, mesh) {
+    if let (Some((_, modl)), Some((_, mesh))) = (modl, mesh) {
         for (entry_index, entry) in matl.entries.iter().enumerate() {
             for (_, o) in mesh.objects.iter().enumerate().filter(|(_, o)| {
                 modl.entries
@@ -507,7 +548,6 @@ fn validate_wrap_mode_tiling(
                 // TODO: Only validate the first layer (map1/bake1) to avoid flagging eye materials?
                 if !samplers.is_empty() {
                     let matl_error = MatlValidationError {
-                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::WrapModeClampsUvs {
                             material_label: entry.material_label.clone(),
@@ -515,7 +555,11 @@ fn validate_wrap_mode_tiling(
                             samplers,
                         },
                     };
-                    validation.matl_errors.push(matl_error);
+                    validation
+                        .matl_errors
+                        .entry(matl_index)
+                        .or_default()
+                        .push(matl_error);
                 }
             }
         }
@@ -562,39 +606,53 @@ fn get_uv_range(data: &VectorData) -> (f32, f32, f32, f32) {
 }
 
 fn validate_texture_format_usage(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
     nutexbs: &[(String, FileResult<NutexbFile>)],
 ) {
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         for texture in &entry.textures {
-            if let Some((f, Some(nutexb))) = nutexbs.iter().find(|(f, _)| {
-                Path::new(f)
-                    .with_extension("")
-                    .as_os_str()
-                    .eq_ignore_ascii_case(&texture.data)
-            }) {
+            if let Some((nutexb_index, nutexb_name, Some(nutexb))) =
+                nutexbs.iter().enumerate().find_map(|(i, (f, n))| {
+                    if Path::new(f)
+                        .with_extension("")
+                        .as_os_str()
+                        .eq_ignore_ascii_case(&texture.data)
+                    {
+                        Some((i, f, n))
+                    } else {
+                        None
+                    }
+                })
+            {
                 // Check for sRGB mismatches.
                 if expects_srgb(texture.param_id) != is_srgb(nutexb.footer.image_format) {
                     let error = MatlValidationError {
-                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                             material_label: entry.material_label.clone(),
                             param_id: texture.param_id,
-                            nutexb: f.clone(),
+                            nutexb: nutexb_name.clone(),
                             format: nutexb.footer.image_format,
                         },
                     };
-                    validation.matl_errors.push(error);
+                    validation
+                        .matl_errors
+                        .entry(matl_index)
+                        .or_default()
+                        .push(error);
 
                     let error = NutexbValidationError::FormatInvalidForUsage {
-                        nutexb: f.clone(),
+                        nutexb: nutexb_name.clone(),
                         format: nutexb.footer.image_format,
                         param: texture.param_id,
                     };
-                    validation.nutexb_errors.push(error);
+                    validation
+                        .nutexb_errors
+                        .entry(nutexb_index)
+                        .or_default()
+                        .push(error);
                 }
             }
         }
@@ -602,7 +660,7 @@ fn validate_texture_format_usage(
 }
 
 fn validate_texture_assignments<'a, 'b>(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
     nutexbs: &'b [(String, FileResult<NutexbFile>)],
@@ -637,20 +695,23 @@ fn validate_texture_assignments<'a, 'b>(
 
         if !textures.is_empty() {
             let error = MatlValidationError {
-                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::MissingTextures {
                     material_label: entry.material_label.clone(),
                     textures,
                 },
             };
-            validation.matl_errors.push(error);
+            validation
+                .matl_errors
+                .entry(matl_index)
+                .or_default()
+                .push(error);
         }
     }
 }
 
 fn validate_texture_dimensions<'a>(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
     nutexbs: &'a [(String, FileResult<NutexbFile>)],
@@ -674,7 +735,6 @@ fn validate_texture_dimensions<'a>(
                     // The dimension is a fundamental part of the texture.
                     // Add errors to the matl since users should just assign a new texture.
                     let error = MatlValidationError {
-                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                             material_label: entry.material_label.clone(),
@@ -684,7 +744,11 @@ fn validate_texture_dimensions<'a>(
                             actual,
                         },
                     };
-                    validation.matl_errors.push(error);
+                    validation
+                        .matl_errors
+                        .entry(matl_index)
+                        .or_default()
+                        .push(error);
                 }
             }
         }
@@ -692,12 +756,12 @@ fn validate_texture_dimensions<'a>(
 }
 
 fn validate_renormal_material_entries(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
-    adj: Option<&AdjData>,
+    adj: Option<(usize, &AdjData)>,
     modl: Option<&ModlData>,
-    mesh: Option<&MeshData>,
+    mesh: Option<(usize, &MeshData)>,
 ) {
     // TODO: Is this check case sensitive?
     for (entry_index, entry) in matl
@@ -709,17 +773,20 @@ fn validate_renormal_material_entries(
         if adj.is_none() {
             // The model.adjb should be present if any RENORMAL materials are used.
             let matl_error = MatlValidationError {
-                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
                     material_label: entry.material_label.clone(),
                 },
             };
-            validation.matl_errors.push(matl_error);
+            validation
+                .matl_errors
+                .entry(matl_index)
+                .or_default()
+                .push(matl_error);
         }
 
         if let Some(modl) = modl
-            && let Some(mesh) = mesh
+            && let Some((_, mesh)) = mesh
         {
             for (mesh_index, mesh) in mesh.objects.iter().enumerate().filter(|(_, m)| {
                 modl.entries.iter().any(|e| {
@@ -734,25 +801,29 @@ fn validate_renormal_material_entries(
                     material_label: entry.material_label.clone(),
                 };
 
-                if let Some(adj) = adj
+                if let Some((adj_index, adj)) = adj
                     && !adj
                         .entries
                         .iter()
                         .any(|a| a.mesh_object_index == mesh_index)
                 {
                     let matl_error = MatlValidationError {
-                        file_index: matl_index,
                         entry_index,
                         kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                             material_label: entry.material_label.clone(),
                             mesh_name: mesh.name.clone(),
                         },
                     };
-                    validation.matl_errors.push(matl_error);
-                    validation.adj_errors.push(adj_error);
-                } else if adj.is_none() {
-                    // We need an adj error here for model.adjb creation to add required entries.
-                    validation.adj_errors.push(adj_error);
+                    validation
+                        .matl_errors
+                        .entry(matl_index)
+                        .or_default()
+                        .push(matl_error);
+                    validation
+                        .adj_errors
+                        .entry(adj_index)
+                        .or_default()
+                        .push(adj_error);
                 }
             }
         }
@@ -760,7 +831,7 @@ fn validate_renormal_material_entries(
 }
 
 fn validate_material_labels(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
 ) {
@@ -768,19 +839,22 @@ fn validate_material_labels(
     for (entry_index, entry) in matl.entries.iter().enumerate() {
         if !labels.insert(&entry.material_label) {
             let error = MatlValidationError {
-                file_index: matl_index,
                 entry_index,
                 kind: MatlValidationErrorKind::DuplicateMaterialLabel {
                     material_label: entry.material_label.clone(),
                 },
             };
-            validation.matl_errors.push(error);
+            validation
+                .matl_errors
+                .entry(matl_index)
+                .or_default()
+                .push(error);
         }
     }
 }
 
 fn validate_sampler_anisotropy(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
     matl_index: usize,
     matl: &MatlData,
 ) {
@@ -791,14 +865,17 @@ fn validate_sampler_anisotropy(
                     || s.data.mag_filter == MagFilter::Nearest)
             {
                 let error = MatlValidationError {
-                    file_index: matl_index,
                     entry_index,
                     kind: MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
                         material_label: entry.material_label.clone(),
                         param_id: s.param_id,
                     },
                 };
-                validation.matl_errors.push(error);
+                validation
+                    .matl_errors
+                    .entry(matl_index)
+                    .or_default()
+                    .push(error);
             }
         }
     }
@@ -829,7 +906,11 @@ fn is_srgb(format: NutexbFormat) -> bool {
     )
 }
 
-fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshData) {
+fn validate_mesh_subindices(
+    validation: &mut ModelFolderValidationErrors,
+    mesh_index: usize,
+    mesh: &MeshData,
+) {
     // Subindices for mesh objects with the same name should be unique.
     // This ensures material and vertex weights can be properly assigned.
     let mut subindices_by_name = HashMap::new();
@@ -846,12 +927,20 @@ fn validate_mesh_subindices(validation: &mut ModelValidationErrors, mesh: &MeshD
                     subindex: o.subindex,
                 },
             };
-            validation.mesh_errors.push(error);
+            validation
+                .mesh_errors
+                .entry(mesh_index)
+                .or_default()
+                .push(error);
         }
     }
 }
 
-fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &MeshData) {
+fn validate_mesh_vertex_weights(
+    validation: &mut ModelFolderValidationErrors,
+    mesh_index: usize,
+    mesh: &MeshData,
+) {
     for (i, o) in mesh.objects.iter().enumerate() {
         let mut has_zero_weights = false;
 
@@ -880,7 +969,11 @@ fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &M
                     mesh_name: o.name.clone(),
                 },
             };
-            validation.mesh_errors.push(error);
+            validation
+                .mesh_errors
+                .entry(mesh_index)
+                .or_default()
+                .push(error);
         }
 
         if has_zero_weights {
@@ -890,7 +983,11 @@ fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &M
                     mesh_name: o.name.clone(),
                 },
             };
-            validation.mesh_errors.push(error);
+            validation
+                .mesh_errors
+                .entry(mesh_index)
+                .or_default()
+                .push(error);
         }
 
         if weight_count_by_vertex.values().any(|c| *c > 4) {
@@ -900,16 +997,21 @@ fn validate_mesh_vertex_weights(validation: &mut ModelValidationErrors, mesh: &M
                     mesh_name: o.name.clone(),
                 },
             };
-            validation.mesh_errors.push(error);
+            validation
+                .mesh_errors
+                .entry(mesh_index)
+                .or_default()
+                .push(error);
         }
     }
 }
 
 fn validate_modl_entries(
-    validation: &mut ModelValidationErrors,
+    validation: &mut ModelFolderValidationErrors,
+    modl_index: usize,
     modl: &ModlData,
     matl: Option<&MatlData>,
-    mesh: Option<&MeshData>,
+    mesh: Option<(usize, &MeshData)>,
 ) {
     if let Some(matl) = matl {
         for (entry_index, entry) in modl.entries.iter().enumerate() {
@@ -924,12 +1026,16 @@ fn validate_modl_entries(
                         material_label: entry.material_label.clone(),
                     },
                 };
-                validation.modl_errors.push(error);
+                validation
+                    .modl_errors
+                    .entry(modl_index)
+                    .or_default()
+                    .push(error);
             }
         }
     }
 
-    if let Some(mesh) = mesh {
+    if let Some((_, mesh)) = mesh {
         for (entry_index, entry) in modl.entries.iter().enumerate() {
             if !mesh.objects.iter().any(|o| {
                 o.name == entry.mesh_object_name && o.subindex == entry.mesh_object_subindex
@@ -941,7 +1047,11 @@ fn validate_modl_entries(
                         mesh_object_subindex: entry.mesh_object_subindex as usize,
                     },
                 };
-                validation.modl_errors.push(error);
+                validation
+                    .modl_errors
+                    .entry(modl_index)
+                    .or_default()
+                    .push(error);
             }
         }
     }
@@ -1045,19 +1155,18 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_required_attributes(
             &mut validation,
             1,
             &matl,
-            Some(&modl),
-            Some(&mesh),
+            Some((0, &modl)),
+            Some((0, &mesh)),
             &shader_database,
         );
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
                     material_label: "a".to_owned(),
@@ -1065,7 +1174,7 @@ mod tests {
                     missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
@@ -1077,17 +1186,17 @@ mod tests {
                     missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
                 }
             }],
-            validation.mesh_errors
+            validation.mesh_errors[&0]
         );
 
         assert_eq!(
             r#"Mesh "object1" is missing attributes ["map1", "uvSet"] required by assigned material "a"."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
 
         assert_eq!(
             r#"Mesh "object1" is missing attributes ["map1", "uvSet"] required by assigned material "a"."#,
-            format!("{}", validation.mesh_errors[0])
+            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 
@@ -1133,44 +1242,29 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_renormal_material_entries(
             &mut validation,
             1,
             &matl,
             None,
             Some(&modl),
-            Some(&mesh),
-        );
-
-        assert_eq!(
-            vec![AdjValidationError::MissingRenormalEntry {
-                mesh_object_index: 0,
-                mesh_name: "object1".to_owned(),
-                material_label: "RENORMAL_a".to_owned()
-            }],
-            validation.adj_errors
-        );
-
-        assert_eq!(
-            r#"Missing entry for mesh "object1" with the RENORMAL material "RENORMAL_a"."#,
-            format!("{}", validation.adj_errors[0])
+            Some((0, &mesh)),
         );
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
                     material_label: "RENORMAL_a".to_owned(),
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Material "RENORMAL_a" is a RENORMAL material, but the model.adjb file is missing."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1255,31 +1349,30 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_renormal_material_entries(
             &mut validation,
             1,
             &matl,
-            Some(&adj),
+            Some((0, &adj)),
             Some(&modl),
-            Some(&mesh),
+            Some((0, &mesh)),
         );
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                     material_label: "RENORMAL_a".to_owned(),
                     mesh_name: "object1".to_owned()
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Mesh "object1" has the RENORMAL material "RENORMAL_a" but no corresponding entry in the model.adjb."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
 
         assert_eq!(
@@ -1288,12 +1381,12 @@ mod tests {
                 mesh_name: "object1".to_owned(),
                 material_label: "RENORMAL_a".to_owned()
             }],
-            validation.adj_errors
+            validation.adj_errors[&0]
         );
 
         assert_eq!(
             r#"Missing entry for mesh "object1" with the RENORMAL material "RENORMAL_a"."#,
-            format!("{}", validation.adj_errors[0])
+            format!("{}", validation.adj_errors[&0][0])
         );
     }
 
@@ -1330,13 +1423,12 @@ mod tests {
             ("texture4".to_owned(), Some(nutexb(NutexbFormat::BC2Srgb))),
         ];
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_texture_format_usage(&mut validation, 1, &matl, &textures);
 
         assert_eq!(
             vec![
                 MatlValidationError {
-                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                         material_label: "a".to_owned(),
@@ -1346,7 +1438,6 @@ mod tests {
                     }
                 },
                 MatlValidationError {
-                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureFormat {
                         material_label: "a".to_owned(),
@@ -1356,41 +1447,42 @@ mod tests {
                     }
                 }
             ],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Texture "texture0" for material "a" has format BC1Unorm, but Texture0 expects an sRGB format."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
         assert_eq!(
             r#"Texture "texture4" for material "a" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
-            format!("{}", validation.matl_errors[1])
+            format!("{}", validation.matl_errors[&1][1])
         );
 
         assert_eq!(
-            vec![
-                NutexbValidationError::FormatInvalidForUsage {
-                    nutexb: "texture0".to_owned(),
-                    param: ParamId::Texture0,
-                    format: NutexbFormat::BC1Unorm
-                },
-                NutexbValidationError::FormatInvalidForUsage {
-                    nutexb: "texture4".to_owned(),
-                    param: ParamId::Texture4,
-                    format: NutexbFormat::BC2Srgb
-                }
-            ],
-            validation.nutexb_errors
+            vec![NutexbValidationError::FormatInvalidForUsage {
+                nutexb: "texture0".to_owned(),
+                param: ParamId::Texture0,
+                format: NutexbFormat::BC1Unorm
+            },],
+            validation.nutexb_errors[&0]
+        );
+        assert_eq!(
+            vec![NutexbValidationError::FormatInvalidForUsage {
+                nutexb: "texture4".to_owned(),
+                param: ParamId::Texture4,
+                format: NutexbFormat::BC2Srgb
+            }],
+            validation.nutexb_errors[&1]
         );
 
         assert_eq!(
             r#"Texture "texture0" has format BC1Unorm, but Texture0 expects an sRGB format."#,
-            format!("{}", validation.nutexb_errors[0])
+            format!("{}", validation.nutexb_errors[&0][0])
         );
         assert_eq!(
             r#"Texture "texture4" has format BC2Srgb, but Texture4 does not expect an sRGB format."#,
-            format!("{}", validation.nutexb_errors[1])
+            format!("{}", validation.nutexb_errors[&1][0])
         );
     }
 
@@ -1435,7 +1527,7 @@ mod tests {
             ("texture4".to_owned(), Some(nutexb(NutexbFormat::BC7Unorm))),
         ];
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_texture_assignments(
             &mut validation,
             1,
@@ -1450,19 +1542,18 @@ mod tests {
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::MissingTextures {
                     material_label: "a".to_owned(),
                     textures: vec!["texture0".to_owned(), "texture1".to_owned()],
                 }
             },],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Textures ["texture0", "texture1"] for material "a" are missing."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1506,7 +1597,7 @@ mod tests {
             ("texture7".to_owned(), Some(nutexb(NutexbFormat::BC2Srgb))),
         ];
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_texture_dimensions(
             &mut validation,
             1,
@@ -1522,7 +1613,6 @@ mod tests {
         assert_eq!(
             vec![
                 MatlValidationError {
-                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
@@ -1533,7 +1623,6 @@ mod tests {
                     }
                 },
                 MatlValidationError {
-                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
@@ -1544,7 +1633,6 @@ mod tests {
                     }
                 },
                 MatlValidationError {
-                    file_index: 1,
                     entry_index: 0,
                     kind: MatlValidationErrorKind::UnexpectedTextureDimension {
                         material_label: "a".to_owned(),
@@ -1555,20 +1643,20 @@ mod tests {
                     }
                 }
             ],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Texture "texture0" for material "a" has dimensions TextureCube, but Texture0 requires Texture2d."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
         assert_eq!(
             r##"Texture "#replace_cubemap" for material "a" has dimensions TextureCube, but Texture1 requires Texture2d."##,
-            format!("{}", validation.matl_errors[1])
+            format!("{}", validation.matl_errors[&1][1])
         );
         assert_eq!(
             r#"Texture "texture7" for material "a" has dimensions Texture2d, but Texture7 requires TextureCube."#,
-            format!("{}", validation.matl_errors[2])
+            format!("{}", validation.matl_errors[&1][2])
         );
     }
 
@@ -1601,8 +1689,8 @@ mod tests {
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_mesh_subindices(&mut validation, &mesh);
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_mesh_subindices(&mut validation, 0, &mesh);
 
         assert_eq!(
             vec![MeshValidationError {
@@ -1612,12 +1700,12 @@ mod tests {
                     subindex: 0
                 }
             }],
-            validation.mesh_errors
+            validation.mesh_errors[&0]
         );
 
         assert_eq!(
             r#"Mesh "a" repeats subindex 0. Meshes with the same name must have unique subindices."#,
-            format!("{}", validation.mesh_errors[0])
+            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 
@@ -1710,13 +1798,18 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_wrap_mode_tiling(&mut validation, 1, &matl, Some(&modl), Some(&mesh));
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_wrap_mode_tiling(
+            &mut validation,
+            1,
+            &matl,
+            Some((0, &modl)),
+            Some((0, &mesh)),
+        );
 
         // Sampler3 isn't included since bake1 UVs are still in range.
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::WrapModeClampsUvs {
                     material_label: "a".to_owned(),
@@ -1724,12 +1817,12 @@ mod tests {
                     samplers: vec![ParamId::Sampler0, ParamId::Sampler4],
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             "Samplers [Sampler0, Sampler4] for material \"a\" will clamp UV coordinates for mesh \"object1\".\nUse wrap mode Repeat if the texture should tile.",
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1786,8 +1879,14 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_wrap_mode_tiling(&mut validation, 1, &matl, Some(&modl), Some(&mesh));
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_wrap_mode_tiling(
+            &mut validation,
+            1,
+            &matl,
+            Some((0, &modl)),
+            Some((0, &mesh)),
+        );
 
         assert!(validation.matl_errors.is_empty());
     }
@@ -1826,24 +1925,23 @@ mod tests {
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_shader_labels(&mut validation, 1, &matl, &shader_database);
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 1,
                 kind: MatlValidationErrorKind::InvalidShaderLabel {
                     material_label: "b".to_owned(),
                     shader_label: "SFX_PBS_777002000800824f_opaque".to_owned()
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Shader label "SFX_PBS_777002000800824f_opaque" for material "b" is not a valid shader label."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1892,23 +1990,22 @@ mod tests {
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_material_labels(&mut validation, 1, &matl);
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 2,
                 kind: MatlValidationErrorKind::DuplicateMaterialLabel {
                     material_label: "a".to_owned()
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"The material label "a" is already used by another material. Material names should be unique."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -1959,24 +2056,23 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_sampler_anisotropy(&mut validation, 1, &matl);
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::SamplerAnisotropyNonLinearFilterMode {
                     material_label: "a".to_owned(),
                     param_id: ParamId::Sampler0
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Material "a" enables anisotropic filtering for Sampler0 with filter mode Nearest. Set anisotropy to None or use only linear filter modes."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -2008,25 +2104,24 @@ mod tests {
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_premultiplied_blend(&mut validation, 1, &matl, &shader_database);
 
         assert_eq!(
             vec![MatlValidationError {
-                file_index: 1,
                 entry_index: 0,
                 kind: MatlValidationErrorKind::PremultipliedShaderSrcAlpha {
                     material_label: "a".to_owned(),
                     shader_label: "SFX_PBS_0100000008018269_sort".to_owned()
                 }
             }],
-            validation.matl_errors
+            validation.matl_errors[&1]
         );
 
         assert_eq!(
             r#"Material "a" uses Source Color "SourceAlpha", but shader "SFX_PBS_0100000008018269_sort" already premultiplies alpha.
 Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
-            format!("{}", validation.matl_errors[0])
+            format!("{}", validation.matl_errors[&1][0])
         );
     }
 
@@ -2058,7 +2153,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_premultiplied_blend(&mut validation, 1, &matl, &shader_database);
 
         assert!(validation.matl_errors.is_empty());
@@ -2092,7 +2187,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             }],
         };
 
-        let mut validation = ModelValidationErrors::default();
+        let mut validation = ModelFolderValidationErrors::default();
         validate_premultiplied_blend(&mut validation, 1, &matl, &shader_database);
 
         assert!(validation.matl_errors.is_empty());
@@ -2152,8 +2247,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_modl_entries(&mut validation, &modl, Some(&matl), Some(&mesh));
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_modl_entries(&mut validation, 0, &modl, Some(&matl), Some((0, &mesh)));
 
         // Check each kind of invalid assignment.
         assert_eq!(
@@ -2179,20 +2274,20 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                     }
                 }
             ],
-            validation.modl_errors
+            validation.modl_errors[&0]
         );
 
         assert_eq!(
             r#"Modl entry assigns a material "b" not found in the model.numatb."#,
-            format!("{}", validation.modl_errors[0])
+            format!("{}", validation.modl_errors[&0][0])
         );
         assert_eq!(
             r#"Modl entry assigns to mesh "object1" not found in the model.numshb. Ensure the name and subindex are correct."#,
-            format!("{}", validation.modl_errors[1])
+            format!("{}", validation.modl_errors[&0][1])
         );
         assert_eq!(
             r#"Modl entry assigns to mesh "object2" not found in the model.numshb. Ensure the name and subindex are correct."#,
-            format!("{}", validation.modl_errors[2])
+            format!("{}", validation.modl_errors[&0][2])
         );
     }
 
@@ -2231,8 +2326,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_mesh_vertex_weights(&mut validation, &mesh);
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, 0, &mesh);
 
         assert!(validation.mesh_errors.is_empty());
     }
@@ -2269,8 +2364,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_mesh_vertex_weights(&mut validation, &mesh);
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, 0, &mesh);
 
         assert_eq!(
             vec![MeshValidationError {
@@ -2279,12 +2374,12 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                     mesh_name: "a".to_owned(),
                 }
             }],
-            validation.mesh_errors
+            validation.mesh_errors[&0]
         );
 
         assert_eq!(
             r#"Vertex weights for mesh "a" are not normalized. Vertex weights should sum to 1.0."#,
-            format!("{}", validation.mesh_errors[0])
+            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 
@@ -2320,8 +2415,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_mesh_vertex_weights(&mut validation, &mesh);
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, 0, &mesh);
 
         assert_eq!(
             vec![MeshValidationError {
@@ -2330,12 +2425,12 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                     mesh_name: "a".to_owned(),
                 }
             }],
-            validation.mesh_errors
+            validation.mesh_errors[&0]
         );
 
         assert_eq!(
             r#"Mesh "a" has vertex weights with a weight of 0.0 that can be removed."#,
-            format!("{}", validation.mesh_errors[0])
+            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 
@@ -2368,8 +2463,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             ],
         };
 
-        let mut validation = ModelValidationErrors::default();
-        validate_mesh_vertex_weights(&mut validation, &mesh);
+        let mut validation = ModelFolderValidationErrors::default();
+        validate_mesh_vertex_weights(&mut validation, 0, &mesh);
 
         assert_eq!(
             vec![MeshValidationError {
@@ -2378,12 +2473,12 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                     mesh_name: "a".to_owned(),
                 }
             }],
-            validation.mesh_errors
+            validation.mesh_errors[&0]
         );
 
         assert_eq!(
             r#"Mesh "a" has vertices with more than 4 weights and may not deform as expected in game."#,
-            format!("{}", validation.mesh_errors[0])
+            format!("{}", validation.mesh_errors[&0][0])
         );
     }
 }
