@@ -1,6 +1,6 @@
 use crate::{
     EditorMessage, EditorResponse,
-    app::{ModlEditorState, ModlEditorTab, draggable_icon, warning_icon_text},
+    app::{ModlEditorState, ModlEditorTab, icon::draggable_icon, warning_icon_text},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,

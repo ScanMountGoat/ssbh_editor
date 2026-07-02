@@ -1,26 +1,26 @@
-use self::{
-    animation_bar::display_animation_bar, file_list::show_folder_files, menu::menu_bar,
-    rendering::calculate_mvp, window::*,
-};
 use crate::{
-    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorResponse, FileResult,
-    RenderState, SwingState, TEXT_COLOR_DARK, TEXT_COLOR_LIGHT, Thumbnail,
-    app::{anim_list::anim_list, shortcut::format_shortcut, swing_list::swing_list},
+    AnimationIndex, AnimationSlot, AnimationState, CameraState, FileResult, RenderState,
+    SwingState, Thumbnail,
+    app::{
+        anim_list::anim_list,
+        animation_bar::display_animation_bar,
+        file_list::show_folder_files,
+        icon::{error_icon, warning_icon},
+        menu::menu_bar,
+        rendering::calculate_mvp,
+        shortcut::format_shortcut,
+        swing_list::swing_list,
+        window::*,
+    },
     capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
-        adj::adj_editor,
-        anim::anim_editor,
-        hlpb::hlpb_editor,
+        Editor,
         matl::{matl_editor, preset_editor},
-        mesh::mesh_editor,
-        meshex::meshex_editor,
-        modl::modl_editor,
         nutexb::nutexb_viewer,
-        skel::skel_editor,
     },
     load_model,
     log::AppLogger,
-    model_folder::{FileChanged, ModelFolderState},
+    model_folder::ModelFolderState,
     path::{folder_display_name, folder_editor_title, last_update_check_file},
     preferences::AppPreferences,
     thumbnail::generate_model_thumbnails,
@@ -29,8 +29,8 @@ use crate::{
     widgets::*,
 };
 use egui::{
-    Button, CentralPanel, CollapsingHeader, Context, ImageSource, Label, Panel, Response, RichText,
-    ScrollArea, Ui, collapsing_header::CollapsingState,
+    Button, CentralPanel, CollapsingHeader, Context, Panel, Response, RichText, ScrollArea, Ui,
+    collapsing_header::CollapsingState,
 };
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
@@ -39,7 +39,7 @@ use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
 use ssbh_data::{adj_data::AdjEntryData, matl_data::MatlEntryData};
-use ssbh_wgpu::{ModelFiles, RenderModel, next_frame};
+use ssbh_wgpu::{RenderModel, next_frame};
 use std::{
     collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
@@ -49,272 +49,12 @@ use std::{
 mod anim_list;
 mod animation_bar;
 mod file_list;
+pub mod icon;
 mod menu;
 mod rendering;
 mod shortcut;
 mod swing_list;
 mod window;
-
-/// The logic required to open and close an editor window from an open file index.
-trait Editor {
-    type EditorState;
-
-    // TODO: Find a way to simplify these parameters.
-    // Merge the open index with the editor state?
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        dark_mode: bool,
-    ) -> Option<EditorResponse>;
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize);
-}
-
-impl Editor for AdjData {
-    type EditorState = ();
-
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        _: &mut Self::EditorState,
-        _: bool,
-    ) -> Option<EditorResponse> {
-        let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
-        Some(adj_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            adj,
-            find_file(&model.model.meshes, "model.numshb"),
-            model
-                .validation
-                .adj_errors
-                .get(open_file_index.as_ref()?)
-                .map(|e| e.as_slice())
-                .unwrap_or_default(),
-        ))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.adjs[index]);
-    }
-}
-
-impl Editor for HlpbData {
-    type EditorState = HlpbEditorState;
-
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        _: bool,
-    ) -> Option<EditorResponse> {
-        let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
-        Some(hlpb_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            hlpb,
-            find_file(&model.model.skels, "model.nusktb"),
-            state,
-        ))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.hlpbs[index])
-    }
-}
-
-impl Editor for SkelData {
-    type EditorState = SkelEditorState;
-
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        dark_mode: bool,
-    ) -> Option<EditorResponse> {
-        let (name, skel) = get_file_to_edit(&mut model.model.skels, *open_file_index)?;
-        Some(skel_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            skel,
-            state,
-            dark_mode,
-        ))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.skels[index])
-    }
-}
-
-impl Editor for AnimData {
-    type EditorState = AnimEditorState;
-
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        _: bool,
-    ) -> Option<EditorResponse> {
-        let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
-        Some(anim_editor(ctx, &model.folder_path, name, anim, state))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.anims[index])
-    }
-}
-
-impl Editor for MeshExData {
-    type EditorState = ();
-
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        _: &mut Self::EditorState,
-        _: bool,
-    ) -> Option<EditorResponse> {
-        let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
-        Some(meshex_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            meshex,
-            find_file(&model.model.meshes, "model.numshb"),
-        ))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.meshexes[index])
-    }
-}
-
-impl Editor for MeshData {
-    type EditorState = MeshEditorState;
-
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        dark_mode: bool,
-    ) -> Option<EditorResponse> {
-        let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
-        Some(mesh_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            mesh,
-            find_file(&model.model.skels, "model.nusktb"),
-            model
-                .validation
-                .mesh_errors
-                .get(open_file_index.as_ref()?)
-                .map(|e| e.as_slice())
-                .unwrap_or_default(),
-            dark_mode,
-            state,
-        ))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.meshes[index])
-    }
-}
-
-impl Editor for ModlData {
-    type EditorState = ModlEditorState;
-    fn editor(
-        ctx: &Context,
-        model: &mut ModelFolderState,
-        open_file_index: &mut Option<usize>,
-        state: &mut Self::EditorState,
-        dark_mode: bool,
-    ) -> Option<EditorResponse> {
-        let (name, modl) = get_file_to_edit(&mut model.model.modls, *open_file_index)?;
-        Some(modl_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            modl,
-            find_file(&model.model.meshes, "model.numshb"),
-            find_file(&model.model.matls, "model.numatb"),
-            model
-                .validation
-                .modl_errors
-                .get(open_file_index.as_ref()?)
-                .map(|e| e.as_slice())
-                .unwrap_or_default(),
-            state,
-            dark_mode,
-        ))
-    }
-
-    fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
-        response.set_changed(&mut changed.modls[index])
-    }
-}
-
-fn get_file_to_edit<T>(
-    files: &mut ModelFiles<T>,
-    index: Option<usize>,
-) -> Option<(&mut String, &mut T)> {
-    index
-        .and_then(|index| files.get_mut(index))
-        .and_then(|(name, file)| Some((name, file.as_mut()?)))
-}
-
-fn open_editor<T: Editor>(
-    ctx: &Context,
-    model: &mut ModelFolderState,
-    open_file_index: &mut Option<usize>,
-    state: &mut T::EditorState,
-    model_actions: &mut VecDeque<RenderAction>,
-    selected_folder_index: usize,
-    dark_mode: bool,
-) -> bool {
-    if let Some(response) = T::editor(ctx, model, open_file_index, state, dark_mode) {
-        if let Some(index) = open_file_index {
-            T::set_changed(&response, &mut model.changed, *index);
-
-            if let Some(message) = response.message {
-                match message {
-                    crate::EditorMessage::SelectMesh {
-                        mesh_object_name,
-                        mesh_object_subindex,
-                    } => {
-                        model_actions.push_back(RenderAction::Model(
-                            RenderModelAction::SelectMesh {
-                                model_index: selected_folder_index,
-                                mesh_object_name,
-                                mesh_object_subindex,
-                            },
-                        ));
-                    }
-                }
-            }
-        }
-
-        if !response.open {
-            // Close the window.
-            *open_file_index = None;
-        }
-
-        response.changed
-    } else {
-        false
-    }
-}
 
 pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
@@ -398,53 +138,6 @@ pub struct SsbhApp {
     pub previous_viewport_height: f32,
 
     pub has_initialized_zoom_factor: bool,
-}
-
-// All the icons are designed to render properly at 16x16 pixels.
-pub fn draggable_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(
-        ui,
-        egui::include_image!("icons/carbon_draggable.svg"),
-        dark_mode,
-    )
-}
-
-pub fn mesh_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/mesh.svg"), dark_mode)
-}
-
-pub fn matl_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/matl.svg"), dark_mode)
-}
-
-pub fn adj_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/adj.svg"), dark_mode)
-}
-
-pub fn anim_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/anim.svg"), dark_mode)
-}
-
-pub fn skel_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/skel.svg"), dark_mode)
-}
-
-pub fn hlpb_icon(ui: &mut Ui, dark_mode: bool) -> Response {
-    file_icon(ui, egui::include_image!("icons/hlpb.svg"), dark_mode)
-}
-
-fn file_icon(ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
-    let tint = if dark_mode {
-        TEXT_COLOR_DARK
-    } else {
-        TEXT_COLOR_LIGHT
-    };
-
-    ui.add(
-        egui::Image::new(image)
-            .tint(tint)
-            .fit_to_exact_size(egui::vec2(16.0, 16.0)),
-    )
 }
 
 pub fn plasma_colormap(ui: &mut Ui) -> Response {
@@ -1033,290 +726,11 @@ impl SsbhApp {
             new_release_window(ctx, &mut self.release_info, &mut self.markdown_cache);
         }
     }
-}
 
-impl eframe::App for SsbhApp {
-    // TODO: split into view and update functions to simplify render updates (elm/mvu).
-    fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
-        let current_frame_start = std::time::Instant::now();
-
-        let binding = frame.wgpu_render_state();
-        let wgpu_state = binding.as_ref().unwrap();
-        let device = &wgpu_state.device;
-        let queue = &wgpu_state.queue;
-
-        self.update_model_thumbnails(wgpu_state);
-
-        // TODO: Create a function for updating rendering stuff?
-        // Access all the rendering state from a single item in the type map.
-        // This avoids deadlock from trying to lock for each resource type.
-        let binding = &mut wgpu_state.renderer.write();
-        let render_state: &mut RenderState = binding.callback_resources.get_mut().unwrap();
-
-        // This can be set by the mesh list and mesh editor.
-        // Clear every frame so both sources can set is_selected to true.
-        render_state.clear_selected_meshes();
-
-        // TODO: Rework these fields to use Option<T>.
-        let mask_model_index = self.ui_state.selected_folder_index.unwrap_or(0);
-        render_state.model_render_options.mask_model_index = mask_model_index;
-        self.get_hovered_material_label(mask_model_index)
-            .unwrap_or("")
-            .clone_into(&mut render_state.model_render_options.mask_material_label);
-
-        // TODO: Find a better way to clear this every frame.
-        self.ui_state.matl_editor.hovered_material_index = None;
-
-        if self.animation_state.is_playing {
-            let final_frame_index = self.max_final_frame_index(render_state);
-
-            self.animation_state.current_frame = next_frame(
-                self.animation_state.current_frame,
-                current_frame_start.duration_since(self.animation_state.previous_frame_start),
-                final_frame_index,
-                self.animation_state.playback_speed,
-                self.animation_state.should_loop,
-            );
-            // eframe is reactive by default, so we need to repaint.
-            ui.request_repaint();
-        }
-        // Always update the frame times even if no animation is playing.
-        // This avoids skipping when resuming playback.
-        self.animation_state.previous_frame_start = current_frame_start;
-
-        if let Some((texture, dimension, size)) =
-            self.get_nutexb_to_render(&render_state.render_models)
-        {
-            render_state.texture_renderer.update(
-                device,
-                queue,
-                texture,
-                *dimension,
-                size,
-                &render_state.texture_render_settings,
-            );
-        }
-
-        ui.input_mut(|input| {
-            if input.consume_key(egui::Modifiers::NONE, egui::Key::Space) {
-                // Play or pause animation playback globally.
-                self.animation_state.is_playing = !self.animation_state.is_playing;
-            }
-
-            for file in &input.raw.dropped_files {
-                if let Some(path) = file.path.as_ref() {
-                    if path.is_file() {
-                        // Load the parent folder for files.
-                        if let Some(parent) = path.parent() {
-                            self.add_folder_to_workspace(parent, false);
-                        }
-                    } else {
-                        self.add_folder_to_workspace(path, false);
-                    }
-                }
-            }
-        });
-
-        if !self.has_initialized_zoom_factor {
-            // Set zoom factor here instead of creation to avoid crashes.
-            ui.set_zoom_factor(self.preferences.scale_factor);
-            self.has_initialized_zoom_factor = true;
-        }
-
-        // Set the region for the 3D viewport to reduce overdraw.
-        Panel::top("top_panel").show(ui, |ui| menu_bar(self, ui));
-
-        // Add windows here so they can overlap everything except the top panel.
-        // We store some state in self to keep track of whether this should be left open.
-        self.show_windows(ui, render_state);
-
-        // Any changes in any file should trigger validation again.
-        self.should_validate_models |= self.file_editors(ui, render_state);
-
-        if self.show_left_panel {
-            Panel::left("left_panel")
-                .default_size(200.0)
-                .show(ui, |ui| self.files_list(ui));
-        }
-
-        if self.show_bottom_panel {
-            Panel::bottom("bottom panel").show(ui, |ui| self.bottom_panel(ui, render_state));
-        }
-
-        if self.show_right_panel {
-            Panel::right("right panel")
-                .default_size(450.0)
-                .show(ui, |ui| self.right_panel(ui, render_state));
-        }
-
-        CentralPanel::default().show(ui, |ui| {
-            if self.models.is_empty() {
-                ui.centered_and_justified(|ui| {
-                    let o = format_shortcut(&shortcut::OPEN_FOLDER);
-                    let a = format_shortcut(&shortcut::ADD_FOLDER);
-                    let text = format!(
-                        "Drag and drop files or folders.\nOpen Folder {o}\n Add Folder {a}"
-                    );
-                    ui.label(text);
-                });
-            }
-            // Show and handle the central 3D viewport.
-            self.central_panel(ui, render_state, device, queue, wgpu_state);
-        });
-    }
-
-    fn on_exit(&mut self) {
-        let path = last_update_check_file();
-        if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
-            error!("Failed to write update check time to {path:?}: {e}");
-        }
-
-        self.preferences.write_to_file();
-    }
-}
-
-// TODO: Create a separate module for input handling?
-fn handle_input(
-    camera: &mut CameraState,
-    input: &egui::InputState,
-    viewport_height: f32,
-    ui_contains_pointer: bool,
-) {
-    // Left/right mouse drag should start in the viewport but can end anywhere.
-    // This allows more screen space for dragging even with a small viewport.
-    if ui_contains_pointer {
-        if input.pointer.primary_pressed() {
-            camera.is_mouse_primary_drag = true;
-        }
-        if input.pointer.secondary_pressed() {
-            camera.is_mouse_secondary_drag = true;
-        }
-    }
-    if input.pointer.primary_released() {
-        camera.is_mouse_primary_drag = false;
-    }
-    if input.pointer.secondary_released() {
-        camera.is_mouse_secondary_drag = false;
-    }
-
-    // Assume zero deltas if no updates are needed.
-    if camera.is_mouse_primary_drag {
-        // Left click rotation.
-        // Swap XY so that dragging left right rotates left right.
-        let delta = input.pointer.delta();
-        camera.values.rotation_radians.x += delta.y * 0.01;
-        camera.values.rotation_radians.y += delta.x * 0.01;
-    }
-
-    if camera.is_mouse_secondary_drag {
-        // Right click panning.
-        // Translate an equivalent distance in screen space based on the camera.
-        // The viewport height and vertical field of view define the conversion.
-        let fac =
-            camera.values.fov_y_radians.sin() * camera.values.translation.z.abs() / viewport_height;
-
-        // Negate y so that dragging up "drags" the model up.
-        let delta = input.pointer.delta();
-        camera.values.translation.x += delta.x * fac;
-        camera.values.translation.y -= delta.y * fac;
-    }
-
-    // Don't zoom when using the UI.
-    if ui_contains_pointer {
-        // Scale zoom speed with distance to make it easier to zoom out large scenes.
-        let delta_z = input.smooth_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
-        // Clamp to prevent the user from zooming through the origin.
-        camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
-    }
-
-    // Keyboard panning.
-    if input.key_down(egui::Key::ArrowLeft) {
-        camera.values.translation.x += 0.25;
-    }
-    if input.key_down(egui::Key::ArrowRight) {
-        camera.values.translation.x -= 0.25;
-    }
-    if input.key_down(egui::Key::ArrowUp) {
-        camera.values.translation.y -= 0.25;
-    }
-    if input.key_down(egui::Key::ArrowDown) {
-        camera.values.translation.y += 0.25;
-    }
-}
-
-struct ViewportCallback {
-    width: f32,
-    height: f32,
-    scale_factor: f32,
-    draw_bone_names: bool,
-    mvp_matrix: glam::Mat4,
-    hidden_collisions: Vec<HashSet<u64>>,
-}
-
-impl CallbackTrait for ViewportCallback {
-    fn prepare(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        _screen_descriptor: &ScreenDescriptor,
-        egui_encoder: &mut wgpu::CommandEncoder,
-        callback_resources: &mut CallbackResources,
-    ) -> Vec<wgpu::CommandBuffer> {
-        let state: &mut RenderState = callback_resources.get_mut().unwrap();
-
-        state.renderer.begin_render_models(
-            egui_encoder,
-            &state.render_models,
-            state.shared_data.database(),
-            &state.model_render_options,
-        );
-
-        // TODO: Make the font size configurable.
-        if state.model_render_options.draw_bones && self.draw_bone_names {
-            state.bone_name_renderer.prepare(
-                device,
-                queue,
-                &state.render_models,
-                self.width as u32,
-                self.height as u32,
-                self.mvp_matrix,
-                18.0 * self.scale_factor,
-            );
-        }
-
-        Vec::new()
-    }
-
-    fn paint(
-        &self,
-        _info: egui::PaintCallbackInfo,
-        render_pass: &mut wgpu::RenderPass<'static>,
-        callback_resources: &egui_wgpu::CallbackResources,
-    ) {
-        let state: &RenderState = callback_resources.get().unwrap();
-        state.renderer.end_render_models(render_pass);
-
-        for (render_model, hidden_collisions) in state
-            .render_models
-            .iter()
-            .zip(self.hidden_collisions.iter())
-        {
-            state
-                .renderer
-                .render_swing(render_pass, render_model, hidden_collisions);
-        }
-
-        if state.model_render_options.draw_bones && self.draw_bone_names {
-            state.bone_name_renderer.render(render_pass);
-        }
-    }
-}
-
-impl SsbhApp {
     fn file_editors(&mut self, ctx: &Context, render_state: &mut RenderState) -> bool {
         let mut file_changed = false;
 
-        // TODO: Use some sort of trait to clean up repetitive code?
+        // TODO: use open_editor for matl as well?
         // The functions would take an additional ui parameter.
         if let Some(folder_index) = self.ui_state.selected_folder_index
             && let Some(model) = self.models.get_mut(folder_index)
@@ -1700,6 +1114,325 @@ impl SsbhApp {
     }
 }
 
+impl eframe::App for SsbhApp {
+    // TODO: split into view and update functions to simplify render updates (elm/mvu).
+    fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        let current_frame_start = std::time::Instant::now();
+
+        let binding = frame.wgpu_render_state();
+        let wgpu_state = binding.as_ref().unwrap();
+        let device = &wgpu_state.device;
+        let queue = &wgpu_state.queue;
+
+        self.update_model_thumbnails(wgpu_state);
+
+        // TODO: Create a function for updating rendering stuff?
+        // Access all the rendering state from a single item in the type map.
+        // This avoids deadlock from trying to lock for each resource type.
+        let binding = &mut wgpu_state.renderer.write();
+        let render_state: &mut RenderState = binding.callback_resources.get_mut().unwrap();
+
+        // This can be set by the mesh list and mesh editor.
+        // Clear every frame so both sources can set is_selected to true.
+        render_state.clear_selected_meshes();
+
+        // TODO: Rework these fields to use Option<T>.
+        let mask_model_index = self.ui_state.selected_folder_index.unwrap_or(0);
+        render_state.model_render_options.mask_model_index = mask_model_index;
+        self.get_hovered_material_label(mask_model_index)
+            .unwrap_or("")
+            .clone_into(&mut render_state.model_render_options.mask_material_label);
+
+        // TODO: Find a better way to clear this every frame.
+        self.ui_state.matl_editor.hovered_material_index = None;
+
+        if self.animation_state.is_playing {
+            let final_frame_index = self.max_final_frame_index(render_state);
+
+            self.animation_state.current_frame = next_frame(
+                self.animation_state.current_frame,
+                current_frame_start.duration_since(self.animation_state.previous_frame_start),
+                final_frame_index,
+                self.animation_state.playback_speed,
+                self.animation_state.should_loop,
+            );
+            // eframe is reactive by default, so we need to repaint.
+            ui.request_repaint();
+        }
+        // Always update the frame times even if no animation is playing.
+        // This avoids skipping when resuming playback.
+        self.animation_state.previous_frame_start = current_frame_start;
+
+        if let Some((texture, dimension, size)) =
+            self.get_nutexb_to_render(&render_state.render_models)
+        {
+            render_state.texture_renderer.update(
+                device,
+                queue,
+                texture,
+                *dimension,
+                size,
+                &render_state.texture_render_settings,
+            );
+        }
+
+        ui.input_mut(|input| {
+            if input.consume_key(egui::Modifiers::NONE, egui::Key::Space) {
+                // Play or pause animation playback globally.
+                self.animation_state.is_playing = !self.animation_state.is_playing;
+            }
+
+            for file in &input.raw.dropped_files {
+                if let Some(path) = file.path.as_ref() {
+                    if path.is_file() {
+                        // Load the parent folder for files.
+                        if let Some(parent) = path.parent() {
+                            self.add_folder_to_workspace(parent, false);
+                        }
+                    } else {
+                        self.add_folder_to_workspace(path, false);
+                    }
+                }
+            }
+        });
+
+        if !self.has_initialized_zoom_factor {
+            // Set zoom factor here instead of creation to avoid crashes.
+            ui.set_zoom_factor(self.preferences.scale_factor);
+            self.has_initialized_zoom_factor = true;
+        }
+
+        // Set the region for the 3D viewport to reduce overdraw.
+        Panel::top("top_panel").show(ui, |ui| menu_bar(self, ui));
+
+        // Add windows here so they can overlap everything except the top panel.
+        // We store some state in self to keep track of whether this should be left open.
+        self.show_windows(ui, render_state);
+
+        // Any changes in any file should trigger validation again.
+        self.should_validate_models |= self.file_editors(ui, render_state);
+
+        if self.show_left_panel {
+            Panel::left("left_panel")
+                .default_size(200.0)
+                .show(ui, |ui| self.files_list(ui));
+        }
+
+        if self.show_bottom_panel {
+            Panel::bottom("bottom panel").show(ui, |ui| self.bottom_panel(ui, render_state));
+        }
+
+        if self.show_right_panel {
+            Panel::right("right panel")
+                .default_size(450.0)
+                .show(ui, |ui| self.right_panel(ui, render_state));
+        }
+
+        CentralPanel::default().show(ui, |ui| {
+            if self.models.is_empty() {
+                ui.centered_and_justified(|ui| {
+                    let o = format_shortcut(&shortcut::OPEN_FOLDER);
+                    let a = format_shortcut(&shortcut::ADD_FOLDER);
+                    let text = format!(
+                        "Drag and drop files or folders.\nOpen Folder {o}\n Add Folder {a}"
+                    );
+                    ui.label(text);
+                });
+            }
+            // Show and handle the central 3D viewport.
+            self.central_panel(ui, render_state, device, queue, wgpu_state);
+        });
+    }
+
+    fn on_exit(&mut self) {
+        let path = last_update_check_file();
+        if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
+            error!("Failed to write update check time to {path:?}: {e}");
+        }
+
+        self.preferences.write_to_file();
+    }
+}
+
+fn open_editor<T: Editor>(
+    ctx: &Context,
+    model: &mut ModelFolderState,
+    open_file_index: &mut Option<usize>,
+    state: &mut T::EditorState,
+    model_actions: &mut VecDeque<RenderAction>,
+    selected_folder_index: usize,
+    dark_mode: bool,
+) -> bool {
+    if let Some(response) = T::editor(ctx, model, open_file_index, state, dark_mode) {
+        if let Some(index) = open_file_index {
+            T::set_changed(&response, &mut model.changed, *index);
+
+            if let Some(message) = response.message {
+                match message {
+                    crate::EditorMessage::SelectMesh {
+                        mesh_object_name,
+                        mesh_object_subindex,
+                    } => {
+                        model_actions.push_back(RenderAction::Model(
+                            RenderModelAction::SelectMesh {
+                                model_index: selected_folder_index,
+                                mesh_object_name,
+                                mesh_object_subindex,
+                            },
+                        ));
+                    }
+                }
+            }
+        }
+
+        if !response.open {
+            // Close the window.
+            *open_file_index = None;
+        }
+
+        response.changed
+    } else {
+        false
+    }
+}
+
+// TODO: Create a separate module for input handling?
+fn handle_input(
+    camera: &mut CameraState,
+    input: &egui::InputState,
+    viewport_height: f32,
+    ui_contains_pointer: bool,
+) {
+    // Left/right mouse drag should start in the viewport but can end anywhere.
+    // This allows more screen space for dragging even with a small viewport.
+    if ui_contains_pointer {
+        if input.pointer.primary_pressed() {
+            camera.is_mouse_primary_drag = true;
+        }
+        if input.pointer.secondary_pressed() {
+            camera.is_mouse_secondary_drag = true;
+        }
+    }
+    if input.pointer.primary_released() {
+        camera.is_mouse_primary_drag = false;
+    }
+    if input.pointer.secondary_released() {
+        camera.is_mouse_secondary_drag = false;
+    }
+
+    // Assume zero deltas if no updates are needed.
+    if camera.is_mouse_primary_drag {
+        // Left click rotation.
+        // Swap XY so that dragging left right rotates left right.
+        let delta = input.pointer.delta();
+        camera.values.rotation_radians.x += delta.y * 0.01;
+        camera.values.rotation_radians.y += delta.x * 0.01;
+    }
+
+    if camera.is_mouse_secondary_drag {
+        // Right click panning.
+        // Translate an equivalent distance in screen space based on the camera.
+        // The viewport height and vertical field of view define the conversion.
+        let fac =
+            camera.values.fov_y_radians.sin() * camera.values.translation.z.abs() / viewport_height;
+
+        // Negate y so that dragging up "drags" the model up.
+        let delta = input.pointer.delta();
+        camera.values.translation.x += delta.x * fac;
+        camera.values.translation.y -= delta.y * fac;
+    }
+
+    // Don't zoom when using the UI.
+    if ui_contains_pointer {
+        // Scale zoom speed with distance to make it easier to zoom out large scenes.
+        let delta_z = input.smooth_scroll_delta.y * camera.values.translation.z.abs() * 0.002;
+        // Clamp to prevent the user from zooming through the origin.
+        camera.values.translation.z = (camera.values.translation.z + delta_z).min(-1.0);
+    }
+
+    // Keyboard panning.
+    if input.key_down(egui::Key::ArrowLeft) {
+        camera.values.translation.x += 0.25;
+    }
+    if input.key_down(egui::Key::ArrowRight) {
+        camera.values.translation.x -= 0.25;
+    }
+    if input.key_down(egui::Key::ArrowUp) {
+        camera.values.translation.y -= 0.25;
+    }
+    if input.key_down(egui::Key::ArrowDown) {
+        camera.values.translation.y += 0.25;
+    }
+}
+
+struct ViewportCallback {
+    width: f32,
+    height: f32,
+    scale_factor: f32,
+    draw_bone_names: bool,
+    mvp_matrix: glam::Mat4,
+    hidden_collisions: Vec<HashSet<u64>>,
+}
+
+impl CallbackTrait for ViewportCallback {
+    fn prepare(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        _screen_descriptor: &ScreenDescriptor,
+        egui_encoder: &mut wgpu::CommandEncoder,
+        callback_resources: &mut CallbackResources,
+    ) -> Vec<wgpu::CommandBuffer> {
+        let state: &mut RenderState = callback_resources.get_mut().unwrap();
+
+        state.renderer.begin_render_models(
+            egui_encoder,
+            &state.render_models,
+            state.shared_data.database(),
+            &state.model_render_options,
+        );
+
+        // TODO: Make the font size configurable.
+        if state.model_render_options.draw_bones && self.draw_bone_names {
+            state.bone_name_renderer.prepare(
+                device,
+                queue,
+                &state.render_models,
+                self.width as u32,
+                self.height as u32,
+                self.mvp_matrix,
+                18.0 * self.scale_factor,
+            );
+        }
+
+        Vec::new()
+    }
+
+    fn paint(
+        &self,
+        _info: egui::PaintCallbackInfo,
+        render_pass: &mut wgpu::RenderPass<'static>,
+        callback_resources: &egui_wgpu::CallbackResources,
+    ) {
+        let state: &RenderState = callback_resources.get().unwrap();
+        state.renderer.end_render_models(render_pass);
+
+        for (render_model, hidden_collisions) in state
+            .render_models
+            .iter()
+            .zip(self.hidden_collisions.iter())
+        {
+            state
+                .renderer
+                .render_swing(render_pass, render_model, hidden_collisions);
+        }
+
+        if state.model_render_options.draw_bones && self.draw_bone_names {
+            state.bone_name_renderer.render(render_pass);
+        }
+    }
+}
+
 fn add_new_adjb(model: &mut ModelFolderState) {
     let mut adj = AdjData {
         entries: Vec::new(),
@@ -1736,13 +1469,6 @@ fn add_new_adjb(model: &mut ModelFolderState) {
     model.changed.adjs.push(true);
 }
 
-fn find_file<'a, T>(files: &'a [(String, FileResult<T>)], name: &str) -> Option<&'a T> {
-    files
-        .iter()
-        .find(|(f, _)| f == name)
-        .and_then(|(_, m)| m.as_ref())
-}
-
 fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) -> Option<&'a mut T> {
     files
         .iter_mut()
@@ -1752,29 +1478,6 @@ fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) ->
 
 pub fn warning_icon_text(name: &str) -> RichText {
     RichText::new("⚠ ".to_string() + name).color(WARNING_COLOR)
-}
-
-pub fn empty_icon(ui: &mut Ui) {
-    ui.allocate_space(egui::Vec2::new(ICON_SIZE, ICON_SIZE));
-}
-
-pub fn missing_icon(ui: &mut Ui) -> Response {
-    ui.add_sized(
-        [ICON_SIZE, ICON_SIZE],
-        Label::new(RichText::new("⚠").size(ICON_TEXT_SIZE)),
-    )
-}
-
-pub fn warning_icon(ui: &mut Ui) -> Response {
-    ui.add_sized(
-        [ICON_SIZE, ICON_SIZE],
-        Label::new(
-            RichText::new("⚠")
-                .strong()
-                .color(WARNING_COLOR)
-                .size(ICON_TEXT_SIZE),
-        ),
-    )
 }
 
 pub fn display_validation_errors<'a, E>(ui: &mut Ui, errors: impl Iterator<Item = &'a E>)
@@ -1788,18 +1491,6 @@ where
             ui.label(error.to_string());
         });
     }
-}
-
-pub fn error_icon(ui: &mut Ui) -> Response {
-    ui.add_sized(
-        [ICON_SIZE, ICON_SIZE],
-        Label::new(
-            RichText::new("⚠")
-                .strong()
-                .color(ERROR_COLOR)
-                .size(ICON_TEXT_SIZE),
-        ),
-    )
 }
 
 fn mesh_list(app: &mut SsbhApp, ui: &mut Ui, render_state: &mut RenderState) {

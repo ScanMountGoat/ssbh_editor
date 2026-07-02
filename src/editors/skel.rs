@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
     EditorResponse,
-    app::{SkelEditorState, SkelMode, draggable_icon},
+    app::{SkelEditorState, SkelMode, icon::draggable_icon},
     path::folder_editor_title,
     widgets::enum_combo_box,
 };

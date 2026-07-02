@@ -2,7 +2,8 @@ use crate::{
     EditorResponse,
     app::{
         MatlEditorState, PresetMode, ShaderFinderState, UiState, display_validation_errors,
-        draggable_icon, warning_icon, warning_icon_text,
+        icon::{draggable_icon, warning_icon},
+        warning_icon_text,
     },
     horizontal_separator_empty,
     material::*,

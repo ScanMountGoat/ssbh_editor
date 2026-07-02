@@ -1,8 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    ERROR_COLOR, ICON_SIZE, UiState, adj_icon, anim_icon, display_validation_errors, empty_icon,
-    hlpb_icon, matl_icon, mesh_icon, missing_icon, skel_icon, warning_icon, warning_icon_text,
+    ERROR_COLOR, ICON_SIZE, UiState, display_validation_errors,
+    icon::{
+        adj_icon, anim_icon, empty_icon, hlpb_icon, matl_icon, mesh_icon, missing_icon, skel_icon,
+        warning_icon,
+    },
+    warning_icon_text,
 };
 use crate::{FileResult, ModelFolderState, validation::MatlValidationErrorKind};
 use egui::{Button, Response, RichText, Ui, load::SizedTexture};
