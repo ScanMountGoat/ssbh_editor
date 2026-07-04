@@ -294,17 +294,6 @@ dependencies = [
 
 [[package]]
 name = "binrw"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "768230c3e8ce988f15f99af8d0d2c3afd0a656b88b35480fb1f924699e810e57"
-dependencies = [
- "array-init",
- "binrw_derive 0.13.4",
- "bytemuck",
-]
-
-[[package]]
-name = "binrw"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f4b52fe7fbd9e207b879c52c5af7efd861c2f4e234ab4f744b0bdc04a863623"
@@ -315,26 +304,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "binrw"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d53195f985e88ab94d1cc87e80049dd2929fd39e4a772c5ae96a7e5c4aad3642"
+dependencies = [
+ "array-init",
+ "binrw_derive 0.15.1",
+ "bytemuck",
+]
+
+[[package]]
 name = "binrw_derive"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfdce8fda72e8cc5038fb9e739e665d1f3072f7e3e24c573277b8fdce595ef72"
 dependencies = [
  "either",
- "owo-colors",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "binrw_derive"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08118044b6695ea0de85ecdaac53adeb0d5d024770a904f45b9453ad3c12898c"
-dependencies = [
- "either",
- "owo-colors",
+ "owo-colors 3.5.0",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -347,10 +334,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7196f6935a944081728167ce6e3a599bd38d6d80d21afe4ca17be2097a6682f"
 dependencies = [
  "either",
- "owo-colors",
+ "owo-colors 3.5.0",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "binrw_derive"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5910da05ee556b789032c8ff5a61fb99239580aa3fd0bfaa8f4d094b2aee00ad"
+dependencies = [
+ "either",
+ "owo-colors 4.3.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -3120,17 +3120,16 @@ dependencies = [
 [[package]]
 name = "nutexb"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4b1f32aa48bc74ec799cd2ecdd811984d3ee2caf5bbb07f2f0026771a3a0862"
+source = "git+https://github.com/jam1garner/nutexb?rev=7db7c08#7db7c08bb4ac5a54c00a56944c55264bfc44b0ee"
 dependencies = [
- "binrw 0.13.4",
+ "binrw 0.15.1",
  "tegra_swizzle",
 ]
 
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=fcff59a#fcff59a0d04fbd72d5d072f031e09a74d09afec4"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=f5f9e14#f5f9e14a83e48e0e9282c77add192b8fcfd4c24b"
 dependencies = [
  "bytemuck",
  "log",
@@ -3582,6 +3581,12 @@ name = "owo-colors"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
+
+[[package]]
+name = "owo-colors"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d211803b9b6b570f68772237e415a029d5a50c65d382910b879fb19d3271f94d"
 
 [[package]]
 name = "p256"
@@ -5040,7 +5045,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=fcff59a#fcff59a0d04fbd72d5d072f031e09a74d09afec4"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=f5f9e14#f5f9e14a83e48e0e9282c77add192b8fcfd4c24b"
 dependencies = [
  "bytemuck",
  "encase",
@@ -5241,9 +5246,9 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tegra_swizzle"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12afa2e808fe8dba9c3257273cb42dfd067ff2089809e064b78cd91e3cfd8e78"
+checksum = "a99e82f512a8f5baabe0d9e5ba86b4e827840635e7628a5216a34e03b06a6f01"
 
 [[package]]
 name = "tempfile"
