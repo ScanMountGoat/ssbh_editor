@@ -699,33 +699,43 @@ fn shader_finder_window(
                             horizontal_separator_empty(ui);
                         });
                 });
-            CentralPanel::default().show(ui, |ui| {
-                ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| {
-                        // The database uses a sorted map, so we don't need to sort by name.
-                        for (name, shader) in &shader_database.0 {
-                            if should_include_shader(&state.shader_finder, shader) {
-                                ui.horizontal(|ui| {
-                                    // TODO: Center these vertically?
-                                    shader_complexity_color(ui, shader.complexity).on_hover_text(
-                                        format!("Shader Complexity: {:.3}", shader.complexity),
-                                    );
 
-                                    ui.selectable_value(
-                                        &mut state.shader_finder.selected_shader,
-                                        name.to_string(),
-                                        name,
-                                    )
-                                    .on_hover_ui(|ui| {
-                                        for param in &shader.material_parameters {
-                                            ui.label(param);
-                                        }
-                                    });
+            let filtered: Vec<_> = shader_database
+                .0
+                .iter()
+                .filter(|(_, shader)| should_include_shader(&state.shader_finder, shader))
+                .collect();
+
+            // Only show the visible rows to improve FPS.
+            CentralPanel::default().show(ui, |ui| {
+                ScrollArea::vertical().auto_shrink([false; 2]).show_rows(
+                    ui,
+                    16.0,
+                    filtered.len(),
+                    |ui, range| {
+                        // The database uses a sorted map, so we don't need to sort by name.
+                        for index in range {
+                            let (name, shader) = &filtered[index];
+                            ui.horizontal(|ui| {
+                                // TODO: Center these vertically?
+                                shader_complexity_color(ui, shader.complexity).on_hover_text(
+                                    format!("Shader Complexity: {:.3}", shader.complexity),
+                                );
+
+                                ui.selectable_value(
+                                    &mut state.shader_finder.selected_shader,
+                                    name.to_string(),
+                                    *name,
+                                )
+                                .on_hover_ui(|ui| {
+                                    for param in &shader.material_parameters {
+                                        ui.label(param);
+                                    }
                                 });
-                            }
+                            });
                         }
-                    });
+                    },
+                );
             });
         });
 
