@@ -5008,7 +5008,6 @@ dependencies = [
  "nutexb",
  "nutexb_wgpu",
  "octocrab",
- "once_cell",
  "open",
  "pico-args",
  "pretty_assertions",

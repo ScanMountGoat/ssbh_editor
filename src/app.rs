@@ -35,11 +35,11 @@ use egui::{
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
 use log::error;
-use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
 use ssbh_data::{adj_data::AdjEntryData, matl_data::MatlEntryData};
 use ssbh_wgpu::{RenderModel, next_frame};
+use std::sync::LazyLock;
 use std::{
     collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
@@ -56,7 +56,7 @@ mod shortcut;
 mod swing_list;
 mod window;
 
-pub static LOGGER: Lazy<AppLogger> = Lazy::new(|| AppLogger {
+pub static LOGGER: LazyLock<AppLogger> = LazyLock::new(|| AppLogger {
     messages: Mutex::new(Vec::new()),
 });
 

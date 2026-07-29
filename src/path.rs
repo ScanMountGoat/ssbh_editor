@@ -1,9 +1,9 @@
 use crate::model_folder::ModelFolderState;
 use directories::ProjectDirs;
-use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
-pub static PROJECT_DIR: Lazy<ProjectDirs> = Lazy::new(|| {
+pub static PROJECT_DIR: LazyLock<ProjectDirs> = LazyLock::new(|| {
     // TODO: Avoid unwrap.
     ProjectDirs::from("", "", "ssbh_editor").unwrap()
 });
