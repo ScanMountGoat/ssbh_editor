@@ -19,9 +19,10 @@ use ssbh_wgpu::{
 use std::{
     collections::{BTreeMap, HashSet, VecDeque},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 use thumbnail::Thumbnail;
+use wuff::decompress_woff2;
 
 pub mod app;
 pub mod capture;
@@ -37,7 +38,8 @@ pub mod update;
 pub mod validation;
 pub mod widgets;
 
-pub static FONT_BYTES: &[u8] = include_bytes!("fonts/NotoSansSC-Regular.otf");
+pub static FONT_BYTES: LazyLock<Vec<u8>> =
+    LazyLock::new(|| decompress_woff2(include_bytes!("fonts/NotoSansSC-Regular.woff2")).unwrap());
 
 type FileResult<T> = Option<T>;
 
@@ -571,36 +573,31 @@ pub fn checkerboard_texture(
 pub fn default_fonts() -> egui::FontDefinitions {
     // The default fonts don't support Japanese or Chinese characters.
     // These languages are required to display some user mods correctly.
+    let emoji = decompress_woff2(include_bytes!("fonts/emoji.woff2")).unwrap();
+    let noto_emoji = decompress_woff2(include_bytes!("fonts/NotoEmoji-Regular.woff2")).unwrap();
     egui::FontDefinitions {
         font_data: BTreeMap::from([
             (
                 "noto".to_owned(),
-                Arc::new(egui::FontData::from_static(FONT_BYTES)),
+                Arc::new(egui::FontData::from_owned(FONT_BYTES.clone())),
             ),
             (
                 "noto-emoji".to_owned(),
-                Arc::new(
-                    egui::FontData::from_static(include_bytes!("fonts/NotoEmoji-Regular.ttf"))
-                        .tweak(FontTweak {
-                            scale: 0.81,           // make it smaller
-                            y_offset_factor: -0.2, // move it up
-                            y_offset: 0.0,
-                            ..Default::default()
-                        }),
-                ),
+                Arc::new(egui::FontData::from_owned(noto_emoji).tweak(FontTweak {
+                    scale: 0.81,           // make it smaller
+                    y_offset_factor: -0.2, // move it up
+                    y_offset: 0.0,
+                    ..Default::default()
+                })),
             ),
             (
                 "emoji".to_owned(),
-                Arc::new(
-                    egui::FontData::from_static(include_bytes!("fonts/emoji.ttf")).tweak(
-                        FontTweak {
-                            scale: 1.0,           // make it smaller
-                            y_offset_factor: 0.0, // move it down slightly
-                            y_offset: 2.0,
-                            ..Default::default()
-                        },
-                    ),
-                ),
+                Arc::new(egui::FontData::from_owned(emoji).tweak(FontTweak {
+                    scale: 1.0,           // make it smaller
+                    y_offset_factor: 0.0, // move it down slightly
+                    y_offset: 2.0,
+                    ..Default::default()
+                })),
             ),
         ]),
         families: BTreeMap::from([
