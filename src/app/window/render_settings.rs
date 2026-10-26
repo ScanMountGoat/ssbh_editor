@@ -61,6 +61,11 @@ fn edit_render_settings(
         ui.end_row();
 
         if settings.debug_mode == ssbh_wgpu::DebugMode::Shaded {
+            ui.label("Material Type");
+            enum_combo_box(ui, "Material Type", &mut settings.material_type);
+            ui.end_row();
+
+            // TODO: disable this for light/dark?
             ui.label("Transition Material");
             enum_combo_box(ui, "Transition Material", &mut settings.transition_material);
             ui.end_row();

@@ -580,6 +580,7 @@ impl SsbhApp {
                 // TODO: Why are there fractional pixel dimensions even with a scale factor of 1.0?
                 render_state.renderer.resize(
                     device,
+                    queue,
                     width.round() as u32,
                     height.round() as u32,
                     1.0,

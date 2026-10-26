@@ -186,6 +186,15 @@ impl RenderState {
                         .update_render_settings(queue, &self.render_settings);
                     self.renderer
                         .update_skinning_settings(queue, &self.skinning_settings);
+
+                    for model in &mut self.render_models {
+                        model.update_per_object(
+                            queue,
+                            current_frame,
+                            &self.render_settings,
+                            self.lighting_data.light.as_ref(),
+                        );
+                    }
                 }
                 RenderAction::UpdateCamera => {
                     self.camera_anim = camera_state.anim_path.as_ref().and_then(|path| {
@@ -229,8 +238,13 @@ impl RenderState {
                 if let (Some(render_model), Some(model)) =
                     (self.render_models.get_mut(i), models.get(i))
                 {
-                    let mut new_render_model =
-                        RenderModel::from_folder(device, queue, &model.model, &self.shared_data);
+                    let mut new_render_model = RenderModel::from_folder(
+                        device,
+                        queue,
+                        &model.model,
+                        &self.shared_data,
+                        &self.render_settings,
+                    );
                     // Attempt to preserve the model and mesh visibility if possible.
                     copy_visibility(&mut new_render_model, render_model);
 
@@ -246,6 +260,7 @@ impl RenderState {
                     queue,
                     models.iter().map(|m| &m.model),
                     &self.shared_data,
+                    &self.render_settings,
                 );
 
                 if autohide_expressions {
@@ -312,11 +327,12 @@ impl RenderState {
                 matl,
             } => {
                 if let Some(render_model) = self.render_models.get_mut(model_index) {
+                    // TODO: recreate metamon, light, dark materials
                     if let Some(matl) = &matl {
                         render_model.recreate_materials(device, &matl.entries, &self.shared_data);
                     }
                     if let Some(modl) = &modl {
-                        render_model.reassign_materials(modl, matl.as_ref());
+                        render_model.reassign_materials(modl);
                     }
                 }
             }
@@ -355,6 +371,13 @@ impl RenderState {
             if let Some(matl) = model.model.find_matl() {
                 render_model.recreate_materials(device, &matl.entries, &self.shared_data);
             }
+
+            render_model.update_per_object(
+                queue,
+                current_frame,
+                &self.render_settings,
+                self.lighting_data.light.as_ref(),
+            );
         }
     }
 

@@ -22,8 +22,9 @@ use egui::{
 use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
+use smush_shader::{ShaderProgram, split_param};
 use ssbh_data::{Color4f, Vector4, matl_data::*, modl_data::ModlEntryData, prelude::*};
-use ssbh_wgpu::{ShaderDatabase, ShaderProgram, split_param};
+use ssbh_wgpu::ShaderDatabase;
 use std::{path::Path, str::FromStr};
 use strum::IntoEnumIterator;
 
@@ -702,6 +703,7 @@ fn shader_finder_window(
 
             let filtered: Vec<_> = shader_database
                 .0
+                .programs
                 .iter()
                 .filter(|(_, shader)| should_include_shader(&state.shader_finder, shader))
                 .collect();
@@ -725,11 +727,11 @@ fn shader_finder_window(
                                 ui.selectable_value(
                                     &mut state.shader_finder.selected_shader,
                                     name.to_string(),
-                                    *name,
+                                    name.as_str(),
                                 )
                                 .on_hover_ui(|ui| {
-                                    for param in &shader.material_parameters {
-                                        ui.label(param);
+                                    for param in &shader.parameters {
+                                        ui.label(param.as_str());
                                     }
                                 });
                             });
@@ -858,7 +860,7 @@ fn should_include_shader(state: &ShaderFinderState, shader: &ShaderProgram) -> b
 
 fn has_attr(attribute: &str, shader: &ShaderProgram) -> bool {
     shader
-        .vertex_attributes
+        .attributes
         .iter()
         .any(|a| split_param(a).0 == attribute)
 }
@@ -869,7 +871,7 @@ fn has_params(has_params: &[bool], shader: &ShaderProgram, prefix: &str) -> bool
         if *b {
             let param_name = format!("{prefix}{i}");
             shader
-                .material_parameters
+                .parameters
                 .iter()
                 .any(|p| split_param(p).0 == param_name)
         } else {
@@ -1317,7 +1319,7 @@ fn shader_grid(
         if let Some(program) = program {
             ui.label("Vertex Attributes")
                 .on_hover_text(SHADER_ATTRIBUTES_DESCRIPTION);
-            ui.add(Label::new(program.vertex_attributes.join(", ")));
+            ui.add(Label::new(program.attributes.join(", ")));
             ui.end_row();
 
             ui.label("Shader Complexity")

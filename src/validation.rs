@@ -388,9 +388,12 @@ fn validate_required_attributes(
                     // Find attributes required by the shader not present in the mesh.
                     // TODO: Avoid clone here?
                     let attribute_names: Vec<_> = o
-                        .texture_coordinates
+                        .positions
                         .iter()
                         .map(|a| a.name.clone())
+                        .chain(o.normals.iter().map(|a| a.name.clone()))
+                        .chain(o.tangents.iter().map(|a| a.name.clone()))
+                        .chain(o.texture_coordinates.iter().map(|a| a.name.clone()))
                         .chain(o.color_sets.iter().map(|a| a.name.clone()))
                         .collect();
 
@@ -1376,7 +1379,13 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 kind: MatlValidationErrorKind::MissingRequiredVertexAttributes {
                     material_label: "a".to_owned(),
                     mesh_name: "object1".to_owned(),
-                    missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+                    missing_attributes: vec![
+                        "Normal0".to_owned(),
+                        "Position0".to_owned(),
+                        "Tangent0".to_owned(),
+                        "map1".to_owned(),
+                        "uvSet".to_owned()
+                    ]
                 }
             }],
             validation.matl_errors[&1]
@@ -1388,7 +1397,13 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 kind: MeshValidationErrorKind::MissingRequiredVertexAttributes {
                     mesh_name: "object1".to_owned(),
                     material_label: "a".to_owned(),
-                    missing_attributes: vec!["map1".to_owned(), "uvSet".to_owned()]
+                    missing_attributes: vec![
+                        "Normal0".to_owned(),
+                        "Position0".to_owned(),
+                        "Tangent0".to_owned(),
+                        "map1".to_owned(),
+                        "uvSet".to_owned()
+                    ]
                 }
             }],
             validation.mesh_errors[&0]

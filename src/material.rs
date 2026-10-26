@@ -1,6 +1,6 @@
 use log::error;
+use smush_shader::{ShaderProgram, split_param};
 use ssbh_data::{Vector4, matl_data::*};
-use ssbh_wgpu::{ShaderProgram, split_param};
 use std::str::FromStr;
 
 const UV_TRANSFORM_IDENTITY: UvTransform = UvTransform {
@@ -75,7 +75,7 @@ pub fn apply_shader(
     // Preserve as many existing values as possible.
     // Use reasonable defaults for any required values not present in the material.
     let params: Vec<_> = shader
-        .material_parameters
+        .parameters
         .iter()
         .map(|p| ParamId::from_str(split_param(p).0).unwrap())
         .collect();
@@ -201,7 +201,7 @@ pub fn default_material() -> MatlEntryData {
 
 pub fn missing_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec<ParamId> {
     program
-        .material_parameters
+        .parameters
         .iter()
         .map(|param| split_param(param).0)
         .filter(|param| {
@@ -234,7 +234,7 @@ pub fn unused_parameters(entry: &MatlEntryData, program: &ShaderProgram) -> Vec<
         .chain(entry.rasterizer_states.iter().map(|p| p.param_id))
         .filter(|param| {
             !program
-                .material_parameters
+                .parameters
                 .iter()
                 .any(|p| split_param(p).0 == param.to_string())
         })
@@ -772,17 +772,18 @@ mod tests {
                 sh: false,
                 lighting: false,
                 anisotropic_rotation: false,
-                vertex_attributes: Vec::new(),
-                material_parameters: vec![
-                    "BlendState0".to_owned(),
-                    "CustomFloat0".to_owned(),
-                    "CustomBoolean0".to_owned(),
-                    "CustomVector0".to_owned(),
-                    "RasterizerState0".to_owned(),
-                    "Sampler0".to_owned(),
-                    "Texture0".to_owned(),
+                attributes: Vec::new(),
+                parameters: vec![
+                    "BlendState0".into(),
+                    "CustomFloat0".into(),
+                    "CustomBoolean0".into(),
+                    "CustomVector0".into(),
+                    "RasterizerState0".into(),
+                    "Sampler0".into(),
+                    "Texture0".into(),
                 ],
                 complexity: 0.0,
+                exprs: Default::default(),
             },
         );
         add_parameters(&mut entry, &required_parameters);
@@ -856,9 +857,10 @@ mod tests {
                 sh: false,
                 lighting: false,
                 anisotropic_rotation: false,
-                vertex_attributes: Vec::new(),
-                material_parameters: Vec::new(),
+                attributes: Vec::new(),
+                parameters: Vec::new(),
                 complexity: 0.0,
+                exprs: Default::default(),
             },
         );
         remove_parameters(&mut entry, &unused_parameters);
@@ -995,27 +997,28 @@ mod tests {
             sh: true,
             lighting: true,
             anisotropic_rotation: false,
-            vertex_attributes: vec!["map1.xy".to_string()],
-            material_parameters: vec![
-                "RasterizerState0".to_string(),
-                "BlendState0".to_string(),
-                "CustomVector13.xyzw".to_string(),
-                "CustomVector3.xyz".to_string(),
-                "CustomBoolean1".to_string(),
-                "CustomVector27.x".to_string(),
-                "CustomVector8.xyzw".to_string(),
-                "Texture0.xyzw".to_string(),
-                "Sampler0".to_string(),
-                "Texture6.xyw".to_string(),
-                "Sampler6".to_string(),
-                "Texture4.xyzw".to_string(),
-                "Sampler4".to_string(),
-                "Texture5.xyz".to_string(),
-                "Sampler5".to_string(),
-                "Texture7.xyz".to_string(),
-                "Sampler7".to_string(),
+            attributes: vec!["map1.xy".into()],
+            parameters: vec![
+                "RasterizerState0".into(),
+                "BlendState0".into(),
+                "CustomVector13.xyzw".into(),
+                "CustomVector3.xyz".into(),
+                "CustomBoolean1".into(),
+                "CustomVector27.x".into(),
+                "CustomVector8.xyzw".into(),
+                "Texture0.xyzw".into(),
+                "Sampler0".into(),
+                "Texture6.xyw".into(),
+                "Sampler6".into(),
+                "Texture4.xyzw".into(),
+                "Sampler4".into(),
+                "Texture5.xyz".into(),
+                "Sampler5".into(),
+                "Texture7.xyz".into(),
+                "Sampler7".into(),
             ],
             complexity: 0.6289500509683996,
+            exprs: Default::default(),
         };
 
         let entry = apply_shader(&entry, "SFX_PBS_0000000003008249", &shader);
@@ -1090,27 +1093,28 @@ mod tests {
             sh: true,
             lighting: true,
             anisotropic_rotation: false,
-            vertex_attributes: vec!["map1.xy".to_string()],
-            material_parameters: vec![
-                "RasterizerState0".to_string(),
-                "BlendState0".to_string(),
-                "CustomVector13.xyzw".to_string(),
-                "CustomVector3.xyz".to_string(),
-                "CustomBoolean1".to_string(),
-                "CustomVector27.x".to_string(),
-                "CustomVector8.xyzw".to_string(),
-                "Texture0.xyzw".to_string(),
-                "Sampler0".to_string(),
-                "Texture6.xyw".to_string(),
-                "Sampler6".to_string(),
-                "Texture4.xyzw".to_string(),
-                "Sampler4".to_string(),
-                "Texture5.xyz".to_string(),
-                "Sampler5".to_string(),
-                "Texture7.xyz".to_string(),
-                "Sampler7".to_string(),
+            attributes: vec!["map1.xy".into()],
+            parameters: vec![
+                "RasterizerState0".into(),
+                "BlendState0".into(),
+                "CustomVector13.xyzw".into(),
+                "CustomVector3.xyz".into(),
+                "CustomBoolean1".into(),
+                "CustomVector27.x".into(),
+                "CustomVector8.xyzw".into(),
+                "Texture0.xyzw".into(),
+                "Sampler0".into(),
+                "Texture6.xyw".into(),
+                "Sampler6".into(),
+                "Texture4.xyzw".into(),
+                "Sampler4".into(),
+                "Texture5.xyz".into(),
+                "Sampler5".into(),
+                "Texture7.xyz".into(),
+                "Sampler7".into(),
             ],
             complexity: 0.6289500509683996,
+            exprs: Default::default(),
         };
 
         let entry = apply_shader(&entry, "SFX_PBS_0000000003008249", &shader);
