@@ -321,18 +321,40 @@ impl RenderState {
                     render_mesh.is_selected = true;
                 }
             }
+            RenderModelAction::ReassignMaterials { model_index, modl } => {
+                if let Some(render_model) = self.render_models.get_mut(model_index)
+                    && let Some(modl) = &modl {
+                        render_model.reassign_materials(modl);
+                    }
+            }
             RenderModelAction::UpdateMaterials {
                 model_index,
-                modl,
                 matl,
+                matl_name,
             } => {
                 if let Some(render_model) = self.render_models.get_mut(model_index) {
-                    // TODO: recreate metamon, light, dark materials
-                    if let Some(matl) = &matl {
-                        render_model.recreate_materials(device, &matl.entries, &self.shared_data);
-                    }
-                    if let Some(modl) = &modl {
-                        render_model.reassign_materials(modl);
+                    match matl_name.as_str() {
+                        "model.numatb" => render_model.recreate_materials(
+                            device,
+                            &matl.entries,
+                            &self.shared_data,
+                        ),
+                        "metamon_model.numatb" => render_model.recreate_metamon_materials(
+                            device,
+                            &matl.entries,
+                            &self.shared_data,
+                        ),
+                        "light_model.numatb" => render_model.recreate_light_materials(
+                            device,
+                            &matl.entries,
+                            &self.shared_data,
+                        ),
+                        "dark_model.numatb" => render_model.recreate_dark_materials(
+                            device,
+                            &matl.entries,
+                            &self.shared_data,
+                        ),
+                        _ => (),
                     }
                 }
             }

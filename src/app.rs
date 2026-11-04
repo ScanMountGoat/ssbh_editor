@@ -77,10 +77,14 @@ pub enum RenderAction {
 pub enum RenderModelAction {
     Update(usize),
     Remove(usize),
-    UpdateMaterials {
+    ReassignMaterials {
         model_index: usize,
         modl: Option<ModlData>,
-        matl: Option<MatlData>,
+    },
+    UpdateMaterials {
+        model_index: usize,
+        matl: MatlData,
+        matl_name: String,
     },
     Refresh,
     Clear,
@@ -773,19 +777,16 @@ impl SsbhApp {
 
                 // Update on change to avoid costly state changes every frame.
                 if response.changed {
-                    // Only the model.numatb is rendered in the viewport for now.
-                    if name == "model.numatb" {
-                        // Reassign materials in case material or shader labels changed.
-                        // This is necessary for error checkerboards to display properly.
-                        // Perform a cheap clone to avoid lifetime issues.
-                        self.render_actions.push_back(RenderAction::Model(
-                            RenderModelAction::UpdateMaterials {
-                                model_index: folder_index,
-                                modl: model.model.find_modl().cloned(),
-                                matl: model.model.find_matl().cloned(),
-                            },
-                        ));
-                    }
+                    // Reassign materials in case material or shader labels changed.
+                    // This is necessary for error checkerboards to display properly.
+                    // Perform a cheap clone to avoid lifetime issues.
+                    self.render_actions.push_back(RenderAction::Model(
+                        RenderModelAction::UpdateMaterials {
+                            model_index: folder_index,
+                            matl: matl.clone(),
+                            matl_name: name.clone(),
+                        },
+                    ));
                 }
             }
 
@@ -825,10 +826,9 @@ impl SsbhApp {
             ) {
                 // Perform a cheap clone to avoid lifetime issues.
                 self.render_actions.push_back(RenderAction::Model(
-                    RenderModelAction::UpdateMaterials {
+                    RenderModelAction::ReassignMaterials {
                         model_index: folder_index,
                         modl: model.model.find_modl().cloned(),
-                        matl: model.model.find_matl().cloned(),
                     },
                 ));
                 file_changed = true;
