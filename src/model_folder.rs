@@ -12,6 +12,7 @@ pub struct ModelFolderState {
     pub changed: FileChanged,
     pub swing_prc: Option<SwingPrc>, // TODO: Add animation slots?
     pub is_meshlist_open: bool,
+    pub motion_folder_path: Option<PathBuf>,
 }
 
 impl ModelFolderState {
@@ -21,6 +22,19 @@ impl ModelFolderState {
         swing_prc: Option<SwingPrc>,
     ) -> Self {
         let changed = FileChanged::from_model(&model);
+
+        // Cache a potential motion folder to avoid file IO in the main update loop.
+        // The folder path doesn't change, so this can be initialized once.
+        let motion_folder_path = folder_path
+            .as_os_str()
+            .to_string_lossy()
+            .replace("model", "motion");
+        let motion_folder_path = if std::fs::exists(&motion_folder_path).unwrap_or_default() {
+            Some(motion_folder_path.into())
+        } else {
+            None
+        };
+
         Self {
             folder_path,
             model,
@@ -29,6 +43,7 @@ impl ModelFolderState {
             changed,
             swing_prc,
             is_meshlist_open: true,
+            motion_folder_path,
         }
     }
 
@@ -154,6 +169,7 @@ mod tests {
             validation: ModelFolderValidationErrors::default(),
             changed: FileChanged::default(),
             is_meshlist_open: true,
+            motion_folder_path: None,
         }
     }
 
@@ -185,6 +201,7 @@ mod tests {
             validation: ModelFolderValidationErrors::default(),
             changed: FileChanged::default(),
             is_meshlist_open: true,
+            motion_folder_path: None,
         }
     }
 
