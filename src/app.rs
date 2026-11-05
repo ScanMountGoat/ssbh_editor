@@ -538,16 +538,13 @@ impl SsbhApp {
     }
 
     fn get_hovered_material_label(&self, folder_index: usize) -> Option<&str> {
-        Some(
-            self.models
-                .get(folder_index)?
-                .model
-                .find_matl()?
-                .entries
-                .get(self.ui_state.matl_editor.hovered_material_index?)?
-                .material_label
-                .as_str(),
-        )
+        let model_folder = &self.models.get(folder_index)?.model;
+        let (_, matl) = model_folder.matls.get(self.ui_state.open_matl?)?;
+        let matl = matl.as_ref()?;
+        let entry = matl
+            .entries
+            .get(self.ui_state.matl_editor.hovered_material_index?)?;
+        Some(entry.material_label.as_str())
     }
 
     fn central_panel(
@@ -777,8 +774,6 @@ impl SsbhApp {
 
                 // Update on change to avoid costly state changes every frame.
                 if response.changed {
-                    // Reassign materials in case material or shader labels changed.
-                    // This is necessary for error checkerboards to display properly.
                     // Perform a cheap clone to avoid lifetime issues.
                     self.render_actions.push_back(RenderAction::Model(
                         RenderModelAction::UpdateMaterials {

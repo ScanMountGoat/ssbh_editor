@@ -323,9 +323,10 @@ impl RenderState {
             }
             RenderModelAction::ReassignMaterials { model_index, modl } => {
                 if let Some(render_model) = self.render_models.get_mut(model_index)
-                    && let Some(modl) = &modl {
-                        render_model.reassign_materials(modl);
-                    }
+                    && let Some(modl) = &modl
+                {
+                    render_model.reassign_materials(modl);
+                }
             }
             RenderModelAction::UpdateMaterials {
                 model_index,

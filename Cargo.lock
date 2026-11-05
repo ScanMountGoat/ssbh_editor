@@ -3333,7 +3333,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=65d83a8#65d83a8bf4a7ea93ec3f688fc3063cfcac8df5ed"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=7ae31d4#7ae31d45a1e9fd484cfdccedb2ecad900135deb8"
 dependencies = [
  "bytemuck",
  "log",
@@ -5302,7 +5302,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=65d83a8#65d83a8bf4a7ea93ec3f688fc3063cfcac8df5ed"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=7ae31d4#7ae31d45a1e9fd484cfdccedb2ecad900135deb8"
 dependencies = [
  "aho-corasick",
  "bytemuck",

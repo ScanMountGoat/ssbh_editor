@@ -16,8 +16,8 @@ egui_commonmark = "0.24.0"
 wgpu = "29.0.1"
 glam = { version = "0.28.0", features = ["mint", "bytemuck", "serde"] }
 rfd = "0.17.2"
-ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "65d83a8" }
-nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "65d83a8" }
+ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "7ae31d4" }
+nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "7ae31d4" }
 smush_shader = { git = "https://github.com/ScanMountGoat/Smush-Material-Research", rev = "ce57d67" }
 ssbh_data = { version = "0.19.0", features = ["strum", "serde"] }
 strum = "0.24.1"
