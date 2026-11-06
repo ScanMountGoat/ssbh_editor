@@ -3333,7 +3333,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=7ae31d4#7ae31d45a1e9fd484cfdccedb2ecad900135deb8"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=f8a00d7#f8a00d786685b2e88345b867a8bc23c2475d0ca8"
 dependencies = [
  "bytemuck",
  "log",
@@ -5151,7 +5151,7 @@ dependencies = [
 [[package]]
 name = "smush_shader"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/Smush-Material-Research?rev=ce57d67#ce57d67e3a48fd6acf2cf2dc9e696b72602ae9dd"
+source = "git+https://github.com/ScanMountGoat/Smush-Material-Research?rev=61a1516#61a15168ef2e65e933f08f258e9da436123db216"
 dependencies = [
  "ahash",
  "binrw 0.15.2",
@@ -5272,7 +5272,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "smush_shader",
  "ssbh_data",
  "ssbh_wgpu",
  "strip-ansi-escapes",
@@ -5302,7 +5301,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=7ae31d4#7ae31d45a1e9fd484cfdccedb2ecad900135deb8"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=f8a00d7#f8a00d786685b2e88345b867a8bc23c2475d0ca8"
 dependencies = [
  "aho-corasick",
  "bytemuck",

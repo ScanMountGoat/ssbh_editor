@@ -1,6 +1,6 @@
 use log::error;
-use smush_shader::{ShaderProgram, split_param};
 use ssbh_data::{Vector4, matl_data::*};
+use ssbh_wgpu::shader_database::{ShaderProgram, split_param};
 use std::str::FromStr;
 
 const UV_TRANSFORM_IDENTITY: UvTransform = UvTransform {

@@ -22,9 +22,8 @@ use egui::{
 use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
-use smush_shader::{ShaderProgram, split_param};
 use ssbh_data::{Color4f, Vector4, matl_data::*, modl_data::ModlEntryData, prelude::*};
-use ssbh_wgpu::ShaderDatabase;
+use ssbh_wgpu::shader_database::{ShaderDatabase, ShaderProgram, split_param};
 use std::{path::Path, str::FromStr};
 use strum::IntoEnumIterator;
 

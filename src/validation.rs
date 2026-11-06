@@ -6,7 +6,7 @@ use ssbh_data::{
     mesh_data::VectorData,
     prelude::*,
 };
-use ssbh_wgpu::{ModelFolder, ShaderDatabase};
+use ssbh_wgpu::{ModelFolder, shader_database::ShaderDatabase};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fmt::Display,
