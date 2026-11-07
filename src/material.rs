@@ -772,6 +772,7 @@ mod tests {
                 sh: false,
                 lighting: false,
                 anisotropic_rotation: false,
+                renormal: false,
                 attributes: Vec::new(),
                 parameters: vec![
                     "BlendState0".into(),
@@ -857,6 +858,7 @@ mod tests {
                 sh: false,
                 lighting: false,
                 anisotropic_rotation: false,
+                renormal: false,
                 attributes: Vec::new(),
                 parameters: Vec::new(),
                 complexity: 0.0,
@@ -997,6 +999,7 @@ mod tests {
             sh: true,
             lighting: true,
             anisotropic_rotation: false,
+            renormal: false,
             attributes: vec!["map1.xy".into()],
             parameters: vec![
                 "RasterizerState0".into(),
@@ -1093,6 +1096,7 @@ mod tests {
             sh: true,
             lighting: true,
             anisotropic_rotation: false,
+            renormal: false,
             attributes: vec!["map1.xy".into()],
             parameters: vec![
                 "RasterizerState0".into(),

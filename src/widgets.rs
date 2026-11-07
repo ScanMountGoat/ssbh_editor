@@ -1,6 +1,6 @@
 use egui::{
-    AsIdSalt, NumExt, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType,
-    epaint, pos2, vec2,
+    AsIdSalt, NumExt, Response, Role, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, epaint,
+    pos2, vec2,
 };
 use ssbh_data::skel_data::SkelData;
 
@@ -44,9 +44,7 @@ impl<'a> Widget for EyeCheckBox<'a> {
             *checked = !*checked;
             response.mark_changed();
         }
-        response.widget_info(|| {
-            WidgetInfo::selected(WidgetType::Checkbox, true, *checked, text.text())
-        });
+        response.widget_info(|| WidgetInfo::selected(Role::CheckBox, true, *checked, text.text()));
 
         if ui.is_rect_visible(rect) {
             let visuals = ui.style().interact(&response);

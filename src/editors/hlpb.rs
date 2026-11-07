@@ -2,16 +2,13 @@ use std::path::Path;
 
 use crate::{
     EditorResponse,
-    app::{HlpbEditorState, HlpbEditorTab},
+    app::{HlpbEditorState, HlpbEditorTab, emoji::GITHUB},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
     widgets::{DragSlider, bone_combo_box},
 };
-use egui::{
-    CentralPanel, DragValue, Grid, Panel, RichText, ScrollArea, TextEdit, Ui,
-    special_emojis::GITHUB,
-};
+use egui::{CentralPanel, DragValue, Grid, Panel, RichText, ScrollArea, TextEdit, Ui};
 
 use ssbh_data::{
     Vector3, Vector4,
@@ -273,7 +270,7 @@ fn orient_constraints(
         .orient_constraints
         .get_mut(state.orient_constraint_index)
     {
-        let id = egui::Id::new("orient_constraint");
+        let id = egui::Id::unique("orient_constraint");
 
         Grid::new(id).show(ui, |ui| {
             ui.label("Name");
@@ -343,7 +340,7 @@ fn aim_constraints(
     let mut changed = false;
 
     if let Some(aim) = hlpb.aim_constraints.get_mut(state.aim_constraint_index) {
-        let id = egui::Id::new("aim_constraint");
+        let id = egui::Id::unique("aim_constraint");
 
         egui::Grid::new(id).show(ui, |ui| {
             ui.label("Name");

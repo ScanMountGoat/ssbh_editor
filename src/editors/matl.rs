@@ -2,6 +2,7 @@ use crate::{
     EditorResponse,
     app::{
         MatlEditorState, PresetMode, ShaderFinderState, UiState, display_validation_errors,
+        emoji::GITHUB,
         icon::{draggable_icon, warning_icon},
         warning_icon_text,
     },
@@ -17,7 +18,6 @@ use crate::{
 use egui::{
     Button, CentralPanel, CollapsingHeader, ComboBox, Context, DragValue, Grid, Label, Panel,
     RichText, ScrollArea, Sense, TextEdit, TextWrapMode, Ui, Window, load::SizedTexture,
-    special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -173,53 +173,57 @@ fn select_material_dnd(
 
     let mut index_to_delete = None;
 
-    let response = dnd(ui, "matl_dnd").show_vec(&mut item_indices, |ui, item_index, handle, _| {
-        ui.horizontal(|ui| {
-            let entry = &entries[*item_index];
+    let response = dnd(ui, egui::Id::unique("matl_dnd")).show_vec(
+        &mut item_indices,
+        |ui, item_index, handle, _| {
+            ui.horizontal(|ui| {
+                let entry = &entries[*item_index];
 
-            handle.ui(ui, |ui| {
-                draggable_icon(ui, dark_mode);
-            });
+                handle.ui(ui, |ui| {
+                    draggable_icon(ui, dark_mode);
+                });
 
-            // TODO: Avoid collect.
-            let errors: Vec<_> = validation_errors
-                .iter()
-                .filter(|e| e.entry_index == *item_index)
-                .collect();
-            let text = if !errors.is_empty() {
-                warning_icon_text(&entry.material_label)
-            } else {
-                RichText::new(&entry.material_label)
-            };
+                // TODO: Avoid collect.
+                let errors: Vec<_> = validation_errors
+                    .iter()
+                    .filter(|e| e.entry_index == *item_index)
+                    .collect();
+                let text = if !errors.is_empty() {
+                    warning_icon_text(&entry.material_label)
+                } else {
+                    RichText::new(&entry.material_label)
+                };
 
-            // Wrap long material labels.
-            ui.style_mut().wrap_mode = Some(TextWrapMode::Wrap);
+                // Wrap long material labels.
+                ui.style_mut().wrap_mode = Some(TextWrapMode::Wrap);
 
-            let mut response =
-                ui.selectable_label(state.selected_material_index == *item_index, text);
-            if response.clicked() {
-                state.selected_material_index = *item_index;
-            }
-
-            if !errors.is_empty() {
-                response = response.on_hover_ui(|ui| display_validation_errors(ui, errors.iter()));
-            }
-
-            // TODO: This needs to be cleared every frame.
-            // TODO: Use a messages instead?
-            if response.hovered() {
-                // Used for material mask rendering.
-                state.hovered_material_index = Some(*item_index);
-            }
-
-            response.context_menu(|ui| {
-                // TODO: Also add a menu option?
-                if ui.button("Delete").clicked() {
-                    index_to_delete = Some(*item_index);
+                let mut response =
+                    ui.selectable_label(state.selected_material_index == *item_index, text);
+                if response.clicked() {
+                    state.selected_material_index = *item_index;
                 }
+
+                if !errors.is_empty() {
+                    response =
+                        response.on_hover_ui(|ui| display_validation_errors(ui, errors.iter()));
+                }
+
+                // TODO: This needs to be cleared every frame.
+                // TODO: Use a messages instead?
+                if response.hovered() {
+                    // Used for material mask rendering.
+                    state.hovered_material_index = Some(*item_index);
+                }
+
+                response.context_menu(|ui| {
+                    // TODO: Also add a menu option?
+                    if ui.button("Delete").clicked() {
+                        index_to_delete = Some(*item_index);
+                    }
+                });
             });
-        });
-    });
+        },
+    );
 
     if let Some(response) = response.final_update() {
         egui_dnd::utils::shift_vec(response.from, response.to, entries);
@@ -1172,7 +1176,7 @@ fn edit_matl_entry_inner(
     horizontal_separator_empty(ui);
 
     for param in entry.floats.iter_mut() {
-        let id = egui::Id::new(param.param_id.to_string());
+        let id = egui::Id::unique(param.param_id.to_string());
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
             ui.horizontal(|ui| {
                 ui.label(param_label(param.param_id))
@@ -1377,7 +1381,7 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidati
     let response = CollapsingHeader::new(text)
         .default_open(true)
         .show(ui, |ui| {
-            let id = egui::Id::new(param.param_id.to_string());
+            let id = egui::Id::unique(param.param_id.to_string());
 
             Grid::new(id).num_columns(2).show(ui, |ui| {
                 ui.label("Source Color")
@@ -1417,7 +1421,7 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
     let mut changed = false;
 
     CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
-        let id = egui::Id::new(param.param_id.to_string());
+        let id = egui::Id::unique(param.param_id.to_string());
 
         Grid::new(id).num_columns(2).show(ui, |ui| {
             ui.label("Polygon Fill")
@@ -1547,7 +1551,7 @@ fn edit_texture(
                 .response;
 
             // Workaround for ID conflicts affecting menu behavior.
-            response.id = egui::Id::new(param.param_id.to_string()).with("context_menu");
+            response.id = egui::Id::unique(param.param_id.to_string()).with("context_menu");
             response.context_menu(|ui| {
                 if ui.button("Edit").clicked() {
                     *texture_to_edit_index = Some(i);
@@ -1564,7 +1568,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
     let text = param_text(param.param_id, errors);
     let response = CollapsingHeader::new(text).id_salt(param.param_id.to_string()).show(ui, |ui| {
-        let id = egui::Id::new(param.param_id.to_string());
+        let id = egui::Id::unique(param.param_id.to_string());
 
         // TODO: List which wrap modes are the problem on error?
         Grid::new(id).num_columns(2).show(ui, |ui| {
@@ -1698,7 +1702,7 @@ fn edit_vector(
     let labels_long = vector4_labels_long(param.param_id);
 
     // Prevent editing components not accessed by the shader code.
-    let id = egui::Id::new(param.param_id.to_string());
+    let id = egui::Id::unique(param.param_id.to_string());
     let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
         let component = labels[i];
         ui.add_enabled_ui(enabled && channels[i], |ui| {

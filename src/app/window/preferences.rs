@@ -1,14 +1,12 @@
 use std::str::FromStr;
 
 use crate::{
+    app::emoji::{OS_APPLE, OS_LINUX, OS_WINDOWS},
     path::application_dir,
     preferences::{AppPreferences, GraphicsBackend},
 };
 
-use egui::{
-    DragValue, TextWrapMode, Ui, Window,
-    special_emojis::{OS_APPLE, OS_LINUX, OS_WINDOWS},
-};
+use egui::{DragValue, TextWrapMode, Ui, Window};
 use strum::VariantNames;
 
 pub fn preferences_window(

@@ -2,11 +2,14 @@ use std::path::Path;
 
 use crate::{
     CameraState,
-    app::shortcut::{ADD_FOLDER, OPEN_FOLDER, RELOAD_SHORTCUT, format_shortcut},
+    app::{
+        emoji::GITHUB,
+        shortcut::{ADD_FOLDER, OPEN_FOLDER, RELOAD_SHORTCUT, format_shortcut},
+    },
 };
 
 use super::{RenderAction, RenderModelAction, SsbhApp};
-use egui::{Button, TextWrapMode, Ui, special_emojis::GITHUB};
+use egui::{Button, TextWrapMode, Ui};
 use rfd::FileDialog;
 
 pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {

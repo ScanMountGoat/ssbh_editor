@@ -1,12 +1,10 @@
 use crate::{
     EditorResponse,
-    app::{AnimEditorState, AnimEditorTab},
+    app::{AnimEditorState, AnimEditorTab, emoji::GITHUB},
     path::folder_editor_title,
     save_file, save_file_as,
 };
-use egui::{
-    CentralPanel, CollapsingHeader, DragValue, Panel, RichText, ScrollArea, special_emojis::GITHUB,
-};
+use egui::{CentralPanel, CollapsingHeader, DragValue, Panel, RichText, ScrollArea};
 use egui_extras::{Column, TableBuilder};
 use egui_plot::{HoverPosition, Legend, Line, Plot};
 

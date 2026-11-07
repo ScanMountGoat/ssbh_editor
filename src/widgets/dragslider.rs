@@ -15,7 +15,7 @@ pub struct DragSlider<'a> {
 impl<'a> DragSlider<'a> {
     pub fn new(id_source: impl AsIdSalt, value: &'a mut f32) -> Self {
         DragSlider {
-            id: Id::new(id_source),
+            id: Id::unique(id_source),
             value,
             width: 100.0,
             slider_min: 0.0,

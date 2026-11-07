@@ -48,6 +48,8 @@ use std::{
 
 mod anim_list;
 mod animation_bar;
+// The default-fonts emoji font is manually included, so add the emoji char codes.
+pub mod emoji;
 mod file_list;
 pub mod icon;
 mod menu;
@@ -1179,15 +1181,14 @@ impl eframe::App for SsbhApp {
             }
 
             for file in &input.raw.dropped_files {
-                if let Some(path) = file.path.as_ref() {
-                    if path.is_file() {
-                        // Load the parent folder for files.
-                        if let Some(parent) = path.parent() {
-                            self.add_folder_to_workspace(parent, false);
-                        }
-                    } else {
-                        self.add_folder_to_workspace(path, false);
+                let path = file.path();
+                if path.is_file() {
+                    // Load the parent folder for files.
+                    if let Some(parent) = path.parent() {
+                        self.add_folder_to_workspace(parent, false);
                     }
+                } else {
+                    self.add_folder_to_workspace(path, false);
                 }
             }
         });

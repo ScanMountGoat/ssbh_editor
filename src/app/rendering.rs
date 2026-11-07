@@ -132,25 +132,13 @@ impl SsbhApp {
             render_model.apply_anims(
                 queue,
                 animations,
-                model
-                    .model
-                    .skels
-                    .iter()
-                    .find(|(f, _)| f == "model.nusktb")
-                    .and_then(|(_, m)| m.as_ref()),
-                model
-                    .model
-                    .matls
-                    .iter()
-                    .find(|(f, _)| f == "model.numatb")
-                    .and_then(|(_, m)| m.as_ref()),
+                model.model.find_skel(),
+                model.model.find_matl(),
+                model.model.find_metamon_matl(),
+                model.model.find_light_matl(),
+                model.model.find_dark_matl(),
                 if self.enable_helper_bones {
-                    model
-                        .model
-                        .hlpbs
-                        .iter()
-                        .find(|(f, _)| f == "model.nuhlpb")
-                        .and_then(|(_, m)| m.as_ref())
+                    model.model.find_hlpb()
                 } else {
                     None
                 },

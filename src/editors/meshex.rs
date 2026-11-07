@@ -1,5 +1,8 @@
-use crate::{EditorMessage, EditorResponse, path::folder_editor_title, save_file, save_file_as};
-use egui::{Grid, Label, Response, ScrollArea, Sense, Ui, special_emojis::GITHUB};
+use crate::{
+    EditorMessage, EditorResponse, app::emoji::GITHUB, path::folder_editor_title, save_file,
+    save_file_as,
+};
+use egui::{Grid, Label, Response, ScrollArea, Sense, Ui};
 
 use ssbh_data::prelude::*;
 use std::path::Path;

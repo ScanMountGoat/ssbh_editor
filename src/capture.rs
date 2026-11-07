@@ -131,7 +131,7 @@ fn read_buffer_to_image(
     });
     device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
     block_on(rx.receive()).unwrap().unwrap();
-    let data = buffer_slice.get_mapped_range();
+    let data = buffer_slice.get_mapped_range().unwrap();
     let mut buffer =
         image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(width, height, data.to_owned()).unwrap();
 

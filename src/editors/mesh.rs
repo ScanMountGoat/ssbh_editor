@@ -1,6 +1,9 @@
 use crate::{
     EditorMessage, EditorResponse,
-    app::{MeshEditorState, display_validation_errors, icon::draggable_icon, warning_icon_text},
+    app::{
+        MeshEditorState, display_validation_errors, emoji::GITHUB, icon::draggable_icon,
+        warning_icon_text,
+    },
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -9,7 +12,6 @@ use crate::{
 };
 use egui::{
     Button, CentralPanel, ComboBox, Grid, Panel, RichText, ScrollArea, TextEdit, TextWrapMode, Ui,
-    special_emojis::GITHUB,
 };
 use egui_dnd::dnd;
 use log::error;
@@ -147,55 +149,59 @@ fn select_mesh_object_dnd(
     // TODO: Avoid allocating here.
     let mut item_indices: Vec<_> = (0..mesh.objects.len()).collect();
 
-    let response = dnd(ui, "mesh_dnd").show_vec(&mut item_indices, |ui, item_index, handle, _| {
-        ui.horizontal(|ui| {
-            handle.ui(ui, |ui| {
-                draggable_icon(ui, dark_mode);
-            });
+    let response = dnd(ui, egui::Id::unique("mesh_dnd")).show_vec(
+        &mut item_indices,
+        |ui, item_index, handle, _| {
+            ui.horizontal(|ui| {
+                handle.ui(ui, |ui| {
+                    draggable_icon(ui, dark_mode);
+                });
 
-            let mesh_object = &mut mesh.objects[*item_index];
+                let mesh_object = &mut mesh.objects[*item_index];
 
-            // TODO: Avoid allocating here.
-            let errors: Vec<_> = validation_errors
-                .iter()
-                .filter(|e| e.mesh_object_index == *item_index)
-                .collect();
+                // TODO: Avoid allocating here.
+                let errors: Vec<_> = validation_errors
+                    .iter()
+                    .filter(|e| e.mesh_object_index == *item_index)
+                    .collect();
 
-            let text = if !errors.is_empty() {
-                warning_icon_text(&mesh_object.name)
-            } else {
-                RichText::new(&mesh_object.name)
-            };
+                let text = if !errors.is_empty() {
+                    warning_icon_text(&mesh_object.name)
+                } else {
+                    RichText::new(&mesh_object.name)
+                };
 
-            let header_response = ui.selectable_value(&mut state.selected_index, *item_index, text);
+                let header_response =
+                    ui.selectable_value(&mut state.selected_index, *item_index, text);
 
-            header_response.context_menu(|ui| {
-                if ui.button("Duplicate").clicked() {
-                    mesh_to_duplicate = Some(*item_index);
-                    changed = true;
+                header_response.context_menu(|ui| {
+                    if ui.button("Duplicate").clicked() {
+                        mesh_to_duplicate = Some(*item_index);
+                        changed = true;
+                    }
+
+                    if ui.button("Delete").clicked() {
+                        mesh_to_remove = Some(*item_index);
+                        changed = true;
+                    }
+                });
+
+                // Outline the selected mesh in the viewport.
+                if header_response.hovered() {
+                    *message = Some(EditorMessage::SelectMesh {
+                        mesh_object_name: mesh.objects[*item_index].name.clone(),
+                        mesh_object_subindex: mesh.objects[*item_index].subindex,
+                    });
                 }
 
-                if ui.button("Delete").clicked() {
-                    mesh_to_remove = Some(*item_index);
-                    changed = true;
+                if !errors.is_empty() {
+                    header_response.on_hover_ui(|ui| {
+                        display_validation_errors(ui, errors.iter());
+                    });
                 }
             });
-
-            // Outline the selected mesh in the viewport.
-            if header_response.hovered() {
-                *message = Some(EditorMessage::SelectMesh {
-                    mesh_object_name: mesh.objects[*item_index].name.clone(),
-                    mesh_object_subindex: mesh.objects[*item_index].subindex,
-                });
-            }
-
-            if !errors.is_empty() {
-                header_response.on_hover_ui(|ui| {
-                    display_validation_errors(ui, errors.iter());
-                });
-            }
-        });
-    });
+        },
+    );
 
     if let Some(i) = mesh_to_duplicate {
         let mut duplicated_mesh = mesh.objects[i].clone();
@@ -235,7 +241,7 @@ fn edit_mesh_object(
 ) -> bool {
     let mut changed = false;
 
-    let id = egui::Id::new("mesh_object").with(i);
+    let id = egui::Id::unique("mesh_object").with(i);
 
     // TODO: Reorder mesh objects?
     // TODO: Show errors on the appropriate field?

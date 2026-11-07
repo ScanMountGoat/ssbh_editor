@@ -1,8 +1,8 @@
 use crate::{
-    EditorResponse, path::folder_editor_title, save_file, save_file_as,
+    EditorResponse, app::emoji::GITHUB, path::folder_editor_title, save_file, save_file_as,
     validation::AdjValidationError,
 };
-use egui::{ScrollArea, special_emojis::GITHUB};
+use egui::ScrollArea;
 
 use ssbh_data::{adj_data::AdjEntryData, prelude::*};
 use std::path::Path;

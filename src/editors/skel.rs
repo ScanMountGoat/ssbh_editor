@@ -2,14 +2,11 @@ use std::path::Path;
 
 use crate::{
     EditorResponse,
-    app::{SkelEditorState, SkelMode, icon::draggable_icon},
+    app::{SkelEditorState, SkelMode, emoji::GITHUB, icon::draggable_icon},
     path::folder_editor_title,
     widgets::enum_combo_box,
 };
-use egui::{
-    Button, CollapsingHeader, Grid, Label, RichText, ScrollArea, TextWrapMode,
-    special_emojis::GITHUB,
-};
+use egui::{Button, CollapsingHeader, Grid, Label, RichText, ScrollArea, TextWrapMode};
 use egui_dnd::dnd;
 use log::error;
 use rfd::FileDialog;
@@ -123,80 +120,82 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) -> b
     // TODO: Avoid allocating here.
     let mut items: Vec<_> = (0..skel.bones.len()).collect();
 
-    let response = dnd(ui, "skel_dnd").show_custom_vec(&mut items, |ui, items, iter| {
-        Grid::new("skel_grid").num_columns(4).show(ui, |ui| {
-            ui.label("");
-            ui.label("Bone");
-            ui.label("Parent Bone");
-            ui.label("Billboard Type");
-            ui.end_row();
+    let response =
+        dnd(ui, egui::Id::unique("skel_dnd")).show_custom_vec(&mut items, |ui, items, iter| {
+            Grid::new("skel_grid").num_columns(4).show(ui, |ui| {
+                ui.label("");
+                ui.label("Bone");
+                ui.label("Parent Bone");
+                ui.label("Billboard Type");
+                ui.end_row();
 
-            for (i, item) in items.iter().enumerate() {
-                let item_id = egui::Id::new("skel_item").with(item);
+                for (i, item) in items.iter().enumerate() {
+                    let item_id = egui::Id::unique("skel_item").with(item);
 
-                let bone = &mut skel.bones[*item];
+                    let bone = &mut skel.bones[*item];
 
-                // TODO: Is there a way to add an extra row of space when dragging?
-                // TODO: Does this depend on sorting during or after dragging?
-                // let space_content = |ui: &mut egui::Ui, _space| {
-                //     ui.label("");
-                //     ui.label("");
-                //     ui.label("");
-                //     ui.label("");
-                //     ui.end_row();
-                // };
-                // iter.space_before(ui, item_id, space_content);
+                    // TODO: Is there a way to add an extra row of space when dragging?
+                    // TODO: Does this depend on sorting during or after dragging?
+                    // let space_content = |ui: &mut egui::Ui, _space| {
+                    //     ui.label("");
+                    //     ui.label("");
+                    //     ui.label("");
+                    //     ui.label("");
+                    //     ui.end_row();
+                    // };
+                    // iter.space_before(ui, item_id, space_content);
 
-                iter.next(ui, item_id, i, false, |ui, item_handle| {
-                    let response = item_handle.ui(ui, |ui, handle, _state| {
-                        handle.ui(ui, |ui| {
-                            draggable_icon(ui, dark_mode);
+                    iter.next(ui, item_id, i, false, |ui, item_handle| {
+                        let response = item_handle.ui(ui, |ui, handle, _state| {
+                            handle.ui(ui, |ui| {
+                                draggable_icon(ui, dark_mode);
+                            });
                         });
+
+                        // TODO: Highlight the selected bone on hover.
+                        ui.add(Label::new(&bone.name).sense(egui::Sense::click()));
+
+                        let id = egui::Id::unique("bone").with(item);
+                        let parent_bone_name = bone
+                            .parent_index
+                            .and_then(|i| other_bones.get(i))
+                            .map(|p| p.name.as_str())
+                            .unwrap_or("None");
+
+                        egui::ComboBox::from_id_salt(id)
+                            .selected_text(parent_bone_name)
+                            .width(250.0)
+                            .show_ui(ui, |ui| {
+                                changed |= ui
+                                    .selectable_value(&mut bone.parent_index, None, "None")
+                                    .changed();
+                                ui.separator();
+                                // TODO: Is there a way to make this not O(N^2)?
+                                for (other_i, other_bone) in other_bones.iter().enumerate() {
+                                    if *item != other_i {
+                                        changed |= ui
+                                            .selectable_value(
+                                                &mut bone.parent_index,
+                                                Some(other_i),
+                                                &other_bone.name,
+                                            )
+                                            .changed();
+                                    }
+                                }
+                            });
+
+                        changed |=
+                            enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
+
+                        ui.end_row();
+
+                        response
                     });
 
-                    // TODO: Highlight the selected bone on hover.
-                    ui.add(Label::new(&bone.name).sense(egui::Sense::click()));
-
-                    let id = egui::Id::new("bone").with(item);
-                    let parent_bone_name = bone
-                        .parent_index
-                        .and_then(|i| other_bones.get(i))
-                        .map(|p| p.name.as_str())
-                        .unwrap_or("None");
-
-                    egui::ComboBox::from_id_salt(id)
-                        .selected_text(parent_bone_name)
-                        .width(250.0)
-                        .show_ui(ui, |ui| {
-                            changed |= ui
-                                .selectable_value(&mut bone.parent_index, None, "None")
-                                .changed();
-                            ui.separator();
-                            // TODO: Is there a way to make this not O(N^2)?
-                            for (other_i, other_bone) in other_bones.iter().enumerate() {
-                                if *item != other_i {
-                                    changed |= ui
-                                        .selectable_value(
-                                            &mut bone.parent_index,
-                                            Some(other_i),
-                                            &other_bone.name,
-                                        )
-                                        .changed();
-                                }
-                            }
-                        });
-
-                    changed |= enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
-
-                    ui.end_row();
-
-                    response
-                });
-
-                // iter.space_after(ui, item_id, space_content);
-            }
+                    // iter.space_after(ui, item_id, space_content);
+                }
+            });
         });
-    });
 
     if let Some(response) = response.final_update() {
         skel.bones = move_bone(response.from, response.to, &skel.bones);
