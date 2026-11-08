@@ -235,10 +235,7 @@ fn render_animation_sequence(
     let final_frame = app.max_final_frame_index(render_state);
     app.animation_state.current_frame = 0.0;
     while app.animation_state.current_frame <= final_frame {
-        render_state
-            .renderer
-            .update_current_frame(queue, app.animation_state.current_frame);
-        app.animate_models(queue, render_state);
+        app.animate(queue, render_state, width as f32, height as f32, 1.0);
 
         let frame = render_screenshot(device, queue, render_state, width, height, surface_format);
         frames.push(frame);

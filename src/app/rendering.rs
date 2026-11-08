@@ -69,14 +69,25 @@ impl SsbhApp {
         }
 
         if self.animation_state.is_playing || self.animation_state.should_update_animations {
-            render_state
-                .renderer
-                .update_current_frame(queue, self.animation_state.current_frame);
-            render_state.animate_lighting(queue, self.animation_state.current_frame);
-            self.animate_viewport_camera(render_state, queue, width, height, scale_factor);
-            self.animate_models(queue, render_state);
+            self.animate(queue, render_state, width, height, scale_factor);
             self.animation_state.should_update_animations = false;
         }
+    }
+
+    pub fn animate(
+        &mut self,
+        queue: &wgpu::Queue,
+        render_state: &mut RenderState,
+        width: f32,
+        height: f32,
+        scale_factor: f32,
+    ) {
+        render_state
+            .renderer
+            .update_current_frame(queue, self.animation_state.current_frame);
+        render_state.animate_lighting(queue, self.animation_state.current_frame);
+        self.animate_viewport_camera(render_state, queue, width, height, scale_factor);
+        self.animate_models(queue, render_state);
     }
 
     fn animate_viewport_camera(
@@ -118,6 +129,13 @@ impl SsbhApp {
             .zip(self.models.iter())
             .zip(self.animation_state.animations.iter())
         {
+            render_model.update_per_object(
+                queue,
+                self.animation_state.current_frame,
+                &render_state.render_settings,
+                render_state.lighting_data.light.as_ref(),
+            );
+
             // Only render enabled animations.
             let animations = model_animations
                 .iter()
