@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved rendering accuracy across many materials by recreating in game shader code.
 * Improved performance when the Shader Finder window is open.
 * Changed the Animations tab to only show the "Add Motion Folder" button prompt if the folder actually exists.
+* Improved validation for materials and material assignments.
 
 ### Fixed
 * Fixed an issue where meshes with highlighted materials would show bloom over the highlighted color.

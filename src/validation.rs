@@ -51,9 +51,12 @@ impl ModelFolderValidationErrors {
         let modl = find_modl(model);
 
         if let Some((modl_index, modl)) = modl {
-            for matl in model.matls.iter().filter_map(|(_, m)| m.as_ref()) {
-                // TODO: This should only validate model.numatb?
-                validate_modl_entries(&mut validation, modl_index, modl, Some(matl), mesh);
+            for (name, matl) in model
+                .matls
+                .iter()
+                .filter_map(|(n, m)| Some((n, m.as_ref()?)))
+            {
+                validate_modl_entries(&mut validation, modl_index, modl, matl, name, mesh);
             }
         }
 
@@ -304,8 +307,11 @@ pub enum ModlValidationErrorKind {
         mesh_object_subindex: usize,
     },
 
-    #[error("Modl entry assigns a material {material_label:?} not found in the model.numatb.")]
-    InvalidMaterial { material_label: String },
+    #[error("Modl entry assigns a material {material_label:?} not found in {matl_name:?}.")]
+    InvalidMaterial {
+        material_label: String,
+        matl_name: String,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
@@ -1013,28 +1019,28 @@ fn validate_modl_entries(
     validation: &mut ModelFolderValidationErrors,
     modl_index: usize,
     modl: &ModlData,
-    matl: Option<&MatlData>,
+    matl: &MatlData,
+    matl_name: &str,
     mesh: Option<(usize, &MeshData)>,
 ) {
-    if let Some(matl) = matl {
-        for (entry_index, entry) in modl.entries.iter().enumerate() {
-            if !matl
-                .entries
-                .iter()
-                .any(|e| e.material_label == entry.material_label)
-            {
-                let error = ModlValidationError {
-                    entry_index,
-                    kind: ModlValidationErrorKind::InvalidMaterial {
-                        material_label: entry.material_label.clone(),
-                    },
-                };
-                validation
-                    .modl_errors
-                    .entry(modl_index)
-                    .or_default()
-                    .push(error);
-            }
+    for (entry_index, entry) in modl.entries.iter().enumerate() {
+        if !matl
+            .entries
+            .iter()
+            .any(|e| e.material_label == entry.material_label)
+        {
+            let error = ModlValidationError {
+                entry_index,
+                kind: ModlValidationErrorKind::InvalidMaterial {
+                    material_label: entry.material_label.clone(),
+                    matl_name: matl_name.to_string(),
+                },
+            };
+            validation
+                .modl_errors
+                .entry(modl_index)
+                .or_default()
+                .push(error);
         }
     }
 
@@ -1277,9 +1283,10 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             .to_string()
         );
         assert_eq!(
-            r#"Modl entry assigns a material "mat" not found in the model.numatb."#,
+            r#"Modl entry assigns a material "mat" not found in "model.numatb"."#,
             ModlValidationErrorKind::InvalidMaterial {
-                material_label: "mat".to_string()
+                material_label: "mat".to_string(),
+                matl_name: "model.numatb".to_string()
             }
             .to_string()
         );
@@ -2376,7 +2383,14 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
         };
 
         let mut validation = ModelFolderValidationErrors::default();
-        validate_modl_entries(&mut validation, 0, &modl, Some(&matl), Some((0, &mesh)));
+        validate_modl_entries(
+            &mut validation,
+            0,
+            &modl,
+            &matl,
+            "test.numatb",
+            Some((0, &mesh)),
+        );
 
         // Check each kind of invalid assignment.
         assert_eq!(
@@ -2385,6 +2399,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                     entry_index: 0,
                     kind: ModlValidationErrorKind::InvalidMaterial {
                         material_label: "b".to_owned(),
+                        matl_name: "test.numatb".to_string()
                     }
                 },
                 ModlValidationError {
