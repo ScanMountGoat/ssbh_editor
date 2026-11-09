@@ -370,13 +370,22 @@ fn edit_mesh_object(
             }
             horizontal_separator_empty(ui);
         }
-        if ui
+
+        if mesh_object.bone_influences.len() == 1 {
+            if ui
+                .button("Convert to Parent Bone")
+                .on_hover_text("Convert the skin weights to a parent bone.")
+                .clicked()
+            {
+                convert_single_influence_to_parent_bone(mesh_object, skel);
+                changed = true;
+            }
+        } else if ui
             .button("Remove Bone Influences")
             .on_hover_text("Remove the vertex skin weights to assign a parent bone.")
             .clicked()
         {
             // TODO: What happens if there is a parent bone and influences?
-            // TODO: Convert to parent bone if there is only one influence.
             mesh_object.bone_influences = Vec::new();
             changed = true;
         }
@@ -390,7 +399,6 @@ fn edit_mesh_object(
     changed
 }
 
-// TODO: Move this to ssbh_data?
 fn convert_parent_bone_to_influences(mesh_object: &mut MeshObjectData, skel: Option<&SkelData>) {
     // Weight vertices to parent bone.
     mesh_object.bone_influences = vec![BoneInfluence {
@@ -410,18 +418,7 @@ fn convert_parent_bone_to_influences(mesh_object: &mut MeshObjectData, skel: Opt
             .find(|b| b.name == mesh_object.parent_bone_name)
             .and_then(|b| s.calculate_world_transform(b).ok())
     }) {
-        for attribute in &mut mesh_object.positions {
-            attribute.data = transform_points(&attribute.data, &parent_transform);
-        }
-        for attribute in &mut mesh_object.normals {
-            attribute.data = transform_vectors(&attribute.data, &parent_transform);
-        }
-        for attribute in &mut mesh_object.tangents {
-            attribute.data = transform_vectors(&attribute.data, &parent_transform);
-        }
-        for attribute in &mut mesh_object.binormals {
-            attribute.data = transform_vectors(&attribute.data, &parent_transform);
-        }
+        transform_attributes(mesh_object, parent_transform);
     } else {
         error!(
             "Failed to apply transform for {:?}",
@@ -431,6 +428,54 @@ fn convert_parent_bone_to_influences(mesh_object: &mut MeshObjectData, skel: Opt
 
     // Remove parent.
     mesh_object.parent_bone_name = String::new();
+}
+
+fn convert_single_influence_to_parent_bone(
+    mesh_object: &mut MeshObjectData,
+    skel: Option<&SkelData>,
+) {
+    // A single influence can be converted to a parent bone.
+    if let [influence] = &mesh_object.bone_influences[..] {
+        let parent_bone = influence.bone_name.clone();
+
+        // Account for the effect of the parent transform.
+        if let Some(parent_transform) = skel.and_then(|s| {
+            s.bones
+                .iter()
+                .find(|b| b.name == parent_bone)
+                .and_then(|b| s.calculate_world_transform(b).ok())
+        }) {
+            let parent_inv_transform = glam::Mat4::from_cols_array_2d(&parent_transform)
+                .inverse()
+                .to_cols_array_2d();
+            transform_attributes(mesh_object, parent_inv_transform)
+        } else {
+            error!(
+                "Failed to apply inverse transform for {:?}",
+                mesh_object.parent_bone_name
+            );
+        }
+
+        // Convert to parent.
+        mesh_object.bone_influences = Vec::new();
+        mesh_object.parent_bone_name = parent_bone;
+    }
+}
+
+// TODO: Move this to ssbh_data?
+fn transform_attributes(mesh_object: &mut MeshObjectData, transform: [[f32; 4]; 4]) {
+    for attribute in &mut mesh_object.positions {
+        attribute.data = transform_points(&attribute.data, &transform);
+    }
+    for attribute in &mut mesh_object.normals {
+        attribute.data = transform_vectors(&attribute.data, &transform);
+    }
+    for attribute in &mut mesh_object.tangents {
+        attribute.data = transform_vectors(&attribute.data, &transform);
+    }
+    for attribute in &mut mesh_object.binormals {
+        attribute.data = transform_vectors(&attribute.data, &transform);
+    }
 }
 
 fn match_mesh_order(mesh: &mut MeshData, reference: &MeshData) {
