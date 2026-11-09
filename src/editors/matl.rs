@@ -1,5 +1,5 @@
 use crate::{
-    EditorResponse,
+    EditorMessage, EditorResponse,
     app::{
         MatlEditorState, PresetMode, ShaderFinderState, UiState, display_validation_errors,
         emoji::GITHUB,
@@ -70,6 +70,7 @@ pub fn matl_editor(
     let mut open = true;
     let mut changed = false;
     let mut saved = false;
+    let mut message = None;
 
     let title = folder_editor_title(folder_name, file_name);
     Window::new(format!("Matl Editor ({title})"))
@@ -147,6 +148,7 @@ pub fn matl_editor(
                                 red_checkerboard,
                                 yellow_checkerboard,
                                 state,
+                                &mut message,
                             );
                         }
                     });
@@ -157,7 +159,7 @@ pub fn matl_editor(
         open,
         changed,
         saved,
-        message: None,
+        message,
     }
 }
 
@@ -300,6 +302,7 @@ pub fn preset_editor(
                                 red_checkerboard,
                                 yellow_checkerboard,
                                 &mut ui_state.preset_editor,
+                                &mut None,
                             );
                         }
                     });
@@ -476,6 +479,7 @@ fn edit_matl_entry(
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
     state: &mut MatlEditorState,
+    message: &mut Option<EditorMessage>,
 ) -> bool {
     let mut changed = false;
 
@@ -496,7 +500,7 @@ fn edit_matl_entry(
             })
             .unwrap_or_default();
 
-        changed |= edit_material_label(entry, ui, &mut modl_entries);
+        changed |= edit_material_label(entry, ui, &mut modl_entries, message);
     });
 
     changed |= edit_matl_entry_inner(
@@ -1036,6 +1040,7 @@ fn edit_material_label(
     entry: &mut MatlEntryData,
     ui: &mut Ui,
     modl_entries: &mut [&mut ModlEntryData],
+    message: &mut Option<EditorMessage>,
 ) -> bool {
     // TODO: Get this to work with lost_focus for efficiency.
     // TODO: Show errors if these checks fail?
@@ -1051,6 +1056,9 @@ fn edit_material_label(
         for modl_entry in modl_entries {
             modl_entry.material_label.clone_from(&entry.material_label);
         }
+
+        // Set the message to also mark the modl as changed.
+        *message = Some(EditorMessage::RenameMaterial);
     }
 
     changed

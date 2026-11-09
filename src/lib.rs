@@ -57,6 +57,7 @@ pub enum EditorMessage {
         mesh_object_name: String,
         mesh_object_subindex: u64,
     },
+    RenameMaterial,
 }
 
 impl EditorResponse {

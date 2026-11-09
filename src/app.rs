@@ -1,6 +1,6 @@
 use crate::{
-    AnimationIndex, AnimationSlot, AnimationState, CameraState, FileResult, RenderState,
-    SwingState, Thumbnail,
+    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorMessage, FileResult,
+    RenderState, SwingState, Thumbnail,
     app::{
         anim_list::anim_list,
         animation_bar::display_animation_bar,
@@ -787,6 +787,10 @@ impl SsbhApp {
                         },
                     ));
                 }
+
+                if let Some(message) = response.message {
+                    handle_message(model, &mut self.render_actions, folder_index, message);
+                }
             }
 
             if open_editor::<MeshData>(
@@ -1267,20 +1271,7 @@ fn open_editor<T: Editor>(
             T::set_changed(&response, &mut model.changed, *index);
 
             if let Some(message) = response.message {
-                match message {
-                    crate::EditorMessage::SelectMesh {
-                        mesh_object_name,
-                        mesh_object_subindex,
-                    } => {
-                        model_actions.push_back(RenderAction::Model(
-                            RenderModelAction::SelectMesh {
-                                model_index: selected_folder_index,
-                                mesh_object_name,
-                                mesh_object_subindex,
-                            },
-                        ));
-                    }
-                }
+                handle_message(model, model_actions, selected_folder_index, message);
             }
         }
 
@@ -1292,6 +1283,46 @@ fn open_editor<T: Editor>(
         response.changed
     } else {
         false
+    }
+}
+
+fn handle_message(
+    model: &mut ModelFolderState,
+    model_actions: &mut VecDeque<RenderAction>,
+    selected_folder_index: usize,
+    message: EditorMessage,
+) {
+    match message {
+        crate::EditorMessage::SelectMesh {
+            mesh_object_name,
+            mesh_object_subindex,
+        } => {
+            model_actions.push_back(RenderAction::Model(RenderModelAction::SelectMesh {
+                model_index: selected_folder_index,
+                mesh_object_name,
+                mesh_object_subindex,
+            }));
+        }
+        crate::EditorMessage::RenameMaterial => {
+            // TODO: is there a better way for editors to trigger changes in other file types?
+            for ((i, (name, modl)), changed) in model
+                .model
+                .modls
+                .iter()
+                .enumerate()
+                .zip(model.changed.modls.iter_mut())
+            {
+                if name == "model.numdlb" {
+                    *changed = true;
+                    model_actions.push_back(RenderAction::Model(
+                        RenderModelAction::ReassignMaterials {
+                            model_index: i,
+                            modl: modl.clone(),
+                        },
+                    ));
+                }
+            }
+        }
     }
 }
 

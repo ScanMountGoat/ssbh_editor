@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed an issue where meshes with highlighted materials would show bloom over the highlighted color.
 * Fixed an issue where material highlighting for files other than the model.numatb would highlight the wrong meshes in some cases.
+* Fixed an issue where renaming a material in the Matl Editor would edit the numdlb entry but not mark the numdlb as changed.
 
 ## 0.11.1 - 2026-06-30
 ### Added
