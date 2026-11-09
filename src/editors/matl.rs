@@ -40,6 +40,8 @@ const SH_DESCRIPTION: &str =
 const LIGHTSET_DESCRIPTION: &str = "Uses directional lighting from the lighting nuanmb.";
 const ANISOTROPIC_ROTATION_DESCRIPTION: &str =
     "Use the PRM alpha to rotate the anisotropic highlight.";
+const RENORMAL_DESCRIPTION: &str =
+    "Recalculates the vertex normals from the vertex positions and model.adjb data.";
 const NO_USER_PRESETS: &str = "No user material presets detected. \
 Make sure the presets.json file is present and contains valid JSON materials.";
 const SHADER_ATTRIBUTES_DESCRIPTION: &str =
@@ -1371,6 +1373,10 @@ fn shader_info_header(ui: &mut Ui, program: &ShaderProgram) {
     if program.anisotropic_rotation {
         ui.label("Anisotropic Rotation")
             .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
+    }
+
+    if program.renormal {
+        ui.label("Renormal").on_hover_text(RENORMAL_DESCRIPTION);
     }
 }
 

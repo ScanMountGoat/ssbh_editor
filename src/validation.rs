@@ -92,6 +92,7 @@ impl ModelFolderValidationErrors {
                 find_adj(model),
                 model.find_modl(),
                 mesh,
+                shader_database,
             );
             validate_material_labels(&mut validation, i, matl);
             validate_sampler_anisotropy(&mut validation, i, matl);
@@ -234,17 +235,21 @@ pub enum MatlValidationErrorKind {
     },
 
     #[error(
-        "Mesh {mesh_name:?} has the RENORMAL material {material_label:?} but no corresponding entry in the model.adjb."
+        "Mesh {mesh_name:?} has the material {material_label:?} with RENORMAL shader {shader_label:?} but no corresponding entry in the model.adjb."
     )]
     RenormalMaterialMissingMeshAdjEntry {
         material_label: String,
+        shader_label: String,
         mesh_name: String,
     },
 
     #[error(
-        "Material {material_label:?} is a RENORMAL material, but the model.adjb file is missing."
+        "Material {material_label:?} has the RENORMAL shader {shader_label:?}, but the model.adjb file is missing."
     )]
-    RenormalMaterialMissingAdj { material_label: String },
+    RenormalMaterialMissingAdj {
+        material_label: String,
+        shader_label: String,
+    },
 
     #[error(
         "Samplers {samplers:?} for material {material_label:?} will clamp UV coordinates for mesh {mesh_name:?}.
@@ -316,11 +321,14 @@ pub enum ModlValidationErrorKind {
 
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum AdjValidationError {
-    #[error("Missing entry for mesh {mesh_name:?} with the RENORMAL material {material_label:?}.")]
+    #[error(
+        "Missing entry for mesh {mesh_name:?} with material {material_label:?} with RENORMAL shader {shader_label:?}."
+    )]
     MissingRenormalEntry {
         mesh_object_index: usize,
         mesh_name: String,
         material_label: String,
+        shader_label: String,
     },
 }
 
@@ -771,20 +779,23 @@ fn validate_renormal_material_entries(
     adj: Option<(usize, &AdjData)>,
     modl: Option<&ModlData>,
     mesh: Option<(usize, &MeshData)>,
+    shader_database: &ShaderDatabase,
 ) {
-    // TODO: Is this check case sensitive?
-    for (entry_index, entry) in matl
-        .entries
-        .iter()
-        .enumerate()
-        .filter(|(_, e)| e.material_label.contains("RENORMAL"))
-    {
+    // The RENORMAL_ material naming is just a convention.
+    // Check if the shader code uses renormal calculations.
+    for (entry_index, entry) in matl.entries.iter().enumerate().filter(|(_, e)| {
+        shader_database
+            .get(&e.shader_label)
+            .map(|s| s.renormal)
+            .unwrap_or_default()
+    }) {
         if adj.is_none() {
             // The model.adjb should be present if any RENORMAL materials are used.
             let matl_error = MatlValidationError {
                 entry_index,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
                     material_label: entry.material_label.clone(),
+                    shader_label: entry.shader_label.clone(),
                 },
             };
             validation
@@ -808,6 +819,7 @@ fn validate_renormal_material_entries(
                     mesh_object_index: mesh_index,
                     mesh_name: mesh.name.clone(),
                     material_label: entry.material_label.clone(),
+                    shader_label: entry.shader_label.clone(),
                 };
 
                 if let Some((adj_index, adj)) = adj
@@ -820,6 +832,7 @@ fn validate_renormal_material_entries(
                         entry_index,
                         kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                             material_label: entry.material_label.clone(),
+                            shader_label: entry.shader_label.clone(),
                             mesh_name: mesh.name.clone(),
                         },
                     };
@@ -1214,17 +1227,19 @@ mod tests {
             .to_string()
         );
         assert_eq!(
-            r#"Mesh "mesh" has the RENORMAL material "mat" but no corresponding entry in the model.adjb."#,
+            r#"Mesh "mesh" has the material "mat" with RENORMAL shader "SFX_PBS_011000000800826b_opaque" but no corresponding entry in the model.adjb."#,
             MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
                 material_label: "mat".to_string(),
+                shader_label: "SFX_PBS_011000000800826b_opaque".to_string(),
                 mesh_name: "mesh".to_string()
             }
             .to_string()
         );
         assert_eq!(
-            r#"Material "mat" is a RENORMAL material, but the model.adjb file is missing."#,
+            r#"Material "mat" has the RENORMAL shader "SFX_PBS_011000000800826b_opaque", but the model.adjb file is missing."#,
             MatlValidationErrorKind::RenormalMaterialMissingAdj {
                 material_label: "mat".to_string(),
+                shader_label: "SFX_PBS_011000000800826b_opaque".to_string(),
             }
             .to_string()
         );
@@ -1295,11 +1310,12 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
     #[test]
     fn format_adj_errors() {
         assert_eq!(
-            r#"Missing entry for mesh "mesh" with the RENORMAL material "mat"."#,
+            r#"Missing entry for mesh "mesh" with material "mat" with RENORMAL shader "SFX_PBS_011000000800826b_opaque"."#,
             AdjValidationError::MissingRenormalEntry {
                 mesh_object_index: 0,
                 mesh_name: "mesh".to_string(),
-                material_label: "mat".to_string()
+                material_label: "mat".to_string(),
+                shader_label: "SFX_PBS_011000000800826b_opaque".to_string(),
             }
             .to_string()
         );
@@ -1419,12 +1435,13 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
 
     #[test]
     fn renormal_material_missing_adj() {
+        let shader_database = ShaderDatabase::new();
         let matl = MatlData {
             major_version: 1,
             minor_version: 6,
             entries: vec![MatlEntryData {
-                material_label: "RENORMAL_a".to_owned(),
-                shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_011000000800826b_opaque".to_owned(),
                 blend_states: Vec::new(),
                 floats: Vec::new(),
                 booleans: Vec::new(),
@@ -1455,7 +1472,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             entries: vec![ModlEntryData {
                 mesh_object_name: "object1".to_owned(),
                 mesh_object_subindex: 0,
-                material_label: "RENORMAL_a".to_owned(),
+                material_label: "a".to_owned(),
             }],
         };
 
@@ -1467,13 +1484,15 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             None,
             Some(&modl),
             Some((0, &mesh)),
+            &shader_database,
         );
 
         assert_eq!(
             vec![MatlValidationError {
                 entry_index: 0,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingAdj {
-                    material_label: "RENORMAL_a".to_owned(),
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_011000000800826b_opaque".to_string(),
                 }
             }],
             validation.matl_errors[&1]
@@ -1482,13 +1501,14 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
 
     #[test]
     fn renormal_material_missing_adj_entry() {
+        let shader_database = ShaderDatabase::new();
         let matl = MatlData {
             major_version: 1,
             minor_version: 6,
             entries: vec![
                 MatlEntryData {
-                    material_label: "RENORMAL_a".to_owned(),
-                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_011000000800826b_opaque".to_owned(),
                     blend_states: Vec::new(),
                     floats: Vec::new(),
                     booleans: Vec::new(),
@@ -1499,8 +1519,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                     uv_transforms: Vec::new(),
                 },
                 MatlEntryData {
-                    material_label: "mat_a".to_owned(),
-                    shader_label: "SFX_PBS_010002000800824f_opaque".to_owned(),
+                    material_label: "b".to_owned(),
+                    shader_label: "SFX_PBS_010000000800826b_opaque".to_owned(),
                     blend_states: Vec::new(),
                     floats: Vec::new(),
                     booleans: Vec::new(),
@@ -1540,7 +1560,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 ModlEntryData {
                     mesh_object_name: "object0".to_owned(),
                     mesh_object_subindex: 0,
-                    material_label: "mat_a".to_owned(),
+                    material_label: "b".to_owned(),
                 },
                 ModlEntryData {
                     mesh_object_name: String::new(),
@@ -1550,7 +1570,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 ModlEntryData {
                     mesh_object_name: "object1".to_owned(),
                     mesh_object_subindex: 0,
-                    material_label: "RENORMAL_a".to_owned(),
+                    material_label: "a".to_owned(),
                 },
             ],
         };
@@ -1569,13 +1589,15 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             Some((0, &adj)),
             Some(&modl),
             Some((0, &mesh)),
+            &shader_database,
         );
 
         assert_eq!(
             vec![MatlValidationError {
                 entry_index: 0,
                 kind: MatlValidationErrorKind::RenormalMaterialMissingMeshAdjEntry {
-                    material_label: "RENORMAL_a".to_owned(),
+                    material_label: "a".to_owned(),
+                    shader_label: "SFX_PBS_011000000800826b_opaque".to_string(),
                     mesh_name: "object1".to_owned()
                 }
             }],
@@ -1586,7 +1608,8 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
             vec![AdjValidationError::MissingRenormalEntry {
                 mesh_object_index: 1,
                 mesh_name: "object1".to_owned(),
-                material_label: "RENORMAL_a".to_owned()
+                material_label: "a".to_owned(),
+                shader_label: "SFX_PBS_011000000800826b_opaque".to_string(),
             }],
             validation.adj_errors[&0]
         );

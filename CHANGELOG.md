@@ -7,12 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Added an option to Render Settings to change the material type.
 * Added rendering support for metamon (ditto), light, and dark materials.
+* Added renormal calculation to the shader information in the Matl Editor.
 
 ### Changed
 * Improved rendering accuracy across many materials by recreating in game shader code.
 * Improved performance when the Shader Finder window is open.
 * Changed the Animations tab to only show the "Add Motion Folder" button prompt if the folder actually exists.
 * Improved validation for materials and material assignments.
+* Improved validation for RENORMAL materials and shaders.
 
 ### Fixed
 * Fixed an issue where meshes with highlighted materials would show bloom over the highlighted color.
