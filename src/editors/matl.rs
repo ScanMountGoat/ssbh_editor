@@ -780,6 +780,9 @@ fn shader_finder_shader(ui: &mut Ui, state: &mut ShaderFinderState) {
 
     ui.checkbox(&mut state.anisotropic_rotation, "Anisotropic Rotation")
         .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
+
+    ui.checkbox(&mut state.renormal, "Renormal")
+        .on_hover_text(RENORMAL_DESCRIPTION);
 }
 
 fn shader_finder_attributes(ui: &mut Ui, state: &mut ShaderFinderState) {
@@ -846,6 +849,7 @@ fn should_include_shader(state: &ShaderFinderState, shader: &ShaderProgram) -> b
         && (!state.sh || shader.sh)
         && (!state.lighting || shader.lighting)
         && (!state.anisotropic_rotation || shader.anisotropic_rotation)
+        && (!state.renormal || shader.renormal)
         && (!state.color_set1 || has_attr("colorSet1", shader))
         && (!state.color_set2 || has_attr("colorSet2", shader))
         && (!state.color_set2_1 || has_attr("colorSet2_1", shader))

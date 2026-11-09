@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added an option to Render Settings to change the material type.
 * Added rendering support for metamon (ditto), light, and dark materials.
 * Added renormal calculation to the shader information in the Matl Editor.
+* Added an option to search for renormal shaders in the Shader Finder.
 
 ### Changed
 * Improved rendering accuracy across many materials by recreating in game shader code.

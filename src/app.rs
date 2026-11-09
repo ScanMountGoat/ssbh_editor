@@ -256,6 +256,7 @@ pub struct ShaderFinderState {
     pub sh: bool,
     pub lighting: bool,
     pub anisotropic_rotation: bool,
+    pub renormal: bool,
 
     pub color_set1: bool,
     pub color_set2: bool,
@@ -288,6 +289,7 @@ impl Default for ShaderFinderState {
             sh: false,
             lighting: false,
             anisotropic_rotation: false,
+            renormal: false,
             color_set1: false,
             color_set2: false,
             color_set2_1: false,
