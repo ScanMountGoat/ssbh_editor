@@ -590,12 +590,12 @@ fn get_uv_range(data: &VectorData) -> (f32, f32, f32, f32) {
     let mut max_v = 0.0f32;
     let mut min_v = 0.0f32;
 
-    let mut update_min_max = |u: &f32, v: &f32| {
-        min_u = min_u.min(*u);
-        max_u = max_u.max(*u);
+    let mut update_min_max = |u: f32, v: f32| {
+        min_u = min_u.min(u);
+        max_u = max_u.max(u);
 
-        min_v = min_v.min(*v);
-        max_v = max_v.max(*v);
+        min_v = min_v.min(v);
+        max_v = max_v.max(v);
     };
 
     // TODO: Associate the correct sampler with the correct UV map.
@@ -603,18 +603,18 @@ fn get_uv_range(data: &VectorData) -> (f32, f32, f32, f32) {
     // TODO: Add tests for this.
     match data {
         VectorData::Vector2(values) => {
-            for [u, v] in values {
-                update_min_max(u, v);
+            for v in values {
+                update_min_max(v.x, v.y);
             }
         }
         VectorData::Vector3(values) => {
-            for [u, v, _] in values {
-                update_min_max(u, v);
+            for v in values {
+                update_min_max(v.x, v.y);
             }
         }
         VectorData::Vector4(values) => {
-            for [u, v, _, _] in values {
-                update_min_max(u, v);
+            for v in values {
+                update_min_max(v.x, v.y);
             }
         }
     }
@@ -1081,6 +1081,7 @@ fn validate_modl_entries(
 
 #[cfg(test)]
 mod tests {
+    use glam::vec2;
     use nutexb::{NutexbFile, NutexbFooter, NutexbFormat};
     use ssbh_data::{
         adj_data::AdjEntryData,
@@ -1957,11 +1958,11 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 texture_coordinates: vec![
                     AttributeData {
                         name: "map1".to_owned(),
-                        data: VectorData::Vector2(vec![[0.0, 0.0], [-1.0, 1.5]]),
+                        data: VectorData::Vector2(vec![vec2(0.0, 0.0), vec2(-1.0, 1.5)]),
                     },
                     AttributeData {
                         name: "bake1".to_owned(),
-                        data: VectorData::Vector2(vec![[-0.15, 0.0], [1.0, 1.15]]),
+                        data: VectorData::Vector2(vec![vec2(-0.15, 0.0), vec2(1.0, 1.15)]),
                     },
                 ],
                 ..Default::default()
@@ -2038,7 +2039,7 @@ Use a Source Color of "One" or use a shader that does not premultiply alpha."#,
                 subindex: 0,
                 texture_coordinates: vec![AttributeData {
                     name: "map1".to_owned(),
-                    data: VectorData::Vector2(vec![[0.0, 0.0], [-1.0, 1.5]]),
+                    data: VectorData::Vector2(vec![vec2(0.0, 0.0), vec2(-1.0, 1.5)]),
                 }],
                 ..Default::default()
             }],

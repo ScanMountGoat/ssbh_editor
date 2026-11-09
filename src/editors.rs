@@ -49,11 +49,12 @@ impl Editor for AdjData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
-        Some(adj_editor(
+        let mut adj_to_edit = adj.clone();
+        let response = adj_editor(
             ctx,
             &model.folder_path,
             name,
-            adj,
+            &mut adj_to_edit,
             find_file(&model.model.meshes, "model.numshb"),
             model
                 .validation
@@ -61,7 +62,8 @@ impl Editor for AdjData {
                 .get(open_file_index.as_ref()?)
                 .map(|e| e.as_slice())
                 .unwrap_or_default(),
-        ))
+        );
+        Some(apply_edits(adj, adj_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -80,14 +82,16 @@ impl Editor for HlpbData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
-        Some(hlpb_editor(
+        let mut hlpb_to_edit = hlpb.clone();
+        let response = hlpb_editor(
             ctx,
             &model.folder_path,
             name,
-            hlpb,
+            &mut hlpb_to_edit,
             find_file(&model.model.skels, "model.nusktb"),
             state,
-        ))
+        );
+        Some(apply_edits(hlpb, hlpb_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -106,14 +110,16 @@ impl Editor for SkelData {
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, skel) = get_file_to_edit(&mut model.model.skels, *open_file_index)?;
-        Some(skel_editor(
+        let mut skel_to_edit = skel.clone();
+        let response = skel_editor(
             ctx,
             &model.folder_path,
             name,
-            skel,
+            &mut skel_to_edit,
             state,
             dark_mode,
-        ))
+        );
+        Some(apply_edits(skel, skel_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -132,7 +138,9 @@ impl Editor for AnimData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
-        Some(anim_editor(ctx, &model.folder_path, name, anim, state))
+        let mut anim_to_edit = anim.clone();
+        let response = anim_editor(ctx, &model.folder_path, name, &mut anim_to_edit, state);
+        Some(apply_edits(anim, anim_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -151,13 +159,15 @@ impl Editor for MeshExData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
-        Some(meshex_editor(
+        let mut meshex_to_edit = meshex.clone();
+        let response = meshex_editor(
             ctx,
             &model.folder_path,
             name,
-            meshex,
+            &mut meshex_to_edit,
             find_file(&model.model.meshes, "model.numshb"),
-        ))
+        );
+        Some(apply_edits(meshex, meshex_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -176,11 +186,12 @@ impl Editor for MeshData {
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
-        Some(mesh_editor(
+        let mut mesh_to_edit = mesh.clone();
+        let response = mesh_editor(
             ctx,
             &model.folder_path,
             name,
-            mesh,
+            &mut mesh_to_edit,
             find_file(&model.model.skels, "model.nusktb"),
             model
                 .validation
@@ -190,7 +201,8 @@ impl Editor for MeshData {
                 .unwrap_or_default(),
             dark_mode,
             state,
-        ))
+        );
+        Some(apply_edits(mesh, mesh_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -208,11 +220,12 @@ impl Editor for ModlData {
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, modl) = get_file_to_edit(&mut model.model.modls, *open_file_index)?;
-        Some(modl_editor(
+        let mut modl_to_edit = modl.clone();
+        let response = modl_editor(
             ctx,
             &model.folder_path,
             name,
-            modl,
+            &mut modl_to_edit,
             find_file(&model.model.meshes, "model.numshb"),
             find_file(&model.model.matls, "model.numatb"),
             model
@@ -223,11 +236,25 @@ impl Editor for ModlData {
                 .unwrap_or_default(),
             state,
             dark_mode,
-        ))
+        );
+        Some(apply_edits(modl, modl_to_edit, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
         response.set_changed(&mut changed.modls[index])
+    }
+}
+
+pub fn apply_edits<T: PartialEq>(
+    original: &mut T,
+    edited: T,
+    response: EditorResponse,
+) -> EditorResponse {
+    let changed = &edited != original;
+    *original = edited;
+    EditorResponse {
+        changed,
+        ..response
     }
 }
 

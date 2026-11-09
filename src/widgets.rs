@@ -78,23 +78,19 @@ fn eye_open_icon(ui: &Ui, rect: egui::Rect, visuals: &egui::style::WidgetVisuals
         .paint_at(ui, rect);
 }
 
-pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl AsIdSalt, value: &mut V) -> bool
+pub fn enum_combo_box<V>(ui: &mut egui::Ui, id_source: impl AsIdSalt, value: &mut V)
 where
     V: PartialEq + strum::IntoEnumIterator + ToString,
 {
-    // TODO: Return response and union instead?
-    let mut changed = false;
     egui::ComboBox::from_id_salt(id_source)
         .width(ui.available_width())
         .selected_text(value.to_string())
         .show_ui(ui, |ui| {
             for v in V::iter() {
                 let text = v.to_string();
-                changed |= ui.selectable_value(value, v, text).changed();
+                ui.selectable_value(value, v, text);
             }
         });
-
-    changed
 }
 
 pub fn bone_combo_box(
@@ -103,26 +99,20 @@ pub fn bone_combo_box(
     id: impl AsIdSalt,
     skel: Option<&SkelData>,
     extra_names: &[&str],
-) -> bool {
-    let mut changed = false;
+) {
     egui::ComboBox::from_id_salt(id)
         .selected_text(bone_name.clone())
         .show_ui(ui, |ui| {
             for name in extra_names {
-                changed |= ui
-                    .selectable_value(bone_name, name.to_string(), *name)
-                    .changed();
+                ui.selectable_value(bone_name, name.to_string(), *name);
             }
 
             if let Some(skel) = skel {
                 for bone in &skel.bones {
-                    changed |= ui
-                        .selectable_value(bone_name, bone.name.clone(), &bone.name)
-                        .changed();
+                    ui.selectable_value(bone_name, bone.name.clone(), &bone.name);
                 }
             } else {
-                changed |= ui.text_edit_singleline(bone_name).changed();
+                ui.text_edit_singleline(bone_name);
             }
         });
-    changed
 }

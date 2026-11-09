@@ -14,7 +14,7 @@ use crate::{
     },
     capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
-        Editor,
+        Editor, apply_edits,
         matl::{matl_editor, preset_editor},
         nutexb::nutexb_viewer,
     },
@@ -745,12 +745,13 @@ impl SsbhApp {
             if let Some(matl_index) = self.ui_state.open_matl
                 && let Some((name, Some(matl))) = model.model.matls.get_mut(matl_index)
             {
+                let mut matl_to_edit = matl.clone();
                 let response = matl_editor(
                     ctx,
                     &model.folder_path,
                     name,
                     &mut self.ui_state.matl_editor,
-                    matl,
+                    &mut matl_to_edit,
                     find_file_mut(&mut model.model.modls, "model.numdlb"),
                     model
                         .validation
@@ -767,7 +768,8 @@ impl SsbhApp {
                     self.yellow_checkerboard,
                     self.preferences.dark_mode,
                 );
-                // TODO: This modifies the model.numdlb when renaming materials.
+                let response = apply_edits(matl, matl_to_edit, response);
+
                 response.set_changed(&mut model.changed.matls[matl_index]);
                 file_changed |= response.changed;
 
@@ -1313,6 +1315,7 @@ fn handle_message(
                 .zip(model.changed.modls.iter_mut())
             {
                 if name == "model.numdlb" {
+                    // TODO: This should check if the material actually changed.
                     *changed = true;
                     model_actions.push_back(RenderAction::Model(
                         RenderModelAction::ReassignMaterials {

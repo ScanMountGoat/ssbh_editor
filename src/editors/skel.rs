@@ -21,7 +21,6 @@ pub fn skel_editor(
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
@@ -95,25 +94,23 @@ pub fn skel_editor(
                 .auto_shrink([false; 2])
                 .show(ui, |ui| match state.mode {
                     SkelMode::List => {
-                        changed |= edit_bones_list(ui, skel, dark_mode);
+                        edit_bones_list(ui, skel, dark_mode);
                     }
                     SkelMode::Hierarchy => {
-                        changed |= edit_bones_hierarchy(ui, skel);
+                        edit_bones_hierarchy(ui, skel);
                     }
                 });
         });
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message: None,
     }
 }
 
-fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) -> bool {
-    let mut changed = false;
-
+fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) {
     // TODO: Do this without clone?
     let other_bones = skel.bones.clone();
 
@@ -166,26 +163,21 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) -> b
                             .selected_text(parent_bone_name)
                             .width(250.0)
                             .show_ui(ui, |ui| {
-                                changed |= ui
-                                    .selectable_value(&mut bone.parent_index, None, "None")
-                                    .changed();
+                                ui.selectable_value(&mut bone.parent_index, None, "None");
                                 ui.separator();
                                 // TODO: Is there a way to make this not O(N^2)?
                                 for (other_i, other_bone) in other_bones.iter().enumerate() {
                                     if *item != other_i {
-                                        changed |= ui
-                                            .selectable_value(
-                                                &mut bone.parent_index,
-                                                Some(other_i),
-                                                &other_bone.name,
-                                            )
-                                            .changed();
+                                        ui.selectable_value(
+                                            &mut bone.parent_index,
+                                            Some(other_i),
+                                            &other_bone.name,
+                                        );
                                     }
                                 }
                             });
 
-                        changed |=
-                            enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
+                        enum_combo_box(ui, id.with("billboard"), &mut bone.billboard_type);
 
                         ui.end_row();
 
@@ -199,10 +191,7 @@ fn edit_bones_list(ui: &mut egui::Ui, skel: &mut SkelData, dark_mode: bool) -> b
 
     if let Some(response) = response.final_update() {
         skel.bones = move_bone(response.from, response.to, &skel.bones);
-        changed = true;
     }
-
-    changed
 }
 
 fn move_bone(from: usize, to: usize, bones: &[BoneData]) -> Vec<BoneData> {
@@ -271,9 +260,10 @@ fn match_skel_order(skel: &mut SkelData, reference: &SkelData) {
 
 #[cfg(test)]
 mod tests {
-    use ssbh_data::skel_data::{BillboardType, BoneData};
-
     use super::*;
+
+    use glam::Mat4;
+    use ssbh_data::skel_data::{BillboardType, BoneData};
 
     #[test]
     fn skel_order_empty_reference() {
@@ -283,19 +273,19 @@ mod tests {
             bones: vec![
                 BoneData {
                     name: "a".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "b".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "c".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
@@ -323,19 +313,19 @@ mod tests {
             bones: vec![
                 BoneData {
                     name: "a".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "b".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "c".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
@@ -347,7 +337,7 @@ mod tests {
             minor_version: 0,
             bones: vec![BoneData {
                 name: "c".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: None,
                 billboard_type: BillboardType::Disabled,
             }],
@@ -365,13 +355,13 @@ mod tests {
         let before = vec![
             BoneData {
                 name: "a".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: None,
                 billboard_type: BillboardType::Disabled,
             },
             BoneData {
                 name: "b".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: Some(0),
                 billboard_type: BillboardType::Disabled,
             },
@@ -386,13 +376,13 @@ mod tests {
         let before = vec![
             BoneData {
                 name: "a".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: None,
                 billboard_type: BillboardType::Disabled,
             },
             BoneData {
                 name: "b".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: Some(0),
                 billboard_type: BillboardType::Disabled,
             },
@@ -404,13 +394,13 @@ mod tests {
             vec![
                 BoneData {
                     name: "b".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: Some(1),
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "a".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: None,
                     billboard_type: BillboardType::Disabled,
                 },
@@ -424,25 +414,25 @@ mod tests {
         let before = vec![
             BoneData {
                 name: "a".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: Some(1),
                 billboard_type: BillboardType::Disabled,
             },
             BoneData {
                 name: "b".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: Some(0),
                 billboard_type: BillboardType::Disabled,
             },
             BoneData {
                 name: "c".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: Some(0),
                 billboard_type: BillboardType::Disabled,
             },
             BoneData {
                 name: "d".to_owned(),
-                transform: [[0.0; 4]; 4],
+                transform: Mat4::IDENTITY,
                 parent_index: Some(2),
                 billboard_type: BillboardType::Disabled,
             },
@@ -455,25 +445,25 @@ mod tests {
             vec![
                 BoneData {
                     name: "a".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: Some(2),
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "c".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: Some(0),
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "b".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: Some(0),
                     billboard_type: BillboardType::Disabled,
                 },
                 BoneData {
                     name: "d".to_owned(),
-                    transform: [[0.0; 4]; 4],
+                    transform: Mat4::IDENTITY,
                     parent_index: Some(1),
                     billboard_type: BillboardType::Disabled,
                 },

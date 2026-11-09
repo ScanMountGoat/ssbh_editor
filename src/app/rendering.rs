@@ -206,7 +206,7 @@ pub fn calculate_mvp(
         camera_values.rotation_radians.z,
     );
     let model_view_matrix = glam::Mat4::from_translation(camera_values.translation) * rotation;
-    let projection_matrix = glam::Mat4::perspective_rh(
+    let projection_matrix = glam::camera::rh::proj::directx::perspective(
         camera_values.fov_y_radians,
         aspect,
         camera_values.near_clip,

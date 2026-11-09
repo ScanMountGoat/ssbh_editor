@@ -1,14 +1,14 @@
 use crate::{CameraValues, path::preferences_file, widgets_dark};
 use log::error;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString, EnumVariantNames};
+use strum::{Display, EnumString, VariantNames};
 
 #[derive(
     Debug,
     Serialize,
     Deserialize,
     PartialEq,
-    EnumVariantNames,
+    VariantNames,
     Display,
     EnumString,
     Clone,

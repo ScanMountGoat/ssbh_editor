@@ -14,6 +14,7 @@ use egui::{
     Button, CentralPanel, ComboBox, Grid, Panel, RichText, ScrollArea, TextEdit, TextWrapMode, Ui,
 };
 use egui_dnd::dnd;
+use glam::{Mat4, Vec2, Vec4};
 use log::error;
 use rfd::FileDialog;
 use ssbh_data::{
@@ -36,7 +37,6 @@ pub fn mesh_editor(
     state: &mut MeshEditorState,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
     let mut message = None;
 
@@ -92,7 +92,7 @@ pub fn mesh_editor(
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
-                            changed |= select_mesh_object_dnd(
+                            select_mesh_object_dnd(
                                 ui,
                                 mesh,
                                 validation_errors,
@@ -113,13 +113,7 @@ pub fn mesh_editor(
                                 .iter()
                                 .filter(|e| e.mesh_object_index == state.selected_index)
                                 .collect();
-                            changed |= edit_mesh_object(
-                                ui,
-                                mesh_object,
-                                skel,
-                                state.selected_index,
-                                &errors,
-                            );
+                            edit_mesh_object(ui, mesh_object, skel, state.selected_index, &errors);
                         }
                     });
             });
@@ -127,7 +121,7 @@ pub fn mesh_editor(
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message,
     }
@@ -140,9 +134,7 @@ fn select_mesh_object_dnd(
     dark_mode: bool,
     message: &mut Option<EditorMessage>,
     state: &mut MeshEditorState,
-) -> bool {
-    let mut changed = false;
-
+) {
     let mut mesh_to_duplicate = None;
     let mut mesh_to_remove = None;
 
@@ -177,12 +169,10 @@ fn select_mesh_object_dnd(
                 header_response.context_menu(|ui| {
                     if ui.button("Duplicate").clicked() {
                         mesh_to_duplicate = Some(*item_index);
-                        changed = true;
                     }
 
                     if ui.button("Delete").clicked() {
                         mesh_to_remove = Some(*item_index);
-                        changed = true;
                     }
                 });
 
@@ -226,10 +216,7 @@ fn select_mesh_object_dnd(
             .iter()
             .position(|i| *i == state.selected_index)
             .unwrap_or_default();
-        changed = true;
     }
-
-    changed
 }
 
 fn edit_mesh_object(
@@ -238,9 +225,7 @@ fn edit_mesh_object(
     skel: Option<&SkelData>,
     i: usize,
     errors: &[&MeshValidationError],
-) -> bool {
-    let mut changed = false;
-
+) {
     let id = egui::Id::unique("mesh_object").with(i);
 
     // TODO: Reorder mesh objects?
@@ -249,36 +234,27 @@ fn edit_mesh_object(
         // TODO: Link name edits with the numdlb and numshexb.
         // This will need to check for duplicate names.
         ui.label("Name");
-        changed |= ui
-            .add(TextEdit::singleline(&mut mesh_object.name).clip_text(false))
-            .changed();
+        ui.add(TextEdit::singleline(&mut mesh_object.name).clip_text(false));
         ui.end_row();
 
         // TODO: Is it possible to edit the subindex without messing up influence assignments?
         ui.label("Subindex");
-        changed |= ui
-            .add(egui::DragValue::new(&mut mesh_object.subindex))
-            .changed();
+        ui.add(egui::DragValue::new(&mut mesh_object.subindex));
         ui.end_row();
 
         ui.label("Sort Bias");
-        changed |= ui
-            .add(egui::DragValue::new(&mut mesh_object.sort_bias))
-            .changed();
+        ui.add(egui::DragValue::new(&mut mesh_object.sort_bias));
         ui.end_row();
     });
 
-    changed |= ui
+    ui
     .checkbox(&mut mesh_object.disable_depth_write, "Disable Depth Write")
-    .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.")
-    .changed();
+    .on_hover_text("Disabling depth writes can resolve sorting issues with layered objects like glass bottles.");
 
-    changed |= ui
-        .checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
+    ui.checkbox(&mut mesh_object.disable_depth_test, "Disable Depth Test")
         .on_hover_text(
             "Disabling depth testing causes the mesh to render on top of previous meshes.",
-        )
-        .changed();
+        );
     horizontal_separator_empty(ui);
 
     // TODO: Simplify this code?
@@ -316,7 +292,7 @@ fn edit_mesh_object(
         .next()
         .unwrap_or_default();
 
-    changed |= edit_mesh_attributes(ui, mesh_object, missing_attributes);
+    edit_mesh_attributes(ui, mesh_object, missing_attributes);
     horizontal_separator_empty(ui);
 
     let has_influence_errors = errors.iter().any(|e| {
@@ -340,7 +316,7 @@ fn edit_mesh_object(
             ui.label("Parent Bone")
                 .on_hover_text("Inherit the transformation of the specified bone while animating.");
 
-            changed |= bone_combo_box(
+            bone_combo_box(
                 ui,
                 &mut mesh_object.parent_bone_name,
                 id.with("parent_bone"),
@@ -355,7 +331,6 @@ fn edit_mesh_object(
             .clicked()
         {
             convert_parent_bone_to_influences(mesh_object, skel);
-            changed = true;
         }
     } else {
         let has_zero_weights = errors
@@ -366,7 +341,6 @@ fn edit_mesh_object(
                 for influence in &mut mesh_object.bone_influences {
                     influence.vertex_weights.retain(|w| w.vertex_weight > 0.0);
                 }
-                changed = true;
             }
             horizontal_separator_empty(ui);
         }
@@ -378,7 +352,6 @@ fn edit_mesh_object(
                 .clicked()
             {
                 convert_single_influence_to_parent_bone(mesh_object, skel);
-                changed = true;
             }
         } else if ui
             .button("Remove Bone Influences")
@@ -387,7 +360,6 @@ fn edit_mesh_object(
         {
             // TODO: What happens if there is a parent bone and influences?
             mesh_object.bone_influences = Vec::new();
-            changed = true;
         }
 
         horizontal_separator_empty(ui);
@@ -395,8 +367,6 @@ fn edit_mesh_object(
         show_influences(ui, mesh_object);
     }
     horizontal_separator_empty(ui);
-
-    changed
 }
 
 fn convert_parent_bone_to_influences(mesh_object: &mut MeshObjectData, skel: Option<&SkelData>) {
@@ -445,9 +415,7 @@ fn convert_single_influence_to_parent_bone(
                 .find(|b| b.name == parent_bone)
                 .and_then(|b| s.calculate_world_transform(b).ok())
         }) {
-            let parent_inv_transform = glam::Mat4::from_cols_array_2d(&parent_transform)
-                .inverse()
-                .to_cols_array_2d();
+            let parent_inv_transform = parent_transform.inverse();
             transform_attributes(mesh_object, parent_inv_transform)
         } else {
             error!(
@@ -463,18 +431,18 @@ fn convert_single_influence_to_parent_bone(
 }
 
 // TODO: Move this to ssbh_data?
-fn transform_attributes(mesh_object: &mut MeshObjectData, transform: [[f32; 4]; 4]) {
+fn transform_attributes(mesh_object: &mut MeshObjectData, transform: Mat4) {
     for attribute in &mut mesh_object.positions {
-        attribute.data = transform_points(&attribute.data, &transform);
+        attribute.data = transform_points(&attribute.data, transform);
     }
     for attribute in &mut mesh_object.normals {
-        attribute.data = transform_vectors(&attribute.data, &transform);
+        attribute.data = transform_vectors(&attribute.data, transform);
     }
     for attribute in &mut mesh_object.tangents {
-        attribute.data = transform_vectors(&attribute.data, &transform);
+        attribute.data = transform_vectors(&attribute.data, transform);
     }
     for attribute in &mut mesh_object.binormals {
-        attribute.data = transform_vectors(&attribute.data, &transform);
+        attribute.data = transform_vectors(&attribute.data, transform);
     }
 }
 
@@ -519,9 +487,7 @@ fn edit_mesh_attributes(
     ui: &mut Ui,
     mesh_object: &mut MeshObjectData,
     missing_attributes: &[String],
-) -> bool {
-    let mut changed = false;
-
+) {
     // TODO: Add button to remove unused attributes to save memory.
     if !missing_attributes.is_empty()
         && ui
@@ -532,7 +498,6 @@ fn edit_mesh_attributes(
             .clicked()
     {
         add_missing_attributes(mesh_object, missing_attributes);
-        changed = true;
     }
 
     egui::Grid::new("vertex_attributes_grid").show(ui, |ui| {
@@ -604,18 +569,16 @@ fn edit_mesh_attributes(
             ui.end_row();
         }
     });
-
-    changed
 }
 
 fn add_uv(mesh_object: &mut MeshObjectData, name: &str, count: usize) {
     mesh_object.texture_coordinates.push(AttributeData {
         name: name.to_owned(),
-        data: VectorData::Vector2(vec![[0.0; 2]; count]),
+        data: VectorData::Vector2(vec![Vec2::ZERO; count]),
     });
 }
 
-fn add_color_set(mesh_object: &mut MeshObjectData, name: &str, count: usize, default: [f32; 4]) {
+fn add_color_set(mesh_object: &mut MeshObjectData, name: &str, count: usize, default: Vec4) {
     mesh_object.color_sets.push(AttributeData {
         name: name.to_owned(),
         data: VectorData::Vector4(vec![default; count]),
@@ -636,16 +599,16 @@ fn add_missing_attributes(mesh_object: &mut MeshObjectData, missing_attributes: 
                 "uvSet" => add_uv(mesh_object, name, count),
                 "uvSet1" => add_uv(mesh_object, name, count),
                 "uvSet2" => add_uv(mesh_object, name, count),
-                "colorSet1" => add_color_set(mesh_object, name, count, [0.5; 4]),
-                "colorSet2" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
-                "colorSet2_1" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
-                "colorSet2_2" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
-                "colorSet2_3" => add_color_set(mesh_object, name, count, [1.0 / 7.0; 4]),
-                "colorSet3" => add_color_set(mesh_object, name, count, [0.5; 4]),
-                "colorSet4" => add_color_set(mesh_object, name, count, [0.5; 4]),
-                "colorSet5" => add_color_set(mesh_object, name, count, [0.0; 4]),
-                "colorSet6" => add_color_set(mesh_object, name, count, [1.0; 4]),
-                "colorSet7" => add_color_set(mesh_object, name, count, [1.0; 4]),
+                "colorSet1" => add_color_set(mesh_object, name, count, Vec4::splat(0.5)),
+                "colorSet2" => add_color_set(mesh_object, name, count, Vec4::splat(1.0 / 7.0)),
+                "colorSet2_1" => add_color_set(mesh_object, name, count, Vec4::splat(1.0 / 7.0)),
+                "colorSet2_2" => add_color_set(mesh_object, name, count, Vec4::splat(1.0 / 7.0)),
+                "colorSet2_3" => add_color_set(mesh_object, name, count, Vec4::splat(1.0 / 7.0)),
+                "colorSet3" => add_color_set(mesh_object, name, count, Vec4::splat(0.5)),
+                "colorSet4" => add_color_set(mesh_object, name, count, Vec4::splat(0.5)),
+                "colorSet5" => add_color_set(mesh_object, name, count, Vec4::splat(0.0)),
+                "colorSet6" => add_color_set(mesh_object, name, count, Vec4::splat(1.0)),
+                "colorSet7" => add_color_set(mesh_object, name, count, Vec4::splat(1.0)),
                 _ => (),
             }
         }

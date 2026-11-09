@@ -22,7 +22,6 @@ pub fn anim_editor(
     state: &mut AnimEditorState,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
@@ -72,7 +71,7 @@ pub fn anim_editor(
                 );
             });
 
-            changed |= match state.editor_tab {
+            match state.editor_tab {
                 AnimEditorTab::Hierarchy => hierarchy_view(ui, anim, state),
                 AnimEditorTab::Graph => graph_view(ui, anim, state),
                 AnimEditorTab::List => list_view(ui, anim, state),
@@ -81,14 +80,13 @@ pub fn anim_editor(
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message: None,
     }
 }
 
-fn hierarchy_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorState) -> bool {
-    let mut changed = false;
+fn hierarchy_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEditorState) {
     ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
@@ -102,17 +100,16 @@ fn hierarchy_view(ui: &mut egui::Ui, anim: &mut AnimData, _state: &mut AnimEdito
                                 .default_open(true)
                                 .show(ui, |ui| {
                                     for track in &mut node.tracks {
-                                        changed |= edit_track(ui, track);
+                                        edit_track(ui, track);
                                     }
                                 });
                         }
                     });
             }
         });
-    changed
 }
 
-fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
+fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) {
     select_track_panel(ui, anim, state);
 
     CentralPanel::default().show(ui, |ui| {
@@ -261,9 +258,6 @@ fn graph_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorStat
             }
         });
     });
-
-    // The graph view is readonly.
-    false
 }
 
 fn select_track_panel(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) {
@@ -349,62 +343,42 @@ fn selected_track<'a>(
         .get_mut(state.selected_track_index?)
 }
 
-fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) -> bool {
-    let mut changed = false;
-
+fn edit_track(ui: &mut egui::Ui, track: &mut ssbh_data::anim_data::TrackData) {
     ui.label(&track.name);
     ui.indent("indent", |ui| {
-        changed |= ui
-            .checkbox(&mut track.compensate_scale, "Compensate Scale")
-            .changed();
+        ui.checkbox(&mut track.compensate_scale, "Compensate Scale");
 
-        changed |= ui
-            .checkbox(
-                &mut track.transform_flags.override_translation,
-                "Override Translation",
-            )
-            .changed();
+        ui.checkbox(
+            &mut track.transform_flags.override_translation,
+            "Override Translation",
+        );
 
-        changed |= ui
-            .checkbox(
-                &mut track.transform_flags.override_rotation,
-                "Override Rotation",
-            )
-            .changed();
+        ui.checkbox(
+            &mut track.transform_flags.override_rotation,
+            "Override Rotation",
+        );
 
-        changed |= ui
-            .checkbox(&mut track.transform_flags.override_scale, "Override Scale")
-            .changed();
+        ui.checkbox(&mut track.transform_flags.override_scale, "Override Scale");
 
         // TODO: Double check if this is accurately named.
-        changed |= ui
-            .checkbox(
-                &mut track.transform_flags.override_compensate_scale,
-                "Override Compensate Scale",
-            )
-            .changed();
+        ui.checkbox(
+            &mut track.transform_flags.override_compensate_scale,
+            "Override Compensate Scale",
+        );
     });
-
-    changed
 }
 
-fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) -> bool {
+fn list_view(ui: &mut egui::Ui, anim: &mut AnimData, state: &mut AnimEditorState) {
     select_track_panel(ui, anim, state);
-
-    let mut changed = false;
 
     CentralPanel::default().show(ui, |ui| {
         if let Some(track) = selected_track(&mut anim.groups, state) {
-            changed |= track_value_grid(ui, track);
+            track_value_grid(ui, track);
         }
     });
-
-    changed
 }
 
-fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
-    let mut changed = false;
-
+fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) {
     let count = track.values.len();
 
     let heading = |ui: &mut egui::Ui, label: &str| {
@@ -478,8 +452,8 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
         .body(|body| match &mut track.values {
             TrackValues::Transform(values) => {
                 body.rows(20.0, count, |mut row| {
-                    let mut edit_value = |ui: &mut egui::Ui, f| {
-                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    let edit_value = |ui: &mut egui::Ui, f: &mut f32| {
+                        ui.add(DragValue::new(f).speed(0.1));
                     };
 
                     let i = row.index();
@@ -505,8 +479,8 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
             }
             TrackValues::UvTransform(values) => {
                 body.rows(20.0, count, |mut row| {
-                    let mut edit_value = |ui: &mut egui::Ui, f| {
-                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    let edit_value = |ui: &mut egui::Ui, f| {
+                        ui.add(DragValue::new(f).speed(0.1));
                     };
 
                     let i = row.index();
@@ -527,8 +501,8 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
             }
             TrackValues::Float(values) => {
                 body.rows(20.0, count, |mut row| {
-                    let mut edit_value = |ui: &mut egui::Ui, f| {
-                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    let edit_value = |ui: &mut egui::Ui, f| {
+                        ui.add(DragValue::new(f).speed(0.1));
                     };
 
                     let i = row.index();
@@ -543,8 +517,8 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
             }
             TrackValues::PatternIndex(values) => {
                 body.rows(20.0, count, |mut row| {
-                    let mut edit_value = |ui: &mut egui::Ui, f| {
-                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    let edit_value = |ui: &mut egui::Ui, f| {
+                        ui.add(DragValue::new(f).speed(0.1));
                     };
 
                     let i = row.index();
@@ -567,14 +541,14 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
                     });
 
                     row.col(|ui| {
-                        changed |= ui.checkbox(v, "").changed();
+                        ui.checkbox(v, "");
                     });
                 });
             }
             TrackValues::Vector4(values) => {
                 body.rows(20.0, count, |mut row| {
-                    let mut edit_value = |ui: &mut egui::Ui, f| {
-                        changed |= ui.add(DragValue::new(f).speed(0.1)).changed();
+                    let edit_value = |ui: &mut egui::Ui, f: &mut f32| {
+                        ui.add(DragValue::new(f).speed(0.1));
                     };
 
                     let i = row.index();
@@ -591,6 +565,4 @@ fn track_value_grid(ui: &mut egui::Ui, track: &mut TrackData) -> bool {
                 });
             }
         });
-
-    changed
 }

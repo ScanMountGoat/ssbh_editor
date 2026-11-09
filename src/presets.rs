@@ -2,7 +2,8 @@ use crate::material::{
     default_texture, is_blend, is_bool, is_float, is_rasterizer, is_sampler, is_texture, is_vector,
 };
 use anyhow::anyhow;
-use ssbh_data::{Vector4, matl_data::*};
+use glam::vec4;
+use ssbh_data::matl_data::*;
 use std::str::FromStr;
 use xmltree::{Element, XMLNode};
 
@@ -23,10 +24,10 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(1.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(1.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -57,15 +58,12 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(
-                    ParamId::CustomVector11,
-                    Vector4::new(0.25, 0.03333333, 0.0, 1.0),
-                ),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector30, Vector4::new(0.5, 1.5, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector11, vec4(0.25, 0.03333333, 0.0, 1.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector30, vec4(0.5, 1.5, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -108,10 +106,10 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -142,10 +140,10 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -190,10 +188,10 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(0.75, 0.75, 0.75, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(0.75, 0.75, 0.75, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -225,13 +223,13 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean5, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(1.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(0.75, 0.75, 0.75, 1.0)),
-                ParamData::new(ParamId::CustomVector29, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector6, Vector4::new(1.0, 1.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(1.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(0.75, 0.75, 0.75, 1.0)),
+                ParamData::new(ParamId::CustomVector29, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector3, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector6, vec4(1.0, 1.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -279,13 +277,13 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
                 ParamData::new(
                     ParamId::CustomVector14,
-                    Vector4::new(4.618421, 4.618421, 4.618421, 1.0),
+                    vec4(4.618421, 4.618421, 4.618421, 1.0),
                 ),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -328,10 +326,10 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector3, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -356,8 +354,8 @@ pub fn default_presets() -> Vec<MatlEntryData> {
             floats: vec![],
             booleans: vec![],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector3, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -381,11 +379,11 @@ pub fn default_presets() -> Vec<MatlEntryData> {
                 ParamData::new(ParamId::CustomBoolean4, true),
             ],
             vectors: vec![
-                ParamData::new(ParamId::CustomVector0, Vector4::new(0.0, 0.0, 0.0, 0.0)),
-                ParamData::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                ParamData::new(ParamId::CustomVector47, Vector4::new(0.0, 0.5, 1.0, 0.16)),
-                ParamData::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector0, vec4(0.0, 0.0, 0.0, 0.0)),
+                ParamData::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector14, vec4(1.0, 1.0, 1.0, 1.0)),
+                ParamData::new(ParamId::CustomVector47, vec4(0.0, 0.5, 1.0, 0.16)),
+                ParamData::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -411,7 +409,7 @@ pub fn default_presets() -> Vec<MatlEntryData> {
             booleans: vec![],
             vectors: vec![ParamData::new(
                 ParamId::CustomVector8,
-                Vector4::new(1.0, 1.0, 1.0, 1.0),
+                vec4(1.0, 1.0, 1.0, 1.0),
             )],
             rasterizer_states: vec![ParamData::new(
                 ParamId::RasterizerState0,
@@ -490,7 +488,7 @@ pub fn load_xml_presets(xml_text: &[u8]) -> anyhow::Result<Vec<MatlEntryData>> {
                     let y = parse_xml_text(child_node, 1)?;
                     let z = parse_xml_text(child_node, 2)?;
                     let w = parse_xml_text(child_node, 3)?;
-                    let data = Vector4::new(x, y, z, w);
+                    let data = vec4(x, y, z, w);
                     vectors.push(ParamData::new(param_id, data));
                 } else if is_rasterizer(param_id) {
                     let child_node = first_child(param_node)?;

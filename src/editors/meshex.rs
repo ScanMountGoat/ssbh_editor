@@ -15,7 +15,6 @@ pub fn meshex_editor(
     mesh: Option<&MeshData>,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
     let mut message = None;
 
@@ -44,7 +43,6 @@ pub fn meshex_editor(
                         // TODO: TODO: Only show this if the entries don't match up?
                         // TODO: Preserve existing flags?
                         *meshex = MeshExData::from_mesh_objects(&mesh.objects);
-                        changed = true;
                     }
                 });
 
@@ -86,10 +84,8 @@ pub fn meshex_editor(
                                     });
                                 }
 
-                                changed |=
-                                    ui.checkbox(&mut entry.draw_model, "Draw Model").changed();
-                                changed |=
-                                    ui.checkbox(&mut entry.cast_shadow, "Cast Shadow").changed();
+                                ui.checkbox(&mut entry.draw_model, "Draw Model");
+                                ui.checkbox(&mut entry.cast_shadow, "Cast Shadow");
                                 ui.end_row();
                             }
                         }
@@ -99,7 +95,7 @@ pub fn meshex_editor(
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message,
     }

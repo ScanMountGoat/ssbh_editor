@@ -14,12 +14,12 @@ eframe = { version = "0.37.0", default-features = false, features = ["wayland", 
 egui_dnd = "0.18.0"
 egui_commonmark = "0.26.0"
 wgpu = "30.0.1"
-glam = { version = "0.28.0", features = ["mint", "bytemuck", "serde"] }
+glam = { version = "0.34.3", features = ["bytemuck", "serde"] }
 rfd = "0.18.0"
-ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "26aaadc" }
-nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "26aaadc" }
-ssbh_data = { version = "0.19.0", features = ["strum", "serde"] }
-strum = "0.24.1"
+ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "c6f2be0" }
+nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "c6f2be0" }
+ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", rev = "c1149c2", features = ["strum", "serde"] }
+strum = "0.27.2"
 nutexb = { git = "https://github.com/jam1garner/nutexb", rev = "7db7c08" }
 octocrab = "0.54.9"
 tokio = { version = "1", default-features = false, features = ["rt", "rt-multi-thread"] }

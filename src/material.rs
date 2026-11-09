@@ -1,5 +1,6 @@
+use glam::{Vec4, vec4};
 use log::error;
-use ssbh_data::{Vector4, matl_data::*};
+use ssbh_data::matl_data::*;
 use ssbh_wgpu::shader_database::{ShaderProgram, split_param};
 use std::str::FromStr;
 
@@ -158,14 +159,11 @@ pub fn default_material() -> MatlEntryData {
             BooleanParam::new(ParamId::CustomBoolean4, true),
         ],
         vectors: vec![
-            Vector4Param::new(
-                // Set to all zeros to allow for transparency.
-                ParamId::CustomVector0,
-                Vector4::new(0.0, 0.0, 0.0, 0.0),
-            ),
-            Vector4Param::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-            Vector4Param::new(ParamId::CustomVector14, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-            Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+            // Set to all zeros to allow for transparency.
+            Vector4Param::new(ParamId::CustomVector0, Vec4::ZERO),
+            Vector4Param::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+            Vector4Param::new(ParamId::CustomVector14, vec4(1.0, 1.0, 1.0, 1.0)),
+            Vector4Param::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
         ],
         rasterizer_states: vec![RasterizerStateParam::new(
             ParamId::RasterizerState0,
@@ -604,20 +602,20 @@ pub fn default_float(p: ParamId) -> f32 {
     }
 }
 
-pub fn default_vector(p: ParamId) -> Vector4 {
+pub fn default_vector(p: ParamId) -> Vec4 {
     match p {
         // UV transforms
         ParamId::CustomVector6
         | ParamId::CustomVector31
         | ParamId::CustomVector32
         | ParamId::CustomVector33
-        | ParamId::CustomVector34 => Vector4::new(1.0, 1.0, 0.0, 0.0),
+        | ParamId::CustomVector34 => Vec4::new(1.0, 1.0, 0.0, 0.0),
         // Vector multipliers
         ParamId::CustomVector3
         | ParamId::CustomVector8
         | ParamId::CustomVector13
-        | ParamId::CustomVector18 => Vector4::new(1.0, 1.0, 1.0, 1.0),
-        _ => Vector4::ZERO,
+        | ParamId::CustomVector18 => Vec4::new(1.0, 1.0, 1.0, 1.0),
+        _ => Vec4::ZERO,
     }
 }
 
@@ -746,6 +744,7 @@ pub fn vector4_labels_long(p: ParamId) -> [&'static str; 4] {
 mod tests {
     use super::*;
 
+    use glam::vec4;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -975,11 +974,11 @@ mod tests {
             floats: Vec::new(),
             booleans: vec![BooleanParam::new(ParamId::CustomBoolean5, false)],
             vectors: vec![
-                Vector4Param::new(ParamId::CustomVector0, Vector4::ZERO),
-                Vector4Param::new(ParamId::CustomVector29, Vector4::ZERO),
-                Vector4Param::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                Vector4Param::new(ParamId::CustomVector6, Vector4::new(1.0, 1.0, 0.0, 0.0)),
-                Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                Vector4Param::new(ParamId::CustomVector0, Vec4::ZERO),
+                Vector4Param::new(ParamId::CustomVector29, Vec4::ZERO),
+                Vector4Param::new(ParamId::CustomVector3, vec4(1.0, 1.0, 1.0, 1.0)),
+                Vector4Param::new(ParamId::CustomVector6, vec4(1.0, 1.0, 0.0, 0.0)),
+                Vector4Param::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
             ],
             rasterizer_states: vec![RasterizerStateParam::new(
                 ParamId::RasterizerState0,
@@ -1037,10 +1036,10 @@ mod tests {
                 floats: Vec::new(),
                 booleans: vec![BooleanParam::new(ParamId::CustomBoolean1, true)],
                 vectors: vec![
-                    Vector4Param::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                    Vector4Param::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                    Vector4Param::new(ParamId::CustomVector27, Vector4::ZERO),
-                    Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector3, vec4(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector27, Vec4::ZERO),
+                    Vector4Param::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
                 ],
                 rasterizer_states: vec![RasterizerStateParam::new(
                     ParamId::RasterizerState0,
@@ -1134,10 +1133,10 @@ mod tests {
                 floats: Vec::new(),
                 booleans: vec![BooleanParam::new(ParamId::CustomBoolean1, true)],
                 vectors: vec![
-                    Vector4Param::new(ParamId::CustomVector13, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                    Vector4Param::new(ParamId::CustomVector3, Vector4::new(1.0, 1.0, 1.0, 1.0)),
-                    Vector4Param::new(ParamId::CustomVector27, Vector4::ZERO),
-                    Vector4Param::new(ParamId::CustomVector8, Vector4::new(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector13, vec4(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector3, vec4(1.0, 1.0, 1.0, 1.0)),
+                    Vector4Param::new(ParamId::CustomVector27, Vec4::ZERO),
+                    Vector4Param::new(ParamId::CustomVector8, vec4(1.0, 1.0, 1.0, 1.0)),
                 ],
                 rasterizer_states: vec![RasterizerStateParam::new(
                     ParamId::RasterizerState0,

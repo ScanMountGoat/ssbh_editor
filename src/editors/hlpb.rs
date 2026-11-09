@@ -10,8 +10,8 @@ use crate::{
 };
 use egui::{CentralPanel, DragValue, Grid, Panel, RichText, ScrollArea, TextEdit, Ui};
 
+use glam::{Quat, Vec3, quat, vec3};
 use ssbh_data::{
-    Vector3, Vector4,
     hlpb_data::{AimConstraintData, OrientConstraintData},
     prelude::*,
 };
@@ -25,7 +25,6 @@ pub fn hlpb_editor(
     state: &mut HlpbEditorState,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
 
     let title = folder_editor_title(folder_name, file_name);
@@ -34,8 +33,7 @@ pub fn hlpb_editor(
         .default_size(egui::Vec2::new(700.0, 600.0))
         .resizable(true)
         .show(ctx, |ui| {
-            let (menu_changed, menu_saved) = menu_bar(ui, hlpb, folder_name, file_name, state);
-            changed |= menu_changed;
+            let menu_saved = menu_bar(ui, hlpb, folder_name, file_name, state);
             saved |= menu_saved;
             ui.separator();
 
@@ -59,7 +57,7 @@ pub fn hlpb_editor(
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
-                            select_constraint(hlpb, state, &mut changed, ui);
+                            select_constraint(hlpb, state, ui);
                         });
                 });
 
@@ -68,10 +66,10 @@ pub fn hlpb_editor(
                     .auto_shrink([false; 2])
                     .show(ui, |ui| match state.editor_tab {
                         HlpbEditorTab::Orient => {
-                            changed |= orient_constraints(ui, hlpb, skel, state);
+                            orient_constraints(ui, hlpb, skel, state);
                         }
                         HlpbEditorTab::Aim => {
-                            changed |= aim_constraints(ui, hlpb, skel, state);
+                            aim_constraints(ui, hlpb, skel, state);
                         }
                     });
             });
@@ -79,18 +77,13 @@ pub fn hlpb_editor(
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message: None,
     }
 }
 
-fn select_constraint(
-    hlpb: &mut HlpbData,
-    state: &mut HlpbEditorState,
-    changed: &mut bool,
-    ui: &mut Ui,
-) {
+fn select_constraint(hlpb: &mut HlpbData, state: &mut HlpbEditorState, ui: &mut Ui) {
     match state.editor_tab {
         HlpbEditorTab::Orient => {
             let mut index_to_delete = None;
@@ -105,7 +98,6 @@ fn select_constraint(
                 .context_menu(|ui| {
                     if ui.button("Delete").clicked() {
                         index_to_delete = Some(i);
-                        *changed = true;
                     }
                 });
             }
@@ -130,7 +122,6 @@ fn select_constraint(
                 .context_menu(|ui| {
                     if ui.button("Delete").clicked() {
                         index_to_delete = Some(i);
-                        *changed = true;
                     }
                 });
             }
@@ -148,9 +139,8 @@ fn menu_bar(
     folder_name: &Path,
     file_name: &str,
     state: &mut HlpbEditorState,
-) -> (bool, bool) {
+) -> bool {
     let mut saved = false;
-    let mut changed = false;
     egui::MenuBar::new().ui(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
@@ -181,11 +171,11 @@ fn menu_bar(
                             source_bone_name: String::new(),
                             target_bone_name: String::new(),
                             unk_type: 1,
-                            constraint_axes: Vector3::new(1.0, 1.0, 1.0),
-                            quat1: Vector4::new(0.0, 0.0, 0.0, 1.0),
-                            quat2: Vector4::new(0.0, 0.0, 0.0, 1.0),
-                            range_min: Vector3::new(-180.0, -180.0, -180.0),
-                            range_max: Vector3::new(180.0, 180.0, 180.0),
+                            constraint_axes: vec3(1.0, 1.0, 1.0),
+                            quat1: quat(0.0, 0.0, 0.0, 1.0),
+                            quat2: quat(0.0, 0.0, 0.0, 1.0),
+                            range_min: vec3(-180.0, -180.0, -180.0),
+                            range_max: vec3(180.0, 180.0, 180.0),
                         });
                     }
                     HlpbEditorTab::Aim => {
@@ -207,15 +197,13 @@ fn menu_bar(
                             target_bone_name2: String::new(),
                             unk1: 0,
                             unk2: 1,
-                            aim: Vector3::new(1.0, 0.0, 0.0),
-                            up: Vector3::new(0.0, 1.0, 0.0),
-                            quat1: Vector4::new(0.0, 0.0, 0.0, 1.0),
-                            quat2: Vector4::new(0.0, 0.0, 0.0, 1.0),
+                            aim: vec3(1.0, 0.0, 0.0),
+                            up: vec3(0.0, 1.0, 0.0),
+                            quat1: quat(0.0, 0.0, 0.0, 1.0),
+                            quat2: quat(0.0, 0.0, 0.0, 1.0),
                         });
                     }
                 }
-
-                changed = true;
             }
 
             if ui.button("Delete").clicked() {
@@ -240,8 +228,6 @@ fn menu_bar(
                         }
                     }
                 }
-
-                changed = true;
             }
         });
 
@@ -255,7 +241,7 @@ fn menu_bar(
         });
     });
 
-    (changed, saved)
+    saved
 }
 
 fn orient_constraints(
@@ -263,9 +249,7 @@ fn orient_constraints(
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
     state: &mut HlpbEditorState,
-) -> bool {
-    let mut changed = false;
-
+) {
     if let Some(o) = hlpb
         .orient_constraints
         .get_mut(state.orient_constraint_index)
@@ -274,25 +258,23 @@ fn orient_constraints(
 
         Grid::new(id).show(ui, |ui| {
             ui.label("Name");
-            changed |= ui
-                .add_sized([200.0, 20.0], TextEdit::singleline(&mut o.name))
-                .changed();
+            ui.add_sized([200.0, 20.0], TextEdit::singleline(&mut o.name));
             ui.end_row();
 
             ui.label("Parent 1");
-            changed |= bone_combo_box(ui, &mut o.parent_bone_name1, id.with(0), skel, &[]);
+            bone_combo_box(ui, &mut o.parent_bone_name1, id.with(0), skel, &[]);
             ui.end_row();
 
             ui.label("Parent 2");
-            changed |= bone_combo_box(ui, &mut o.parent_bone_name2, id.with(1), skel, &[]);
+            bone_combo_box(ui, &mut o.parent_bone_name2, id.with(1), skel, &[]);
             ui.end_row();
 
             ui.label("Source");
-            changed |= bone_combo_box(ui, &mut o.source_bone_name, id.with(2), skel, &[]);
+            bone_combo_box(ui, &mut o.source_bone_name, id.with(2), skel, &[]);
             ui.end_row();
 
             ui.label("Target");
-            changed |= bone_combo_box(ui, &mut o.target_bone_name, id.with(3), skel, &[]);
+            bone_combo_box(ui, &mut o.target_bone_name, id.with(3), skel, &[]);
             ui.end_row();
 
             // TODO: Make this an enum in ssbh_data eventually.
@@ -300,35 +282,33 @@ fn orient_constraints(
             egui::ComboBox::from_id_salt(id.with(4))
                 .selected_text(o.unk_type.to_string())
                 .show_ui(ui, |ui| {
-                    changed |= ui.selectable_value(&mut o.unk_type, 0, "0").changed();
-                    changed |= ui.selectable_value(&mut o.unk_type, 1, "1").changed();
-                    changed |= ui.selectable_value(&mut o.unk_type, 2, "2").changed();
+                    ui.selectable_value(&mut o.unk_type, 0, "0");
+                    ui.selectable_value(&mut o.unk_type, 1, "1");
+                    ui.selectable_value(&mut o.unk_type, 2, "2");
                 });
             ui.end_row();
 
             ui.label("Constraint Axes");
-            changed |= edit_vector3(ui, id.with(5), &mut o.constraint_axes, 0.0, 1.0);
+            edit_vector3(ui, id.with(5), &mut o.constraint_axes, 0.0, 1.0);
             ui.end_row();
 
             ui.label("Quat 1");
-            changed |= edit_vector4(ui, id.with(6), &mut o.quat1);
+            edit_quat(ui, id.with(6), &mut o.quat1);
             ui.end_row();
 
             ui.label("Quat 2");
-            changed |= edit_vector4(ui, id.with(7), &mut o.quat2);
+            edit_quat(ui, id.with(7), &mut o.quat2);
             ui.end_row();
 
             ui.label("Range Min");
-            changed |= edit_vector3(ui, id.with(8), &mut o.range_min, -180.0, 180.0);
+            edit_vector3(ui, id.with(8), &mut o.range_min, -180.0, 180.0);
             ui.end_row();
 
             ui.label("Range Max");
-            changed |= edit_vector3(ui, id.with(9), &mut o.range_max, -180.0, 180.0);
+            edit_vector3(ui, id.with(9), &mut o.range_max, -180.0, 180.0);
             ui.end_row();
         });
     }
-
-    changed
 }
 
 fn aim_constraints(
@@ -336,115 +316,91 @@ fn aim_constraints(
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
     state: &mut HlpbEditorState,
-) -> bool {
-    let mut changed = false;
-
+) {
     if let Some(aim) = hlpb.aim_constraints.get_mut(state.aim_constraint_index) {
         let id = egui::Id::unique("aim_constraint");
 
         egui::Grid::new(id).show(ui, |ui| {
             ui.label("Name");
-            changed |= ui
-                .add_sized([200.0, 20.0], TextEdit::singleline(&mut aim.name))
-                .changed();
+            ui.add_sized([200.0, 20.0], TextEdit::singleline(&mut aim.name));
             ui.end_row();
 
             ui.label("Aim 1");
-            changed |= bone_combo_box(ui, &mut aim.aim_bone_name1, id.with(0), skel, &[]);
+            bone_combo_box(ui, &mut aim.aim_bone_name1, id.with(0), skel, &[]);
             ui.end_row();
 
             ui.label("Aim 2");
-            changed |= bone_combo_box(ui, &mut aim.aim_bone_name2, id.with(1), skel, &[]);
+            bone_combo_box(ui, &mut aim.aim_bone_name2, id.with(1), skel, &[]);
             ui.end_row();
 
             ui.label("Aim Type 1");
-            changed |= bone_combo_box(ui, &mut aim.aim_type1, id.with(2), skel, &["DEFAULT"]);
+            bone_combo_box(ui, &mut aim.aim_type1, id.with(2), skel, &["DEFAULT"]);
             ui.end_row();
 
             ui.label("Aim Type 2");
-            changed |= bone_combo_box(ui, &mut aim.aim_type2, id.with(3), skel, &["DEFAULT"]);
+            bone_combo_box(ui, &mut aim.aim_type2, id.with(3), skel, &["DEFAULT"]);
             ui.end_row();
 
             ui.label("Target 1");
-            changed |= bone_combo_box(ui, &mut aim.target_bone_name1, id.with(4), skel, &[]);
+            bone_combo_box(ui, &mut aim.target_bone_name1, id.with(4), skel, &[]);
             ui.end_row();
 
             ui.label("Target 2");
-            changed |= bone_combo_box(ui, &mut aim.target_bone_name2, id.with(5), skel, &[]);
+            bone_combo_box(ui, &mut aim.target_bone_name2, id.with(5), skel, &[]);
             ui.end_row();
 
             ui.label("Unk1");
-            changed |= ui.add(DragValue::new(&mut aim.unk1)).changed();
+            ui.add(DragValue::new(&mut aim.unk1));
             ui.end_row();
 
             ui.label("Unk2");
-            changed |= ui.add(DragValue::new(&mut aim.unk2)).changed();
+            ui.add(DragValue::new(&mut aim.unk2));
             ui.end_row();
 
             ui.label("Aim");
-            changed |= edit_vector3(ui, id.with(6), &mut aim.aim, 0.0, 1.0);
+            edit_vector3(ui, id.with(6), &mut aim.aim, 0.0, 1.0);
             ui.end_row();
 
             ui.label("Up");
-            changed |= edit_vector3(ui, id.with(7), &mut aim.up, 0.0, 1.0);
+            edit_vector3(ui, id.with(7), &mut aim.up, 0.0, 1.0);
             ui.end_row();
 
             ui.label("Quat 1");
-            changed |= edit_vector4(ui, id.with(8), &mut aim.quat1);
+            edit_quat(ui, id.with(8), &mut aim.quat1);
             ui.end_row();
 
             ui.label("Quat 2");
-            changed |= edit_vector4(ui, id.with(9), &mut aim.quat2);
+            edit_quat(ui, id.with(9), &mut aim.quat2);
             ui.end_row();
         });
     }
-
-    changed
 }
 
-fn edit_vector3(ui: &mut Ui, id: egui::Id, value: &mut Vector3, min: f32, max: f32) -> bool {
-    let mut changed = false;
+fn edit_vector3(ui: &mut Ui, id: egui::Id, value: &mut Vec3, min: f32, max: f32) {
     ui.horizontal(|ui| {
-        changed |= ui
-            .add(
-                DragSlider::new(id.with("x"), &mut value.x)
-                    .width(40.0)
-                    .range(min, max),
-            )
-            .changed();
-        changed |= ui
-            .add(
-                DragSlider::new(id.with("y"), &mut value.y)
-                    .width(40.0)
-                    .range(min, max),
-            )
-            .changed();
-        changed |= ui
-            .add(
-                DragSlider::new(id.with("z"), &mut value.z)
-                    .width(40.0)
-                    .range(min, max),
-            )
-            .changed();
+        ui.add(
+            DragSlider::new(id.with("x"), &mut value.x)
+                .width(40.0)
+                .range(min, max),
+        );
+        ui.add(
+            DragSlider::new(id.with("y"), &mut value.y)
+                .width(40.0)
+                .range(min, max),
+        );
+        ui.add(
+            DragSlider::new(id.with("z"), &mut value.z)
+                .width(40.0)
+                .range(min, max),
+        );
     });
-    changed
 }
 
-fn edit_vector4(ui: &mut Ui, id: egui::Id, value: &mut Vector4) -> bool {
-    let mut changed = false;
+fn edit_quat(ui: &mut Ui, id: egui::Id, value: &mut Quat) {
     ui.horizontal(|ui| {
-        changed |= ui
-            .add(DragSlider::new(id.with("x"), &mut value.x).width(40.0))
-            .changed();
-        changed |= ui
-            .add(DragSlider::new(id.with("y"), &mut value.y).width(40.0))
-            .changed();
-        changed |= ui
-            .add(DragSlider::new(id.with("z"), &mut value.z).width(40.0))
-            .changed();
-        changed |= ui
-            .add(DragSlider::new(id.with("w"), &mut value.w).width(40.0))
-            .changed();
+        ui.add(DragSlider::new(id.with("x"), &mut value.x).width(40.0));
+        ui.add(DragSlider::new(id.with("y"), &mut value.y).width(40.0));
+        ui.add(DragSlider::new(id.with("z"), &mut value.z).width(40.0));
+        ui.add(DragSlider::new(id.with("w"), &mut value.w).width(40.0));
     });
-    changed
 }

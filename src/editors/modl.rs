@@ -24,7 +24,6 @@ pub fn modl_editor(
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
     let mut message = None;
 
@@ -48,7 +47,7 @@ pub fn modl_editor(
                     if ui.button("Rebuild from Mesh").clicked()
                         && let Some(mesh) = mesh
                     {
-                        changed |= rebuild_from_mesh(modl, mesh, matl);
+                        rebuild_from_mesh(modl, mesh, matl);
                     }
                 });
 
@@ -76,7 +75,7 @@ pub fn modl_editor(
                 );
             });
 
-            changed |= match state.editor_tab {
+            match state.editor_tab {
                 ModlEditorTab::Assignments => edit_modl_entries(
                     ui,
                     modl,
@@ -92,15 +91,13 @@ pub fn modl_editor(
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message,
     }
 }
 
-fn rebuild_from_mesh(modl: &mut ModlData, mesh: &MeshData, matl: Option<&MatlData>) -> bool {
-    let mut changed = false;
-
+fn rebuild_from_mesh(modl: &mut ModlData, mesh: &MeshData, matl: Option<&MatlData>) {
     // TODO: Optimize this?
     let missing_entries = missing_mesh_objects(modl, mesh);
     let has_unused_entries = has_unused_entries(modl, mesh);
@@ -118,7 +115,6 @@ fn rebuild_from_mesh(modl: &mut ModlData, mesh: &MeshData, matl: Option<&MatlDat
                 material_label: default_material.clone(),
             });
         }
-        changed = true;
     }
 
     if has_unused_entries {
@@ -127,10 +123,7 @@ fn rebuild_from_mesh(modl: &mut ModlData, mesh: &MeshData, matl: Option<&MatlDat
                 e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex
             })
         });
-        changed = true;
     }
-
-    changed
 }
 
 fn edit_modl_entries(
@@ -141,9 +134,7 @@ fn edit_modl_entries(
     validation_errors: &[ModlValidationError],
     dark_mode: bool,
     message: &mut Option<EditorMessage>,
-) -> bool {
-    let mut changed = false;
-
+) {
     if let Some(mesh) = mesh {
         // TODO: Optimize this?
         let missing_entries = missing_mesh_objects(modl, mesh);
@@ -155,8 +146,6 @@ fn edit_modl_entries(
             .unwrap_or_else(|| String::from("PLACEHOLDER"));
 
         if !missing_entries.is_empty() && ui.button("Add Missing Entries").clicked() {
-            changed = true;
-
             for mesh in missing_entries {
                 modl.entries.push(ModlEntryData {
                     mesh_object_name: mesh.name.clone(),
@@ -167,8 +156,6 @@ fn edit_modl_entries(
         }
 
         if has_unused_entries && ui.button("Remove Unused Entries").clicked() {
-            changed = true;
-
             modl.entries.retain(|e| {
                 mesh.objects.iter().any(|mesh| {
                     e.mesh_object_name == mesh.name && e.mesh_object_subindex == mesh.subindex
@@ -235,16 +222,14 @@ fn edit_modl_entries(
                                 name_response.context_menu(|ui| {
                                     if ui.button("Duplicate").clicked() {
                                         entry_to_duplicate = Some(*item);
-                                        changed = true;
                                     }
 
                                     if ui.button("Delete").clicked() {
                                         entry_to_remove = Some(*item);
-                                        changed = true;
                                     }
                                 });
 
-                                changed |= material_label_combo_box(
+                                material_label_combo_box(
                                     ui,
                                     &mut entry.material_label,
                                     id.with("matl"),
@@ -282,11 +267,8 @@ fn edit_modl_entries(
 
             if let Some(response) = response.final_update() {
                 egui_dnd::utils::shift_vec(response.from, response.to, &mut modl.entries);
-                changed = true;
             }
         });
-
-    changed
 }
 
 fn has_unused_entries(modl: &ModlData, mesh: &MeshData) -> bool {
@@ -310,55 +292,39 @@ fn missing_mesh_objects<'a>(modl: &ModlData, mesh: &'a MeshData) -> Vec<&'a Mesh
         .collect()
 }
 
-fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) -> bool {
-    let mut changed = false;
-
+fn edit_modl_file_names(ui: &mut egui::Ui, modl: &mut ModlData) {
     ui.heading("Model Files");
     Grid::new("modl_files_grid").show(ui, |ui| {
         let size = [125.0, 20.0];
         ui.label("Model Name");
-        changed |= ui
-            .add_sized(size, TextEdit::singleline(&mut modl.model_name))
-            .changed();
+        ui.add_sized(size, TextEdit::singleline(&mut modl.model_name));
         ui.end_row();
 
         ui.label("Skeleton File Name");
-        changed |= ui
-            .add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name))
-            .changed();
+        ui.add_sized(size, TextEdit::singleline(&mut modl.skeleton_file_name));
         ui.end_row();
 
         ui.label("Material File Names");
         for file_name in &mut modl.material_file_names {
-            changed |= ui
-                .add_sized(size, TextEdit::singleline(file_name))
-                .changed();
+            ui.add_sized(size, TextEdit::singleline(file_name));
         }
         ui.end_row();
 
         ui.label("Animation File Name");
         if let Some(file_name) = modl.animation_file_name.as_mut() {
-            changed |= ui
-                .add_sized(size, TextEdit::singleline(file_name))
-                .changed();
+            ui.add_sized(size, TextEdit::singleline(file_name));
             if ui.button("Remove").clicked() {
                 modl.animation_file_name = None;
-                changed = true;
             }
         } else if ui.button("Add File").clicked() {
             modl.animation_file_name = Some("model.nuanmb".to_string());
-            changed = true;
         }
         ui.end_row();
 
         ui.label("Mesh File Name");
-        changed |= ui
-            .add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name))
-            .changed();
+        ui.add_sized(size, TextEdit::singleline(&mut modl.mesh_file_name));
         ui.end_row();
     });
-
-    changed
 }
 
 fn material_label_combo_box(
@@ -367,9 +333,7 @@ fn material_label_combo_box(
     id: impl egui::AsIdSalt,
     matl: Option<&MatlData>,
     is_valid: bool,
-) -> bool {
-    let mut changed = false;
-
+) {
     let text = if is_valid {
         RichText::new(material_label.as_str())
     } else {
@@ -382,11 +346,8 @@ fn material_label_combo_box(
             // TODO: Just use text boxes if the matl is missing?
             if let Some(matl) = matl {
                 for label in matl.entries.iter().map(|e| &e.material_label) {
-                    changed |= ui
-                        .selectable_value(material_label, label.to_string(), label)
-                        .changed();
+                    ui.selectable_value(material_label, label.to_string(), label);
                 }
             }
         });
-    changed
 }

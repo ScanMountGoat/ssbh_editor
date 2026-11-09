@@ -20,9 +20,10 @@ use egui::{
     RichText, ScrollArea, Sense, TextEdit, TextWrapMode, Ui, Window, load::SizedTexture,
 };
 use egui_dnd::dnd;
+use glam::Vec4;
 use log::error;
 use rfd::FileDialog;
-use ssbh_data::{Color4f, Vector4, matl_data::*, modl_data::ModlEntryData, prelude::*};
+use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::shader_database::{ShaderDatabase, ShaderProgram, split_param};
 use std::{path::Path, str::FromStr};
 use strum::IntoEnumIterator;
@@ -68,7 +69,6 @@ pub fn matl_editor(
     dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
-    let mut changed = false;
     let mut saved = false;
     let mut message = None;
 
@@ -79,7 +79,7 @@ pub fn matl_editor(
         .resizable(true)
         .show(ctx, |ui| {
             Panel::top("matl_top_panel").show(ui, |ui| {
-                let (menu_changed, menu_saved) = menu_bar(
+                saved |= menu_bar(
                     ui,
                     matl,
                     &modl,
@@ -88,8 +88,6 @@ pub fn matl_editor(
                     folder_name,
                     file_name,
                 );
-                changed |= menu_changed;
-                saved |= menu_saved;
             });
 
             Panel::left("matl_left_panel")
@@ -98,7 +96,7 @@ pub fn matl_editor(
                     ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .show(ui, |ui| {
-                            changed |= select_material_dnd(
+                            select_material_dnd(
                                 &mut matl.entries,
                                 ui,
                                 dark_mode,
@@ -111,7 +109,7 @@ pub fn matl_editor(
             CentralPanel::default().show(ui, |ui| {
                 // TODO: Simplify logic for closing window.
                 let entry = matl.entries.get_mut(state.selected_material_index);
-                let (open, preset_changed) = preset_window(
+                let open = preset_window(
                     state,
                     ctx,
                     material_presets,
@@ -122,21 +120,18 @@ pub fn matl_editor(
                 if !open {
                     state.matl_preset_window_open = false;
                 }
-                changed |= preset_changed;
 
                 let entry = matl.entries.get_mut(state.selected_material_index);
-                let (open, shader_finder_changed) =
-                    shader_finder_window(state, ctx, entry, shader_database);
+                let open = shader_finder_window(state, ctx, entry, shader_database);
                 if !open {
                     state.shader_finder_window_open = false;
                 }
-                changed |= shader_finder_changed;
 
                 ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
                         if let Some(entry) = matl.entries.get_mut(state.selected_material_index) {
-                            changed |= edit_matl_entry(
+                            edit_matl_entry(
                                 ctx,
                                 ui,
                                 entry,
@@ -157,7 +152,7 @@ pub fn matl_editor(
 
     EditorResponse {
         open,
-        changed,
+        changed: false,
         saved,
         message,
     }
@@ -169,9 +164,7 @@ fn select_material_dnd(
     dark_mode: bool,
     validation_errors: &[MatlValidationError],
     state: &mut MatlEditorState,
-) -> bool {
-    let mut changed = false;
-
+) {
     // TODO: Avoid allocating here.
     let mut item_indices: Vec<_> = (0..entries.len()).collect();
 
@@ -235,15 +228,11 @@ fn select_material_dnd(
             .iter()
             .position(|i| *i == state.selected_material_index)
             .unwrap_or_default();
-        changed = true;
     }
 
     if let Some(i) = index_to_delete {
         entries.remove(i);
-        changed = true;
     }
-
-    changed
 }
 
 // TODO: Validate presets?
@@ -480,9 +469,7 @@ fn edit_matl_entry(
     yellow_checkerboard: egui::TextureId,
     state: &mut MatlEditorState,
     message: &mut Option<EditorMessage>,
-) -> bool {
-    let mut changed = false;
-
+) {
     // TODO: Avoid allocating here.
     let entry_validation_errors: Vec<_> = validation_errors
         .iter()
@@ -500,10 +487,10 @@ fn edit_matl_entry(
             })
             .unwrap_or_default();
 
-        changed |= edit_material_label(entry, ui, &mut modl_entries, message);
+        edit_material_label(entry, ui, &mut modl_entries, message);
     });
 
-    changed |= edit_matl_entry_inner(
+    edit_matl_entry_inner(
         ctx,
         ui,
         entry,
@@ -515,8 +502,6 @@ fn edit_matl_entry(
         red_checkerboard,
         yellow_checkerboard,
     );
-
-    changed
 }
 
 fn preset_window(
@@ -526,9 +511,8 @@ fn preset_window(
     default_presets: &[MatlEntryData],
     entry: Option<&mut MatlEntryData>,
     shader_database: &ShaderDatabase,
-) -> (bool, bool) {
+) -> bool {
     let mut open = state.matl_preset_window_open;
-    let mut changed = false;
     Window::new("Select Material Preset")
         .open(&mut state.matl_preset_window_open)
         .resizable(true)
@@ -546,7 +530,6 @@ fn preset_window(
                             && let Some(entry) = entry
                         {
                             *entry = apply_preset(entry, preset);
-                            changed = true;
                         }
                         open = false;
                     }
@@ -597,7 +580,7 @@ fn preset_window(
             });
         });
 
-    (open, changed)
+    open
 }
 
 fn list_presets(
@@ -645,9 +628,8 @@ fn shader_finder_window(
     ctx: &egui::Context,
     entry: Option<&mut MatlEntryData>,
     shader_database: &ShaderDatabase,
-) -> (bool, bool) {
+) -> bool {
     let mut open = state.shader_finder_window_open;
-    let mut changed = false;
     Window::new("Shader Finder")
         .default_size((500.0, 500.0))
         .open(&mut state.shader_finder_window_open)
@@ -664,7 +646,7 @@ fn shader_finder_window(
                         && let Some(entry) = entry
                     {
                         *entry = apply_shader(entry, &state.shader_finder.selected_shader, shader);
-                        changed = true;
+
                         open = false;
                     }
                 });
@@ -750,7 +732,7 @@ fn shader_finder_window(
             });
         });
 
-    (open, changed)
+    open
 }
 
 fn shader_complexity_color(ui: &mut Ui, value: f64) -> egui::Response {
@@ -901,8 +883,7 @@ fn menu_bar(
     material_presets: &mut Vec<MatlEntryData>,
     folder_name: &Path,
     file_name: &str,
-) -> (bool, bool) {
-    let mut changed = false;
+) -> bool {
     let mut saved = false;
 
     egui::MenuBar::new().ui(ui, |ui| {
@@ -925,8 +906,6 @@ fn menu_bar(
                 matl.entries.push(new_entry);
 
                 state.selected_material_index = matl.entries.len() - 1;
-
-                changed = true;
             }
 
             if button(ui, "Duplicate Current Material").clicked() {
@@ -937,8 +916,6 @@ fn menu_bar(
                 }
 
                 state.selected_material_index = matl.entries.len() - 1;
-
-                changed = true;
             }
             ui.separator();
 
@@ -961,7 +938,6 @@ fn menu_bar(
 
             if ui.button("Remove Duplicates").clicked() {
                 remove_duplicates(&mut matl.entries);
-                changed = true;
             }
 
             if ui
@@ -970,7 +946,6 @@ fn menu_bar(
                 && let Some(modl) = modl
             {
                 remove_unused_materials(&mut matl.entries, &modl.entries);
-                changed = true;
             }
         });
 
@@ -978,14 +953,12 @@ fn menu_bar(
             if ui.button("Move Material to Top").clicked() {
                 matl.entries.swap(0, state.selected_material_index);
                 state.selected_material_index = 0;
-                changed = true;
             }
 
             if ui.button("Move Material to Bottom").clicked() {
                 let last_index = matl.entries.len() - 1;
                 matl.entries.swap(state.selected_material_index, last_index);
                 state.selected_material_index = last_index;
-                changed = true;
             }
 
             ui.separator();
@@ -999,14 +972,13 @@ fn menu_bar(
                     .iter()
                     .position(|e| e == &selected_material)
                     .unwrap_or_default();
-                changed = true;
             }
         });
 
         help_menu(ui);
     });
 
-    (changed, saved)
+    saved
 }
 
 fn help_menu(ui: &mut Ui) {
@@ -1041,7 +1013,7 @@ fn edit_material_label(
     ui: &mut Ui,
     modl_entries: &mut [&mut ModlEntryData],
     message: &mut Option<EditorMessage>,
-) -> bool {
+) {
     // TODO: Get this to work with lost_focus for efficiency.
     // TODO: Show errors if these checks fail?
     let response = ui.add_sized(
@@ -1060,8 +1032,6 @@ fn edit_material_label(
         // Set the message to also mark the modl as changed.
         *message = Some(EditorMessage::RenameMaterial);
     }
-
-    changed
 }
 
 fn edit_shader_label(
@@ -1069,28 +1039,23 @@ fn edit_shader_label(
     shader_label: &mut String,
     is_valid: bool,
     red_checkerboard: egui::TextureId,
-) -> bool {
-    let mut changed = false;
+) {
     if is_valid {
-        changed |= ui
-            .add_sized(
-                egui::Vec2::new(ui.available_width(), 20.0),
-                egui::TextEdit::singleline(shader_label),
-            )
-            .changed();
+        ui.add_sized(
+            egui::Vec2::new(ui.available_width(), 20.0),
+            egui::TextEdit::singleline(shader_label),
+        );
     } else {
         ui.horizontal(|ui| {
             ui.image(SizedTexture { id: red_checkerboard, size: egui::Vec2::new(16.0, 16.0) });
-            changed |= ui.add_sized(
+            ui.add_sized(
                 egui::Vec2::new(ui.available_width(), 20.0),
                 egui::TextEdit::singleline(shader_label).text_color(egui::Color32::RED),
-            ).changed();
+            );
         })
         .response
         .on_hover_text(format!("{shader_label} is not a valid shader label. Copy an existing shader label or apply a material preset."));
     }
-
-    changed
 }
 
 fn edit_matl_entry_inner(
@@ -1104,13 +1069,11 @@ fn edit_matl_entry_inner(
     shader_database: &ShaderDatabase,
     red_checkerboard: egui::TextureId,
     yellow_checkerboard: egui::TextureId,
-) -> bool {
-    let mut changed = false;
-
+) {
     let program = shader_database.get(&entry.shader_label);
 
     ui.heading("Shader");
-    changed |= edit_shader(ui, entry, program, red_checkerboard);
+    edit_shader(ui, entry, program, red_checkerboard);
     horizontal_separator_empty(ui);
 
     // TODO: Add a button to open the mesh editor?
@@ -1159,7 +1122,6 @@ fn edit_matl_entry_inner(
         };
         if ui.button(text).clicked() {
             add_parameters(entry, &missing_parameters);
-            changed = true;
         }
     }
 
@@ -1171,7 +1133,6 @@ fn edit_matl_entry_inner(
         };
         if ui.button(text).clicked() {
             remove_parameters(entry, &unused_parameters);
-            changed = true;
         }
     }
 
@@ -1181,10 +1142,8 @@ fn edit_matl_entry_inner(
 
     for param in entry.booleans.iter_mut() {
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-            changed |= ui
-                .checkbox(&mut param.data, param_label(param.param_id))
-                .on_disabled_hover_text(UNUSED_PARAM)
-                .changed();
+            ui.checkbox(&mut param.data, param_label(param.param_id))
+                .on_disabled_hover_text(UNUSED_PARAM);
         });
     }
     horizontal_separator_empty(ui);
@@ -1195,14 +1154,14 @@ fn edit_matl_entry_inner(
             ui.horizontal(|ui| {
                 ui.label(param_label(param.param_id))
                     .on_disabled_hover_text(UNUSED_PARAM);
-                changed |= ui.add(DragSlider::new(id, &mut param.data)).changed();
+                ui.add(DragSlider::new(id, &mut param.data));
             })
         });
     }
     horizontal_separator_empty(ui);
 
     for param in entry.vectors.iter_mut() {
-        changed |= edit_vector(
+        edit_vector(
             ui,
             param,
             !unused_parameters.contains(&param.param_id),
@@ -1227,7 +1186,7 @@ fn edit_matl_entry_inner(
                 })
                 .collect();
 
-            changed |= edit_texture(
+            edit_texture(
                 ui,
                 i,
                 param,
@@ -1255,14 +1214,14 @@ fn edit_matl_entry_inner(
             .collect();
 
         ui.add_enabled_ui(!unused_parameters.contains(&param.param_id), |ui| {
-            changed |= edit_sampler(ui, param, &errors);
+            edit_sampler(ui, param, &errors);
         });
     }
     horizontal_separator_empty(ui);
 
     // TODO: Reflecting changes to these values in the viewport requires recreating pipelines.
     for param in &mut entry.rasterizer_states {
-        changed |= edit_rasterizer(ui, param);
+        edit_rasterizer(ui, param);
     }
     horizontal_separator_empty(ui);
 
@@ -1279,10 +1238,8 @@ fn edit_matl_entry_inner(
             })
             .collect();
 
-        changed |= edit_blend(ui, param, &errors);
+        edit_blend(ui, param, &errors);
     }
-
-    changed
 }
 
 fn edit_shader(
@@ -1290,12 +1247,10 @@ fn edit_shader(
     entry: &mut MatlEntryData,
     program: Option<&ShaderProgram>,
     red_checkerboard: egui::TextureId,
-) -> bool {
-    let mut changed = false;
-
+) {
     ui.horizontal(|ui| {
         ui.label("Shader Label");
-        changed |= edit_shader_label(
+        edit_shader_label(
             ui,
             &mut entry.shader_label,
             program.is_some(),
@@ -1303,22 +1258,15 @@ fn edit_shader(
         );
     });
 
-    shader_grid(ui, entry, &mut changed, program);
+    shader_grid(ui, entry, program);
 
     if let Some(program) = program {
         horizontal_separator_empty(ui);
         shader_info_grid(ui, program);
     }
-
-    changed
 }
 
-fn shader_grid(
-    ui: &mut Ui,
-    entry: &mut MatlEntryData,
-    changed: &mut bool,
-    program: Option<&ShaderProgram>,
-) {
+fn shader_grid(ui: &mut Ui, entry: &mut MatlEntryData, program: Option<&ShaderProgram>) {
     Grid::new("shader_grid").show(ui, |ui| {
         ui.label("Render Pass");
         let shader = entry.shader_label.get(..24).unwrap_or("").to_string();
@@ -1326,9 +1274,7 @@ fn shader_grid(
             .selected_text(entry.shader_label.get(25..).unwrap_or(""))
             .show_ui(ui, |ui| {
                 for pass in ["_opaque", "_far", "_sort", "_near"] {
-                    *changed |= ui
-                        .selectable_value(&mut entry.shader_label, shader.clone() + pass, pass)
-                        .changed();
+                    ui.selectable_value(&mut entry.shader_label, shader.clone() + pass, pass);
                 }
             });
         ui.end_row();
@@ -1392,9 +1338,7 @@ fn shader_info_header(ui: &mut Ui, program: &ShaderProgram) {
     }
 }
 
-fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) -> bool {
-    let mut changed = false;
-
+fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidationError]) {
     let text = param_text(param.param_id, errors);
     let response = CollapsingHeader::new(text)
         .default_open(true)
@@ -1404,23 +1348,21 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidati
             Grid::new(id).num_columns(2).show(ui, |ui| {
                 ui.label("Source Color")
                     .on_hover_text("The blend factor for this mesh's rendered color.");
-                changed |= enum_combo_box(ui, id.with("srccolor"), &mut param.data.source_color);
+                enum_combo_box(ui, id.with("srccolor"), &mut param.data.source_color);
                 ui.end_row();
 
                 ui.label("Destination Color").on_hover_text(
                     "The blend factor for the previously rendered background color.",
                 );
-                changed |=
-                    enum_combo_box(ui, id.with("dstcolor"), &mut param.data.destination_color);
+
+                enum_combo_box(ui, id.with("dstcolor"), &mut param.data.destination_color);
                 ui.end_row();
 
-                changed |= ui
-                    .checkbox(
-                        &mut param.data.alpha_sample_to_coverage,
-                        "Alpha Sample to Coverage",
-                    )
-                    .on_hover_text("Simulates transparency using a dithering pattern when enabled.")
-                    .changed();
+                ui.checkbox(
+                    &mut param.data.alpha_sample_to_coverage,
+                    "Alpha Sample to Coverage",
+                )
+                .on_hover_text("Simulates transparency using a dithering pattern when enabled.");
                 ui.end_row();
                 // TODO: Basic blend state can just expose a selection for "additive", "alpha", or "opaque".
                 // TODO: Research in game examples for these presets (premultiplied alpha?)
@@ -1431,25 +1373,21 @@ fn edit_blend(ui: &mut Ui, param: &mut BlendStateParam, errors: &[&&MatlValidati
     if !errors.is_empty() {
         response.on_hover_ui(|ui| display_validation_errors(ui, errors.iter()));
     }
-
-    changed
 }
 
-fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
-    let mut changed = false;
-
+fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) {
     CollapsingHeader::new(param_label(param.param_id)).show(ui, |ui| {
         let id = egui::Id::unique(param.param_id.to_string());
 
         Grid::new(id).num_columns(2).show(ui, |ui| {
             ui.label("Polygon Fill")
                 .on_hover_text("The polygon mode for shading triangles.");
-            changed |= enum_combo_box(ui, id.with("fill"), &mut param.data.fill_mode);
+            enum_combo_box(ui, id.with("fill"), &mut param.data.fill_mode);
             ui.end_row();
 
             ui.label("Cull Mode")
                 .on_hover_text("The side of each face to cull from rendering.");
-            changed |= enum_combo_box(ui, id.with("cull"), &mut param.data.cull_mode);
+            enum_combo_box(ui, id.with("cull"), &mut param.data.cull_mode);
             ui.end_row();
 
             ui.label("Depth Bias")
@@ -1458,8 +1396,6 @@ fn edit_rasterizer(ui: &mut Ui, param: &mut RasterizerStateParam) -> bool {
             ui.end_row();
         });
     });
-
-    changed
 }
 
 fn edit_texture(
@@ -1472,7 +1408,7 @@ fn edit_texture(
     enabled: bool,
     errors: &[&&MatlValidationError],
     program: Option<&ShaderProgram>,
-) -> bool {
+) {
     let channel_mask = program
         .map(|p| p.accessed_channels(&param.param_id.to_string()))
         .unwrap_or_default();
@@ -1521,12 +1457,9 @@ fn edit_texture(
         ));
     }
 
-    let mut changed = false;
-
     if *texture_to_edit_index == Some(i) {
         // Validate on each keystroke but only disable editing when submitted.
         let response = ui.add_enabled(enabled, TextEdit::singleline(&mut param.data));
-        changed |= response.changed();
         if response.lost_focus() {
             *texture_to_edit_index = None;
         }
@@ -1561,7 +1494,6 @@ fn edit_texture(
                                 .clicked()
                             {
                                 param.data = text;
-                                changed = true;
                             }
                         });
                     }
@@ -1577,13 +1509,9 @@ fn edit_texture(
             });
         });
     }
-
-    changed
 }
 
-fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidationError]) -> bool {
-    let mut changed = false;
-
+fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidationError]) {
     let text = param_text(param.param_id, errors);
     let response = CollapsingHeader::new(text).id_salt(param.param_id.to_string()).show(ui, |ui| {
         let id = egui::Id::unique(param.param_id.to_string());
@@ -1592,7 +1520,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
         Grid::new(id).num_columns(2).show(ui, |ui| {
             ui.label("Wrap S")
                 .on_hover_text("The wrap mode for the S or U coordinate.");
-            changed |= enum_combo_box(
+            enum_combo_box(
                 ui,
                 id.with("wraps{:?}"),
                 &mut param.data.wraps,
@@ -1601,7 +1529,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
             ui.label("Wrap T")
                 .on_hover_text("The wrap mode for the T or V coordinate.");
-            changed |= enum_combo_box(
+            enum_combo_box(
                 ui,
                 id.with("wrapt{:?}"),
                 &mut param.data.wrapt,
@@ -1610,7 +1538,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
             ui.label("Wrap R")
                 .on_hover_text("The wrap mode for the R coordinate for cube maps.");
-            changed |= enum_combo_box(
+            enum_combo_box(
                 ui,
                 id.with("wrapr{:?}"),
                 &mut param.data.wrapr,
@@ -1619,7 +1547,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
             ui.label("Min Filter")
                 .on_hover_text("The filter mode when minifying the texture. Affects mipmapping.");
-            changed |= enum_combo_box(
+            enum_combo_box(
                 ui,
                 id.with("minfilter{:?}"),
                 &mut param.data.min_filter,
@@ -1628,7 +1556,7 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
 
             ui.label("Mag Filter")
                 .on_hover_text("The filter mode when magnifying the texture.");
-            changed |= enum_combo_box(
+            enum_combo_box(
                 ui,
                 id.with("magfilter{:?}"),
                 &mut param.data.mag_filter,
@@ -1641,12 +1569,12 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
                 .on_hover_text(
                 "The color when sampling UVs outside the range 0.0 to 1.0. Only affects ClampToBorder."
             );
-            changed |= edit_color4f_rgba(ui, &mut param.data.border_color);
+            edit_color4f_rgba(ui, &mut param.data.border_color);
             ui.end_row();
 
             ui.label("Lod Bias")
                 .on_hover_text("The offset added to the mip level. Lower values use higher resolution mipmaps more often.");
-            changed |= ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1)).changed();
+            ui.add(DragValue::new(&mut param.data.lod_bias).speed(0.1));
             ui.end_row();
 
             ui.label("Max Anisotropy").on_hover_text("The amount of anisotropic filtering. Improves texture quality at extreme angles.");
@@ -1659,11 +1587,11 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
                 )
                 .show_ui(ui, |ui| {
                     for variant in MaxAnisotropy::iter() {
-                        changed |= ui.selectable_value(
+                        ui.selectable_value(
                             &mut param.data.max_anisotropy,
                             variant,
                             anisotropy_label(variant),
-                        ).changed();
+                        );
                     }
                 });
             ui.end_row();
@@ -1679,8 +1607,6 @@ fn edit_sampler(ui: &mut Ui, param: &mut SamplerParam, errors: &[&&MatlValidatio
             display_validation_errors(ui, errors.iter());
         });
     }
-
-    changed
 }
 
 fn param_text(param_id: ParamId, errors: &[&&MatlValidationError]) -> RichText {
@@ -1707,9 +1633,7 @@ fn edit_vector(
     param: &mut Vector4Param,
     enabled: bool,
     program: Option<&ShaderProgram>,
-) -> bool {
-    let mut changed = false;
-
+) {
     ui.add_enabled(enabled, Label::new(param_label(param.param_id)))
         .on_disabled_hover_text(UNUSED_PARAM);
 
@@ -1721,15 +1645,15 @@ fn edit_vector(
 
     // Prevent editing components not accessed by the shader code.
     let id = egui::Id::unique(param.param_id.to_string());
-    let edit_component = |ui: &mut Ui, changed: &mut bool, i, value| {
+    let edit_component = |ui: &mut Ui, i, value: &mut f32| {
         let component = labels[i];
         ui.add_enabled_ui(enabled && channels[i], |ui| {
             ui.horizontal(|ui| {
                 ui.add_sized([15.0, 20.0], egui::Label::new(component));
-                *changed |= ui
+                ui
                     .add(DragSlider::new(id.with(labels[i]), value).width(50.0))
                     .on_hover_text(labels_long[i])
-                    .changed();
+                    ;
             })
         })
         .inner
@@ -1741,49 +1665,41 @@ fn edit_vector(
 
     ui.horizontal(|ui| {
         ui.add_enabled_ui(enabled, |ui| {
-            changed |= edit_vector4_rgba(ui, &mut param.data);
+            edit_vector4_rgba(ui, &mut param.data);
         });
-        edit_component(ui, &mut changed, 0, &mut param.data.x);
-        edit_component(ui, &mut changed, 1, &mut param.data.y);
-        edit_component(ui, &mut changed, 2, &mut param.data.z);
-        edit_component(ui, &mut changed, 3, &mut param.data.w);
+        edit_component(ui, 0, &mut param.data.x);
+        edit_component(ui, 1, &mut param.data.y);
+        edit_component(ui, 2, &mut param.data.z);
+        edit_component(ui, 3, &mut param.data.w);
     });
-
-    changed
 }
 
-fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vector4) -> bool {
+fn edit_vector4_rgba(ui: &mut Ui, data: &mut Vec4) {
     // TODO: Edit alpha for params with alpha?
     let mut color = [data.x, data.y, data.z];
     if ui.color_edit_button_rgb(&mut color).changed() {
         data.x = color[0];
         data.y = color[1];
         data.z = color[2];
-        true
-    } else {
-        false
     }
 }
 
-fn edit_color4f_rgba(ui: &mut Ui, data: &mut Color4f) -> bool {
+fn edit_color4f_rgba(ui: &mut Ui, data: &mut Vec4) {
     // TODO: Still show the color if the alpha is 0?
     let mut color = [
-        (255.0 * data.r) as u8,
-        (255.0 * data.g) as u8,
-        (255.0 * data.b) as u8,
-        (255.0 * data.a) as u8,
+        (255.0 * data.x) as u8,
+        (255.0 * data.y) as u8,
+        (255.0 * data.z) as u8,
+        (255.0 * data.w) as u8,
     ];
     if ui
         .color_edit_button_srgba_unmultiplied(&mut color)
         .changed()
     {
-        data.r = (color[0] as f32) / 255.0;
-        data.g = (color[1] as f32) / 255.0;
-        data.b = (color[2] as f32) / 255.0;
-        data.a = (color[3] as f32) / 255.0;
-        true
-    } else {
-        false
+        data.x = (color[0] as f32) / 255.0;
+        data.y = (color[1] as f32) / 255.0;
+        data.z = (color[2] as f32) / 255.0;
+        data.w = (color[3] as f32) / 255.0;
     }
 }
 
