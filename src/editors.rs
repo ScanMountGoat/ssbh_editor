@@ -47,7 +47,7 @@ impl Editor for AdjData {
         model: &mut ModelFolderState,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
-        _: bool,
+        dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
         let orginal_json = serde_json::to_string(adj).unwrap();
@@ -63,6 +63,7 @@ impl Editor for AdjData {
                 .get(open_file_index.as_ref()?)
                 .map(|e| e.as_slice())
                 .unwrap_or_default(),
+            dark_mode,
         );
         Some(check_changes(&orginal_json, adj, response))
     }
@@ -80,7 +81,7 @@ impl Editor for HlpbData {
         model: &mut ModelFolderState,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        _: bool,
+        dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
         let orginal_json = serde_json::to_string(hlpb).unwrap();
@@ -91,6 +92,7 @@ impl Editor for HlpbData {
             hlpb,
             find_file(&model.model.skels, "model.nusktb"),
             state,
+            dark_mode,
         );
         Some(check_changes(&orginal_json, hlpb, response))
     }
@@ -129,11 +131,11 @@ impl Editor for AnimData {
         model: &mut ModelFolderState,
         open_file_index: &mut Option<usize>,
         state: &mut Self::EditorState,
-        _: bool,
+        dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
         let orginal_json = serde_json::to_string(anim).unwrap();
-        let response = anim_editor(ctx, &model.folder_path, name, anim, state);
+        let response = anim_editor(ctx, &model.folder_path, name, anim, state, dark_mode);
         Some(check_changes(&orginal_json, anim, response))
     }
 
@@ -150,7 +152,7 @@ impl Editor for MeshExData {
         model: &mut ModelFolderState,
         open_file_index: &mut Option<usize>,
         _: &mut Self::EditorState,
-        _: bool,
+        dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
         let orginal_json = serde_json::to_string(meshex).unwrap();
@@ -160,6 +162,7 @@ impl Editor for MeshExData {
             name,
             meshex,
             find_file(&model.model.meshes, "model.numshb"),
+            dark_mode,
         );
         Some(check_changes(&orginal_json, meshex, response))
     }
@@ -193,8 +196,8 @@ impl Editor for MeshData {
                 .get(open_file_index.as_ref()?)
                 .map(|e| e.as_slice())
                 .unwrap_or_default(),
-            dark_mode,
             state,
+            dark_mode,
         );
         Some(check_changes(&orginal_json, mesh, response))
     }

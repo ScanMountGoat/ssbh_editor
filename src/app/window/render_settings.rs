@@ -1,4 +1,8 @@
-use crate::{app::plasma_colormap, horizontal_separator_empty, widgets::*};
+use crate::{
+    app::{icon::github_button, plasma_colormap},
+    horizontal_separator_empty,
+    widgets::*,
+};
 use egui::ScrollArea;
 use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
 
@@ -10,6 +14,7 @@ pub fn render_settings_window(
     open: &mut bool,
     draw_bone_names: &mut bool,
     enable_helper_bones: &mut bool,
+    dark_mode: bool,
 ) {
     egui::Window::new("Render Settings")
         .open(open)
@@ -17,7 +22,7 @@ pub fn render_settings_window(
         .show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Render Settings Wiki").clicked() {
+                    if github_button(ui, "Render Settings Wiki", dark_mode).clicked() {
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Render-Settings";
                         if let Err(e) = open::that(link) {

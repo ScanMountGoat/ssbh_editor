@@ -52,6 +52,26 @@ fn file_icon(ui: &mut Ui, image: ImageSource, dark_mode: bool) -> Response {
     )
 }
 
+pub fn github_button(ui: &mut Ui, text: &str, dark_mode: bool) -> Response {
+    let tint = if dark_mode {
+        TEXT_COLOR_DARK
+    } else {
+        TEXT_COLOR_LIGHT
+    };
+
+    // https://brand.github.com/foundations/logo
+    ui.add(
+        egui::Button::image_and_text(
+            egui::Image::new(egui::include_image!(
+                "../icons/Github_Invertocat_White_Clearspace.svg"
+            ))
+            .tint(tint),
+            text,
+        )
+        .wrap_mode(egui::TextWrapMode::Extend),
+    )
+}
+
 pub fn empty_icon(ui: &mut Ui) {
     ui.allocate_space(egui::Vec2::new(ICON_SIZE, ICON_SIZE));
 }

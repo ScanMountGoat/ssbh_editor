@@ -1,4 +1,8 @@
-use crate::{RenderState, app::NutexbViewerState, app::emoji::GITHUB, horizontal_separator_empty};
+use crate::{
+    RenderState,
+    app::{NutexbViewerState, icon::github_button},
+    horizontal_separator_empty,
+};
 use egui::{ComboBox, DragValue, Scene, Slider};
 use egui_wgpu::{Callback, CallbackTrait};
 use nutexb::{NutexbFile, NutexbFormat};
@@ -10,6 +14,7 @@ pub fn nutexb_viewer(
     state: &mut NutexbViewerState,
     nutexb: &NutexbFile,
     settings: &mut RenderSettings,
+    dark_mode: bool,
 ) -> bool {
     let mut open = true;
     egui::Window::new(format!("Nutexb Viewer ({title})"))
@@ -18,7 +23,7 @@ pub fn nutexb_viewer(
         .show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} Nutexb Editor Wiki")).clicked() {
+                    if github_button(ui, "Nutexb Editor Wiki", dark_mode).clicked() {
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Nutexb-Editor";
                         if let Err(e) = open::that(link) {

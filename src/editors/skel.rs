@@ -2,7 +2,10 @@ use std::path::Path;
 
 use crate::{
     EditorResponse,
-    app::{SkelEditorState, SkelMode, emoji::GITHUB, icon::draggable_icon},
+    app::{
+        SkelEditorState, SkelMode,
+        icon::{draggable_icon, github_button},
+    },
     path::folder_editor_title,
     widgets::enum_combo_box,
 };
@@ -68,7 +71,7 @@ pub fn skel_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} Skel Editor Wiki")).clicked() {
+                    if github_button(ui, "Skel Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Skel-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

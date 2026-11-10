@@ -1,5 +1,5 @@
 use crate::{
-    EditorResponse, app::emoji::GITHUB, path::folder_editor_title, save_file, save_file_as,
+    EditorResponse, app::icon::github_button, path::folder_editor_title, save_file, save_file_as,
     validation::AdjValidationError,
 };
 use egui::ScrollArea;
@@ -14,6 +14,7 @@ pub fn adj_editor(
     adj: &mut AdjData,
     mesh: Option<&MeshData>,
     validation_errors: &[AdjValidationError],
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut changed = false;
@@ -36,7 +37,7 @@ pub fn adj_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} Adj Editor Wiki")).clicked() {
+                    if github_button(ui, "Adj Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Adj-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

@@ -1,7 +1,8 @@
 use crate::{
     EditorMessage, EditorResponse,
     app::{
-        MeshEditorState, display_validation_errors, emoji::GITHUB, icon::draggable_icon,
+        MeshEditorState, display_validation_errors,
+        icon::{draggable_icon, github_button},
         warning_icon_text,
     },
     horizontal_separator_empty,
@@ -33,8 +34,8 @@ pub fn mesh_editor(
     mesh: &mut MeshData,
     skel: Option<&SkelData>,
     validation_errors: &[MeshValidationError],
-    dark_mode: bool,
     state: &mut MeshEditorState,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut saved = false;
@@ -76,7 +77,7 @@ pub fn mesh_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} Mesh Editor Wiki")).clicked() {
+                    if github_button(ui, "Mesh Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

@@ -1,6 +1,6 @@
 use crate::{
     EditorResponse,
-    app::{AnimEditorState, AnimEditorTab, emoji::GITHUB},
+    app::{AnimEditorState, AnimEditorTab, icon::github_button},
     path::folder_editor_title,
     save_file, save_file_as,
 };
@@ -20,6 +20,7 @@ pub fn anim_editor(
     file_name: &str,
     anim: &mut AnimData,
     state: &mut AnimEditorState,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut saved = false;
@@ -43,7 +44,7 @@ pub fn anim_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} Anim Editor Wiki")).clicked() {
+                    if github_button(ui, "Anim Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Anim-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

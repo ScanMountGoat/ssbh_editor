@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     CameraState,
     app::{
-        emoji::GITHUB,
+        icon::github_button,
         shortcut::{ADD_FOLDER, OPEN_FOLDER, RELOAD_SHORTCUT, format_shortcut},
     },
 };
@@ -202,28 +202,28 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
         });
 
         ui.menu_button("Help", |ui| {
-            if ui.button(format!("{GITHUB} Wiki")).clicked() {
+            if github_button(ui, "Wiki", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";
                 if let Err(e) = open::that(link) {
                     log::error!("Failed to open {link}: {e}");
                 }
             }
 
-            if ui.button(format!("{GITHUB} Discussion Forum")).clicked() {
+            if github_button(ui, "Discussion Forum", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/discussions";
                 if let Err(e) = open::that(link) {
                     log::error!("Failed to open {link}: {e}");
                 }
             }
 
-            if ui.button(format!("{GITHUB} Report Issue")).clicked() {
+            if github_button(ui, "Report Issue", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
                 if let Err(e) = open::that(link) {
                     log::error!("Failed to open {link}: {e}");
                 }
             }
 
-            if ui.button(format!("{GITHUB} Changelog")).clicked() {
+            if github_button(ui, "Changelog", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
                 if let Err(e) = open::that(link) {
                     log::error!("Failed to open {link}: {e}");

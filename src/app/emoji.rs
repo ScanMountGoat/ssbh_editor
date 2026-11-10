@@ -11,9 +11,3 @@ pub const OS_ANDROID: char = '\u{E618}';
 
 /// The Apple logo.
 pub const OS_APPLE: char = '\u{F8FF}';
-
-/// The Github logo.
-pub const GITHUB: char = '\u{E624}';
-
-/// The word `git`.
-pub const GIT: char = '\u{E625}';

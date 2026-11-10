@@ -671,6 +671,7 @@ impl SsbhApp {
             &mut self.ui_state.render_settings_open,
             &mut self.draw_bone_names,
             &mut self.enable_helper_bones,
+            self.preferences.dark_mode,
         );
         if self.ui_state.render_settings_open {
             self.render_actions
@@ -682,6 +683,7 @@ impl SsbhApp {
             &mut self.ui_state.camera_settings_open,
             &mut self.camera_state,
             &mut self.preferences.default_camera,
+            self.preferences.dark_mode,
         ) {
             self.render_actions.push_back(RenderAction::UpdateCamera);
         }
@@ -900,6 +902,7 @@ impl SsbhApp {
                     &mut self.ui_state.nutexb,
                     nutexb,
                     &mut render_state.texture_render_settings,
+                    self.preferences.dark_mode,
                 )
             {
                 // Close the window.

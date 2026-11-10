@@ -3,13 +3,14 @@ use std::path::PathBuf;
 use egui::{Button, DragValue, Label, TextWrapMode, Ui};
 use rfd::FileDialog;
 
-use crate::{CameraState, CameraValues, horizontal_separator_empty};
+use crate::{CameraState, CameraValues, app::icon::github_button, horizontal_separator_empty};
 
 pub fn camera_settings_window(
     ctx: &egui::Context,
     open: &mut bool,
     camera_state: &mut CameraState,
     default_camera: &mut CameraValues,
+    dark_mode: bool,
 ) -> bool {
     let mut changed = false;
 
@@ -41,7 +42,7 @@ pub fn camera_settings_window(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Camera Settings Wiki").clicked() {
+                    if github_button(ui, "Camera Settings Wiki", dark_mode).clicked() {
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Camera-Settings";
                         if let Err(e) = open::that(link) {

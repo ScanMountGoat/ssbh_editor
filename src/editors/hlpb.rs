@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
     EditorResponse,
-    app::{HlpbEditorState, HlpbEditorTab, emoji::GITHUB},
+    app::{HlpbEditorState, HlpbEditorTab, icon::github_button},
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -23,6 +23,7 @@ pub fn hlpb_editor(
     hlpb: &mut HlpbData,
     skel: Option<&SkelData>,
     state: &mut HlpbEditorState,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut saved = false;
@@ -33,8 +34,7 @@ pub fn hlpb_editor(
         .default_size(egui::Vec2::new(700.0, 600.0))
         .resizable(true)
         .show(ctx, |ui| {
-            let menu_saved = menu_bar(ui, hlpb, folder_name, file_name, state);
-            saved |= menu_saved;
+            saved |= menu_bar(ui, hlpb, folder_name, file_name, state, dark_mode);
             ui.separator();
 
             ui.horizontal(|ui| {
@@ -139,6 +139,7 @@ fn menu_bar(
     folder_name: &Path,
     file_name: &str,
     state: &mut HlpbEditorState,
+    dark_mode: bool,
 ) -> bool {
     let mut saved = false;
     egui::MenuBar::new().ui(ui, |ui| {
@@ -232,7 +233,7 @@ fn menu_bar(
         });
 
         ui.menu_button("Help", |ui| {
-            if ui.button(format!("{GITHUB} Hlpb Editor Wiki")).clicked() {
+            if github_button(ui, "Hlpb Editor Wiki", dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Hlpb-Editor";
                 if let Err(e) = open::that(link) {
                     log::error!("Failed to open {link}: {e}");

@@ -1,6 +1,10 @@
 use crate::{
     EditorMessage, EditorResponse,
-    app::{ModlEditorState, ModlEditorTab, emoji::GITHUB, icon::draggable_icon, warning_icon_text},
+    app::{
+        ModlEditorState, ModlEditorTab,
+        icon::{draggable_icon, github_button},
+        warning_icon_text,
+    },
     horizontal_separator_empty,
     path::folder_editor_title,
     save_file, save_file_as,
@@ -52,7 +56,7 @@ pub fn modl_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} Modl Editor Wiki")).clicked() {
+                    if github_button(ui, "Modl Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Modl-Editor";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");

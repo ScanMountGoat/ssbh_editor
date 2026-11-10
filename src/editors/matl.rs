@@ -2,8 +2,7 @@ use crate::{
     EditorMessage, EditorResponse,
     app::{
         MatlEditorState, PresetMode, ShaderFinderState, UiState, display_validation_errors,
-        emoji::GITHUB,
-        icon::{draggable_icon, warning_icon},
+        icon::{draggable_icon, github_button, warning_icon},
         warning_icon_text,
     },
     horizontal_separator_empty,
@@ -87,6 +86,7 @@ pub fn matl_editor(
                     material_presets,
                     folder_name,
                     file_name,
+                    dark_mode,
                 );
             });
 
@@ -251,7 +251,7 @@ pub fn preset_editor(
         .default_size(egui::Vec2::new(900.0, 900.0))
         .show(ctx, |ui| {
             Panel::top("matl_presets_top_panel").show(ui, |ui| {
-                presets_menu(ui, user_presets);
+                presets_menu(ui, user_presets, dark_mode);
             });
 
             Panel::left("matl_presets_left_panel")
@@ -299,7 +299,7 @@ pub fn preset_editor(
         });
 }
 
-fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
+fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>, dark_mode: bool) {
     egui::MenuBar::new().ui(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Save").clicked() {
@@ -341,7 +341,7 @@ fn presets_menu(ui: &mut Ui, user_presets: &mut Vec<MatlEntryData>) {
                 remove_duplicates(user_presets);
             }
         });
-        help_menu(ui);
+        help_menu(ui, dark_mode);
     });
 }
 
@@ -883,6 +883,7 @@ fn menu_bar(
     material_presets: &mut Vec<MatlEntryData>,
     folder_name: &Path,
     file_name: &str,
+    dark_mode: bool,
 ) -> bool {
     let mut saved = false;
 
@@ -975,31 +976,29 @@ fn menu_bar(
             }
         });
 
-        help_menu(ui);
+        help_menu(ui, dark_mode);
     });
 
     saved
 }
 
-fn help_menu(ui: &mut Ui) {
+fn help_menu(ui: &mut Ui, dark_mode: bool) {
     ui.menu_button("Help", |ui| {
-        let button = |ui: &mut Ui, text: &str| ui.add(Button::new(text).wrap_mode(TextWrapMode::Extend));
-
-        if button(ui, &format!("{GITHUB} Material Parameter Reference")).clicked() {
+        if github_button(ui, "Material Parameter Reference", dark_mode).clicked() {
             let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
             if let Err(open_err) = open::that(link) {
                 log::error!("Failed to open link ({link}). {open_err}");
             }
         }
 
-        if button(ui, "Material Research Website").clicked() {
+        if ui.add(Button::new("Material Research Website").wrap_mode(TextWrapMode::Extend)).clicked() {
             let link = "https://scanmountgoat.github.io/Smush-Material-Research/";
             if let Err(open_err) = open::that(link) {
                 log::error!("Failed to open link ({link}). {open_err}");
             }
         }
 
-        if ui.button(format!("{GITHUB} Matl Editor Wiki")).clicked() {
+        if github_button(ui, "Matl Editor Wiki", dark_mode).clicked() {
             let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Matl-Editor";
             if let Err(e) = open::that(link) {
                 log::error!("Failed to open {link}: {e}");

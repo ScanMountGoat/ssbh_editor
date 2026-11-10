@@ -1,5 +1,5 @@
 use crate::{
-    EditorMessage, EditorResponse, app::emoji::GITHUB, path::folder_editor_title, save_file,
+    EditorMessage, EditorResponse, app::icon::github_button, path::folder_editor_title, save_file,
     save_file_as,
 };
 use egui::{Grid, Label, Response, ScrollArea, Sense, Ui};
@@ -13,6 +13,7 @@ pub fn meshex_editor(
     file_name: &str,
     meshex: &mut MeshExData,
     mesh: Option<&MeshData>,
+    dark_mode: bool,
 ) -> EditorResponse {
     let mut open = true;
     let mut saved = false;
@@ -47,7 +48,7 @@ pub fn meshex_editor(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button(format!("{GITHUB} MeshEx Editor Wiki")).clicked() {
+                    if github_button(ui, "MeshEx Editor Wiki", dark_mode).clicked() {
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/MeshEx-Editor";
                         if let Err(e) = open::that(link) {

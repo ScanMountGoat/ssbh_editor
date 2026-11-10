@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use crate::{
-    app::emoji::{OS_APPLE, OS_LINUX, OS_WINDOWS},
+    app::{
+        emoji::{OS_APPLE, OS_LINUX, OS_WINDOWS},
+        icon::github_button,
+    },
     path::application_dir,
     preferences::{AppPreferences, GraphicsBackend},
 };
@@ -37,7 +40,7 @@ pub fn preferences_window(
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Preferences Wiki").clicked() {
+                    if github_button(ui, "Preferences Wiki", preferences.dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Preferences";
                         if let Err(e) = open::that(link) {
                             log::error!("Failed to open {link}: {e}");
