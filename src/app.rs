@@ -14,7 +14,7 @@ use crate::{
     },
     capture::{render_animation_to_gif, render_animation_to_image_sequence, render_screenshot},
     editors::{
-        Editor, apply_edits,
+        Editor, check_changes,
         matl::{matl_editor, preset_editor},
         nutexb::nutexb_viewer,
     },
@@ -745,13 +745,13 @@ impl SsbhApp {
             if let Some(matl_index) = self.ui_state.open_matl
                 && let Some((name, Some(matl))) = model.model.matls.get_mut(matl_index)
             {
-                let mut matl_to_edit = matl.clone();
+                let orginal_json = serde_json::to_string(matl).unwrap();
                 let response = matl_editor(
                     ctx,
                     &model.folder_path,
                     name,
                     &mut self.ui_state.matl_editor,
-                    &mut matl_to_edit,
+                    matl,
                     find_file_mut(&mut model.model.modls, "model.numdlb"),
                     model
                         .validation
@@ -768,7 +768,7 @@ impl SsbhApp {
                     self.yellow_checkerboard,
                     self.preferences.dark_mode,
                 );
-                let response = apply_edits(matl, matl_to_edit, response);
+                let response = check_changes(&orginal_json, matl, response);
 
                 response.set_changed(&mut model.changed.matls[matl_index]);
                 file_changed |= response.changed;

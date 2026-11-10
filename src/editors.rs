@@ -8,6 +8,7 @@ use crate::{
     model_folder::{FileChanged, ModelFolderState},
 };
 use egui::Context;
+use serde::Serialize;
 use ssbh_data::prelude::*;
 use ssbh_wgpu::ModelFiles;
 
@@ -49,12 +50,12 @@ impl Editor for AdjData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, adj) = get_file_to_edit(&mut model.model.adjs, *open_file_index)?;
-        let mut adj_to_edit = adj.clone();
+        let orginal_json = serde_json::to_string(adj).unwrap();
         let response = adj_editor(
             ctx,
             &model.folder_path,
             name,
-            &mut adj_to_edit,
+            adj,
             find_file(&model.model.meshes, "model.numshb"),
             model
                 .validation
@@ -63,7 +64,7 @@ impl Editor for AdjData {
                 .map(|e| e.as_slice())
                 .unwrap_or_default(),
         );
-        Some(apply_edits(adj, adj_to_edit, response))
+        Some(check_changes(&orginal_json, adj, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -82,16 +83,16 @@ impl Editor for HlpbData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, hlpb) = get_file_to_edit(&mut model.model.hlpbs, *open_file_index)?;
-        let mut hlpb_to_edit = hlpb.clone();
+        let orginal_json = serde_json::to_string(hlpb).unwrap();
         let response = hlpb_editor(
             ctx,
             &model.folder_path,
             name,
-            &mut hlpb_to_edit,
+            hlpb,
             find_file(&model.model.skels, "model.nusktb"),
             state,
         );
-        Some(apply_edits(hlpb, hlpb_to_edit, response))
+        Some(check_changes(&orginal_json, hlpb, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -110,16 +111,9 @@ impl Editor for SkelData {
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, skel) = get_file_to_edit(&mut model.model.skels, *open_file_index)?;
-        let mut skel_to_edit = skel.clone();
-        let response = skel_editor(
-            ctx,
-            &model.folder_path,
-            name,
-            &mut skel_to_edit,
-            state,
-            dark_mode,
-        );
-        Some(apply_edits(skel, skel_to_edit, response))
+        let orginal_json = serde_json::to_string(skel).unwrap();
+        let response = skel_editor(ctx, &model.folder_path, name, skel, state, dark_mode);
+        Some(check_changes(&orginal_json, skel, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -138,9 +132,9 @@ impl Editor for AnimData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, anim) = get_file_to_edit(&mut model.model.anims, *open_file_index)?;
-        let mut anim_to_edit = anim.clone();
-        let response = anim_editor(ctx, &model.folder_path, name, &mut anim_to_edit, state);
-        Some(apply_edits(anim, anim_to_edit, response))
+        let orginal_json = serde_json::to_string(anim).unwrap();
+        let response = anim_editor(ctx, &model.folder_path, name, anim, state);
+        Some(check_changes(&orginal_json, anim, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -159,15 +153,15 @@ impl Editor for MeshExData {
         _: bool,
     ) -> Option<EditorResponse> {
         let (name, meshex) = get_file_to_edit(&mut model.model.meshexes, *open_file_index)?;
-        let mut meshex_to_edit = meshex.clone();
+        let orginal_json = serde_json::to_string(meshex).unwrap();
         let response = meshex_editor(
             ctx,
             &model.folder_path,
             name,
-            &mut meshex_to_edit,
+            meshex,
             find_file(&model.model.meshes, "model.numshb"),
         );
-        Some(apply_edits(meshex, meshex_to_edit, response))
+        Some(check_changes(&orginal_json, meshex, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -186,12 +180,12 @@ impl Editor for MeshData {
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, mesh) = get_file_to_edit(&mut model.model.meshes, *open_file_index)?;
-        let mut mesh_to_edit = mesh.clone();
+        let orginal_json = serde_json::to_string(mesh).unwrap();
         let response = mesh_editor(
             ctx,
             &model.folder_path,
             name,
-            &mut mesh_to_edit,
+            mesh,
             find_file(&model.model.skels, "model.nusktb"),
             model
                 .validation
@@ -202,7 +196,7 @@ impl Editor for MeshData {
             dark_mode,
             state,
         );
-        Some(apply_edits(mesh, mesh_to_edit, response))
+        Some(check_changes(&orginal_json, mesh, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -220,12 +214,12 @@ impl Editor for ModlData {
         dark_mode: bool,
     ) -> Option<EditorResponse> {
         let (name, modl) = get_file_to_edit(&mut model.model.modls, *open_file_index)?;
-        let mut modl_to_edit = modl.clone();
+        let orginal_json = serde_json::to_string(modl).unwrap();
         let response = modl_editor(
             ctx,
             &model.folder_path,
             name,
-            &mut modl_to_edit,
+            modl,
             find_file(&model.model.meshes, "model.numshb"),
             find_file(&model.model.matls, "model.numatb"),
             model
@@ -237,7 +231,7 @@ impl Editor for ModlData {
             state,
             dark_mode,
         );
-        Some(apply_edits(modl, modl_to_edit, response))
+        Some(check_changes(&orginal_json, modl, response))
     }
 
     fn set_changed(response: &EditorResponse, changed: &mut FileChanged, index: usize) {
@@ -245,13 +239,17 @@ impl Editor for ModlData {
     }
 }
 
-pub fn apply_edits<T: PartialEq>(
-    original: &mut T,
-    edited: T,
+pub fn check_changes<T: Serialize>(
+    original_json: &String,
+    edited: &T,
     response: EditorResponse,
 ) -> EditorResponse {
-    let changed = &edited != original;
-    *original = edited;
+    // Don't compare values directly since PartialEq is not reflexive.
+    // A single NaN would mark the file as always changed.
+    // JSON is cheap enough since files are small and we only check open editors.
+    let edited_json = serde_json::to_string(edited).unwrap();
+
+    let changed = &edited_json != original_json;
     EditorResponse {
         changed,
         ..response
