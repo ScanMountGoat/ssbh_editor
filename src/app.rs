@@ -21,7 +21,7 @@ use crate::{
     load_model,
     log::AppLogger,
     model_folder::ModelFolderState,
-    path::{folder_display_name, folder_editor_title, last_update_check_file},
+    path::{folder_display_name, folder_editor_title},
     preferences::AppPreferences,
     thumbnail::generate_model_thumbnails,
     update::LatestReleaseInfo,
@@ -1253,11 +1253,6 @@ impl eframe::App for SsbhApp {
     }
 
     fn on_exit(&mut self) {
-        let path = last_update_check_file();
-        if let Err(e) = std::fs::write(&path, self.release_info.update_check_time.to_string()) {
-            error!("Failed to write update check time to {path:?}: {e}");
-        }
-
         self.preferences.write_to_file();
     }
 }
