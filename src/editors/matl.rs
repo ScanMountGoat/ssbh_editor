@@ -792,33 +792,33 @@ fn shader_finder_attributes(ui: &mut Ui, state: &mut ShaderFinderState) {
 
 fn shader_finder_floats(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for i in 0..20 {
+    for (i, has_float) in state.has_float.iter_mut().enumerate() {
         let param = ParamId::from_str(&format!("CustomFloat{i}")).unwrap();
-        ui.checkbox(&mut state.has_float[i], param_label(param));
+        ui.checkbox(has_float, param_label(param));
     }
 }
 
 fn shader_finder_booleans(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for i in 0..20 {
+    for (i, has_boolean) in state.has_boolean.iter_mut().enumerate() {
         let param = ParamId::from_str(&format!("CustomBoolean{i}")).unwrap();
-        ui.checkbox(&mut state.has_boolean[i], param_label(param));
+        ui.checkbox(has_boolean, param_label(param));
     }
 }
 
 fn shader_finder_textures(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for i in 0..20 {
+    for (i, has_texture) in state.has_texture.iter_mut().enumerate() {
         let param = ParamId::from_str(&format!("Texture{i}")).unwrap();
-        ui.checkbox(&mut state.has_texture[i], param_label(param));
+        ui.checkbox(has_texture, param_label(param));
     }
 }
 
 fn shader_finder_vectors(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for i in 0..48 {
+    for (i, has_vector) in state.has_vector.iter_mut().enumerate() {
         let param = ParamId::from_str(&format!("CustomVector{i}")).unwrap();
-        ui.checkbox(&mut state.has_vector[i], param_label(param));
+        ui.checkbox(has_vector, param_label(param));
     }
 }
 
