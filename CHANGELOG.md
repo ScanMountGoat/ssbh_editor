@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved validation for RENORMAL materials and shaders.
 * Improved file modification detection to only show a file as modified if values actually changed.
 * Updated the logo and fixed centering for GitHub web page links.
-* Update the application logo for MacOS to use the "squircle" design to match design guidelines.
+* Updated the application logo for MacOS to use the "squircle" design to match design guidelines.
 
 ### Fixed
 * Fixed an issue where meshes with highlighted materials would show bloom over the highlighted color.
