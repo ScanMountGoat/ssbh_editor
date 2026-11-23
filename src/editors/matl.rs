@@ -1,7 +1,8 @@
 use crate::{
     EditorMessage, EditorResponse,
     app::{
-        MatlEditorState, PresetMode, ShaderFinderState, UiState, display_validation_errors,
+        FilterState, MatlEditorState, PresetMode, ShaderFinderState, UiState,
+        display_validation_errors,
         icon::{draggable_icon, github_button, warning_icon},
         warning_icon_text,
     },
@@ -749,77 +750,134 @@ fn shader_complexity_color(ui: &mut Ui, value: f64) -> egui::Response {
 }
 
 fn shader_finder_shader(ui: &mut Ui, state: &mut ShaderFinderState) {
-    ui.checkbox(&mut state.discard, "Alpha Testing")
-        .on_hover_text(ALPHA_TEST_DESCRIPTION);
+    Grid::new("shader_finder_shader_grid")
+        .num_columns(2)
+        .show(ui, |ui| {
+            tri_state_switch_row(ui, &mut state.discard, "Alpha Testing")
+                .on_hover_text(ALPHA_TEST_DESCRIPTION);
 
-    ui.checkbox(&mut state.premultiplied, "Premultiplied Alpha")
-        .on_hover_text(PREMULTIPLIED_DESCRIPTION);
+            tri_state_switch_row(ui, &mut state.premultiplied, "Premultiplied Alpha")
+                .on_hover_text(PREMULTIPLIED_DESCRIPTION);
 
-    ui.checkbox(&mut state.receives_shadow, "Receives Shadow")
-        .on_hover_text(RECEIVES_SHADOW_DESCRIPTION);
+            tri_state_switch_row(ui, &mut state.receives_shadow, "Receives Shadow")
+                .on_hover_text(RECEIVES_SHADOW_DESCRIPTION);
 
-    ui.checkbox(&mut state.sh, "SH Lighting")
-        .on_hover_text(SH_DESCRIPTION);
+            tri_state_switch_row(ui, &mut state.sh, "SH Lighting").on_hover_text(SH_DESCRIPTION);
 
-    ui.checkbox(&mut state.lighting, "Lightset Lighting")
-        .on_hover_text(LIGHTSET_DESCRIPTION);
+            tri_state_switch_row(ui, &mut state.lighting, "Lightset Lighting")
+                .on_hover_text(LIGHTSET_DESCRIPTION);
 
-    ui.checkbox(&mut state.anisotropic_rotation, "Anisotropic Rotation")
-        .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
+            tri_state_switch_row(ui, &mut state.anisotropic_rotation, "Anisotropic Rotation")
+                .on_hover_text(ANISOTROPIC_ROTATION_DESCRIPTION);
 
-    ui.checkbox(&mut state.renormal, "Renormal")
-        .on_hover_text(RENORMAL_DESCRIPTION);
+            tri_state_switch_row(ui, &mut state.renormal, "Renormal")
+                .on_hover_text(RENORMAL_DESCRIPTION);
+        });
 }
 
 fn shader_finder_attributes(ui: &mut Ui, state: &mut ShaderFinderState) {
-    ui.checkbox(&mut state.color_set1, "colorSet1");
-    ui.checkbox(&mut state.color_set2, "colorSet2");
-    ui.checkbox(&mut state.color_set2_1, "colorSet2_1");
-    ui.checkbox(&mut state.color_set2_2, "colorSet2_2");
-    ui.checkbox(&mut state.color_set2_3, "colorSet2_3");
-    ui.checkbox(&mut state.color_set3, "colorSet3");
-    ui.checkbox(&mut state.color_set4, "colorSet4");
-    ui.checkbox(&mut state.color_set5, "colorSet5");
-    ui.checkbox(&mut state.color_set6, "colorSet6");
-    ui.checkbox(&mut state.color_set7, "colorSet7");
+    Grid::new("shader_finder_attributes_grid")
+        .num_columns(2)
+        .show(ui, |ui| {
+            tri_state_switch_row(ui, &mut state.color_set1, "colorSet1");
+            tri_state_switch_row(ui, &mut state.color_set2, "colorSet2");
+            tri_state_switch_row(ui, &mut state.color_set2_1, "colorSet2_1");
+            tri_state_switch_row(ui, &mut state.color_set2_2, "colorSet2_2");
+            tri_state_switch_row(ui, &mut state.color_set2_3, "colorSet2_3");
+            tri_state_switch_row(ui, &mut state.color_set3, "colorSet3");
+            tri_state_switch_row(ui, &mut state.color_set4, "colorSet4");
+            tri_state_switch_row(ui, &mut state.color_set5, "colorSet5");
+            tri_state_switch_row(ui, &mut state.color_set6, "colorSet6");
+            tri_state_switch_row(ui, &mut state.color_set7, "colorSet7");
 
-    ui.checkbox(&mut state.map1, "map1");
-    ui.checkbox(&mut state.bake1, "bake1");
-    ui.checkbox(&mut state.uv_set, "uvSet");
-    ui.checkbox(&mut state.uv_set1, "uvSet1");
-    ui.checkbox(&mut state.uv_set2, "uvSet2");
+            tri_state_switch_row(ui, &mut state.map1, "map1");
+            tri_state_switch_row(ui, &mut state.bake1, "bake1");
+            tri_state_switch_row(ui, &mut state.uv_set, "uvSet");
+            tri_state_switch_row(ui, &mut state.uv_set1, "uvSet1");
+            tri_state_switch_row(ui, &mut state.uv_set2, "uvSet2");
+        });
 }
 
 fn shader_finder_floats(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for (i, has_float) in state.has_float.iter_mut().enumerate() {
-        let param = ParamId::from_str(&format!("CustomFloat{i}")).unwrap();
-        ui.checkbox(has_float, param_label(param));
-    }
+    Grid::new("shader_finder_bool_grid")
+        .num_columns(2)
+        .show(ui, |ui| {
+            for (i, has_float) in state.has_float.iter_mut().enumerate() {
+                let param = ParamId::from_str(&format!("CustomFloat{i}")).unwrap();
+                ui.label(param_label(param));
+                tri_state_switch(ui, has_float);
+                ui.end_row();
+            }
+        });
 }
 
 fn shader_finder_booleans(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for (i, has_boolean) in state.has_boolean.iter_mut().enumerate() {
-        let param = ParamId::from_str(&format!("CustomBoolean{i}")).unwrap();
-        ui.checkbox(has_boolean, param_label(param));
-    }
+    Grid::new("shader_finder_bool_grid")
+        .num_columns(2)
+        .show(ui, |ui| {
+            for (i, has_boolean) in state.has_boolean.iter_mut().enumerate() {
+                let param = ParamId::from_str(&format!("CustomBoolean{i}")).unwrap();
+                ui.label(param_label(param));
+                tri_state_switch(ui, has_boolean);
+                ui.end_row();
+            }
+        });
 }
 
 fn shader_finder_textures(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for (i, has_texture) in state.has_texture.iter_mut().enumerate() {
-        let param = ParamId::from_str(&format!("Texture{i}")).unwrap();
-        ui.checkbox(has_texture, param_label(param));
-    }
+    Grid::new("shader_finder_texture_grid")
+        .num_columns(2)
+        .show(ui, |ui| {
+            for (i, has_texture) in state.has_texture.iter_mut().enumerate() {
+                let param = ParamId::from_str(&format!("Texture{i}")).unwrap();
+                ui.label(param_label(param));
+                tri_state_switch(ui, has_texture);
+                ui.end_row();
+            }
+        });
 }
 
 fn shader_finder_vectors(ui: &mut Ui, state: &mut ShaderFinderState) {
     // TODO: Skip parameters not used by any shader?
-    for (i, has_vector) in state.has_vector.iter_mut().enumerate() {
-        let param = ParamId::from_str(&format!("CustomVector{i}")).unwrap();
-        ui.checkbox(has_vector, param_label(param));
-    }
+    Grid::new("shader_finder_vector_grid")
+        .num_columns(2)
+        .show(ui, |ui| {
+            for (i, has_vector) in state.has_vector.iter_mut().enumerate() {
+                let param = ParamId::from_str(&format!("CustomVector{i}")).unwrap();
+                ui.label(param_label(param));
+                tri_state_switch(ui, has_vector);
+                ui.end_row();
+            }
+        });
+}
+
+fn tri_state_switch_row(ui: &mut Ui, filter: &mut FilterState, label: &str) -> egui::Response {
+    let label_response = ui.label(label);
+    tri_state_switch(ui, filter);
+    ui.end_row();
+    label_response
+}
+
+fn tri_state_switch(ui: &mut Ui, filter: &mut FilterState) {
+    // Represent yes, no, don't care using two separate toggles.
+    // This avoids needing a control with a hidden third state.
+    // Users can only click one option per frame, so this should be mutually exclusive.
+    let mut is_yes = *filter == FilterState::Include;
+    let mut is_no = *filter == FilterState::Exclude;
+    ui.horizontal(|ui| {
+        ui.toggle_value(&mut is_yes, "Yes");
+        ui.toggle_value(&mut is_no, "No");
+    });
+    *filter = if is_yes {
+        FilterState::Include
+    } else if is_no {
+        FilterState::Exclude
+    } else {
+        FilterState::Undecided
+    };
 }
 
 fn should_include_shader(state: &ShaderFinderState, shader: &ShaderProgram) -> bool {
@@ -829,48 +887,65 @@ fn should_include_shader(state: &ShaderFinderState, shader: &ShaderProgram) -> b
         && has_params(&state.has_boolean, shader, "CustomBoolean")
         && has_params(&state.has_float, shader, "CustomFloat")
         && has_params(&state.has_vector, shader, "CustomVector")
-        && (!state.discard || shader.discard)
-        && (!state.premultiplied || shader.premultiplied)
-        && (!state.receives_shadow || shader.receives_shadow)
-        && (!state.sh || shader.sh)
-        && (!state.lighting || shader.lighting)
-        && (!state.anisotropic_rotation || shader.anisotropic_rotation)
-        && (!state.renormal || shader.renormal)
-        && (!state.color_set1 || has_attr("colorSet1", shader))
-        && (!state.color_set2 || has_attr("colorSet2", shader))
-        && (!state.color_set2_1 || has_attr("colorSet2_1", shader))
-        && (!state.color_set2_2 || has_attr("colorSet2_2", shader))
-        && (!state.color_set2_3 || has_attr("colorSet2_3", shader))
-        && (!state.color_set3 || has_attr("colorSet3", shader))
-        && (!state.color_set4 || has_attr("colorSet4", shader))
-        && (!state.color_set5 || has_attr("colorSet5", shader))
-        && (!state.color_set6 || has_attr("colorSet6", shader))
-        && (!state.color_set7 || has_attr("colorSet7", shader))
-        && (!state.map1 || has_attr("map1", shader))
-        && (!state.bake1 || has_attr("bake1", shader))
-        && (!state.uv_set || has_attr("uvSet", shader))
-        && (!state.uv_set1 || has_attr("uvSet1", shader))
-        && (!state.uv_set2 || has_attr("uvSet2", shader))
+        && state.discard.check(shader.discard)
+        && state.premultiplied.check(shader.premultiplied)
+        && state.receives_shadow.check(shader.receives_shadow)
+        && state.sh.check(shader.sh)
+        && state.lighting.check(shader.lighting)
+        && state
+            .anisotropic_rotation
+            .check(shader.anisotropic_rotation)
+        && state.renormal.check(shader.renormal)
+        && has_attr(state.color_set1, "colorSet1", shader)
+        && has_attr(state.color_set2, "colorSet2", shader)
+        && has_attr(state.color_set2_1, "colorSet2_1", shader)
+        && has_attr(state.color_set2_2, "colorSet2_2", shader)
+        && has_attr(state.color_set2_3, "colorSet2_3", shader)
+        && has_attr(state.color_set3, "colorSet3", shader)
+        && has_attr(state.color_set4, "colorSet4", shader)
+        && has_attr(state.color_set5, "colorSet5", shader)
+        && has_attr(state.color_set6, "colorSet6", shader)
+        && has_attr(state.color_set7, "colorSet7", shader)
+        && has_attr(state.map1, "map1", shader)
+        && has_attr(state.bake1, "bake1", shader)
+        && has_attr(state.uv_set, "uvSet", shader)
+        && has_attr(state.uv_set1, "uvSet1", shader)
+        && has_attr(state.uv_set2, "uvSet2", shader)
 }
 
-fn has_attr(attribute: &str, shader: &ShaderProgram) -> bool {
-    shader
-        .attributes
-        .iter()
-        .any(|a| split_param(a).0 == attribute)
+fn has_attr(filter: FilterState, attribute: &str, shader: &ShaderProgram) -> bool {
+    match filter {
+        FilterState::Include => shader
+            .attributes
+            .iter()
+            .any(|a| split_param(a).0 == attribute),
+        FilterState::Exclude => !shader
+            .attributes
+            .iter()
+            .any(|a| split_param(a).0 == attribute),
+        FilterState::Undecided => true,
+    }
 }
 
-fn has_params(has_params: &[bool], shader: &ShaderProgram, prefix: &str) -> bool {
-    has_params.iter().enumerate().all(|(i, b)| {
+fn has_params(has_params: &[FilterState], shader: &ShaderProgram, prefix: &str) -> bool {
+    has_params.iter().enumerate().all(|(i, should_have_param)| {
         // Filter based on selected parameters.
-        if *b {
-            let param_name = format!("{prefix}{i}");
-            shader
-                .parameters
-                .iter()
-                .any(|p| split_param(p).0 == param_name)
-        } else {
-            true
+        match should_have_param {
+            FilterState::Include => {
+                let param_name = format!("{prefix}{i}");
+                shader
+                    .parameters
+                    .iter()
+                    .any(|p| split_param(p).0 == param_name)
+            }
+            FilterState::Exclude => {
+                let param_name = format!("{prefix}{i}");
+                !shader
+                    .parameters
+                    .iter()
+                    .any(|p| split_param(p).0 == param_name)
+            }
+            FilterState::Undecided => true,
         }
     })
 }

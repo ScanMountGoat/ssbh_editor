@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Improved rendering accuracy across many materials by recreating in game shader code.
 * Improved performance when the Shader Finder window is open.
+* Changed the search filters for the Shader Finder window to enable including, excluding, or not filtering an option using the "Yes" and "No" toggles.
 * Changed the Animations tab to only show the "Add Motion Folder" button prompt if the folder actually exists.
 * Improved validation for materials and material assignments.
 * Improved validation for RENORMAL materials and shaders.

@@ -241,38 +241,56 @@ pub struct MatlEditorState {
     pub shader_finder: ShaderFinderState,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, Default)]
+pub enum FilterState {
+    Include,
+    Exclude,
+    #[default]
+    Undecided,
+}
+
+impl FilterState {
+    pub fn check(&self, value: bool) -> bool {
+        match self {
+            FilterState::Include => value,
+            FilterState::Exclude => !value,
+            FilterState::Undecided => true,
+        }
+    }
+}
+
 pub struct ShaderFinderState {
     pub selected_shader: String,
 
     // TODO: Store just the used params instead?
-    pub has_float: [bool; 20],
-    pub has_boolean: [bool; 20],
-    pub has_texture: [bool; 20],
-    pub has_vector: [bool; 48],
+    pub has_float: [FilterState; 20],
+    pub has_boolean: [FilterState; 20],
+    pub has_texture: [FilterState; 20],
+    pub has_vector: [FilterState; 48],
 
-    pub discard: bool,
-    pub premultiplied: bool,
-    pub receives_shadow: bool,
-    pub sh: bool,
-    pub lighting: bool,
-    pub anisotropic_rotation: bool,
-    pub renormal: bool,
+    pub discard: FilterState,
+    pub premultiplied: FilterState,
+    pub receives_shadow: FilterState,
+    pub sh: FilterState,
+    pub lighting: FilterState,
+    pub anisotropic_rotation: FilterState,
+    pub renormal: FilterState,
 
-    pub color_set1: bool,
-    pub color_set2: bool,
-    pub color_set2_1: bool,
-    pub color_set2_2: bool,
-    pub color_set2_3: bool,
-    pub color_set3: bool,
-    pub color_set4: bool,
-    pub color_set5: bool,
-    pub color_set6: bool,
-    pub color_set7: bool,
-    pub map1: bool,
-    pub bake1: bool,
-    pub uv_set: bool,
-    pub uv_set1: bool,
-    pub uv_set2: bool,
+    pub color_set1: FilterState,
+    pub color_set2: FilterState,
+    pub color_set2_1: FilterState,
+    pub color_set2_2: FilterState,
+    pub color_set2_3: FilterState,
+    pub color_set3: FilterState,
+    pub color_set4: FilterState,
+    pub color_set5: FilterState,
+    pub color_set6: FilterState,
+    pub color_set7: FilterState,
+    pub map1: FilterState,
+    pub bake1: FilterState,
+    pub uv_set: FilterState,
+    pub uv_set1: FilterState,
+    pub uv_set2: FilterState,
 }
 
 impl Default for ShaderFinderState {
@@ -282,29 +300,29 @@ impl Default for ShaderFinderState {
             has_float: Default::default(),
             has_boolean: Default::default(),
             has_texture: Default::default(),
-            has_vector: [false; 48],
-            discard: false,
-            premultiplied: false,
-            receives_shadow: false,
-            sh: false,
-            lighting: false,
-            anisotropic_rotation: false,
-            renormal: false,
-            color_set1: false,
-            color_set2: false,
-            color_set2_1: false,
-            color_set2_2: false,
-            color_set2_3: false,
-            color_set3: false,
-            color_set4: false,
-            color_set5: false,
-            color_set6: false,
-            color_set7: false,
-            map1: false,
-            bake1: false,
-            uv_set: false,
-            uv_set1: false,
-            uv_set2: false,
+            has_vector: [Default::default(); 48],
+            discard: Default::default(),
+            premultiplied: Default::default(),
+            receives_shadow: Default::default(),
+            sh: Default::default(),
+            lighting: Default::default(),
+            anisotropic_rotation: Default::default(),
+            renormal: Default::default(),
+            color_set1: Default::default(),
+            color_set2: Default::default(),
+            color_set2_1: Default::default(),
+            color_set2_2: Default::default(),
+            color_set2_3: Default::default(),
+            color_set3: Default::default(),
+            color_set4: Default::default(),
+            color_set5: Default::default(),
+            color_set6: Default::default(),
+            color_set7: Default::default(),
+            map1: Default::default(),
+            bake1: Default::default(),
+            uv_set: Default::default(),
+            uv_set1: Default::default(),
+            uv_set2: Default::default(),
         }
     }
 }
