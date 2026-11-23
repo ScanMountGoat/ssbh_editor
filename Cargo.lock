@@ -3226,12 +3226,12 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=c6f2be0#c6f2be01484ca9a65f2fb17b54f202dec8dcc7a4"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=cdf0c4f#cdf0c4f573df78e851110dbf4543c75c1fea4b86"
 dependencies = [
  "bytemuck",
- "log",
  "nutexb",
  "thiserror 1.0.69",
+ "tracing",
  "wgpu",
  "wgsl_to_wgpu",
 ]
@@ -5018,7 +5018,7 @@ dependencies = [
 [[package]]
 name = "ssbh_data"
 version = "0.19.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=c1149c2#c1149c2822b857a351ed1c130aef2c6ec7430094"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=188df7c#188df7c1f55d493ba572625ad171cb8716ce3a39"
 dependencies = [
  "ahash",
  "bilge",
@@ -5079,7 +5079,7 @@ dependencies = [
 [[package]]
 name = "ssbh_lib"
 version = "0.19.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=c1149c2#c1149c2822b857a351ed1c130aef2c6ec7430094"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=188df7c#188df7c1f55d493ba572625ad171cb8716ce3a39"
 dependencies = [
  "bilge",
  "binrw 0.15.2",
@@ -5094,7 +5094,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=c6f2be0#c6f2be01484ca9a65f2fb17b54f202dec8dcc7a4"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=cdf0c4f#cdf0c4f573df78e851110dbf4543c75c1fea4b86"
 dependencies = [
  "aho-corasick",
  "bytemuck",
@@ -5106,7 +5106,6 @@ dependencies = [
  "image",
  "indexmap 1.9.3",
  "indoc",
- "log",
  "nutexb_wgpu",
  "prc-rs",
  "rayon",
@@ -5116,6 +5115,7 @@ dependencies = [
  "ssbh_data",
  "strum",
  "topological-sort",
+ "tracing",
  "walkdir",
  "wgpu",
  "wgsl_to_wgpu",
@@ -5125,7 +5125,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write"
 version = "0.19.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=c1149c2#c1149c2822b857a351ed1c130aef2c6ec7430094"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=188df7c#188df7c1f55d493ba572625ad171cb8716ce3a39"
 dependencies = [
  "ssbh_write_derive",
 ]
@@ -5133,7 +5133,7 @@ dependencies = [
 [[package]]
 name = "ssbh_write_derive"
 version = "0.19.0"
-source = "git+https://github.com/ultimate-research/ssbh_lib?rev=c1149c2#c1149c2822b857a351ed1c130aef2c6ec7430094"
+source = "git+https://github.com/ultimate-research/ssbh_lib?rev=188df7c#188df7c1f55d493ba572625ad171cb8716ce3a39"
 dependencies = [
  "proc-macro2",
  "quote",

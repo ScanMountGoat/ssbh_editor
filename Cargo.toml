@@ -16,9 +16,9 @@ egui_commonmark = "0.26.0"
 wgpu = "30.0.1"
 glam = { version = "0.34.3", features = ["bytemuck", "serde"] }
 rfd = "0.18.0"
-ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "c6f2be0" }
-nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "c6f2be0" }
-ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", rev = "c1149c2", features = ["strum", "serde"] }
+ssbh_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "cdf0c4f" }
+nutexb_wgpu = { git = "https://github.com/ScanMountGoat/ssbh_wgpu", rev = "cdf0c4f" }
+ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", rev = "188df7c", features = ["strum", "serde"] }
 strum = "0.27.2"
 nutexb = { git = "https://github.com/jam1garner/nutexb", rev = "7db7c08" }
 open = "5.2.0"
