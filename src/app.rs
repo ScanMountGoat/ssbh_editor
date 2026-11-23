@@ -74,7 +74,7 @@ pub enum RenderModelAction {
     Remove(usize),
     ReassignMaterials {
         model_index: usize,
-        modl: Option<ModlData>,
+        modl: ModlData,
     },
     UpdateMaterials {
         model_index: usize,
@@ -759,13 +759,19 @@ impl SsbhApp {
                 && let Some((name, Some(matl))) = model.model.matls.get_mut(matl_index)
             {
                 let orginal_json = serde_json::to_string(matl).unwrap();
+
+                let modl = find_file_mut(&mut model.model.modls, "model.numdlb");
+                let orginal_modl_json = modl
+                    .as_ref()
+                    .map(|modl| serde_json::to_string(modl).unwrap());
+
                 let response = matl_editor(
                     ctx,
                     &model.folder_path,
                     name,
                     &mut self.ui_state.matl_editor,
                     matl,
-                    find_file_mut(&mut model.model.modls, "model.numdlb"),
+                    modl,
                     model
                         .validation
                         .matl_errors
@@ -801,6 +807,24 @@ impl SsbhApp {
                             matl_name: name.clone(),
                         },
                     ));
+
+                    // Assume the modl hasn't been deleted or renamed.
+                    let modl = find_file_index(&model.model.modls, "model.numdlb");
+
+                    // Check if the modl was edited.
+                    if let (Some((i, modl)), Some(original_json)) = (modl, orginal_modl_json) {
+                        let new_json = serde_json::to_string(&modl).unwrap();
+                        if new_json != original_json {
+                            self.render_actions.push_back(RenderAction::Model(
+                                RenderModelAction::ReassignMaterials {
+                                    model_index: folder_index,
+                                    modl: modl.clone(),
+                                },
+                            ));
+                            model.changed.modls[i] = true;
+                            file_changed = true;
+                        }
+                    }
                 }
 
                 if let Some(message) = response.message {
@@ -843,12 +867,14 @@ impl SsbhApp {
                 self.preferences.dark_mode,
             ) {
                 // Perform a cheap clone to avoid lifetime issues.
-                self.render_actions.push_back(RenderAction::Model(
-                    RenderModelAction::ReassignMaterials {
-                        model_index: folder_index,
-                        modl: model.model.find_modl().cloned(),
-                    },
-                ));
+                if let Some(modl) = model.model.find_modl() {
+                    self.render_actions.push_back(RenderAction::Model(
+                        RenderModelAction::ReassignMaterials {
+                            model_index: folder_index,
+                            modl: modl.clone(),
+                        },
+                    ));
+                }
                 file_changed = true;
             }
 
@@ -1314,27 +1340,7 @@ fn handle_message(
                 mesh_object_subindex,
             }));
         }
-        crate::EditorMessage::RenameMaterial => {
-            // TODO: is there a better way for editors to trigger changes in other file types?
-            for ((i, (name, modl)), changed) in model
-                .model
-                .modls
-                .iter()
-                .enumerate()
-                .zip(model.changed.modls.iter_mut())
-            {
-                if name == "model.numdlb" {
-                    // TODO: This should check if the material actually changed.
-                    *changed = true;
-                    model_actions.push_back(RenderAction::Model(
-                        RenderModelAction::ReassignMaterials {
-                            model_index: i,
-                            modl: modl.clone(),
-                        },
-                    ));
-                }
-            }
-        }
+        _ => (),
     }
 }
 
@@ -1516,6 +1522,17 @@ fn find_file_mut<'a, T>(files: &'a mut [(String, FileResult<T>)], name: &str) ->
         .iter_mut()
         .find(|(f, _)| f == name)
         .and_then(|(_, m)| m.as_mut())
+}
+
+fn find_file_index<'a, T>(
+    files: &'a [(String, FileResult<T>)],
+    name: &str,
+) -> Option<(usize, &'a T)> {
+    files
+        .iter()
+        .enumerate()
+        .find(|(_, (f, _))| f == name)
+        .and_then(|(i, (_, m))| Some((i, m.as_ref()?)))
 }
 
 pub fn warning_icon_text(name: &str) -> RichText {
