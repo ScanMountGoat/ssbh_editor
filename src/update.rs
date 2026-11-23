@@ -68,8 +68,8 @@ fn configure_update() -> Result<Update, anyhow::Error> {
         "win_x64"
     } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         "macos_apple_silicon"
-    } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        "macos_apple_silicon"
+    } else if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
+        "macos_intel"
     } else if cfg!(target_os = "linux") {
         "linux_x64"
     } else {
