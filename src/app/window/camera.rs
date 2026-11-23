@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use egui::{Button, DragValue, Label, TextWrapMode, Ui};
+use tracing::error;
 use rfd::FileDialog;
 
 use crate::{CameraState, CameraValues, app::icon::github_button, horizontal_separator_empty};
@@ -46,7 +47,7 @@ pub fn camera_settings_window(
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Camera-Settings";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

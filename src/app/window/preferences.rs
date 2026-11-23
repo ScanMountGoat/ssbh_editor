@@ -10,6 +10,7 @@ use crate::{
 };
 
 use egui::{DragValue, TextWrapMode, Ui, Window};
+use tracing::error;
 use strum::VariantNames;
 
 pub fn preferences_window(
@@ -34,7 +35,7 @@ pub fn preferences_window(
                     {
                         let path = application_dir();
                         if let Err(e) = open::that(path) {
-                            log::error!("Failed to open {path:?}: {e}");
+                            error!("Failed to open {path:?}: {e}");
                         }
                     }
                 });
@@ -42,8 +43,10 @@ pub fn preferences_window(
                 ui.menu_button("Help", |ui| {
                     if github_button(ui, "Preferences Wiki", preferences.dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Preferences";
-                        if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                        if let Err(e) =
+                            open::that(link).inspect_err(|e| error!("Failed to open {link}: {e}"))
+                        {
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

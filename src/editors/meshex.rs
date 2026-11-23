@@ -4,6 +4,7 @@ use crate::{
 };
 use egui::{Grid, Label, Response, ScrollArea, Sense, Ui};
 
+use tracing::error;
 use ssbh_data::prelude::*;
 use std::path::Path;
 
@@ -52,7 +53,7 @@ pub fn meshex_editor(
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/MeshEx-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

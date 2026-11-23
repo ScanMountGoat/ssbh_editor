@@ -1,5 +1,5 @@
 use glam::{Vec4, vec4};
-use log::error;
+use tracing::error;
 use ssbh_data::matl_data::*;
 use ssbh_wgpu::shader_database::{ShaderProgram, split_param};
 use std::str::FromStr;

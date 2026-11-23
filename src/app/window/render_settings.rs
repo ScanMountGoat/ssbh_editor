@@ -4,6 +4,7 @@ use crate::{
     widgets::*,
 };
 use egui::ScrollArea;
+use tracing::error;
 use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
 
 pub fn render_settings_window(
@@ -26,7 +27,7 @@ pub fn render_settings_window(
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Render-Settings";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

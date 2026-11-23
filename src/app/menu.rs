@@ -10,6 +10,7 @@ use crate::{
 
 use super::{RenderAction, RenderModelAction, SsbhApp};
 use egui::{Button, TextWrapMode, Ui};
+use tracing::error;
 use rfd::FileDialog;
 
 pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
@@ -205,28 +206,28 @@ pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
             if github_button(ui, "Wiki", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki";
                 if let Err(e) = open::that(link) {
-                    log::error!("Failed to open {link}: {e}");
+                    error!("Failed to open {link}: {e}");
                 }
             }
 
             if github_button(ui, "Discussion Forum", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/discussions";
                 if let Err(e) = open::that(link) {
-                    log::error!("Failed to open {link}: {e}");
+                    error!("Failed to open {link}: {e}");
                 }
             }
 
             if github_button(ui, "Report Issue", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/issues";
                 if let Err(e) = open::that(link) {
-                    log::error!("Failed to open {link}: {e}");
+                    error!("Failed to open {link}: {e}");
                 }
             }
 
             if github_button(ui, "Changelog", app.preferences.dark_mode).clicked() {
                 let link = "https://github.com/ScanMountGoat/ssbh_editor/blob/main/CHANGELOG.md";
                 if let Err(e) = open::that(link) {
-                    log::error!("Failed to open {link}: {e}");
+                    error!("Failed to open {link}: {e}");
                 }
             }
         });

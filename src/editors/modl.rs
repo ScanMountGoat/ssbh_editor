@@ -13,6 +13,7 @@ use crate::{
 use egui::{Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::dnd;
 
+use tracing::error;
 use ssbh_data::{mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
 use std::path::Path;
 
@@ -59,7 +60,7 @@ pub fn modl_editor(
                     if github_button(ui, "Modl Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Modl-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

@@ -21,7 +21,7 @@ use egui::{
 };
 use egui_dnd::dnd;
 use glam::Vec4;
-use log::error;
+use tracing::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::shader_database::{ShaderDatabase, ShaderProgram, split_param};
@@ -1062,21 +1062,21 @@ fn help_menu(ui: &mut Ui, dark_mode: bool) {
         if github_button(ui, "Material Parameter Reference", dark_mode).clicked() {
             let link = "https://github.com/ScanMountGoat/Smush-Material-Research/blob/master/Material%20Parameters.md";
             if let Err(open_err) = open::that(link) {
-                log::error!("Failed to open link ({link}). {open_err}");
+                error!("Failed to open link ({link}). {open_err}");
             }
         }
 
         if ui.add(Button::new("Material Research Website").wrap_mode(TextWrapMode::Extend)).clicked() {
             let link = "https://scanmountgoat.github.io/Smush-Material-Research/";
             if let Err(open_err) = open::that(link) {
-                log::error!("Failed to open link ({link}). {open_err}");
+                error!("Failed to open link ({link}). {open_err}");
             }
         }
 
         if github_button(ui, "Matl Editor Wiki", dark_mode).clicked() {
             let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Matl-Editor";
             if let Err(e) = open::that(link) {
-                log::error!("Failed to open {link}: {e}");
+                error!("Failed to open {link}: {e}");
             }
         }
     });

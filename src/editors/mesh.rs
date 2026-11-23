@@ -16,7 +16,7 @@ use egui::{
 };
 use egui_dnd::dnd;
 use glam::{Mat4, Vec2, Vec4};
-use log::error;
+use tracing::error;
 use rfd::FileDialog;
 use ssbh_data::{
     mesh_data::{
@@ -80,7 +80,7 @@ pub fn mesh_editor(
                     if github_button(ui, "Mesh Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Mesh-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

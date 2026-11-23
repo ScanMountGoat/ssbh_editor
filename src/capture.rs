@@ -1,6 +1,6 @@
 use crate::{RenderState, app::SsbhApp};
 use futures::executor::block_on;
-use log::error;
+use tracing::error;
 
 pub fn render_screenshot(
     device: &wgpu::Device,

@@ -4,6 +4,7 @@ use crate::{
 };
 use egui::ScrollArea;
 
+use tracing::error;
 use ssbh_data::{adj_data::AdjEntryData, prelude::*};
 use std::path::Path;
 
@@ -40,7 +41,7 @@ pub fn adj_editor(
                     if github_button(ui, "Adj Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Adj-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

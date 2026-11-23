@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use crate::path::last_update_check_file;
-use log::error;
 use self_update::{cargo_crate_version, check_interval::UpdateCheckGuard};
+use tracing::error;
 
 pub struct LatestReleaseInfo {
     pub new_release: Option<NewRelease>,

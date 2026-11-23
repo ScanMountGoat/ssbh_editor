@@ -5,6 +5,7 @@ use crate::{
 };
 use egui::{ComboBox, DragValue, Scene, Slider};
 use egui_wgpu::{Callback, CallbackTrait};
+use tracing::error;
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;
 
@@ -27,7 +28,7 @@ pub fn nutexb_viewer(
                         let link =
                             "https://github.com/ScanMountGoat/ssbh_editor/wiki/Nutexb-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

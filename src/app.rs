@@ -1,5 +1,5 @@
 use crate::{
-    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorMessage, FileResult,
+    AnimationIndex, AnimationSlot, AnimationState, CameraState, EditorMessage, FileResult, LOGGER,
     RenderState, SwingState, Thumbnail,
     app::{
         anim_list::anim_list,
@@ -19,7 +19,6 @@ use crate::{
         nutexb::nutexb_viewer,
     },
     load_model,
-    log::AppLogger,
     model_folder::ModelFolderState,
     path::{folder_display_name, folder_editor_title},
     preferences::AppPreferences,
@@ -34,17 +33,15 @@ use egui::{
 };
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{CallbackResources, CallbackTrait, ScreenDescriptor};
-use log::error;
 use rfd::FileDialog;
 use ssbh_data::prelude::*;
 use ssbh_data::{adj_data::AdjEntryData, matl_data::MatlEntryData};
 use ssbh_wgpu::{RenderModel, next_frame};
-use std::sync::LazyLock;
 use std::{
     collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
-    sync::Mutex,
 };
+use tracing::error;
 
 mod anim_list;
 mod animation_bar;
@@ -57,10 +54,6 @@ mod rendering;
 mod shortcut;
 mod swing_list;
 mod window;
-
-pub static LOGGER: LazyLock<AppLogger> = LazyLock::new(|| AppLogger {
-    messages: Mutex::new(Vec::new()),
-});
 
 // Create messages for updates instead of updating directly.
 // This avoids mixing rendering and UI logic in the same function.
@@ -1588,16 +1581,14 @@ fn mesh_list(app: &mut SsbhApp, ui: &mut Ui, render_state: &mut RenderState) {
     }
 }
 
-fn log_level_icon(ui: &mut Ui, level: &log::Level) {
-    match level {
-        log::Level::Error => {
+fn log_level_icon(ui: &mut Ui, level: &tracing::Level) {
+    match *level {
+        tracing::Level::ERROR => {
             error_icon(ui);
         }
-        log::Level::Warn => {
+        tracing::Level::WARN => {
             warning_icon(ui);
         }
-        log::Level::Info => (),
-        log::Level::Debug => (),
-        log::Level::Trace => (),
+        _ => (),
     }
 }

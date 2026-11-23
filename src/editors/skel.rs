@@ -11,7 +11,7 @@ use crate::{
 };
 use egui::{Button, CollapsingHeader, Grid, Label, RichText, ScrollArea, TextWrapMode};
 use egui_dnd::dnd;
-use log::error;
+use tracing::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
 
@@ -74,7 +74,7 @@ pub fn skel_editor(
                     if github_button(ui, "Skel Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Skel-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

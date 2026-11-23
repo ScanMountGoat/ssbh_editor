@@ -1,4 +1,3 @@
-use ::log::error;
 use app::{RenderAction, RenderModelAction, StageLightingState};
 use egui::{
     Color32, CornerRadius, FontFamily, FontId, FontTweak, Stroke, TextStyle, Visuals,
@@ -22,7 +21,10 @@ use std::{
     sync::{Arc, LazyLock},
 };
 use thumbnail::Thumbnail;
+use tracing::error;
 use wuff::decompress_woff2;
+
+use crate::log::AppLogger;
 
 pub mod app;
 pub mod capture;
@@ -37,6 +39,8 @@ pub mod thumbnail;
 pub mod update;
 pub mod validation;
 pub mod widgets;
+
+pub static LOGGER: LazyLock<AppLogger> = LazyLock::new(|| AppLogger::new());
 
 pub static FONT_BYTES: LazyLock<Vec<u8>> =
     LazyLock::new(|| decompress_woff2(include_bytes!("fonts/NotoSansSC-Regular.woff2")).unwrap());

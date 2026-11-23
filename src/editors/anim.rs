@@ -8,6 +8,7 @@ use egui::{CentralPanel, CollapsingHeader, DragValue, Panel, RichText, ScrollAre
 use egui_extras::{Column, TableBuilder};
 use egui_plot::{HoverPosition, Legend, Line, Plot};
 
+use tracing::error;
 use ssbh_data::{
     anim_data::{GroupData, TrackData, TrackValues},
     prelude::*,
@@ -47,7 +48,7 @@ pub fn anim_editor(
                     if github_button(ui, "Anim Editor Wiki", dark_mode).clicked() {
                         let link = "https://github.com/ScanMountGoat/ssbh_editor/wiki/Anim-Editor";
                         if let Err(e) = open::that(link) {
-                            log::error!("Failed to open {link}: {e}");
+                            error!("Failed to open {link}: {e}");
                         }
                     }
                 });

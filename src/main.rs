@@ -10,7 +10,6 @@ use eframe::SurfaceConfig;
 use egui::ViewportBuilder;
 use egui_commonmark::CommonMarkCache;
 use egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
-use log::error;
 use nutexb_wgpu::TextureRenderer;
 use ssbh_editor::{
     AnimationState, CameraState, RenderState, SwingState,
@@ -25,15 +24,23 @@ use ssbh_editor::{
     update_color_theme, widgets_dark,
 };
 use ssbh_wgpu::{BoneNameRenderer, SsbhRenderer};
+use tracing::{error, level_filters::LevelFilter};
+use tracing_subscriber::{Layer, fmt::MakeWriter, layer::SubscriberExt, util::SubscriberInitExt};
 
 fn main() {
     let mut args = pico_args::Arguments::from_env();
 
     // Initialize logging first in case app startup has warnings.
     // TODO: Also log to a file?
-    log::set_logger(&*ssbh_editor::app::LOGGER)
-        .map(|()| log::set_max_level(log::LevelFilter::Info))
-        .unwrap();
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .without_time()
+                .with_ansi(false)
+                .with_writer(ssbh_editor::LOGGER.make_writer())
+                .with_filter(LevelFilter::ERROR),
+        )
+        .init();
 
     #[cfg(target_os = "macos")]
     let icon_bytes = include_bytes!("icons/SsbhEditor512_mac.png");

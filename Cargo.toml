@@ -22,7 +22,8 @@ ssbh_data = { git = "https://github.com/ultimate-research/ssbh_lib", rev = "c114
 strum = "0.27.2"
 nutexb = { git = "https://github.com/jam1garner/nutexb", rev = "7db7c08" }
 open = "5.2.0"
-log = "0.4.17"
+tracing = "0.1"
+tracing-subscriber = "0.3"
 serde_json = "1.0"
 strip-ansi-escapes = "0.2.0"
 image = "0.25.1"
