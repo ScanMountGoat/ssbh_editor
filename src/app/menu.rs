@@ -10,8 +10,8 @@ use crate::{
 
 use super::{RenderAction, RenderModelAction, SsbhApp};
 use egui::{Button, TextWrapMode, Ui};
-use tracing::error;
 use rfd::FileDialog;
+use tracing::error;
 
 pub fn menu_bar(app: &mut SsbhApp, ui: &mut Ui) {
     // Shortcuts need to be handled even while the menu is not open.

@@ -10,8 +10,8 @@ use crate::{
 };
 
 use egui::{DragValue, TextWrapMode, Ui, Window};
-use tracing::error;
 use strum::VariantNames;
+use tracing::error;
 
 pub fn preferences_window(
     ctx: &egui::Context,

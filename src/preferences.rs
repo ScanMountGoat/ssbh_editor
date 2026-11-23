@@ -1,7 +1,7 @@
 use crate::{CameraValues, path::preferences_file, widgets_dark};
-use tracing::error;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString, VariantNames};
+use tracing::error;
 
 #[derive(
     Debug,

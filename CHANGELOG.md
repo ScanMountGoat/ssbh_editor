@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added renormal calculation to the shader information in the Matl Editor.
 * Added an option to search for renormal shaders in the Shader Finder.
 * Added a "Convert to Parent Bone" option to the Mesh Editor if there is only a single bone influence.
+* Added support for downloading and installing updates from the new release window.
 
 ### Changed
 * Improved rendering accuracy across many materials by recreating in game shader code.
@@ -21,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved file modification detection to only show a file as modified if values actually changed.
 * Updated the logo and fixed centering for GitHub web page links.
 * Updated the application logo for MacOS to use the "squircle" design to match design guidelines.
+* Changed the appearance of the new release window to be more visible and support updating.
 
 ### Fixed
 * Fixed an issue where meshes with highlighted materials would show bloom over the highlighted color.

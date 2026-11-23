@@ -16,7 +16,6 @@ use egui::{
 };
 use egui_dnd::dnd;
 use glam::{Mat4, Vec2, Vec4};
-use tracing::error;
 use rfd::FileDialog;
 use ssbh_data::{
     mesh_data::{
@@ -26,6 +25,7 @@ use ssbh_data::{
     prelude::*,
 };
 use std::path::Path;
+use tracing::error;
 
 pub fn mesh_editor(
     ctx: &egui::Context,

@@ -4,9 +4,9 @@ use crate::{
 };
 use egui::ScrollArea;
 
-use tracing::error;
 use ssbh_data::{adj_data::AdjEntryData, prelude::*};
 use std::path::Path;
+use tracing::error;
 
 pub fn adj_editor(
     ctx: &egui::Context,

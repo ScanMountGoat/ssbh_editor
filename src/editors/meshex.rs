@@ -4,9 +4,9 @@ use crate::{
 };
 use egui::{Grid, Label, Response, ScrollArea, Sense, Ui};
 
-use tracing::error;
 use ssbh_data::prelude::*;
 use std::path::Path;
+use tracing::error;
 
 pub fn meshex_editor(
     ctx: &egui::Context,

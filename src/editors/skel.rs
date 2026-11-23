@@ -11,9 +11,9 @@ use crate::{
 };
 use egui::{Button, CollapsingHeader, Grid, Label, RichText, ScrollArea, TextWrapMode};
 use egui_dnd::dnd;
-use tracing::error;
 use rfd::FileDialog;
 use ssbh_data::{prelude::*, skel_data::BoneData};
+use tracing::error;
 
 pub fn skel_editor(
     ctx: &egui::Context,

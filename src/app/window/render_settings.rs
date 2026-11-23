@@ -4,8 +4,8 @@ use crate::{
     widgets::*,
 };
 use egui::ScrollArea;
-use tracing::error;
 use ssbh_wgpu::{DebugMode, ModelRenderOptions, RenderSettings, SkinningSettings};
+use tracing::error;
 
 pub fn render_settings_window(
     ctx: &egui::Context,

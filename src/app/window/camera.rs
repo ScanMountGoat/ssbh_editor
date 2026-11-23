@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use egui::{Button, DragValue, Label, TextWrapMode, Ui};
-use tracing::error;
 use rfd::FileDialog;
+use tracing::error;
 
 use crate::{CameraState, CameraValues, app::icon::github_button, horizontal_separator_empty};
 

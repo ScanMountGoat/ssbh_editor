@@ -8,12 +8,12 @@ use egui::{CentralPanel, CollapsingHeader, DragValue, Panel, RichText, ScrollAre
 use egui_extras::{Column, TableBuilder};
 use egui_plot::{HoverPosition, Legend, Line, Plot};
 
-use tracing::error;
 use ssbh_data::{
     anim_data::{GroupData, TrackData, TrackValues},
     prelude::*,
 };
 use std::path::Path;
+use tracing::error;
 
 pub fn anim_editor(
     ctx: &egui::Context,

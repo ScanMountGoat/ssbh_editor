@@ -5,9 +5,9 @@ use crate::{
 };
 use egui::{ComboBox, DragValue, Scene, Slider};
 use egui_wgpu::{Callback, CallbackTrait};
-use tracing::error;
 use nutexb::{NutexbFile, NutexbFormat};
 use nutexb_wgpu::RenderSettings;
+use tracing::error;
 
 pub fn nutexb_viewer(
     ctx: &egui::Context,

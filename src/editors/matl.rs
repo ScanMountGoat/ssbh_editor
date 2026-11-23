@@ -21,12 +21,12 @@ use egui::{
 };
 use egui_dnd::dnd;
 use glam::Vec4;
-use tracing::error;
 use rfd::FileDialog;
 use ssbh_data::{matl_data::*, modl_data::ModlEntryData, prelude::*};
 use ssbh_wgpu::shader_database::{ShaderDatabase, ShaderProgram, split_param};
 use std::{path::Path, str::FromStr};
 use strum::IntoEnumIterator;
+use tracing::error;
 
 const UNUSED_PARAM: &str =
     "This parameter is not required by the shader and will be ignored in game.";

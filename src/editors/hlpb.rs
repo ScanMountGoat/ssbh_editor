@@ -11,11 +11,11 @@ use crate::{
 use egui::{CentralPanel, DragValue, Grid, Panel, RichText, ScrollArea, TextEdit, Ui};
 
 use glam::{Quat, Vec3, quat, vec3};
-use tracing::error;
 use ssbh_data::{
     hlpb_data::{AimConstraintData, OrientConstraintData},
     prelude::*,
 };
+use tracing::error;
 
 pub fn hlpb_editor(
     ctx: &egui::Context,

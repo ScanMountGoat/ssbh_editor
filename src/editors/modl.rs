@@ -13,9 +13,9 @@ use crate::{
 use egui::{Grid, Label, RichText, ScrollArea, TextEdit};
 use egui_dnd::dnd;
 
-use tracing::error;
 use ssbh_data::{mesh_data::MeshObjectData, modl_data::ModlEntryData, prelude::*};
 use std::path::Path;
+use tracing::error;
 
 pub fn modl_editor(
     ctx: &egui::Context,
