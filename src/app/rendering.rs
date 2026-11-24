@@ -14,8 +14,6 @@ impl SsbhApp {
         height: f32,
         scale_factor: f32,
     ) {
-        // TODO: Load models on a separate thread to avoid freezing the UI.
-        // TODO: Just take the entire app as a parameter?
         render_state.update(
             device,
             queue,
@@ -30,13 +28,13 @@ impl SsbhApp {
         );
 
         // TODO: Does this need to be updated every frame?
+        let (mvp, transforms) = camera_transforms(&self.camera_state, width, height, scale_factor);
         update_camera(
             queue,
             &mut render_state.renderer,
             &mut self.camera_state,
-            width,
-            height,
-            scale_factor,
+            mvp,
+            transforms,
         );
 
         if self.should_validate_models {
@@ -71,6 +69,16 @@ impl SsbhApp {
         if self.animation_state.is_playing || self.animation_state.should_update_animations {
             self.animate(queue, render_state, width, height, scale_factor);
             self.animation_state.should_update_animations = false;
+        }
+
+        // The PerWorld data uses the animation transforms.
+        // The update needs to happen after animating to avoid flickering.
+        for (render_model, model) in render_state
+            .render_models
+            .iter_mut()
+            .zip(self.models.iter())
+        {
+            render_model.update_per_world(queue, &transforms, model.model.find_skel());
         }
     }
 
@@ -171,10 +179,21 @@ fn update_camera(
     queue: &wgpu::Queue,
     renderer: &mut SsbhRenderer,
     camera_state: &mut CameraState,
+    mvp_matrix: glam::Mat4,
+    transforms: CameraTransforms,
+) {
+    renderer.update_camera(queue, transforms);
+
+    // Needed for bone name rendering.
+    camera_state.mvp_matrix = mvp_matrix;
+}
+
+fn camera_transforms(
+    camera_state: &CameraState,
     width: f32,
     height: f32,
     scale_factor: f32,
-) {
+) -> (glam::Mat4, CameraTransforms) {
     let (camera_pos, model_view_matrix, projection_matrix, mvp_matrix) =
         calculate_mvp(width, height, &camera_state.values);
     let transforms = CameraTransforms {
@@ -185,10 +204,7 @@ fn update_camera(
         camera_pos,
         screen_dimensions: glam::Vec4::new(width, height, scale_factor, 0.0),
     };
-    renderer.update_camera(queue, transforms);
-
-    // Needed for bone name rendering.
-    camera_state.mvp_matrix = mvp_matrix;
+    (mvp_matrix, transforms)
 }
 
 // TODO: Separate module for camera + input handling?

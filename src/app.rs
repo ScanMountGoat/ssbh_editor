@@ -1324,7 +1324,7 @@ fn open_editor<T: Editor>(
 }
 
 fn handle_message(
-    model: &mut ModelFolderState,
+    _model: &mut ModelFolderState,
     model_actions: &mut VecDeque<RenderAction>,
     selected_folder_index: usize,
     message: EditorMessage,
