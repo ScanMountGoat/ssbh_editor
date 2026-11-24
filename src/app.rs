@@ -1193,14 +1193,10 @@ impl eframe::App for SsbhApp {
         self.ui_state.matl_editor.hovered_material_index = None;
 
         if self.animation_state.is_playing {
-            let final_frame_index = self.max_final_frame_index(render_state);
-
             self.animation_state.current_frame = next_frame(
                 self.animation_state.current_frame,
                 current_frame_start.duration_since(self.animation_state.previous_frame_start),
-                final_frame_index,
                 self.animation_state.playback_speed,
-                self.animation_state.should_loop,
             );
             // eframe is reactive by default, so we need to repaint.
             ui.request_repaint();

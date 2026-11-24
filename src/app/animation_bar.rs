@@ -31,42 +31,45 @@ pub fn display_animation_bar(
 
             let response = ui.add(
                 // TODO: Show ticks?
+                // Use the slider for selecting valid frame ranges.
+                // Allow out of range values when not editing to support anims without final frames.
                 egui::Slider::new(&mut animation_state.current_frame, 0.0..=final_frame_index)
                     .step_by(step)
-                    .show_value(false),
+                    .show_value(false)
+                    .clamping(egui::SliderClamping::Edits),
             );
             if response.hovered() {
                 ui.input_mut(|i| {
                     if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowLeft) {
-                        //Go back one frame
+                        // Go back one frame
                         animation_state.current_frame =
                             (animation_state.current_frame - 1.0).ceil();
                         animation_state.should_update_animations = true;
                     } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowRight) {
-                        //Go forward one frame
+                        // Go forward one frame
                         animation_state.current_frame =
                             (animation_state.current_frame + 1.0).floor();
                         animation_state.should_update_animations = true;
                     } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowLeft) {
-                        //Go back to first frame
+                        // Go back to first frame
                         animation_state.current_frame = 0.0;
                         animation_state.should_update_animations = true;
                     } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowRight) {
-                        //Go forward to last frame
+                        // Go forward to last frame
                         animation_state.current_frame = final_frame_index;
                         animation_state.should_update_animations = true;
                     } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowUp) {
-                        //Speed up by 0.01
+                        // Speed up by 0.01
                         animation_state.playback_speed += 0.01;
                     } else if i.consume_key(egui::Modifiers::default(), egui::Key::ArrowDown) {
-                        //Slow down by 0.01
+                        // Slow down by 0.01
                         animation_state.playback_speed -= 0.01;
                     } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowUp) {
-                        //Speed up to multiple of 0.25
+                        // Speed up to multiple of 0.25
                         animation_state.playback_speed =
                             (animation_state.playback_speed * 4.0 + 1.0).floor() / 4.0;
                     } else if i.consume_key(egui::Modifiers::COMMAND, egui::Key::ArrowDown) {
-                        //Slow down to multiple of 0.25
+                        // Slow down to multiple of 0.25
                         animation_state.playback_speed =
                             (animation_state.playback_speed * 4.0 - 1.0).ceil() / 4.0;
                     }
@@ -91,11 +94,11 @@ pub fn display_animation_bar(
                 animation_state.is_playing = true;
             }
 
+            // Don't clamp manually entered values to be able to support animations without a final frame.
             if ui
                 .add_sized(
                     [60.0, 20.0],
-                    egui::DragValue::new(&mut animation_state.current_frame)
-                        .range(0.0..=final_frame_index),
+                    egui::DragValue::new(&mut animation_state.current_frame).range(0.0..=f32::MAX),
                 )
                 .changed()
             {

@@ -170,6 +170,7 @@ impl SsbhApp {
                 },
                 &render_state.shared_data,
                 self.animation_state.current_frame,
+                self.animation_state.should_loop,
             );
         }
     }
