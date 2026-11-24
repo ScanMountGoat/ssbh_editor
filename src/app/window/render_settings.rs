@@ -99,10 +99,6 @@ fn edit_render_settings(
     horizontal_separator_empty(ui);
 
     ui.heading("Render Passes");
-    ui.checkbox(&mut settings.render_diffuse, "Enable Diffuse");
-    ui.checkbox(&mut settings.render_specular, "Enable Specular");
-    ui.checkbox(&mut settings.render_emission, "Enable Emission");
-    ui.checkbox(&mut settings.render_rim_lighting, "Enable Rim Lighting");
     ui.checkbox(&mut settings.render_bloom, "Enable Bloom");
     horizontal_separator_empty(ui);
 

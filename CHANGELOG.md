@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Updated the application logo for MacOS to use the "squircle" design to match design guidelines.
 * Changed the appearance of the new release window to be more visible and support updating.
 
+### Removed
+* Removed the "Enable Diffuse", "Enable Specular", "Enable Emission", and "Enable Rim Lighting" toggles from the Render Settings window since these are not supported by the generated shaders.
+
 ### Fixed
 * Fixed an issue where meshes with highlighted materials would show bloom over the highlighted color.
 * Fixed an issue where material highlighting for files other than the model.numatb would highlight the wrong meshes in some cases.
