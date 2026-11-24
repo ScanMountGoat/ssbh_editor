@@ -64,13 +64,14 @@ pub fn check_for_updates() -> anyhow::Result<LatestReleaseInfo> {
 }
 
 fn configure_update() -> Result<Update, anyhow::Error> {
-    let target = if cfg!(target_os = "windows") {
+    // The GitHub release only has compiled binaries for common configurations.
+    let target = if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
         "win_x64"
     } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         "macos_apple_silicon"
     } else if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
         "macos_intel"
-    } else if cfg!(target_os = "linux") {
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
         "linux_x64"
     } else {
         anyhow::bail!(
