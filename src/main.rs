@@ -64,7 +64,9 @@ fn main() {
 
     create_app_data_directory();
 
-    let release_info = check_for_updates().unwrap_or_default();
+    let release_info = check_for_updates()
+        .inspect_err(|e| error!("Error checking for updates: {e}"))
+        .unwrap_or_default();
 
     let presets_file = presets_file();
     let material_presets = load_material_presets(presets_file);
