@@ -194,7 +194,7 @@ fn update_camera(
     camera_state.mvp_matrix = mvp_matrix;
 }
 
-fn camera_transforms(
+pub fn camera_transforms(
     camera_state: &CameraState,
     width: f32,
     height: f32,

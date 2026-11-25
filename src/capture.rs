@@ -1,4 +1,7 @@
-use crate::{RenderState, app::SsbhApp};
+use crate::{
+    RenderState,
+    app::{SsbhApp, rendering::camera_transforms},
+};
 use futures::executor::block_on;
 use tracing::error;
 
@@ -236,6 +239,21 @@ fn render_animation_sequence(
     app.animation_state.current_frame = 0.0;
     while app.animation_state.current_frame <= final_frame {
         app.animate(queue, render_state, width as f32, height as f32, 1.0);
+
+        // The PerWorld data uses the animation transforms.
+        // The update needs to happen after animating to avoid flickering.
+        let (_, transforms) =
+            camera_transforms(&app.camera_state, width as f32, height as f32, 1.0);
+
+        // TODO: move the per frame update logic to ssbh_wgpu
+        for (render_model, model) in render_state.render_models.iter_mut().zip(app.models.iter()) {
+            render_model.update_per_world(
+                queue,
+                &transforms,
+                model.model.find_skel(),
+                &render_state.skinning_settings,
+            );
+        }
 
         let frame = render_screenshot(device, queue, render_state, width, height, surface_format);
         frames.push(frame);

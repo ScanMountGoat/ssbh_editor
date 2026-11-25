@@ -50,7 +50,7 @@ pub mod emoji;
 mod file_list;
 pub mod icon;
 mod menu;
-mod rendering;
+pub mod rendering;
 mod shortcut;
 mod swing_list;
 mod window;
