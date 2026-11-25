@@ -1067,15 +1067,14 @@ impl SsbhApp {
             });
     }
 
-    fn bottom_panel(&mut self, ui: &mut Ui, render_state: &mut RenderState) {
-        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-            let final_frame_index = self.max_final_frame_index(render_state);
-            display_animation_bar(ui, &mut self.animation_state, final_frame_index);
+    fn viewport_bottom_panel(&mut self, ui: &mut Ui, render_state: &mut RenderState) {
+        let final_frame_index = self.max_final_frame_index(render_state);
+        display_animation_bar(ui, &mut self.animation_state, final_frame_index);
+    }
 
-            // The next layout needs to be min since it's nested inside a centered layout.
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                self.show_most_recent_log_message(ui);
-            });
+    fn bottom_panel(&mut self, ui: &mut Ui) {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            self.show_most_recent_log_message(ui);
         });
     }
 
@@ -1253,14 +1252,14 @@ impl eframe::App for SsbhApp {
         // Any changes in any file should trigger validation again.
         self.should_validate_models |= self.file_editors(ui, render_state);
 
+        if self.show_bottom_panel {
+            Panel::bottom("bottom panel").show(ui, |ui| self.bottom_panel(ui));
+        }
+
         if self.show_left_panel {
             Panel::left("left_panel")
                 .default_size(200.0)
                 .show(ui, |ui| self.files_list(ui));
-        }
-
-        if self.show_bottom_panel {
-            Panel::bottom("bottom panel").show(ui, |ui| self.bottom_panel(ui, render_state));
         }
 
         if self.show_right_panel {
@@ -1270,6 +1269,11 @@ impl eframe::App for SsbhApp {
         }
 
         CentralPanel::default().show(ui, |ui| {
+            if self.show_bottom_panel {
+                Panel::bottom("viewport bottom panel")
+                    .show(ui, |ui| self.viewport_bottom_panel(ui, render_state));
+            }
+
             if self.models.is_empty() {
                 ui.centered_and_justified(|ui| {
                     let o = format_shortcut(&shortcut::OPEN_FOLDER);

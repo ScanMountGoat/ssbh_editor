@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Changed the appearance of the new release window to be more visible.
 * Adjusted animation playback to loop individually for each animation to allows viewing animations with different final frames.
 * Adjusted the animation bar to not clamp the final frame value for manually entered valeus to support animations that don't use a final frame like some material animations.
+* Moved the animation bar panel to the viewport panel.
 
 ### Removed
 * Removed the "Enable Diffuse", "Enable Specular", "Enable Emission", and "Enable Rim Lighting" toggles from the Render Settings window since these are not supported by the generated shaders.
