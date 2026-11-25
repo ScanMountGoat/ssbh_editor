@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Added an option to search for renormal shaders in the Shader Finder.
 * Added a "Convert to Parent Bone" option to the Mesh Editor if there is only a single bone influence.
 * Added support for downloading and installing updates from the new release window.
+* Added rendering support for billboarding for bones.
 
 ### Changed
 * Improved rendering accuracy across many materials by recreating in game shader code.
