@@ -18,9 +18,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libgtk-3-dev
     - name: Build
-      run: cargo build --profile release-lto
+      run: cargo build --release
     - name: Create Release Zip
-      run: zip -j ssbh_editor_linux_x64.zip target/release-lto/ssbh_editor
+      run: zip -j ssbh_editor_linux_x64.zip target/release/ssbh_editor
     - name: Upload Zip
       uses: actions/upload-artifact@v7
       with:
@@ -39,13 +39,13 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Build
-      run: cargo build --profile release-lto
+      run: cargo build --release
     - name: Set Icon
       run: |
         curl.exe -sSL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-        .\rcedit.exe target/release-lto/ssbh_editor.exe --set-icon src/icons/SsbhEditor.ico
+        .\rcedit.exe target/release/ssbh_editor.exe --set-icon src/icons/SsbhEditor.ico
     - name: Create Release Zip
-      run: Compress-Archive -path target/release-lto/ssbh_editor.exe -destinationPath ssbh_editor_win_x64.zip
+      run: Compress-Archive -path target/release/ssbh_editor.exe -destinationPath ssbh_editor_win_x64.zip
     - name: Upload Zip
       uses: actions/upload-artifact@v7
       with:
