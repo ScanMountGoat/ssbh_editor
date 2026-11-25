@@ -78,7 +78,12 @@ impl SsbhApp {
             .iter_mut()
             .zip(self.models.iter())
         {
-            render_model.update_per_world(queue, &transforms, model.model.find_skel());
+            render_model.update_per_world(
+                queue,
+                &transforms,
+                model.model.find_skel(),
+                &render_state.skinning_settings,
+            );
         }
     }
 
