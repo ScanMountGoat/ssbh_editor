@@ -3247,7 +3247,7 @@ dependencies = [
 [[package]]
 name = "nutexb_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=1502624#15026246cfc809df18f778d2000bf213aa69223f"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=4982d80#4982d806cfd70b8ba328be53e2ece2e52e173fe7"
 dependencies = [
  "bytemuck",
  "nutexb",
@@ -4995,7 +4995,7 @@ dependencies = [
 [[package]]
 name = "smush_shader"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/Smush-Material-Research?rev=8fa02f7#8fa02f754069941c5b16c24792d144213d9da445"
+source = "git+https://github.com/ScanMountGoat/Smush-Material-Research?rev=b61f818#b61f818f872118d6001d0422e312f184ea29133d"
 dependencies = [
  "ahash",
  "binrw 0.15.2",
@@ -5116,7 +5116,7 @@ dependencies = [
 [[package]]
 name = "ssbh_wgpu"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=1502624#15026246cfc809df18f778d2000bf213aa69223f"
+source = "git+https://github.com/ScanMountGoat/ssbh_wgpu?rev=4982d80#4982d806cfd70b8ba328be53e2ece2e52e173fe7"
 dependencies = [
  "aho-corasick",
  "bytemuck",
