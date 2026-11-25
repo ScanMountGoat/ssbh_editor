@@ -63,7 +63,7 @@ pub fn github_button(ui: &mut Ui, text: &str, dark_mode: bool) -> Response {
     ui.add(
         egui::Button::image_and_text(
             egui::Image::new(egui::include_image!(
-                "../icons/Github_Invertocat_White_Clearspace.svg"
+                "../icons/GitHub_Invertocat_White_Clearspace.svg"
             ))
             .tint(tint),
             text,
