@@ -16,14 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Improved rendering accuracy across many materials by recreating in game shader code.
 * Improved performance when the Shader Finder window is open.
-* Changed the search filters for the Shader Finder window to enable including, excluding, or not filtering an option using the "Yes" and "No" toggles.
+* Changed the search filters for the Shader Finder window to enable including, excluding, or not filtering an option using "Yes" and "No" toggles.
 * Changed the Animations tab to only show the "Add Motion Folder" button prompt if the folder actually exists.
 * Improved validation for materials and material assignments.
 * Improved validation for RENORMAL materials and shaders.
 * Improved file modification detection to only show a file as modified if values actually changed.
 * Updated the logo and fixed centering for GitHub web page links.
 * Updated the application logo for MacOS to use the "squircle" design to match design guidelines.
-* Changed the appearance of the new release window to be more visible and support updating.
+* Changed the appearance of the new release window to be more visible.
 * Adjusted animation playback to loop individually for each animation to allows viewing animations with different final frames.
 * Adjusted the animation bar to not clamp the final frame value for manually entered valeus to support animations that don't use a final frame like some material animations.
 
