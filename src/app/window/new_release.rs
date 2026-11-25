@@ -19,18 +19,64 @@ pub fn new_release_window(
                     ui,
                     |_| {},
                     |ui| {
-                        if ui.button("Update").clicked() {
-                            // TODO: show progress indication
-                            // TODO: restart when installation finishes?
-                            if let Some(update) = &new_release.update {
-                                if let Err(e) = update.update() {
-                                    error!("Failed to update to version {}: {e}", new_release.tag);
+                        if let Some(version) = &release_info.installed_update_version {
+                            if ui
+                                .button("Restart")
+                                .on_hover_text("Restart the newly updated application")
+                                .clicked()
+                            {
+                                // TODO: restart with the open folders?
+                                let Err(e) = self_update::restart::restart();
+                                error!("Failed to restart after update: {e}");
+                                release_info.finished_update = false;
+                                ui.close();
+                            }
+                            if ui
+                                .button("Close")
+                                .on_hover_text("Close this window to restart manually later")
+                                .clicked()
+                            {
+                                release_info.finished_update = false;
+                                ui.close();
+                            }
+
+                            ui.label(format!(
+                                "Updated to version {version}. Restart for this to take effect."
+                            ));
+                        } else {
+                            if ui
+                                .button("Update")
+                                .on_hover_text(
+                                    "Download and replace this executable with the latest release",
+                                )
+                                .clicked()
+                            {
+                                // TODO: show progress indication
+                                if let Some(update) = &new_release.update {
+                                    match update.update() {
+                                        Ok(status) => {
+                                            if status.is_updated() {
+                                                release_info.finished_update = true;
+                                                release_info.installed_update_version =
+                                                    Some(status.version().to_string());
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!(
+                                                "Failed to update to version {}: {e}",
+                                                new_release.tag
+                                            );
+                                        }
+                                    }
                                 }
                             }
-                            ui.close();
-                        }
-                        if ui.button("Remind Me Later").clicked() {
-                            ui.close();
+                            if ui
+                                .button("Remind Me Later")
+                                .on_hover_text("Cancel the update until the next update check")
+                                .clicked()
+                            {
+                                ui.close();
+                            }
                         }
                     },
                 )

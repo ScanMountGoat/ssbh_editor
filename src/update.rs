@@ -11,6 +11,8 @@ pub struct LatestReleaseInfo {
     pub new_release: Option<NewRelease>,
     // TODO: Move to UI state.
     pub should_show_update: bool,
+    pub finished_update: bool,
+    pub installed_update_version: Option<String>,
 }
 
 pub struct NewRelease {
@@ -60,6 +62,8 @@ pub fn check_for_updates() -> anyhow::Result<LatestReleaseInfo> {
     Ok(LatestReleaseInfo {
         new_release,
         should_show_update,
+        finished_update: false,
+        installed_update_version: None,
     })
 }
 
