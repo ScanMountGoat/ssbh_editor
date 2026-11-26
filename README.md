@@ -40,13 +40,6 @@ Animations are assigned to each folder from the animation tab. Each model folder
 ## Validation
 SSBH Editor provides a more intuitive and robust visual editing experience compared to editing JSON files from ssbh_data_json. SSBH Editor checks that binary files are correctly formatted and validates relationships between files in a model folder. This is helpful for custom model imports that may have errors like incorrect material names or invalid vertex skin weights. See [validation errors](https://github.com/ScanMountGoat/ssbh_editor/wiki/Validation-Errors) for details.
 
-## Planned Features
-- Additional render settings
-- Improvements to performance and accuracy of ssbh_wgpu
-- Improved validation for errors with models, textures, and animations
-- Preview shcpanim lighting files.
-- Improved spacing and consistency for UI
-
 ## System Requirements
 SSBH Editor runs on newer versions of Windows, Linux, and MacOS. The model rendering provided by ssbh_wgpu requires some graphical features not supported on older devices. Windows supports Vulkan or DX12, Linux supports Vulkan, and MacOS supports Metal. SSBH Editor for Windows 
 requires the Visual C++ 2015 runtime, which can be downloaded from https://www.microsoft.com/en-us/download/details.aspx?id=52685. Linux or MacOS users shouldn't need to install anything to run SSBH Editor.
