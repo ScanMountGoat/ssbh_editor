@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## unreleased
+## 0.12.0 - 2026-11-26
 ### Added
 * Added an option to Render Settings to change the material type.
 * Added rendering support for metamon (ditto), light, and dark materials.
